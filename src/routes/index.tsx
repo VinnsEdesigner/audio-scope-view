@@ -7,7 +7,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <main className="min-h-screen bg-background px-4 py-6">
+    <main className="h-[100dvh] w-full overflow-hidden bg-background">
       <ScopeClient />
     </main>
   );
