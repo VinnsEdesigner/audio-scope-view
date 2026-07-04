@@ -5,19 +5,21 @@ const Oscilloscope = lazy(() =>
   import("./Oscilloscope").then((m) => ({ default: m.Oscilloscope })),
 );
 
+function Loading() {
+  return (
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-background text-sm text-muted-foreground">
+      Loading DSP engine…
+    </div>
+  );
+}
+
 export function ScopeClient() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) {
-    return (
-      <div className="mx-auto flex h-64 w-full max-w-3xl items-center justify-center rounded-lg border bg-card text-sm text-muted-foreground">
-        Loading DSP engine…
-      </div>
-    );
-  }
+  if (!mounted) return <Loading />;
   return (
-    <Suspense fallback={<div className="py-10 text-center text-sm text-muted-foreground">Loading DSP engine…</div>}>
+    <Suspense fallback={<Loading />}>
       <Oscilloscope />
     </Suspense>
   );
