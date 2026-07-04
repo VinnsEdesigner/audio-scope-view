@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play,
   Square,
-  Activity,
   Radio,
-  Gauge,
-  Waves,
   Snowflake,
   Menu,
   ChevronDown,
