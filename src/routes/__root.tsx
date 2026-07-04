@@ -77,11 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "ADC Probe Scope — Phone Oscilloscope" },
+      {
+        name: "description",
+        content:
+          "Turn your phone's ADC / microphone line into an oscilloscope probe. Live HTML5 canvas traces, spectrum view, and a Rust WebAssembly DSP engine.",
+      },
+      { name: "author", content: "ADC Probe Scope" },
+      { property: "og:title", content: "ADC Probe Scope — Phone Oscilloscope" },
+      {
+        property: "og:description",
+        content:
+          "Live oscilloscope from your phone's mic/ADC line. Canvas rendering + Rust WASM DSP.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
