@@ -61,6 +61,12 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@theme inline {
+  --color-scope-trace: var(--scope-trace);
+  --color-scope-grid: var(--scope-grid);
+  --color-scope-bg: var(--scope-bg);
+}
+
 :root {
   --radius: 0.5rem;
   /* Phosphor-scope dark instrument theme */
