@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Turn your phone's ADC / microphone line into an oscilloscope probe. Live HTML5 canvas traces, spectrum view, and a Rust WebAssembly DSP engine.",
+          "Turn your phone's ADC / microphone line into an oscilloscope probe. Live HTML5 canvas traces with a bright teal waveform, freeze/hold, calibration, and a Rust WebAssembly DSP engine.",
       },
       { name: "author", content: "ADC Probe Scope" },
       { property: "og:title", content: "ADC Probe Scope — Phone Oscilloscope" },
