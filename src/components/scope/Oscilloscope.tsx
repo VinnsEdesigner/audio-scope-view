@@ -22,15 +22,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { loadScopeEngine, type ScopeEngine } from "@/lib/scope/engine";
 import { cn } from "@/lib/utils";
+import { scopeApi, type Calibration } from "@/lib/api/scope";
+import { openScopeStream, type StreamFrame } from "@/lib/api/stream";
+import { SCOPE_API_URL } from "@/lib/api/client";
 
 type EdgeMode = "rising" | "falling" | "auto";
 type ViewMode = "time" | "spectrum";
 type PageId = "display" | "trigger" | "calibration" | "about";
 
 const WINDOW = 1024;
-const BUFFER = 16384;
+const PUSH_BLOCK = 2048;
 
 type Config = {
   timeDiv: number; // samples across the full width
@@ -69,17 +71,20 @@ const NAV: { id: PageId; label: string; icon: typeof Radio }[] = [
 
 export function Oscilloscope() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<ScopeEngine | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const nodeRef = useRef<ScriptProcessorNode | null>(null);
   const rafRef = useRef<number>(0);
   const lastTraceRef = useRef<Float32Array | null>(null);
+  const wsRef = useRef<ReturnType<typeof openScopeStream> | null>(null);
+  const latestFrameRef = useRef<StreamFrame | null>(null);
+  const spectrumRef = useRef<number[]>([]);
 
   const [running, setRunning] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleRate, setSampleRate] = useState(48000);
+  const [connected, setConnected] = useState(false);
 
   const [config, setConfig] = useState<Config>(DEFAULTS);
   const cfg = useRef(config);
@@ -100,8 +105,7 @@ export function Oscilloscope() {
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    const engine = engineRef.current;
-    if (!canvas || !engine) return;
+    if (!canvas) return;
     const cx = canvas.getContext("2d");
     if (!cx) return;
 
@@ -150,13 +154,12 @@ export function Oscilloscope() {
     cx.beginPath();
 
     if (c.view === "time") {
-      const edgeCode = c.edge === "rising" ? 1 : c.edge === "falling" ? -1 : 0;
       let frame: Float32Array;
       if (frozenRef.current && lastTraceRef.current) {
         frame = lastTraceRef.current;
       } else {
-        const live = engine.frame(WINDOW, c.triggerLevel, edgeCode) as Float32Array;
-        frame = Float32Array.from(live);
+        const live = latestFrameRef.current?.frame.samples ?? [];
+        frame = live.length ? Float32Array.from(live) : new Float32Array(WINDOW);
         lastTraceRef.current = frame;
       }
       const span = Math.max(16, Math.min(WINDOW, c.timeDiv));
@@ -179,9 +182,13 @@ export function Oscilloscope() {
       cx.stroke();
       cx.setLineDash([]);
     } else {
-      const mag = engine.spectrum(2048) as Float32Array;
+      const mag = spectrumRef.current;
       const bins = mag.length;
       const shown = Math.floor(bins / 2);
+      if (shown < 2) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
       let max = 1e-6;
       for (let i = 0; i < shown; i++) max = Math.max(max, mag[i]);
       for (let i = 0; i < shown; i++) {
@@ -195,15 +202,18 @@ export function Oscilloscope() {
     }
     cx.shadowBlur = 0;
 
-    if (!frozenRef.current) {
-      const m = engine.measure();
+    if (!frozenRef.current && latestFrameRef.current) {
+      const cal = latestFrameRef.current.calibrated;
+      const m = latestFrameRef.current.measurements;
       setMeas({
-        vpp: m.peak_to_peak * c.gainCal,
-        rms: m.rms * c.gainCal,
-        freq: m.frequency * c.timeCal,
-        dc: m.dc_offset * c.gainCal,
+        vpp: cal.vpp_v,
+        rms: cal.rms_v,
+        freq: cal.frequency_hz,
+        dc: cal.dc_v,
       });
-      m.free();
+      // Cache spectrum bins when server sends measurements — spectrum is
+      // requested lazily via REST when the user switches to spectrum view.
+      void m;
     }
 
     rafRef.current = requestAnimationFrame(draw);
@@ -217,7 +227,11 @@ export function Oscilloscope() {
     streamRef.current = null;
     ctxRef.current?.close();
     ctxRef.current = null;
+    wsRef.current?.close();
+    wsRef.current = null;
+    latestFrameRef.current = null;
     lastTraceRef.current = null;
+    setConnected(false);
     setFrozen(false);
     setRunning(false);
   }, []);
@@ -239,14 +253,35 @@ export function Oscilloscope() {
       ctxRef.current = audio;
       setSampleRate(audio.sampleRate);
 
-      const engine = await loadScopeEngine(BUFFER, audio.sampleRate);
-      engineRef.current = engine;
+      const c = cfg.current;
+      const ws = openScopeStream(
+        {
+          sample_rate: audio.sampleRate,
+          window: WINDOW,
+          trigger_level: c.triggerLevel,
+          edge: c.edge,
+        },
+        {
+          onFrame: (f) => {
+            latestFrameRef.current = f;
+          },
+          onOpen: () => setConnected(true),
+          onError: () => {
+            setError(
+              `Could not reach the Rust scope-server at ${SCOPE_API_URL}. Run \`cargo run --release\` in rust-server/.`,
+            );
+          },
+          onClose: () => setConnected(false),
+        },
+      );
+      wsRef.current = ws;
 
       const src = audio.createMediaStreamSource(stream);
-      const proc = audio.createScriptProcessor(2048, 1, 1);
+      const proc = audio.createScriptProcessor(PUSH_BLOCK, 1, 1);
       proc.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
-        engineRef.current?.push(input);
+        // Copy — Web Audio reuses the same buffer between callbacks.
+        wsRef.current?.pushSamples(new Float32Array(input));
       };
       src.connect(proc);
       proc.connect(audio.destination);
@@ -263,6 +298,49 @@ export function Oscilloscope() {
       stop();
     }
   }, [draw, stop]);
+
+  // Push trigger/edge changes to the server so DSP stays in sync.
+  useEffect(() => {
+    wsRef.current?.sendConfig({
+      trigger_level: config.triggerLevel,
+      edge: config.edge,
+    });
+  }, [config.triggerLevel, config.edge]);
+
+  // Poll spectrum via axios only when spectrum view is active.
+  useEffect(() => {
+    if (config.view !== "spectrum" || !running) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const bins = await scopeApi.spectrum(2048);
+        if (alive) spectrumRef.current = bins;
+      } catch {
+        /* ignore */
+      }
+      if (alive) setTimeout(tick, 100);
+    };
+    tick();
+    return () => {
+      alive = false;
+    };
+  }, [config.view, running]);
+
+  // Push calibration via axios REST when the user changes it.
+  useEffect(() => {
+    const payload: Calibration = {
+      gain_v_per_unit: config.gainCal,
+      time_factor: config.timeCal,
+      lowpass_hz: null,
+      smoothing: 0,
+    };
+    const t = setTimeout(() => {
+      scopeApi.setCalibration(payload).catch(() => {
+        /* server offline — ignore */
+      });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [config.gainCal, config.timeCal]);
 
   useEffect(() => () => stop(), [stop]);
 
@@ -311,7 +389,7 @@ export function Oscilloscope() {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-semibold leading-tight">ADC Probe Scope</h1>
               <p className="truncate text-[11px] text-muted-foreground">
-                {sampleRate.toLocaleString()} Hz · Rust WASM DSP
+                {sampleRate.toLocaleString()} Hz · {connected ? "Rust server" : "offline"}
               </p>
             </div>
           </div>
