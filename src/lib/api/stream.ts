@@ -61,7 +61,13 @@ export function openScopeStream(
 
   return {
     pushSamples(samples: Float32Array) {
-      if (ws.readyState === WebSocket.OPEN) ws.send(samples.buffer);
+      if (ws.readyState === WebSocket.OPEN) {
+        // Copy into a fresh ArrayBuffer so we always send a plain
+        // ArrayBuffer (not SharedArrayBuffer) and exactly the sample range.
+        const buf = new ArrayBuffer(samples.byteLength);
+        new Float32Array(buf).set(samples);
+        ws.send(buf);
+      }
     },
     sendConfig(cfg: StreamConfig) {
       if (ws.readyState === WebSocket.OPEN) {
