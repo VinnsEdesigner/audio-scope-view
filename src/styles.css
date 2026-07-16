@@ -68,98 +68,64 @@
 }
 
 /*
- * Neutral (black / white / gray) base with a rose 400–600 accent.
- * The theme follows the browser / OS native preference automatically via
- * `prefers-color-scheme` — no hardcoded light or dark class is required.
- * The scope canvas keeps its own dark instrument surface with a bright teal
- * trace regardless of the app theme so the waveform stays readable.
+ * Pure neutral base. No hardcoded light / dark surface values — the
+ * browser paints Canvas / CanvasText from its native theme via
+ * `color-scheme: light dark`. The only opinionated color is the rose
+ * accent used for primary/interactive affordances. The scope canvas
+ * keeps its own dark instrument surface with a bright teal trace so
+ * the waveform stays readable in either app theme.
  */
 
-/* Shared, theme-independent tokens (scope instrument surface). */
 :root {
+  color-scheme: light dark;
   --radius: 0.6rem;
+
   --rose-400: oklch(0.71 0.19 12);
   --rose-500: oklch(0.64 0.22 15);
   --rose-600: oklch(0.58 0.22 18);
-  /* Scope canvas: dark surface, bright teal trace. */
-  --scope-bg: oklch(0.15 0.015 210);
-  --scope-trace: oklch(0.82 0.14 190);
-  --scope-grid: oklch(0.45 0.03 210 / 38%);
-  --scope-grid-strong: oklch(0.55 0.04 210 / 60%);
-}
 
-/* Light theme (default / prefers-color-scheme: light). */
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0 0);
-  --card: oklch(0.985 0 0);
-  --card-foreground: oklch(0.2 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0 0);
+  /* Native browser surfaces — no hand-picked dark palette. */
+  --background: Canvas;
+  --foreground: CanvasText;
+  --card: Canvas;
+  --card-foreground: CanvasText;
+  --popover: Canvas;
+  --popover-foreground: CanvasText;
+
   --primary: var(--rose-500);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.22 0 0);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.48 0 0);
+  --primary-foreground: white;
   --accent: var(--rose-400);
-  --accent-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.58 0.22 18);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
+  --accent-foreground: white;
+  --destructive: var(--rose-600);
+  --destructive-foreground: white;
   --ring: var(--rose-500);
+
+  --secondary: color-mix(in oklab, CanvasText 8%, Canvas);
+  --secondary-foreground: CanvasText;
+  --muted: color-mix(in oklab, CanvasText 6%, Canvas);
+  --muted-foreground: color-mix(in oklab, CanvasText 55%, Canvas);
+  --border: color-mix(in oklab, CanvasText 15%, transparent);
+  --input: color-mix(in oklab, CanvasText 20%, transparent);
+
   --chart-1: var(--rose-400);
   --chart-2: var(--rose-500);
   --chart-3: var(--rose-600);
-  --chart-4: oklch(0.6 0 0);
-  --chart-5: oklch(0.45 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.2 0 0);
-  --sidebar-primary: var(--rose-500);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0 0);
-  --sidebar-accent-foreground: oklch(0.2 0 0);
-  --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: var(--rose-500);
-}
+  --chart-4: color-mix(in oklab, CanvasText 40%, Canvas);
+  --chart-5: color-mix(in oklab, CanvasText 60%, Canvas);
 
-/* Dark theme — applied automatically when the browser/OS prefers dark. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.15 0 0);
-    --foreground: oklch(0.96 0 0);
-    --card: oklch(0.19 0 0);
-    --card-foreground: oklch(0.96 0 0);
-    --popover: oklch(0.19 0 0);
-    --popover-foreground: oklch(0.96 0 0);
-    --primary: var(--rose-400);
-    --primary-foreground: oklch(0.15 0 0);
-    --secondary: oklch(0.26 0 0);
-    --secondary-foreground: oklch(0.96 0 0);
-    --muted: oklch(0.24 0 0);
-    --muted-foreground: oklch(0.68 0 0);
-    --accent: var(--rose-500);
-    --accent-foreground: oklch(0.99 0 0);
-    --destructive: oklch(0.64 0.22 15);
-    --destructive-foreground: oklch(0.99 0 0);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: var(--rose-400);
-    --chart-1: var(--rose-400);
-    --chart-2: var(--rose-500);
-    --chart-3: var(--rose-600);
-    --chart-4: oklch(0.7 0 0);
-    --chart-5: oklch(0.85 0 0);
-    --sidebar: oklch(0.17 0 0);
-    --sidebar-foreground: oklch(0.96 0 0);
-    --sidebar-primary: var(--rose-400);
-    --sidebar-primary-foreground: oklch(0.15 0 0);
-    --sidebar-accent: oklch(0.24 0 0);
-    --sidebar-accent-foreground: oklch(0.96 0 0);
-    --sidebar-border: oklch(1 0 0 / 12%);
-    --sidebar-ring: var(--rose-400);
-  }
+  --sidebar: Canvas;
+  --sidebar-foreground: CanvasText;
+  --sidebar-primary: var(--rose-500);
+  --sidebar-primary-foreground: white;
+  --sidebar-accent: color-mix(in oklab, CanvasText 8%, Canvas);
+  --sidebar-accent-foreground: CanvasText;
+  --sidebar-border: color-mix(in oklab, CanvasText 15%, transparent);
+  --sidebar-ring: var(--rose-500);
+
+  /* Scope canvas — always a dark instrument surface with teal trace. */
+  --scope-bg: oklch(0.15 0.015 210);
+  --scope-trace: oklch(0.82 0.14 190);
+  --scope-grid: oklch(0.55 0.03 210 / 40%);
 }
 
 @layer base {
