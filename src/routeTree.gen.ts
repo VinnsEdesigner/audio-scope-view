@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiScopeSpectrumRouteImport } from './routes/api/scope/spectrum'
+import { Route as ApiScopeProcessRouteImport } from './routes/api/scope/process'
+import { Route as ApiScopeHealthRouteImport } from './routes/api/scope/health'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -22,31 +25,74 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiScopeSpectrumRoute = ApiScopeSpectrumRouteImport.update({
+  id: '/api/scope/spectrum',
+  path: '/api/scope/spectrum',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScopeProcessRoute = ApiScopeProcessRouteImport.update({
+  id: '/api/scope/process',
+  path: '/api/scope/process',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScopeHealthRoute = ApiScopeHealthRouteImport.update({
+  id: '/api/scope/health',
+  path: '/api/scope/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/scope/health': typeof ApiScopeHealthRoute
+  '/api/scope/process': typeof ApiScopeProcessRoute
+  '/api/scope/spectrum': typeof ApiScopeSpectrumRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/scope/health': typeof ApiScopeHealthRoute
+  '/api/scope/process': typeof ApiScopeProcessRoute
+  '/api/scope/spectrum': typeof ApiScopeSpectrumRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/scope/health': typeof ApiScopeHealthRoute
+  '/api/scope/process': typeof ApiScopeProcessRoute
+  '/api/scope/spectrum': typeof ApiScopeSpectrumRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sitemap.xml'
+  fullPaths:
+    | '/'
+    | '/sitemap.xml'
+    | '/api/scope/health'
+    | '/api/scope/process'
+    | '/api/scope/spectrum'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sitemap.xml'
-  id: '__root__' | '/' | '/sitemap.xml'
+  to:
+    | '/'
+    | '/sitemap.xml'
+    | '/api/scope/health'
+    | '/api/scope/process'
+    | '/api/scope/spectrum'
+  id:
+    | '__root__'
+    | '/'
+    | '/sitemap.xml'
+    | '/api/scope/health'
+    | '/api/scope/process'
+    | '/api/scope/spectrum'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiScopeHealthRoute: typeof ApiScopeHealthRoute
+  ApiScopeProcessRoute: typeof ApiScopeProcessRoute
+  ApiScopeSpectrumRoute: typeof ApiScopeSpectrumRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +111,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/scope/spectrum': {
+      id: '/api/scope/spectrum'
+      path: '/api/scope/spectrum'
+      fullPath: '/api/scope/spectrum'
+      preLoaderRoute: typeof ApiScopeSpectrumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scope/process': {
+      id: '/api/scope/process'
+      path: '/api/scope/process'
+      fullPath: '/api/scope/process'
+      preLoaderRoute: typeof ApiScopeProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scope/health': {
+      id: '/api/scope/health'
+      path: '/api/scope/health'
+      fullPath: '/api/scope/health'
+      preLoaderRoute: typeof ApiScopeHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiScopeHealthRoute: ApiScopeHealthRoute,
+  ApiScopeProcessRoute: ApiScopeProcessRoute,
+  ApiScopeSpectrumRoute: ApiScopeSpectrumRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
