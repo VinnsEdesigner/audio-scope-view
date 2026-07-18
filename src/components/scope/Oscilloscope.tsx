@@ -23,9 +23,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { scopeApi, type Calibration } from "@/lib/api/scope";
+import type { Calibration } from "@/lib/api/scope";
 import { openScopeStream, type StreamFrame } from "@/lib/api/stream";
-import { SCOPE_API_URL } from "@/lib/api/client";
 
 type EdgeMode = "rising" | "falling" | "auto";
 type ViewMode = "time" | "spectrum";
@@ -254,6 +253,12 @@ export function Oscilloscope() {
       setSampleRate(audio.sampleRate);
 
       const c = cfg.current;
+      const calRef = () => ({
+        gain_v_per_unit: cfg.current.gainCal,
+        time_factor: cfg.current.timeCal,
+        lowpass_hz: null,
+        smoothing: 0,
+      });
       const ws = openScopeStream(
         {
           sample_rate: audio.sampleRate,
@@ -268,11 +273,12 @@ export function Oscilloscope() {
           onOpen: () => setConnected(true),
           onError: () => {
             setError(
-              `Could not reach the Rust scope-server at ${SCOPE_API_URL}. Run \`cargo run --release\` in rust-server/.`,
+              "The scope server route didn't respond. Refresh the page to retry.",
             );
           },
           onClose: () => setConnected(false),
         },
+        calRef,
       );
       wsRef.current = ws;
 
@@ -313,7 +319,7 @@ export function Oscilloscope() {
     let alive = true;
     const tick = async () => {
       try {
-        const bins = await scopeApi.spectrum(2048);
+        const bins = (await wsRef.current?.spectrum(2048)) ?? [];
         if (alive) spectrumRef.current = bins;
       } catch {
         /* ignore */
@@ -326,21 +332,8 @@ export function Oscilloscope() {
     };
   }, [config.view, running]);
 
-  // Push calibration via axios REST when the user changes it.
-  useEffect(() => {
-    const payload: Calibration = {
-      gain_v_per_unit: config.gainCal,
-      time_factor: config.timeCal,
-      lowpass_hz: null,
-      smoothing: 0,
-    };
-    const t = setTimeout(() => {
-      scopeApi.setCalibration(payload).catch(() => {
-        /* server offline — ignore */
-      });
-    }, 250);
-    return () => clearTimeout(t);
-  }, [config.gainCal, config.timeCal]);
+  // Calibration ships on every /process request via the `x-scope-cal`
+  // header (see openScopeStream). No separate REST push needed.
 
   useEffect(() => () => stop(), [stop]);
 
