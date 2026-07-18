@@ -1,5 +1,6 @@
-import { SCOPE_WS_URL } from "./client";
-import type { Measurements, CalibratedReadouts } from "./scope";
+import axios from "axios";
+import { SCOPE_API_BASE } from "./client";
+import type { Calibration, Measurements, CalibratedReadouts } from "./scope";
 
 export type StreamFrame = {
   type: "frame";
@@ -9,77 +10,124 @@ export type StreamFrame = {
 };
 
 export type StreamConfig = {
-  window?: number;
-  trigger_level?: number;
-  edge?: "rising" | "falling" | "auto";
-  sample_rate?: number;
+  window: number;
+  trigger_level: number;
+  edge: "rising" | "falling" | "auto";
+  sample_rate: number;
 };
 
 export type StreamHandlers = {
   onFrame: (f: StreamFrame) => void;
   onOpen?: () => void;
-  onError?: (e: Event) => void;
+  onError?: (e: unknown) => void;
   onClose?: () => void;
 };
 
+const RING_SECONDS = 0.15; // ~150 ms rolling window sent per request
+const TARGET_FPS = 30;
+
 /**
- * Opens a WebSocket to the Rust `scope-server`, ships raw Float32 sample
- * blocks as binary frames, and pipes JSON frames back to the caller.
- *
- * The server does all processing (trigger, FFT, THD, autocorrelation…).
- * The client is a dumb pipe + renderer.
+ * Same-origin scope stream. The client keeps a rolling ring buffer of the
+ * most recent samples and, at ~30 Hz, POSTs it to `/api/scope/process`
+ * where the TypeScript DSP engine (server-side, Cloudflare Workers) runs
+ * trigger / measurement / spectrum and returns JSON. No WebSocket, no
+ * external server — the browser talks to the built-in app server.
  */
 export function openScopeStream(
-  hello: {
-    sample_rate: number;
-    window: number;
-    trigger_level: number;
-    edge: "rising" | "falling" | "auto";
-  },
+  hello: StreamConfig,
   handlers: StreamHandlers,
+  getCalibration: () => Calibration,
 ) {
-  const ws = new WebSocket(SCOPE_WS_URL);
-  ws.binaryType = "arraybuffer";
-  let opened = false;
+  let cfg: StreamConfig = { ...hello };
+  const ringSize = Math.max(2048, Math.round(cfg.sample_rate * RING_SECONDS));
+  let ring = new Float32Array(ringSize);
+  let writeIdx = 0;
+  let filled = 0;
+  let closed = false;
+  let inFlight = false;
 
-  ws.addEventListener("open", () => {
-    opened = true;
-    ws.send(JSON.stringify(hello));
-    handlers.onOpen?.();
-  });
-  ws.addEventListener("message", (ev) => {
-    if (typeof ev.data !== "string") return;
+  handlers.onOpen?.();
+
+  const linear = (): Float32Array => {
+    if (filled < ring.length) return ring.subarray(0, filled);
+    const out = new Float32Array(ring.length);
+    out.set(ring.subarray(writeIdx));
+    out.set(ring.subarray(0, writeIdx), ring.length - writeIdx);
+    return out;
+  };
+
+  const tick = async () => {
+    if (closed || inFlight || filled < cfg.window) return;
+    inFlight = true;
     try {
-      const msg = JSON.parse(ev.data) as StreamFrame;
-      if (msg.type === "frame") handlers.onFrame(msg);
-    } catch {
-      /* ignore malformed */
+      const samples = linear();
+      const buf = new ArrayBuffer(samples.byteLength);
+      new Float32Array(buf).set(samples);
+      const cal = getCalibration();
+      const res = await axios.post<StreamFrame>(
+        `${SCOPE_API_BASE}/process`,
+        buf,
+        {
+          params: {
+            sr: cfg.sample_rate,
+            window: cfg.window,
+            level: cfg.trigger_level,
+            edge: cfg.edge,
+          },
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "x-scope-cal": JSON.stringify(cal),
+          },
+          responseType: "json",
+          timeout: 4000,
+        },
+      );
+      if (!closed && res.data?.type === "frame") handlers.onFrame(res.data);
+    } catch (e) {
+      handlers.onError?.(e);
+    } finally {
+      inFlight = false;
     }
-  });
-  ws.addEventListener("error", (e) => handlers.onError?.(e));
-  ws.addEventListener("close", () => handlers.onClose?.());
+  };
+
+  const timer = window.setInterval(tick, Math.floor(1000 / TARGET_FPS));
 
   return {
     pushSamples(samples: Float32Array) {
-      if (ws.readyState === WebSocket.OPEN) {
-        // Copy into a fresh ArrayBuffer so we always send a plain
-        // ArrayBuffer (not SharedArrayBuffer) and exactly the sample range.
-        const buf = new ArrayBuffer(samples.byteLength);
-        new Float32Array(buf).set(samples);
-        ws.send(buf);
+      const cap = ring.length;
+      for (let i = 0; i < samples.length; i++) {
+        ring[writeIdx] = samples[i];
+        writeIdx = (writeIdx + 1) % cap;
+        if (filled < cap) filled++;
       }
     },
-    sendConfig(cfg: StreamConfig) {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "config", ...cfg }));
-      }
+    sendConfig(patch: Partial<StreamConfig>) {
+      cfg = { ...cfg, ...patch };
+    },
+    async spectrum(size = 2048): Promise<number[]> {
+      if (filled < 64) return [];
+      const samples = linear();
+      const buf = new ArrayBuffer(samples.byteLength);
+      new Float32Array(buf).set(samples);
+      const res = await axios.post<number[]>(
+        `${SCOPE_API_BASE}/spectrum`,
+        buf,
+        {
+          params: { sr: cfg.sample_rate, size },
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "x-scope-cal": JSON.stringify(getCalibration()),
+          },
+          responseType: "json",
+          timeout: 4000,
+        },
+      );
+      return res.data ?? [];
     },
     close() {
-      if (opened) ws.close();
-      else ws.addEventListener("open", () => ws.close());
-    },
-    get readyState() {
-      return ws.readyState;
+      closed = true;
+      window.clearInterval(timer);
+      handlers.onClose?.();
     },
   };
 }
