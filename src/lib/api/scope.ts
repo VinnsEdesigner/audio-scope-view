@@ -1,5 +1,3 @@
-import { api } from "./client";
-
 export type Calibration = {
   gain_v_per_unit: number;
   time_factor: number;
@@ -34,21 +32,6 @@ export type CalibratedReadouts = {
   frequency_hz: number;
 };
 
-export type Health = { status: string; version: string };
-
-export const scopeApi = {
-  health: () => api.get<Health>("/health").then((r) => r.data),
-  getConfig: () =>
-    api
-      .get<{ sample_rate: number; calibration: Calibration }>("/config")
-      .then((r) => r.data),
-  getCalibration: () => api.get<Calibration>("/calibration").then((r) => r.data),
-  setCalibration: (cal: Calibration) =>
-    api.post<Calibration>("/calibration", cal).then((r) => r.data),
-  measurements: () =>
-    api
-      .get<Measurements & { calibrated: CalibratedReadouts }>("/measurements")
-      .then((r) => r.data),
-  spectrum: (size = 2048) =>
-    api.get<number[]>("/spectrum", { params: { size } }).then((r) => r.data),
-};
+// The DSP engine is stateless server-side: calibration is sent per request
+// via the `x-scope-cal` header (see `openScopeStream`). No REST needed for
+// config or measurements — the /process response already carries both.

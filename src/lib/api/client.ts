@@ -1,20 +1,13 @@
 import axios, { type AxiosInstance } from "axios";
 
 /**
- * REST base for the Rust `scope-server`. Configure with `VITE_SCOPE_API_URL`.
- * All non-streaming calls (config, calibration, one-off measurements) go
- * through this axios instance — never the raw fetch API.
+ * Same-origin REST base. All scope DSP runs inside this app's TanStack
+ * Start server routes under `/api/scope/*` (Cloudflare Workers). No
+ * external server, no WebSocket — every call goes through axios.
  */
-export const SCOPE_API_URL =
-  (import.meta.env.VITE_SCOPE_API_URL as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:8787";
-
-export const SCOPE_WS_URL =
-  (import.meta.env.VITE_SCOPE_WS_URL as string | undefined) ??
-  SCOPE_API_URL.replace(/^http/, "ws") + "/stream";
+export const SCOPE_API_BASE = "/api/scope";
 
 export const api: AxiosInstance = axios.create({
-  baseURL: SCOPE_API_URL,
+  baseURL: SCOPE_API_BASE,
   timeout: 8000,
-  headers: { "Content-Type": "application/json" },
 });
