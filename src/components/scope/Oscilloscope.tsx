@@ -31,8 +31,9 @@ type ViewMode = "time" | "spectrum";
 type PageId = "display" | "trigger" | "calibration" | "about";
 
 const WINDOW = 1024;
-const PUSH_BLOCK = 2048;
-const CLIENT_RING = 8192; // rolling raw-sample buffer for instant drawing
+const PUSH_BLOCK = 512;
+const CLIENT_RING = 16384; // rolling raw-sample buffer for instant drawing
+const MEAS_UPDATE_MS = 120;
 
 type Config = {
   timeDiv: number; // samples across the full width
@@ -69,17 +70,18 @@ const NAV: { id: PageId; label: string; icon: typeof Radio }[] = [
   { id: "about", label: "About", icon: Info },
 ];
 
-function buildLocalFrame(
+function writeLocalFrame(
   ring: Float32Array,
   writeIdx: number,
   filled: number,
-  windowLen: number,
+  out: Float32Array,
   level: number,
   edge: EdgeMode,
-): Float32Array {
+): void {
   const cap = ring.length;
-  const out = new Float32Array(windowLen);
-  if (filled < windowLen) return out;
+  const windowLen = out.length;
+  out.fill(0);
+  if (filled < windowLen) return;
   const readAt = (i: number) => ring[((i % cap) + cap) % cap];
   const newest = (writeIdx - 1 + cap) % cap;
   const oldest = filled < cap ? 0 : writeIdx;
@@ -88,7 +90,7 @@ function buildLocalFrame(
   if (edge !== "auto" && searchLen > 2) {
     // Search backwards from newest for the most recent trigger crossing.
     const pre = Math.floor(windowLen / 8);
-    const scan = Math.min(searchLen, cap - windowLen);
+    const scan = Math.min(searchLen, 2048);
     for (let k = 1; k < scan; k++) {
       const idx = (newest - windowLen - k + cap) % cap;
       const a = ring[(idx - 1 + cap) % cap];
@@ -103,7 +105,6 @@ function buildLocalFrame(
     }
   }
   for (let i = 0; i < windowLen; i++) out[i] = readAt(start + i);
-  return out;
 }
 
 export function Oscilloscope() {
@@ -113,8 +114,10 @@ export function Oscilloscope() {
   const nodeRef = useRef<ScriptProcessorNode | null>(null);
   const rafRef = useRef<number>(0);
   const lastTraceRef = useRef<Float32Array | null>(null);
+  const drawTraceRef = useRef<Float32Array>(new Float32Array(WINDOW));
   const wsRef = useRef<ReturnType<typeof openScopeStream> | null>(null);
   const latestFrameRef = useRef<StreamFrame | null>(null);
+  const latestMeasAtRef = useRef(0);
   const spectrumRef = useRef<number[]>([]);
   const ringRef = useRef<Float32Array>(new Float32Array(CLIENT_RING));
   const ringWriteRef = useRef(0);
@@ -146,7 +149,7 @@ export function Oscilloscope() {
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const cx = canvas.getContext("2d");
+    const cx = canvas.getContext("2d", { alpha: false, desynchronized: true });
     if (!cx) return;
 
     const dpr = window.devicePixelRatio || 1;
@@ -161,7 +164,7 @@ export function Oscilloscope() {
     const trace = cssVar(canvas, "--scope-trace", "#33e0d0");
     const grid = cssVar(canvas, "--scope-grid", "rgba(120,160,170,0.35)");
     const bg = cssVar(canvas, "--scope-bg", "#111820");
-    const accent = cssVar(canvas, "--color-accent", "#f43f7c");
+    const accent = cssVar(canvas, "--color-accent", "CanvasText");
 
     cx.fillStyle = bg;
     cx.fillRect(0, 0, w, h);
@@ -198,17 +201,21 @@ export function Oscilloscope() {
       if (frozenRef.current && lastTraceRef.current) {
         frame = lastTraceRef.current;
       } else {
-        frame = buildLocalFrame(
+        const span = Math.max(16, Math.min(WINDOW, c.timeDiv));
+        frame = drawTraceRef.current.length === span
+          ? drawTraceRef.current
+          : (drawTraceRef.current = new Float32Array(span));
+        writeLocalFrame(
           ringRef.current,
           ringWriteRef.current,
           ringFilledRef.current,
-          WINDOW,
+          frame,
           c.triggerLevel,
           c.edge,
         );
         lastTraceRef.current = frame;
       }
-      const span = Math.max(16, Math.min(WINDOW, c.timeDiv));
+      const span = frame.length;
       for (let i = 0; i < span; i++) {
         const s = frame[i] ?? 0;
         const x = (i / (span - 1)) * w;
@@ -247,20 +254,6 @@ export function Oscilloscope() {
       cx.stroke();
     }
     cx.shadowBlur = 0;
-
-    if (!frozenRef.current && latestFrameRef.current) {
-      const cal = latestFrameRef.current.calibrated;
-      const m = latestFrameRef.current.measurements;
-      setMeas({
-        vpp: cal.vpp_v,
-        rms: cal.rms_v,
-        freq: cal.frequency_hz,
-        dc: cal.dc_v,
-      });
-      // Cache spectrum bins when server sends measurements — spectrum is
-      // requested lazily via REST when the user switches to spectrum view.
-      void m;
-    }
 
     rafRef.current = requestAnimationFrame(draw);
   }, []);
@@ -319,13 +312,20 @@ export function Oscilloscope() {
         {
           onFrame: (f) => {
             latestFrameRef.current = f;
+            const now = performance.now();
+            if (!frozenRef.current && now - latestMeasAtRef.current > MEAS_UPDATE_MS) {
+              const cal = f.calibrated;
+              latestMeasAtRef.current = now;
+              setMeas({
+                vpp: cal.vpp_v,
+                rms: cal.rms_v,
+                freq: cal.frequency_hz,
+                dc: cal.dc_v,
+              });
+            }
           },
           onOpen: () => setConnected(true),
-          onError: () => {
-            setError(
-              "The scope server route didn't respond. Refresh the page to retry.",
-            );
-          },
+          onError: () => setConnected(false),
           onClose: () => setConnected(false),
         },
         calRef,
@@ -336,22 +336,20 @@ export function Oscilloscope() {
       const proc = audio.createScriptProcessor(PUSH_BLOCK, 1, 1);
       proc.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
-        // Copy — Web Audio reuses the same buffer between callbacks.
-        const copy = new Float32Array(input);
         // Local ring: powers the canvas trace instantly (no server round-trip).
         const ring = ringRef.current;
         const cap = ring.length;
         let w = ringWriteRef.current;
         let f = ringFilledRef.current;
-        for (let i = 0; i < copy.length; i++) {
-          ring[w] = copy[i];
+        for (let i = 0; i < input.length; i++) {
+          ring[w] = input[i];
           w = (w + 1) % cap;
           if (f < cap) f++;
         }
         ringWriteRef.current = w;
         ringFilledRef.current = f;
         // Server: measurements only, at reduced rate inside the stream.
-        wsRef.current?.pushSamples(copy);
+        wsRef.current?.pushSamples(input);
       };
       src.connect(proc);
       proc.connect(audio.destination);
@@ -446,7 +444,7 @@ export function Oscilloscope() {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-semibold leading-tight">ADC Probe Scope</h1>
               <p className="truncate text-[11px] text-muted-foreground">
-                {sampleRate.toLocaleString()} Hz · {connected ? "Rust server" : "offline"}
+                {sampleRate.toLocaleString()} Hz · {connected ? "DSP readouts" : "local trace"}
               </p>
             </div>
           </div>
