@@ -69,6 +69,43 @@ const NAV: { id: PageId; label: string; icon: typeof Radio }[] = [
   { id: "about", label: "About", icon: Info },
 ];
 
+function buildLocalFrame(
+  ring: Float32Array,
+  writeIdx: number,
+  filled: number,
+  windowLen: number,
+  level: number,
+  edge: EdgeMode,
+): Float32Array {
+  const cap = ring.length;
+  const out = new Float32Array(windowLen);
+  if (filled < windowLen) return out;
+  const readAt = (i: number) => ring[((i % cap) + cap) % cap];
+  const newest = (writeIdx - 1 + cap) % cap;
+  const oldest = filled < cap ? 0 : writeIdx;
+  const searchLen = Math.min(filled, cap) - windowLen;
+  let start = newest - windowLen + 1;
+  if (edge !== "auto" && searchLen > 2) {
+    // Search backwards from newest for the most recent trigger crossing.
+    const pre = Math.floor(windowLen / 8);
+    const scan = Math.min(searchLen, cap - windowLen);
+    for (let k = 1; k < scan; k++) {
+      const idx = (newest - windowLen - k + cap) % cap;
+      const a = ring[(idx - 1 + cap) % cap];
+      const b = ring[idx];
+      const crossed =
+        edge === "rising" ? a < level && b >= level : a > level && b <= level;
+      if (crossed) {
+        start = idx - pre;
+        break;
+      }
+      if (idx === oldest) break;
+    }
+  }
+  for (let i = 0; i < windowLen; i++) out[i] = readAt(start + i);
+  return out;
+}
+
 export function Oscilloscope() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<AudioContext | null>(null);
