@@ -334,7 +334,21 @@ export function Oscilloscope() {
       proc.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
         // Copy — Web Audio reuses the same buffer between callbacks.
-        wsRef.current?.pushSamples(new Float32Array(input));
+        const copy = new Float32Array(input);
+        // Local ring: powers the canvas trace instantly (no server round-trip).
+        const ring = ringRef.current;
+        const cap = ring.length;
+        let w = ringWriteRef.current;
+        let f = ringFilledRef.current;
+        for (let i = 0; i < copy.length; i++) {
+          ring[w] = copy[i];
+          w = (w + 1) % cap;
+          if (f < cap) f++;
+        }
+        ringWriteRef.current = w;
+        ringFilledRef.current = f;
+        // Server: measurements only, at reduced rate inside the stream.
+        wsRef.current?.pushSamples(copy);
       };
       src.connect(proc);
       proc.connect(audio.destination);
