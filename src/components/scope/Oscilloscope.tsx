@@ -277,6 +277,9 @@ export function Oscilloscope() {
     wsRef.current = null;
     latestFrameRef.current = null;
     lastTraceRef.current = null;
+    ringRef.current = new Float32Array(CLIENT_RING);
+    ringWriteRef.current = 0;
+    ringFilledRef.current = 0;
     setConnected(false);
     setFrozen(false);
     setRunning(false);
