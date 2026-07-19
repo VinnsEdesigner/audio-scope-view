@@ -32,6 +32,7 @@ type PageId = "display" | "trigger" | "calibration" | "about";
 
 const WINDOW = 1024;
 const PUSH_BLOCK = 2048;
+const CLIENT_RING = 8192; // rolling raw-sample buffer for instant drawing
 
 type Config = {
   timeDiv: number; // samples across the full width
@@ -68,6 +69,43 @@ const NAV: { id: PageId; label: string; icon: typeof Radio }[] = [
   { id: "about", label: "About", icon: Info },
 ];
 
+function buildLocalFrame(
+  ring: Float32Array,
+  writeIdx: number,
+  filled: number,
+  windowLen: number,
+  level: number,
+  edge: EdgeMode,
+): Float32Array {
+  const cap = ring.length;
+  const out = new Float32Array(windowLen);
+  if (filled < windowLen) return out;
+  const readAt = (i: number) => ring[((i % cap) + cap) % cap];
+  const newest = (writeIdx - 1 + cap) % cap;
+  const oldest = filled < cap ? 0 : writeIdx;
+  const searchLen = Math.min(filled, cap) - windowLen;
+  let start = newest - windowLen + 1;
+  if (edge !== "auto" && searchLen > 2) {
+    // Search backwards from newest for the most recent trigger crossing.
+    const pre = Math.floor(windowLen / 8);
+    const scan = Math.min(searchLen, cap - windowLen);
+    for (let k = 1; k < scan; k++) {
+      const idx = (newest - windowLen - k + cap) % cap;
+      const a = ring[(idx - 1 + cap) % cap];
+      const b = ring[idx];
+      const crossed =
+        edge === "rising" ? a < level && b >= level : a > level && b <= level;
+      if (crossed) {
+        start = idx - pre;
+        break;
+      }
+      if (idx === oldest) break;
+    }
+  }
+  for (let i = 0; i < windowLen; i++) out[i] = readAt(start + i);
+  return out;
+}
+
 export function Oscilloscope() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -78,6 +116,9 @@ export function Oscilloscope() {
   const wsRef = useRef<ReturnType<typeof openScopeStream> | null>(null);
   const latestFrameRef = useRef<StreamFrame | null>(null);
   const spectrumRef = useRef<number[]>([]);
+  const ringRef = useRef<Float32Array>(new Float32Array(CLIENT_RING));
+  const ringWriteRef = useRef(0);
+  const ringFilledRef = useRef(0);
 
   const [running, setRunning] = useState(false);
   const [frozen, setFrozen] = useState(false);
@@ -157,8 +198,14 @@ export function Oscilloscope() {
       if (frozenRef.current && lastTraceRef.current) {
         frame = lastTraceRef.current;
       } else {
-        const live = latestFrameRef.current?.frame.samples ?? [];
-        frame = live.length ? Float32Array.from(live) : new Float32Array(WINDOW);
+        frame = buildLocalFrame(
+          ringRef.current,
+          ringWriteRef.current,
+          ringFilledRef.current,
+          WINDOW,
+          c.triggerLevel,
+          c.edge,
+        );
         lastTraceRef.current = frame;
       }
       const span = Math.max(16, Math.min(WINDOW, c.timeDiv));
@@ -230,6 +277,9 @@ export function Oscilloscope() {
     wsRef.current = null;
     latestFrameRef.current = null;
     lastTraceRef.current = null;
+    ringRef.current = new Float32Array(CLIENT_RING);
+    ringWriteRef.current = 0;
+    ringFilledRef.current = 0;
     setConnected(false);
     setFrozen(false);
     setRunning(false);
@@ -287,7 +337,21 @@ export function Oscilloscope() {
       proc.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
         // Copy — Web Audio reuses the same buffer between callbacks.
-        wsRef.current?.pushSamples(new Float32Array(input));
+        const copy = new Float32Array(input);
+        // Local ring: powers the canvas trace instantly (no server round-trip).
+        const ring = ringRef.current;
+        const cap = ring.length;
+        let w = ringWriteRef.current;
+        let f = ringFilledRef.current;
+        for (let i = 0; i < copy.length; i++) {
+          ring[w] = copy[i];
+          w = (w + 1) % cap;
+          if (f < cap) f++;
+        }
+        ringWriteRef.current = w;
+        ringFilledRef.current = f;
+        // Server: measurements only, at reduced rate inside the stream.
+        wsRef.current?.pushSamples(copy);
       };
       src.connect(proc);
       proc.connect(audio.destination);

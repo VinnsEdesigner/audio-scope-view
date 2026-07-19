@@ -23,8 +23,12 @@ export type StreamHandlers = {
   onClose?: () => void;
 };
 
-const RING_SECONDS = 0.15; // ~150 ms rolling window sent per request
-const TARGET_FPS = 30;
+// The canvas trace is drawn client-side from raw mic samples, so the
+// server round-trip only backs the numeric readouts (Vpp/RMS/Freq).
+// Keep the window short and the rate low to avoid saturating the link
+// on mobile networks.
+const RING_SECONDS = 0.08; // ~80 ms window per request
+const TARGET_FPS = 12;
 
 /**
  * Same-origin scope stream. The client keeps a rolling ring buffer of the
