@@ -32,6 +32,7 @@ type PageId = "display" | "trigger" | "calibration" | "about";
 
 const WINDOW = 1024;
 const PUSH_BLOCK = 2048;
+const CLIENT_RING = 8192; // rolling raw-sample buffer for instant drawing
 
 type Config = {
   timeDiv: number; // samples across the full width
