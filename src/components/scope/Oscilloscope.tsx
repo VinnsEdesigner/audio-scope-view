@@ -31,9 +31,13 @@ type ViewMode = "time" | "spectrum";
 type PageId = "display" | "trigger" | "calibration" | "about";
 
 const WINDOW = 1024;
-const PUSH_BLOCK = 512;
+const PUSH_BLOCK = 1024;
 const CLIENT_RING = 16384; // rolling raw-sample buffer for instant drawing
-const MEAS_UPDATE_MS = 120;
+const MEAS_UPDATE_MS = 250;
+const DRAW_FPS = 30;
+const NOISE_FLOOR = 0.018;
+const TRIGGER_HYSTERESIS = 0.018;
+const TRACE_SMOOTHING = 0.72;
 
 type Config = {
   timeDiv: number; // samples across the full width
@@ -48,13 +52,13 @@ type Config = {
 };
 
 const DEFAULTS: Config = {
-  timeDiv: 256,
-  voltDiv: 1,
+  timeDiv: 1024,
+  voltDiv: 0.65,
   triggerLevel: 0,
   edge: "rising",
   view: "time",
   gridOn: true,
-  glow: true,
+  glow: false,
   gainCal: 1,
   timeCal: 1,
 };
@@ -87,16 +91,30 @@ function writeLocalFrame(
   const oldest = filled < cap ? 0 : writeIdx;
   const searchLen = Math.min(filled, cap) - windowLen;
   let start = newest - windowLen + 1;
+
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < windowLen; i++) {
+    const sample = readAt(start + i);
+    if (sample < min) min = sample;
+    if (sample > max) max = sample;
+  }
+
+  if (max - min < NOISE_FLOOR) return;
+
   if (edge !== "auto" && searchLen > 2) {
     // Search backwards from newest for the most recent trigger crossing.
     const pre = Math.floor(windowLen / 8);
-    const scan = Math.min(searchLen, 2048);
+    const scan = Math.min(searchLen, 4096);
+    const upper = level + TRIGGER_HYSTERESIS;
+    const lower = level - TRIGGER_HYSTERESIS;
+    const firstCandidate = newest - (windowLen - pre);
     for (let k = 1; k < scan; k++) {
-      const idx = (newest - windowLen - k + cap) % cap;
+      const idx = (firstCandidate - k + cap) % cap;
       const a = ring[(idx - 1 + cap) % cap];
       const b = ring[idx];
       const crossed =
-        edge === "rising" ? a < level && b >= level : a > level && b <= level;
+        edge === "rising" ? a <= lower && b >= upper : a >= upper && b <= lower;
       if (crossed) {
         start = idx - pre;
         break;
@@ -115,6 +133,8 @@ export function Oscilloscope() {
   const rafRef = useRef<number>(0);
   const lastTraceRef = useRef<Float32Array | null>(null);
   const drawTraceRef = useRef<Float32Array>(new Float32Array(WINDOW));
+  const smoothTraceRef = useRef<Float32Array>(new Float32Array(WINDOW));
+  const lastDrawAtRef = useRef(0);
   const wsRef = useRef<ReturnType<typeof openScopeStream> | null>(null);
   const latestFrameRef = useRef<StreamFrame | null>(null);
   const latestMeasAtRef = useRef(0);
@@ -147,6 +167,13 @@ export function Oscilloscope() {
   const [meas, setMeas] = useState({ vpp: 0, rms: 0, freq: 0, dc: 0 });
 
   const draw = useCallback(() => {
+    const now = performance.now();
+    if (now - lastDrawAtRef.current < 1000 / DRAW_FPS) {
+      rafRef.current = requestAnimationFrame(draw);
+      return;
+    }
+    lastDrawAtRef.current = now;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const cx = canvas.getContext("2d", { alpha: false, desynchronized: true });
@@ -202,18 +229,25 @@ export function Oscilloscope() {
         frame = lastTraceRef.current;
       } else {
         const span = Math.max(16, Math.min(WINDOW, c.timeDiv));
-        frame = drawTraceRef.current.length === span
+        const rawFrame = drawTraceRef.current.length === span
           ? drawTraceRef.current
           : (drawTraceRef.current = new Float32Array(span));
+        const smoothFrame = smoothTraceRef.current.length === span
+          ? smoothTraceRef.current
+          : (smoothTraceRef.current = new Float32Array(span));
         writeLocalFrame(
           ringRef.current,
           ringWriteRef.current,
           ringFilledRef.current,
-          frame,
+          rawFrame,
           c.triggerLevel,
           c.edge,
         );
-        lastTraceRef.current = frame;
+        for (let i = 0; i < span; i++) {
+          smoothFrame[i] = smoothFrame[i] * TRACE_SMOOTHING + rawFrame[i] * (1 - TRACE_SMOOTHING);
+        }
+        frame = smoothFrame;
+        lastTraceRef.current = smoothFrame.slice();
       }
       const span = frame.length;
       for (let i = 0; i < span; i++) {
