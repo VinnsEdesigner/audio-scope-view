@@ -165,6 +165,7 @@ export function Oscilloscope() {
   const [controlsOpen, setControlsOpen] = useState(true);
 
   const [meas, setMeas] = useState({ vpp: 0, rms: 0, freq: 0, dc: 0 });
+  const measRef = useRef(meas);
 
   const draw = useCallback(() => {
     const now = performance.now();
@@ -352,12 +353,15 @@ export function Oscilloscope() {
             if (!frozenRef.current && now - latestMeasAtRef.current > MEAS_UPDATE_MS) {
               const cal = f.calibrated;
               latestMeasAtRef.current = now;
-              setMeas({
-                vpp: cal.vpp_v,
-                rms: cal.rms_v,
-                freq: cal.frequency_hz,
-                dc: cal.dc_v,
-              });
+              const prev = measRef.current;
+              const next = {
+                vpp: prev.vpp * 0.75 + cal.vpp_v * 0.25,
+                rms: prev.rms * 0.75 + cal.rms_v * 0.25,
+                freq: cal.frequency_hz > 2 ? prev.freq * 0.82 + cal.frequency_hz * 0.18 : prev.freq * 0.9,
+                dc: prev.dc * 0.75 + cal.dc_v * 0.25,
+              };
+              measRef.current = next;
+              setMeas(next);
             }
           },
           onOpen: () => setConnected(true),
