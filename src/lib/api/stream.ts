@@ -27,12 +27,12 @@ export type StreamHandlers = {
 // server round-trip only backs the numeric readouts (Vpp/RMS/Freq).
 // Keep the window short and the rate low to avoid saturating the link
 // on mobile networks.
-const RING_SECONDS = 0.08; // ~80 ms window per request
-const TARGET_FPS = 12;
+const RING_SECONDS = 0.06; // short readout window; canvas does not wait on this
+const TARGET_FPS = 6;
 
 /**
  * Same-origin scope stream. The client keeps a rolling ring buffer of the
- * most recent samples and, at ~30 Hz, POSTs it to `/api/scope/process`
+ * most recent samples and, at a low readout rate, POSTs it to `/api/scope/process`
  * where the TypeScript DSP engine (server-side, Cloudflare Workers) runs
  * trigger / measurement / spectrum and returns JSON. No WebSocket, no
  * external server — the browser talks to the built-in app server.
