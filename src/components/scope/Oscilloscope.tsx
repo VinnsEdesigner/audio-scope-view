@@ -161,8 +161,14 @@ export function Oscilloscope() {
       if (frozenRef.current && lastTraceRef.current) {
         frame = lastTraceRef.current;
       } else {
-        const live = latestFrameRef.current?.frame.samples ?? [];
-        frame = live.length ? Float32Array.from(live) : new Float32Array(WINDOW);
+        frame = buildLocalFrame(
+          ringRef.current,
+          ringWriteRef.current,
+          ringFilledRef.current,
+          WINDOW,
+          c.triggerLevel,
+          c.edge,
+        );
         lastTraceRef.current = frame;
       }
       const span = Math.max(16, Math.min(WINDOW, c.timeDiv));
