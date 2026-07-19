@@ -79,6 +79,9 @@ export function Oscilloscope() {
   const wsRef = useRef<ReturnType<typeof openScopeStream> | null>(null);
   const latestFrameRef = useRef<StreamFrame | null>(null);
   const spectrumRef = useRef<number[]>([]);
+  const ringRef = useRef<Float32Array>(new Float32Array(CLIENT_RING));
+  const ringWriteRef = useRef(0);
+  const ringFilledRef = useRef(0);
 
   const [running, setRunning] = useState(false);
   const [frozen, setFrozen] = useState(false);
