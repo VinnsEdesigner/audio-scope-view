@@ -247,7 +247,7 @@ export function Oscilloscope() {
           smoothFrame[i] = smoothFrame[i] * TRACE_SMOOTHING + rawFrame[i] * (1 - TRACE_SMOOTHING);
         }
         frame = smoothFrame;
-        lastTraceRef.current = smoothFrame.slice();
+        lastTraceRef.current = smoothFrame;
       }
       const span = frame.length;
       for (let i = 0; i < span; i++) {
@@ -304,6 +304,8 @@ export function Oscilloscope() {
     wsRef.current = null;
     latestFrameRef.current = null;
     lastTraceRef.current = null;
+    smoothTraceRef.current = new Float32Array(WINDOW);
+    lastDrawAtRef.current = 0;
     ringRef.current = new Float32Array(CLIENT_RING);
     ringWriteRef.current = 0;
     ringFilledRef.current = 0;
