@@ -68,21 +68,16 @@
 }
 
 /*
- * Pure neutral base. No hardcoded light / dark surface values — the
+ * Pure neutral base. No custom dark palette and no accent palette: the
  * browser paints Canvas / CanvasText from its native theme via
- * `color-scheme: light dark`. The only opinionated color is the rose
- * accent used for primary/interactive affordances. The scope canvas
- * keeps its own dark instrument surface with a bright teal trace so
- * the waveform stays readable in either app theme.
+ * `color-scheme: light dark`. Controls derive from black / white / gray
+ * system colors only; the waveform trace is the only non-neutral signal
+ * color so it stays readable as an instrument trace.
  */
 
 :root {
   color-scheme: light dark;
   --radius: 0.6rem;
-
-  --rose-400: oklch(0.71 0.19 12);
-  --rose-500: oklch(0.64 0.22 15);
-  --rose-600: oklch(0.58 0.22 18);
 
   /* Native browser surfaces — no hand-picked dark palette. */
   --background: Canvas;
@@ -92,13 +87,13 @@
   --popover: Canvas;
   --popover-foreground: CanvasText;
 
-  --primary: var(--rose-500);
-  --primary-foreground: white;
-  --accent: var(--rose-400);
-  --accent-foreground: white;
-  --destructive: var(--rose-600);
-  --destructive-foreground: white;
-  --ring: var(--rose-500);
+  --primary: CanvasText;
+  --primary-foreground: Canvas;
+  --accent: color-mix(in oklab, CanvasText 10%, Canvas);
+  --accent-foreground: CanvasText;
+  --destructive: CanvasText;
+  --destructive-foreground: Canvas;
+  --ring: CanvasText;
 
   --secondary: color-mix(in oklab, CanvasText 8%, Canvas);
   --secondary-foreground: CanvasText;
@@ -107,25 +102,25 @@
   --border: color-mix(in oklab, CanvasText 15%, transparent);
   --input: color-mix(in oklab, CanvasText 20%, transparent);
 
-  --chart-1: var(--rose-400);
-  --chart-2: var(--rose-500);
-  --chart-3: var(--rose-600);
+  --chart-1: color-mix(in oklab, CanvasText 20%, Canvas);
+  --chart-2: color-mix(in oklab, CanvasText 40%, Canvas);
+  --chart-3: color-mix(in oklab, CanvasText 60%, Canvas);
   --chart-4: color-mix(in oklab, CanvasText 40%, Canvas);
   --chart-5: color-mix(in oklab, CanvasText 60%, Canvas);
 
   --sidebar: Canvas;
   --sidebar-foreground: CanvasText;
-  --sidebar-primary: var(--rose-500);
-  --sidebar-primary-foreground: white;
+  --sidebar-primary: CanvasText;
+  --sidebar-primary-foreground: Canvas;
   --sidebar-accent: color-mix(in oklab, CanvasText 8%, Canvas);
   --sidebar-accent-foreground: CanvasText;
   --sidebar-border: color-mix(in oklab, CanvasText 15%, transparent);
-  --sidebar-ring: var(--rose-500);
+  --sidebar-ring: CanvasText;
 
-  /* Scope canvas — always a dark instrument surface with teal trace. */
-  --scope-bg: oklch(0.15 0.015 210);
+  /* Scope canvas — native neutral surface with teal trace. */
+  --scope-bg: Canvas;
   --scope-trace: oklch(0.82 0.14 190);
-  --scope-grid: oklch(0.55 0.03 210 / 40%);
+  --scope-grid: color-mix(in oklab, CanvasText 20%, transparent);
 }
 
 @layer base {
