@@ -164,7 +164,7 @@ export function Oscilloscope() {
     const trace = cssVar(canvas, "--scope-trace", "#33e0d0");
     const grid = cssVar(canvas, "--scope-grid", "rgba(120,160,170,0.35)");
     const bg = cssVar(canvas, "--scope-bg", "#111820");
-    const accent = cssVar(canvas, "--color-accent", "#f43f7c");
+    const accent = cssVar(canvas, "--color-accent", "CanvasText");
 
     cx.fillStyle = bg;
     cx.fillRect(0, 0, w, h);
@@ -325,11 +325,7 @@ export function Oscilloscope() {
             }
           },
           onOpen: () => setConnected(true),
-          onError: () => {
-            setError(
-              "The scope server route didn't respond. Refresh the page to retry.",
-            );
-          },
+          onError: () => setConnected(false),
           onClose: () => setConnected(false),
         },
         calRef,
@@ -340,22 +336,20 @@ export function Oscilloscope() {
       const proc = audio.createScriptProcessor(PUSH_BLOCK, 1, 1);
       proc.onaudioprocess = (e) => {
         const input = e.inputBuffer.getChannelData(0);
-        // Copy — Web Audio reuses the same buffer between callbacks.
-        const copy = new Float32Array(input);
         // Local ring: powers the canvas trace instantly (no server round-trip).
         const ring = ringRef.current;
         const cap = ring.length;
         let w = ringWriteRef.current;
         let f = ringFilledRef.current;
-        for (let i = 0; i < copy.length; i++) {
-          ring[w] = copy[i];
+        for (let i = 0; i < input.length; i++) {
+          ring[w] = input[i];
           w = (w + 1) % cap;
           if (f < cap) f++;
         }
         ringWriteRef.current = w;
         ringFilledRef.current = f;
         // Server: measurements only, at reduced rate inside the stream.
-        wsRef.current?.pushSamples(copy);
+        wsRef.current?.pushSamples(input);
       };
       src.connect(proc);
       proc.connect(audio.destination);
@@ -450,7 +444,7 @@ export function Oscilloscope() {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-semibold leading-tight">ADC Probe Scope</h1>
               <p className="truncate text-[11px] text-muted-foreground">
-                {sampleRate.toLocaleString()} Hz · {connected ? "Rust server" : "offline"}
+                {sampleRate.toLocaleString()} Hz · {connected ? "DSP readouts" : "local trace"}
               </p>
             </div>
           </div>
