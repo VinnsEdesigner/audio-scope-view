@@ -207,7 +207,8 @@ export function Oscilloscope() {
     }
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const trace = cssVar(canvas, "--scope-trace", "#33e0d0");
+    const c0 = cfg.current;
+    const trace = TRACE_COLORS[c0.traceColor] ?? cssVar(canvas, "--scope-trace", "#33e0d0");
     const grid = cssVar(canvas, "--scope-grid", "rgba(120,160,170,0.35)");
     const bg = cssVar(canvas, "--scope-bg", "#111820");
     const accent = cssVar(canvas, "--color-accent", "CanvasText");
@@ -215,7 +216,7 @@ export function Oscilloscope() {
     cx.fillStyle = bg;
     cx.fillRect(0, 0, w, h);
 
-    const c = cfg.current;
+    const c = c0;
 
     if (c.gridOn) {
       cx.strokeStyle = grid;
@@ -269,10 +270,19 @@ export function Oscilloscope() {
         lastTraceRef.current = smoothFrame;
       }
       const span = frame.length;
+      const sign = c.invert ? -1 : 1;
+      let peak = 1e-6;
+      if (c.autoScale) {
+        for (let i = 0; i < span; i++) {
+          const a = Math.abs(frame[i] ?? 0);
+          if (a > peak) peak = a;
+        }
+      }
+      const scale = c.autoScale ? (0.9 / peak) : c.voltDiv;
       for (let i = 0; i < span; i++) {
         const s = frame[i] ?? 0;
         const x = (i / (span - 1)) * w;
-        const y = h / 2 - s * c.voltDiv * (h / 2);
+        const y = h / 2 - sign * s * scale * (h / 2);
         i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
       }
       cx.stroke();
