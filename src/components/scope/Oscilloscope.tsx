@@ -30,6 +30,7 @@ import type { Calibration } from "@/lib/api/scope";
 import { openScopeStream, type StreamFrame } from "@/lib/api/stream";
 
 type EdgeMode = "rising" | "falling" | "auto";
+type TriggerMode = "auto" | "normal";
 type ViewMode = "time" | "spectrum";
 type PageId = "display" | "trigger" | "measurements" | "calibration" | "capture" | "about";
 type TraceColor = "teal" | "red" | "blue";
@@ -54,6 +55,7 @@ type Config = {
   voltDiv: number; // vertical display gain
   triggerLevel: number;
   edge: EdgeMode;
+  triggerMode: TriggerMode;
   view: ViewMode;
   gridOn: boolean;
   glow: boolean;
@@ -69,6 +71,7 @@ const DEFAULTS: Config = {
   voltDiv: 0.65,
   triggerLevel: 0,
   edge: "rising",
+  triggerMode: "auto",
   view: "time",
   gridOn: true,
   glow: false,
@@ -99,11 +102,13 @@ function writeLocalFrame(
   out: Float32Array,
   level: number,
   edge: EdgeMode,
-): void {
+): boolean {
   const cap = ring.length;
   const windowLen = out.length;
-  out.fill(0);
-  if (filled < windowLen) return;
+  if (filled < windowLen) {
+    out.fill(0);
+    return false;
+  }
   const readAt = (i: number) => ring[((i % cap) + cap) % cap];
   const newest = (writeIdx - 1 + cap) % cap;
   const oldest = filled < cap ? 0 : writeIdx;
@@ -118,8 +123,12 @@ function writeLocalFrame(
     if (sample > max) max = sample;
   }
 
-  if (max - min < NOISE_FLOOR) return;
+  if (max - min < NOISE_FLOOR) {
+    out.fill(0);
+    return false;
+  }
 
+  let triggered = edge === "auto";
   if (edge !== "auto" && searchLen > 2) {
     // Search backwards from newest for the most recent trigger crossing.
     const pre = Math.floor(windowLen / 8);
@@ -135,12 +144,14 @@ function writeLocalFrame(
         edge === "rising" ? a <= lower && b >= upper : a >= upper && b <= lower;
       if (crossed) {
         start = idx - pre;
+        triggered = true;
         break;
       }
       if (idx === oldest) break;
     }
   }
   for (let i = 0; i < windowLen; i++) out[i] = readAt(start + i);
+  return triggered;
 }
 
 export function Oscilloscope() {
@@ -255,7 +266,7 @@ export function Oscilloscope() {
         const smoothFrame = smoothTraceRef.current.length === span
           ? smoothTraceRef.current
           : (smoothTraceRef.current = new Float32Array(span));
-        writeLocalFrame(
+        const triggered = writeLocalFrame(
           ringRef.current,
           ringWriteRef.current,
           ringFilledRef.current,
@@ -263,8 +274,11 @@ export function Oscilloscope() {
           c.triggerLevel,
           c.edge,
         );
-        for (let i = 0; i < span; i++) {
-          smoothFrame[i] = smoothFrame[i] * TRACE_SMOOTHING + rawFrame[i] * (1 - TRACE_SMOOTHING);
+        // Normal mode: freeze last trace when no trigger. Auto: always update.
+        if (triggered || c.triggerMode === "auto") {
+          for (let i = 0; i < span; i++) {
+            smoothFrame[i] = smoothFrame[i] * TRACE_SMOOTHING + rawFrame[i] * (1 - TRACE_SMOOTHING);
+          }
         }
         frame = smoothFrame;
         lastTraceRef.current = smoothFrame;
