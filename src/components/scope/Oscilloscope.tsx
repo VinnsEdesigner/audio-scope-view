@@ -483,6 +483,32 @@ export function Oscilloscope() {
       reset={() => setConfig(DEFAULTS)}
       sampleRate={sampleRate}
       timePerWidth={timePerWidth}
+      meas={meas}
+      onSnapshot={() => {
+        const cv = canvasRef.current;
+        if (!cv) return;
+        const url = cv.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scope-${Date.now()}.png`;
+        a.click();
+      }}
+      onExportCsv={() => {
+        const frame = lastTraceRef.current;
+        if (!frame || !frame.length) return;
+        const dt = 1 / Math.max(1, sampleRate * config.timeCal);
+        const rows = ["t_s,amplitude"];
+        for (let i = 0; i < frame.length; i++) {
+          rows.push(`${(i * dt).toFixed(9)},${frame[i].toFixed(6)}`);
+        }
+        const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scope-${Date.now()}.csv`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      }}
     />
   );
 
@@ -529,9 +555,13 @@ export function Oscilloscope() {
               <span className="hidden sm:inline">{frozen ? "Hold" : "Freeze"}</span>
             </Button>
             <Button
-              variant={running ? "destructive" : "default"}
+              variant={running ? "secondary" : "default"}
               size="sm"
               onClick={running ? stop : start}
+              className={cn(
+                running &&
+                  "bg-neutral text-neutral-foreground hover:bg-neutral-strong",
+              )}
             >
               {running ? <Square className="size-4" /> : <Play className="size-4" />}
               {running ? "Stop" : "Probe"}
