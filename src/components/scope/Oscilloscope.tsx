@@ -10,6 +10,9 @@ import {
   Crosshair,
   Ruler,
   Info,
+  Activity,
+  Camera,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -28,7 +31,14 @@ import { openScopeStream, type StreamFrame } from "@/lib/api/stream";
 
 type EdgeMode = "rising" | "falling" | "auto";
 type ViewMode = "time" | "spectrum";
-type PageId = "display" | "trigger" | "calibration" | "about";
+type PageId = "display" | "trigger" | "measurements" | "calibration" | "capture" | "about";
+type TraceColor = "teal" | "red" | "blue";
+
+const TRACE_COLORS: Record<TraceColor, string> = {
+  teal: "oklch(0.82 0.14 190)",
+  red: "oklch(0.62 0.24 25)",
+  blue: "oklch(0.55 0.24 265)",
+};
 
 const WINDOW = 1024;
 const PUSH_BLOCK = 1024;
@@ -47,6 +57,9 @@ type Config = {
   view: ViewMode;
   gridOn: boolean;
   glow: boolean;
+  traceColor: TraceColor;
+  invert: boolean;
+  autoScale: boolean;
   gainCal: number; // volts per unit amplitude (measurement scaling)
   timeCal: number; // time-base correction factor (~1.0)
 };
@@ -59,6 +72,9 @@ const DEFAULTS: Config = {
   view: "time",
   gridOn: true,
   glow: false,
+  traceColor: "teal",
+  invert: false,
+  autoScale: false,
   gainCal: 1,
   timeCal: 1,
 };
@@ -70,7 +86,9 @@ function cssVar(el: HTMLElement, name: string, fallback: string) {
 const NAV: { id: PageId; label: string; icon: typeof Radio }[] = [
   { id: "display", label: "Display", icon: SlidersHorizontal },
   { id: "trigger", label: "Trigger", icon: Crosshair },
+  { id: "measurements", label: "Measurements", icon: Activity },
   { id: "calibration", label: "Calibration", icon: Ruler },
+  { id: "capture", label: "Capture", icon: Camera },
   { id: "about", label: "About", icon: Info },
 ];
 
@@ -189,7 +207,8 @@ export function Oscilloscope() {
     }
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const trace = cssVar(canvas, "--scope-trace", "#33e0d0");
+    const c0 = cfg.current;
+    const trace = TRACE_COLORS[c0.traceColor] ?? cssVar(canvas, "--scope-trace", "#33e0d0");
     const grid = cssVar(canvas, "--scope-grid", "rgba(120,160,170,0.35)");
     const bg = cssVar(canvas, "--scope-bg", "#111820");
     const accent = cssVar(canvas, "--color-accent", "CanvasText");
@@ -197,7 +216,7 @@ export function Oscilloscope() {
     cx.fillStyle = bg;
     cx.fillRect(0, 0, w, h);
 
-    const c = cfg.current;
+    const c = c0;
 
     if (c.gridOn) {
       cx.strokeStyle = grid;
@@ -251,10 +270,19 @@ export function Oscilloscope() {
         lastTraceRef.current = smoothFrame;
       }
       const span = frame.length;
+      const sign = c.invert ? -1 : 1;
+      let peak = 1e-6;
+      if (c.autoScale) {
+        for (let i = 0; i < span; i++) {
+          const a = Math.abs(frame[i] ?? 0);
+          if (a > peak) peak = a;
+        }
+      }
+      const scale = c.autoScale ? (0.9 / peak) : c.voltDiv;
       for (let i = 0; i < span; i++) {
         const s = frame[i] ?? 0;
         const x = (i / (span - 1)) * w;
-        const y = h / 2 - s * c.voltDiv * (h / 2);
+        const y = h / 2 - sign * s * scale * (h / 2);
         i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
       }
       cx.stroke();
@@ -455,6 +483,32 @@ export function Oscilloscope() {
       reset={() => setConfig(DEFAULTS)}
       sampleRate={sampleRate}
       timePerWidth={timePerWidth}
+      meas={meas}
+      onSnapshot={() => {
+        const cv = canvasRef.current;
+        if (!cv) return;
+        const url = cv.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scope-${Date.now()}.png`;
+        a.click();
+      }}
+      onExportCsv={() => {
+        const frame = lastTraceRef.current;
+        if (!frame || !frame.length) return;
+        const dt = 1 / Math.max(1, sampleRate * config.timeCal);
+        const rows = ["t_s,amplitude"];
+        for (let i = 0; i < frame.length; i++) {
+          rows.push(`${(i * dt).toFixed(9)},${frame[i].toFixed(6)}`);
+        }
+        const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scope-${Date.now()}.csv`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      }}
     />
   );
 
@@ -501,9 +555,13 @@ export function Oscilloscope() {
               <span className="hidden sm:inline">{frozen ? "Hold" : "Freeze"}</span>
             </Button>
             <Button
-              variant={running ? "destructive" : "default"}
+              variant={running ? "secondary" : "default"}
               size="sm"
               onClick={running ? stop : start}
+              className={cn(
+                running &&
+                  "bg-neutral text-neutral-foreground hover:bg-neutral-strong",
+              )}
             >
               {running ? <Square className="size-4" /> : <Play className="size-4" />}
               {running ? "Stop" : "Probe"}
@@ -595,6 +653,9 @@ function ConfigPanel({
   reset,
   sampleRate,
   timePerWidth,
+  meas,
+  onSnapshot,
+  onExportCsv,
 }: {
   page: PageId;
   setPage: (p: PageId) => void;
@@ -603,6 +664,9 @@ function ConfigPanel({
   reset: () => void;
   sampleRate: number;
   timePerWidth: string;
+  meas: { vpp: number; rms: number; freq: number; dc: number };
+  onSnapshot: () => void;
+  onExportCsv: () => void;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -622,7 +686,7 @@ function ConfigPanel({
             className={cn(
               "flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",
               page === n.id
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                ? "bg-neutral text-neutral-foreground"
                 : "text-sidebar-foreground hover:bg-sidebar-accent",
             )}
           >
@@ -636,6 +700,33 @@ function ConfigPanel({
         <div className="space-y-4 p-4">
           {page === "display" && (
             <>
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Palette className="size-3.5" /> Waveform color
+                </p>
+                <div className="flex gap-2">
+                  {(Object.keys(TRACE_COLORS) as TraceColor[]).map((k) => (
+                    <button
+                      key={k}
+                      onClick={() => update({ traceColor: k })}
+                      aria-label={k}
+                      className={cn(
+                        "flex h-9 flex-1 items-center justify-center rounded-md border text-[11px] capitalize transition-colors",
+                        config.traceColor === k
+                          ? "ring-2 ring-offset-2 ring-offset-background"
+                          : "hover:bg-accent",
+                      )}
+                      style={{ color: TRACE_COLORS[k] }}
+                    >
+                      <span
+                        className="mr-1.5 inline-block size-3 rounded-full"
+                        style={{ backgroundColor: TRACE_COLORS[k] }}
+                      />
+                      {k}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Control label="Timebase" value={`${config.timeDiv} smp`}>
                 <Slider
                   min={32}
@@ -663,6 +754,16 @@ function ConfigPanel({
                 label="Trace glow"
                 checked={config.glow}
                 onChange={(v) => update({ glow: v })}
+              />
+              <ToggleRow
+                label="Auto-scale (fit trace)"
+                checked={config.autoScale}
+                onChange={(v) => update({ autoScale: v })}
+              />
+              <ToggleRow
+                label="Invert waveform"
+                checked={config.invert}
+                onChange={(v) => update({ invert: v })}
               />
             </>
           )}
@@ -695,6 +796,25 @@ function ConfigPanel({
                 </div>
               </div>
             </>
+          )}
+
+          {page === "measurements" && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Live readouts from the DSP engine. Values follow calibration and update several
+                times per second.
+              </p>
+              <StatRow label="Vpp" value={meas.vpp.toFixed(4)} unit="V" />
+              <StatRow label="RMS" value={meas.rms.toFixed(4)} unit="V" />
+              <StatRow label="DC offset" value={meas.dc.toFixed(4)} unit="V" />
+              <StatRow label="Frequency" value={meas.freq.toFixed(2)} unit="Hz" />
+              <StatRow
+                label="Period"
+                value={meas.freq > 0 ? (1000 / meas.freq).toFixed(3) : "—"}
+                unit="ms"
+              />
+              <StatRow label="Sample rate" value={sampleRate.toLocaleString()} unit="Hz" />
+            </div>
           )}
 
           {page === "calibration" && (
@@ -736,6 +856,24 @@ function ConfigPanel({
             </>
           )}
 
+          {page === "capture" && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Save the current view for reports or offline analysis.
+              </p>
+              <Button variant="secondary" size="sm" className="w-full" onClick={onSnapshot}>
+                <Camera className="mr-2 size-4" /> Snapshot canvas (PNG)
+              </Button>
+              <Button variant="secondary" size="sm" className="w-full" onClick={onExportCsv}>
+                Export trace samples (CSV)
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                CSV columns: <span className="font-mono">t_s, amplitude</span> at the current
+                calibrated sample rate.
+              </p>
+            </div>
+          )}
+
           {page === "about" && (
             <div className="space-y-2 text-xs text-muted-foreground">
               <p>
@@ -743,7 +881,7 @@ function ConfigPanel({
                 phone's microphone / line-in into a real-time oscilloscope.
               </p>
               <p>Signal processing runs in a Rust engine compiled to WebAssembly.</p>
-              <p>Rendering uses the HTML5 canvas with a bright teal trace.</p>
+              <p>Rendering uses the HTML5 canvas with a selectable trace color.</p>
               <p>The interface follows your device's native light / dark theme automatically.</p>
             </div>
           )}
@@ -795,6 +933,18 @@ function ToggleRow({
     <div className="flex items-center justify-between">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function StatRow({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="font-mono text-sm text-foreground">
+        {value}
+        <span className="ml-1 text-[11px] text-muted-foreground">{unit}</span>
+      </span>
     </div>
   );
 }
