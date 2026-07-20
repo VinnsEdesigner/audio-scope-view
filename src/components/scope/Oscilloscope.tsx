@@ -937,6 +937,18 @@ function ToggleRow({
   );
 }
 
+function StatRow({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="font-mono text-sm text-foreground">
+        {value}
+        <span className="ml-1 text-[11px] text-muted-foreground">{unit}</span>
+      </span>
+    </div>
+  );
+}
+
 function NumField({
   label,
   value,
