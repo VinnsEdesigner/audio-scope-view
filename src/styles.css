@@ -65,6 +65,9 @@
   --color-scope-trace: var(--scope-trace);
   --color-scope-grid: var(--scope-grid);
   --color-scope-bg: var(--scope-bg);
+  --color-neutral: var(--neutral);
+  --color-neutral-strong: var(--neutral-strong);
+  --color-neutral-foreground: var(--neutral-foreground);
 }
 
 /*
@@ -121,6 +124,12 @@
   --scope-bg: Canvas;
   --scope-trace: oklch(0.82 0.14 190);
   --scope-grid: color-mix(in oklab, CanvasText 20%, transparent);
+
+  /* Gray neutrals for prominent action buttons and active nav — avoids
+   * the pure white/black flip that `primary` produces in dark mode. */
+  --neutral: color-mix(in oklab, CanvasText 32%, Canvas);
+  --neutral-strong: color-mix(in oklab, CanvasText 45%, Canvas);
+  --neutral-foreground: CanvasText;
 }
 
 @layer base {
