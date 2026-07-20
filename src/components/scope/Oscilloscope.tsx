@@ -10,6 +10,9 @@ import {
   Crosshair,
   Ruler,
   Info,
+  Activity,
+  Camera,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -28,7 +31,14 @@ import { openScopeStream, type StreamFrame } from "@/lib/api/stream";
 
 type EdgeMode = "rising" | "falling" | "auto";
 type ViewMode = "time" | "spectrum";
-type PageId = "display" | "trigger" | "calibration" | "about";
+type PageId = "display" | "trigger" | "measurements" | "calibration" | "capture" | "about";
+type TraceColor = "teal" | "red" | "blue";
+
+const TRACE_COLORS: Record<TraceColor, string> = {
+  teal: "oklch(0.82 0.14 190)",
+  red: "oklch(0.62 0.24 25)",
+  blue: "oklch(0.55 0.24 265)",
+};
 
 const WINDOW = 1024;
 const PUSH_BLOCK = 1024;
@@ -47,6 +57,9 @@ type Config = {
   view: ViewMode;
   gridOn: boolean;
   glow: boolean;
+  traceColor: TraceColor;
+  invert: boolean;
+  autoScale: boolean;
   gainCal: number; // volts per unit amplitude (measurement scaling)
   timeCal: number; // time-base correction factor (~1.0)
 };
@@ -59,6 +72,9 @@ const DEFAULTS: Config = {
   view: "time",
   gridOn: true,
   glow: false,
+  traceColor: "teal",
+  invert: false,
+  autoScale: false,
   gainCal: 1,
   timeCal: 1,
 };
@@ -70,7 +86,9 @@ function cssVar(el: HTMLElement, name: string, fallback: string) {
 const NAV: { id: PageId; label: string; icon: typeof Radio }[] = [
   { id: "display", label: "Display", icon: SlidersHorizontal },
   { id: "trigger", label: "Trigger", icon: Crosshair },
+  { id: "measurements", label: "Measurements", icon: Activity },
   { id: "calibration", label: "Calibration", icon: Ruler },
+  { id: "capture", label: "Capture", icon: Camera },
   { id: "about", label: "About", icon: Info },
 ];
 
