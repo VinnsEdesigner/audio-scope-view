@@ -569,13 +569,10 @@ export function Oscilloscope() {
               <span className="hidden sm:inline">{frozen ? "Hold" : "Freeze"}</span>
             </Button>
             <Button
-              variant={running ? "secondary" : "default"}
+              variant="secondary"
               size="sm"
               onClick={running ? stop : start}
-              className={cn(
-                running &&
-                  "bg-neutral text-neutral-foreground hover:bg-neutral-strong",
-              )}
+              className="bg-neutral text-neutral-foreground hover:bg-neutral-strong"
             >
               {running ? <Square className="size-4" /> : <Play className="size-4" />}
               {running ? "Stop" : "Probe"}
@@ -725,12 +722,11 @@ function ConfigPanel({
                       onClick={() => update({ traceColor: k })}
                       aria-label={k}
                       className={cn(
-                        "flex h-9 flex-1 items-center justify-center rounded-md border text-[11px] capitalize transition-colors",
+                        "flex h-9 flex-1 items-center justify-center rounded-md text-[11px] capitalize transition-colors",
                         config.traceColor === k
-                          ? "ring-2 ring-offset-2 ring-offset-background"
+                          ? "bg-neutral text-neutral-foreground"
                           : "hover:bg-accent",
                       )}
-                      style={{ color: TRACE_COLORS[k] }}
                     >
                       <span
                         className="mr-1.5 inline-block size-3 rounded-full"
@@ -784,6 +780,27 @@ function ConfigPanel({
 
           {page === "trigger" && (
             <>
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">Trigger mode</p>
+                <div className="flex gap-2">
+                  {(["auto", "normal"] as TriggerMode[]).map((m) => (
+                    <Button
+                      key={m}
+                      variant={config.triggerMode === m ? "secondary" : "ghost"}
+                      size="sm"
+                      className="flex-1 capitalize"
+                      onClick={() => update({ triggerMode: m })}
+                    >
+                      {m}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {config.triggerMode === "auto"
+                    ? "Trace updates continuously, even without a trigger."
+                    : "Trace holds until a trigger edge is detected — steadier lock."}
+                </p>
+              </div>
               <Control label="Trigger level" value={config.triggerLevel.toFixed(2)}>
                 <Slider
                   min={-1}
