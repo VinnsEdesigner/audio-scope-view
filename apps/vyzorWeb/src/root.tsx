@@ -2,8 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet } from "react-router-dom";
 import { useIsMobile, useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
-import { TamaguiProvider, Stack, Theme } from "tamagui";
-import { useEffect } from "react";
+import { TamaguiProvider, Theme, YStack, XStack } from "tamagui";
+import { useEffect, useState } from "react";
+import { AppSidebar, TopBar } from "./components/layout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,16 +33,42 @@ const seoData = {
 
 function AppShell() {
   const isMobile = useIsMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <Stack flex={1}>
-      <div className={isMobile ? "mobile-layout" : "desktop-layout"}>
-        {!isMobile && <aside className="sidebar">Sidebar</aside>}
-        <main className="main-content">
+    <YStack flex={1} height="100vh" backgroundColor="$gray1">
+      <TopBar showMenu={isMobile} onMenuToggle={() => setMobileOpen((v) => !v)} />
+      <XStack flex={1} overflow="hidden" position="relative">
+        {!isMobile && <AppSidebar />}
+        {isMobile && mobileOpen && (
+          <>
+            <YStack
+              position="absolute"
+              top={0}
+              left={0}
+              right={0}
+              bottom={0}
+              backgroundColor="rgba(0,0,0,0.35)"
+              zIndex={40}
+              onPress={() => setMobileOpen(false)}
+            />
+            <YStack
+              position="absolute"
+              top={0}
+              left={0}
+              bottom={0}
+              zIndex={50}
+              onPress={() => setMobileOpen(false)}
+            >
+              <AppSidebar />
+            </YStack>
+          </>
+        )}
+        <YStack flex={1} overflow="auto" backgroundColor="$gray1">
           <Outlet />
-        </main>
-      </div>
-    </Stack>
+        </YStack>
+      </XStack>
+    </YStack>
   );
 }
 
