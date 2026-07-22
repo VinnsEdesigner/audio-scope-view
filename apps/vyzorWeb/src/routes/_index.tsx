@@ -80,26 +80,18 @@ export function Dashboard(): React.ReactElement {
     {
       label: "Total Scopes",
       value: summary?.totalScopes ?? 0,
-      trend: "up" as const,
-      trendValue: "+2 this week",
     },
     {
       label: "Active Scopes",
       value: summary?.activeScopes ?? 0,
-      trend: summary?.activeScopes ? ("up" as const) : ("neutral" as const),
-      trendValue: "Currently capturing",
     },
     {
       label: "Total Waveforms",
       value: summary?.totalWaveforms ?? 0,
-      trend: "up" as const,
-      trendValue: "+12 today",
     },
     {
       label: "Total Samples",
       value: formatNumber(summary?.totalSamples ?? 0),
-      trend: "up" as const,
-      trendValue: "+50K today",
     },
   ];
 
