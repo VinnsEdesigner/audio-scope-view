@@ -1,0 +1,26 @@
+{
+  "name": "@audio-scope-view/tamagui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens": "./src/tokens.ts",
+    "./config": "./src/config.ts",
+    "./components": "./src/components/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tamagui/animations-react-native": "^1.90.0",
+    "@tamagui/core": "^1.90.0",
+    "tamagui": "^1.90.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  }
+}

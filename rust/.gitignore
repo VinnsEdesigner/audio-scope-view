@@ -1,0 +1,38 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+**/*.rs.bk
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data files
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+**/debug/
+**/release/
+**/*.pdb
+
+# Test coverage
+coverage/
+*.lcov

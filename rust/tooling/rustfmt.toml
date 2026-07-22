@@ -1,0 +1,42 @@
+# Rust formatting configuration
+# Run: rustfmt +nightly --config-path tooling/rustfmt.toml
+
+edition = "2024"
+version = "Two"
+
+# Formatting rules
+hard-tabs = false
+tab_spaces = 4
+newline_style = "Auto"
+indent_style = "Block"
+wrap_comments = true
+comment_width = 100
+format_strings = true
+normalize_comments = true
+normalize_doc_attributes = true
+
+# Imports
+reorder_imports = true
+reorder_modules = true
+remove_nested_parens = true
+merge_derives = true
+use_small_heuristics = "Default"
+
+# Modules
+skip_children = false
+format_code_in_doc_comments = true
+wrap_match_arms = true
+match_block_trailing_comma = true
+trailing_semicolon = true
+trailing_comma = "Vertical"
+struct_field_align_threshold = 20
+
+# Control flow
+force_explicit_abi = true
+
+# Misc
+max_width = 100
+ideal_width = 100
+func_args_width = 75
+type_recursion_limit = 128
+expr_fragment_width = 80

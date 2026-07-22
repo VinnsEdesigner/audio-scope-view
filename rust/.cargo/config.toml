@@ -1,0 +1,108 @@
+# Cargo configuration for audio-scope-view
+# This file is NOT version controlled - local settings only
+
+[alias]
+# Quick shortcuts
+b = "build"
+t = "test"
+c = "clippy --all-targets --all-features -- -D warnings"
+f = "fmt --check"
+r = "run"
+rs = "run --release"
+
+# Extended clippy
+clippy-all = "clippy --all-targets --all-features --workspace"
+clippy-fix = "clippy --fix --allow-dirty --allow-staged"
+clippy-tests = "clippy --all-targets --tests"
+
+# Audit
+audit = "audit"
+outdated = "outdated"
+udeps = "udeps"
+
+# Formatting
+fmt-check = "fmt --check -- --check"
+fmt-all = "fmt -- --all"
+
+# Security audit
+security-audit = "audit --versionedicse Vulnerabilities"
+dep-graph = "metadata --format-version=1 --no-deps | cargo-degraph"
+
+[build]
+# Incremental compilation
+incremental = true
+
+# Target directory (shared across projects)
+target-dir = "target"
+
+# Race error in tests
+rustflags = ["-C", "prefer-dynamic"]
+
+[term]
+# Colored output
+color = "auto"
+
+[net]
+# Retry failed network requests
+retry = 2
+
+# Git fetch without password
+git-fetch-with-cli = false
+
+[profile.dev]
+# Debug info for faster debugin
+debug = 1
+
+# Split debuginfo for faster builds
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+# Optimize dependencies even in dev mode
+opt-level = 0
+
+[profile.release]
+# LTO for release builds
+lto = "thin"
+
+# Codegen units for better optimization
+codegen-units = 1
+
+# Optimize for size
+opt-level = "s"
+
+# Strip debug symbols
+strip = "symbols"
+
+[profile.release.package."*"]
+# Dependencies are optimized but not over-optimized
+opt-level = 2
+
+[profile.bench]
+# Benchmarks use release profile settings
+inherits = "release"
+
+[profile.test]
+# Tests can have debug info
+debug = 1
+
+[http]
+# Check for updates every 6 hours
+check-revoke = true
+
+# Timeout for requests
+timeout = 30
+
+# Concurrent requests
+low-speed-limit = 5120
+
+[target.x86_64-unknown-linux-gnu]
+# Link-time optimization for Linux
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[target.x86_64-unknown-linux-gnu.dev]
+# Faster builds in dev
+split-debuginfo = "unpacked"
+
+[target.x86_64-unknown-linux-gnu.release]
+# LTO for release
+lto = "thin"

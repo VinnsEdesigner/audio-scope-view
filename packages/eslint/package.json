@@ -1,0 +1,23 @@
+{
+  "name": "@vyzoriX/eslint",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./src/base.js",
+    "./react": "./src/react.js",
+    "./typescript": "./src/typescript.js",
+    "./package": "./src/package.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.6",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "eslint-plugin-unicorn": "^58.0.0",
+    "eslint-plugin-perfectionist": "^4.3.0",
+    "typescript-eslint": "^8.56.1"
+  }
+}

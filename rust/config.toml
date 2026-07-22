@@ -1,0 +1,27 @@
+# Audio Scope View Configuration
+
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[database]
+url = "sqlite:./data/audio_scope_view.db?mode=rwc"
+
+[graphql]
+playground_enabled = true
+introspection_enabled = true
+
+[audio]
+# Default audio capture backend: "mock", "alsa", "pulse"
+backend = "mock"
+
+[security]
+# Require API key authentication for GraphQL endpoints
+require_auth = true
+# Bootstrap key for initial setup (should be changed in production)
+# Can also be set via BOOTSTRAP_KEY environment variable
+# IMPORTANT: Change this in production! Use a secure random 32+ character key.
+bootstrap_key = "CHANGE_THIS_TO_A_SECURE_KEY_IN_PRODUCTION"
+
+[logging]
+level = "info"

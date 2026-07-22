@@ -1,0 +1,95 @@
+[package]
+name = "audio-scope-view"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+authors = ["VinnsEdesigner"]
+description = "Audio Scope View Server - Web-based oscilloscope with GraphQL API"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "audio-scope-view"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { version = "0.8", features = ["ws"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+http = "1"
+
+# GraphQL
+async-graphql = { version = "7.2", features = ["chrono"] }
+async-graphql-axum = "7.2"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+async-trait = "0.1"
+
+# Database
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls", "migrate", "chrono"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Configuration
+config = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Validation
+validator = { version = "0.19", features = ["derive"] }
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Futures utilities
+futures-util = "0.3"
+
+# Cryptography
+sha2 = "0.10"
+
+# Random for waveform generators
+rand = "0.8"
+
+# HTTP headers for auth middleware
+headers = "0.4"
+
+# Audio processing
+rustfft = "6.2"
+num-complex = "0.4"
+
+# cpal - cross-platform audio
+# Supports: ALSA, PulseAudio, WASAPI, CoreAudio, OpenSL ES (Android), WebAudio (wasm)
+cpal = { version = "0.15", optional = true }
+
+# Compression
+lz4 = "1.24"
+
+[features]
+default = ["mock-audio"]
+mock-audio = []
+real-audio = ["cpal"]
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.13"
+async-graphql = "7"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
