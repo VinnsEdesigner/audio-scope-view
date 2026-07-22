@@ -34,40 +34,19 @@ body {
   color: var(--body-color);
 }
 
-/* App layout */
+/* App root fills the viewport; layout is composed by AppShell */
 #root {
   height: 100%;
   width: 100%;
 }
 
-/* Desktop layout */
-.desktop-layout {
-  display: flex;
-  height: 100%;
-  width: 100%;
+a.app-nav-link {
+  display: block;
+  color: inherit;
 }
 
-.desktop-layout .sidebar {
-  width: 240px;
-  flex-shrink: 0;
-  background-color: var(--body-background);
-  border-right: 1px solid var(--color-border, #e5e5e5);
-}
-
-.desktop-layout .main-content {
-  flex: 1;
-  overflow: auto;
-}
-
-/* Mobile layout */
-.mobile-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-}
-
-.mobile-layout .main-content {
-  flex: 1;
-  overflow: auto;
+a.app-nav-link:focus-visible {
+  outline: 2px solid var(--color-gray9, #888);
+  outline-offset: 2px;
+  border-radius: 8px;
 }

@@ -8,6 +8,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", ".output/**", "tsconfig.tsbuildinfo"]
     },
+    "build:dev": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".output/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

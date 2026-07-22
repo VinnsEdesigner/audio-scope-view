@@ -14,6 +14,13 @@ export default defineConfig(({ command, mode }) => {
       }),
     ],
 
+    // Tamagui reads process.env.* at runtime; provide safe browser defaults.
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(mode === "production" ? "production" : "development"),
+      "process.env.TAMAGUI_TARGET": JSON.stringify("web"),
+      "process.env": "{}",
+    },
+
     resolve: {
       alias: {
         "@": resolve(__dirname, "./src"),

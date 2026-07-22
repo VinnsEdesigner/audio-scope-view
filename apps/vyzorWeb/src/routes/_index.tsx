@@ -13,7 +13,6 @@ const PageContainer = styled(YStack, {
   padding: "$lg",
   gap: "$lg",
   maxWidth: 1200,
-  alignSelf: "center",
   width: "100%",
 });
 
@@ -107,8 +106,8 @@ export function Dashboard(): React.ReactElement {
   return (
     <PageContainer>
       <PageHeader>
-        <PageTitle>Dashboard</PageTitle>
-        <PageDescription>Overview of your audio scopes and recent activity</PageDescription>
+        <PageTitle>Overview</PageTitle>
+        <PageDescription>Snapshot of your scopes and recent activity</PageDescription>
       </PageHeader>
 
       <StatsGrid stats={stats} columns={2} />
