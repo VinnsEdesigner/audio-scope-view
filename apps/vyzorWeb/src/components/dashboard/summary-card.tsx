@@ -24,7 +24,6 @@ const ValueText = styled(Text, {
   fontSize: "$2xl",
   fontWeight: "bold",
   color: "$foreground",
-  fontVariantNumeric: "tabular-nums",
 });
 
 const TrendText = styled(Text, {

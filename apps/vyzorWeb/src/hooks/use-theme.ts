@@ -10,7 +10,7 @@ export function useTheme(): "light" | "dark" {
 
   // Check if dark theme is active via Tamagui
   if (tamaguiTheme && "name" in tamaguiTheme) {
-    const themeName = tamaguiTheme.name;
+    const themeName = String(tamaguiTheme.name);
     if (themeName === "dark") {
       return "dark";
     }

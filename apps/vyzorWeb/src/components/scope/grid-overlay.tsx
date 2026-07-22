@@ -1,17 +1,17 @@
 /**
  * GridOverlay - Oscilloscope grid rendered as SVG overlay
- * Displays vertical and horizontal divisions with center crosshair
+ * Simple neutral gray grid lines with center crosshair
  */
 
-import { styled } from "tamagui";
+import { styled, Stack } from "tamagui";
 import { useTheme } from "@/hooks";
 
-const GridContainer = styled("svg", {
-  width: "100%",
-  height: "100%",
+const GridWrapper = styled(Stack, {
   position: "absolute",
   top: 0,
   left: 0,
+  width: "100%",
+  height: "100%",
 });
 
 interface GridOverlayProperties {
@@ -31,13 +31,13 @@ export function GridOverlay({
   const gridColor = theme === "dark" ? "oklch(0.25 0 0)" : "oklch(0.85 0 0)";
   const centerColor = theme === "dark" ? "oklch(0.35 0 0)" : "oklch(0.75 0 0)";
 
-  const lines: React.ReactNode[] = [];
+  const elements: React.ReactNode[] = [];
 
   // Vertical lines
   for (let index = 0; index <= divisionsX; index++) {
     const x = (index / divisionsX) * width;
     const isCenter = index === Math.floor(divisionsX / 2);
-    lines.push(
+    elements.push(
       <line
         key={`v-${index}`}
         x1={x}
@@ -46,7 +46,7 @@ export function GridOverlay({
         y2={height}
         stroke={isCenter ? centerColor : gridColor}
         strokeWidth={isCenter ? 1.5 : 0.5}
-      />,
+      />
     );
   }
 
@@ -54,7 +54,7 @@ export function GridOverlay({
   for (let index = 0; index <= divisionsY; index++) {
     const y = (index / divisionsY) * height;
     const isCenter = index === Math.floor(divisionsY / 2);
-    lines.push(
+    elements.push(
       <line
         key={`h-${index}`}
         x1={0}
@@ -63,13 +63,21 @@ export function GridOverlay({
         y2={y}
         stroke={isCenter ? centerColor : gridColor}
         strokeWidth={isCenter ? 1.5 : 0.5}
-      />,
+      />
     );
   }
 
   return (
-    <GridContainer viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      {lines}
-    </GridContainer>
+    <GridWrapper>
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        style={{ position: "absolute", top: 0, left: 0 }}
+      >
+        {elements}
+      </svg>
+    </GridWrapper>
   );
 }

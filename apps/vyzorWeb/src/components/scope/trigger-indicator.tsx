@@ -3,10 +3,10 @@
  * Displays a horizontal line at the trigger voltage with a label
  */
 
-import { styled, Text } from "tamagui";
+import { styled, Text, Stack } from "tamagui";
 import { useTheme } from "@/hooks";
 
-const TriggerContainer = styled("div", {
+const TriggerContainer = styled(Stack, {
   position: "absolute",
   left: 8,
   right: 8,
@@ -37,7 +37,7 @@ export function TriggerIndicator({
   return (
     <TriggerContainer width={width}>
       {/* Trigger level line */}
-      <div
+      <Stack
         style={{
           position: "absolute",
           top: triggerY,
@@ -50,7 +50,7 @@ export function TriggerIndicator({
       />
 
       {/* Trigger label */}
-      <div
+      <Stack
         style={{
           position: "absolute",
           top: triggerY - 18,
@@ -63,10 +63,10 @@ export function TriggerIndicator({
         <Text fontSize={9} fontWeight="600" color={textColor} lineHeight={12}>
           {label}
         </Text>
-      </div>
+      </Stack>
 
       {/* Arrow indicator */}
-      <div
+      <Stack
         style={{
           position: "absolute",
           top: triggerY - 5,

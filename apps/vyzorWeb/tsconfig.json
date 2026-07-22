@@ -14,9 +14,12 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@audio-scope-view/ui": ["../../packages/ui/src"],
+      "@audio-scope-view/tamagui": ["../../packages/tamagui/src"],
+      "@audio-scope-view/api-client": ["../../packages/api-client/src"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "server/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

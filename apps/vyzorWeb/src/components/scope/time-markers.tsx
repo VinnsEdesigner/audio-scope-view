@@ -3,10 +3,10 @@
  * Shows time divisions at the bottom of the waveform display
  */
 
-import { styled, Text } from "tamagui";
+import { styled, Text, Stack } from "tamagui";
 import { useTheme } from "@/hooks";
 
-const MarkerContainer = styled("div", {
+const MarkerContainer = styled(Stack, {
   position: "absolute",
   bottom: 4,
   left: 0,
@@ -49,29 +49,29 @@ export function TimeMarkers({
     const time = (index / divisions) * totalTime;
 
     markers.push(
-      <div
+      <Stack
         key={index}
         style={{
           position: "absolute",
           bottom: 0,
           left: x,
           transform: "translateX(-50%)",
+          alignItems: "center",
         }}
       >
         {/* Tick mark */}
-        <div
+        <Stack
           style={{
             width: 1,
             height: 4,
             backgroundColor: textColor,
-            margin: "0 auto",
           }}
         />
         {/* Time label */}
         <Text fontSize={8} color={textColor} lineHeight={10} textAlign="center" minWidth={32}>
           {formatTime(time)}
         </Text>
-      </div>,
+      </Stack>,
     );
   }
 

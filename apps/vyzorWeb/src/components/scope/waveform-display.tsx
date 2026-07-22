@@ -4,12 +4,19 @@
  */
 
 import { useEffect, useRef } from "react";
-import { styled, XStack, YStack, Text } from "tamagui";
-import { useTheme } from "@/hooks";
+import { styled, XStack, YStack, Text, Stack } from "tamagui";
 import { useWaveformStore } from "@/store";
+import type { WaveformColor } from "@/store/ui-store";
 import { GridOverlay } from "./grid-overlay";
 import { TriggerIndicator } from "./trigger-indicator";
 import { TimeMarkers } from "./time-markers";
+
+// Color mapping for waveform trace (blue, red, teal)
+const TRACE_COLORS: Record<WaveformColor, string> = {
+  blue: "#3b82f6",
+  red: "#ef4444",
+  teal: "#14b8a6",
+};
 
 const WaveformContainer = styled(YStack, {
   backgroundColor: "$scopeBackground",
@@ -18,7 +25,7 @@ const WaveformContainer = styled(YStack, {
   position: "relative",
 });
 
-const CanvasElement = styled("canvas", {
+const CanvasWrapper = styled(Stack, {
   width: "100%",
   height: "100%",
 });
@@ -38,6 +45,7 @@ interface WaveformDisplayProperties {
   showGrid?: boolean;
   showTrigger?: boolean;
   showTimeMarkers?: boolean;
+  waveformColor?: WaveformColor;
 }
 
 export function WaveformDisplay({
@@ -46,13 +54,13 @@ export function WaveformDisplay({
   showGrid = true,
   showTrigger = true,
   showTimeMarkers = true,
+  waveformColor = "blue",
 }: WaveformDisplayProperties): React.ReactElement {
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const containerReference = useRef<HTMLDivElement>(null);
   const waveform = useWaveformStore((s) => s.waveform);
-  const theme = useTheme();
 
-  const strokeColor = theme === "dark" ? "#60a5fa" : "#3b82f6";
+  const strokeColor = TRACE_COLORS[waveformColor];
 
   useEffect(() => {
     const canvas = canvasReference.current;
@@ -101,7 +109,9 @@ export function WaveformDisplay({
 
   return (
     <WaveformContainer width={width} height={height} ref={containerReference}>
-      <CanvasElement ref={canvasReference} />
+      <CanvasWrapper>
+        <canvas ref={canvasReference} style={{ width: "100%", height: "100%", display: "block" }} />
+      </CanvasWrapper>
 
       <OverlayContainer>
         {showGrid && <GridOverlay width={width} height={height} />}

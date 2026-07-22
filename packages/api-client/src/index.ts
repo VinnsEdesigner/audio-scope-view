@@ -5,13 +5,17 @@
  *
  * @example
  * // Import from root for all exports
- * import { graphqlClient, domain } from '@vyzoriX/api-client';
+ * import { graphqlClient, domain, config } from '@vyzoriX/api-client';
  *
  * @example
  * // Import specific modules
  * import { graphqlClient } from '@vyzoriX/api-client/audioScopeView';
  * import { domain } from '@vyzoriX/api-client/domain';
  */
+
+// Configuration - Environment-based settings
+export { config, getConfig, isProduction, isDevelopment } from "./config";
+export type { ClientConfig } from "./config";
 
 // Data Layer - GraphQL client, queries, mutations, WebSocket subscriptions
 export { graphqlClient, HttpLink } from "./audioScopeView/graphql/client";

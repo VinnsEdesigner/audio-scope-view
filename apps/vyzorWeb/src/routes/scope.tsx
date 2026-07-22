@@ -3,9 +3,11 @@
  * Shows list of scopes with status and actions
  */
 
-import { styled, YStack, XStack, Text, Spinner } from "tamagui";
+import { useNavigate } from "react-router-dom";
+import { styled, YStack, XStack, Text, Stack } from "tamagui";
 import { useScopes, useCreateScope } from "@/hooks";
 import { Button } from "@audio-scope-view/ui/button";
+import { ScopeListSkeleton } from "@audio-scope-view/ui/skeletons";
 
 const PageContainer = styled(YStack, {
   padding: "$lg",
@@ -65,17 +67,10 @@ const StatusBadge = styled(XStack, {
   gap: "$xs",
 });
 
-const StatusDot = styled("div", {
+const StatusDot = styled(Stack, {
   width: 8,
   height: 8,
   borderRadius: "$full",
-});
-
-const LoadingContainer = styled(YStack, {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "$xl",
 });
 
 const EmptyState = styled(YStack, {
@@ -85,19 +80,9 @@ const EmptyState = styled(YStack, {
 });
 
 export function ScopeList(): React.ReactElement {
+  const navigate = useNavigate();
   const { data: scopes, isLoading } = useScopes();
   const createScope = useCreateScope();
-
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <LoadingContainer>
-          <Spinner size="large" />
-          <Text color="$mutedForeground">Loading scopes...</Text>
-        </LoadingContainer>
-      </PageContainer>
-    );
-  }
 
   const handleCreateScope = () => {
     createScope.mutate({
@@ -105,6 +90,14 @@ export function ScopeList(): React.ReactElement {
       description: "Created from web app",
     });
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <ScopeListSkeleton />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -114,14 +107,54 @@ export function ScopeList(): React.ReactElement {
           <PageDescription>Manage your audio capture scopes</PageDescription>
         </YStack>
         <HeaderActions>
-          <Button onPress={handleCreateScope}>+ New Scope</Button>
+          <Button onPress={handleCreateScope} loading={createScope.isPending}>
+            + New Scope
+          </Button>
         </HeaderActions>
       </PageHeader>
 
       {scopes && scopes.length > 0 ? (
         <ScopeListContainer>
           {scopes.map((scope) => (
-            <ScopeCardLink key={scope.id} scope={scope} />
+            <button
+              key={scope.id}
+              type="button"
+              onClick={() => navigate(`/scope/${scope.id}`)}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                padding: "16px",
+                backgroundColor: "var(--color-card)",
+                borderRadius: "8px",
+                borderWidth: 1,
+                borderColor: "var(--color-border)",
+                gap: "16px",
+                cursor: "pointer",
+                width: "100%",
+                alignItems: "center",
+                textDecorationLine: "none",
+                borderStyle: "solid",
+              }}
+            >
+              <ScopeInfo>
+                <ScopeName>{scope.name}</ScopeName>
+                <ScopeMeta>
+                  {scope.sampleRate.toLocaleString()} Hz • Updated{" "}
+                  {formatRelativeTime(scope.updatedAt)}
+                </ScopeMeta>
+              </ScopeInfo>
+
+              <StatusBadge backgroundColor={scope.isActive ? "oklch(0.72 0.18 145)" : "$muted"}>
+                <StatusDot backgroundColor={scope.isActive ? "#22c55e" : "$mutedForeground"} />
+                <Text
+                  fontSize="$xs"
+                  fontWeight="500"
+                  color={scope.isActive ? "#22c55e" : "$mutedForeground"}
+                >
+                  {scope.isActive ? "Active" : "Inactive"}
+                </Text>
+              </StatusBadge>
+            </button>
           ))}
         </ScopeListContainer>
       ) : (
@@ -132,60 +165,12 @@ export function ScopeList(): React.ReactElement {
           <Text color="$mutedForeground" textAlign="center">
             Create your first scope to start capturing audio waveforms
           </Text>
-          <Button onPress={handleCreateScope} variant="primary">
+          <Button onPress={handleCreateScope} variant="outline" loading={createScope.isPending}>
             Create First Scope
           </Button>
         </EmptyState>
       )}
     </PageContainer>
-  );
-}
-
-interface ScopeCardLinkProperties {
-  scope: {
-    id: string;
-    name: string;
-    isActive: boolean;
-    sampleRate: number;
-    updatedAt: Date;
-  };
-}
-
-function ScopeCardLink({ scope }: ScopeCardLinkProperties): React.ReactElement {
-  return (
-    <XStack
-      as="a"
-      href={`/scope/${scope.id}`}
-      padding="$md"
-      backgroundColor="$card"
-      borderRadius="$lg"
-      borderWidth={1}
-      borderColor="$border"
-      gap="$md"
-      textDecorationLine="none"
-      cursor="pointer"
-      hoverStyle={{
-        backgroundColor: "$accent",
-      }}
-    >
-      <ScopeInfo>
-        <ScopeName>{scope.name}</ScopeName>
-        <ScopeMeta>
-          {scope.sampleRate.toLocaleString()} Hz • Updated {formatRelativeTime(scope.updatedAt)}
-        </ScopeMeta>
-      </ScopeInfo>
-
-      <StatusBadge backgroundColor={scope.isActive ? "oklch(0.72 0.18 145)" : "$muted"}>
-        <StatusDot backgroundColor={scope.isActive ? "#22c55e" : "$mutedForeground"} />
-        <Text
-          fontSize="$xs"
-          fontWeight="500"
-          color={scope.isActive ? "#22c55e" : "$mutedForeground"}
-        >
-          {scope.isActive ? "Active" : "Inactive"}
-        </Text>
-      </StatusBadge>
-    </XStack>
   );
 }
 

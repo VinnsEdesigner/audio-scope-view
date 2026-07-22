@@ -8,6 +8,12 @@
   "exports": {
     ".": "./src/index.ts",
     "./domain": "./src/domain/index.ts",
+    "./domain/api-key": "./src/domain/api-key/index.ts",
+    "./domain/api-key/transforms": "./src/domain/api-key/transforms.ts",
+    "./domain/scope": "./src/domain/scope/index.ts",
+    "./domain/settings": "./src/domain/settings/index.ts",
+    "./domain/dashboard": "./src/domain/dashboard/index.ts",
+    "./domain/waveform": "./src/domain/waveform/index.ts",
     "./audioScopeView": "./src/audioScopeView/index.ts",
     "./audioScopeView/graphql": "./src/audioScopeView/graphql/index.ts",
     "./audioScopeView/graphql/queries": "./src/audioScopeView/graphql/queries/index.ts",

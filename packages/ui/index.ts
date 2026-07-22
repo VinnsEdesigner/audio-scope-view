@@ -47,5 +47,6 @@ export * from "./resizable";
 export * from "./sidebar";
 export * from "./sonner";
 export * from "./spinner";
+export * from "./skeletons";
 export * from "./error-boundary";
 export * from "./empty-state";
