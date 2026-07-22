@@ -143,18 +143,15 @@ export const tokens = {
     wider: "0.05em",
   },
 
-  // Sizes
+  // Sizes (Tamagui expects a flat scalar map)
   size: {
-    height: {
-      sm: 32,
-      md: 40,
-      lg: 48,
-    },
-    width: {
-      sm: 32,
-      md: 40,
-      lg: 48,
-    },
+    zero: 0,
+    xs: 24,
+    sm: 32,
+    md: 40,
+    lg: 48,
+    xl: 56,
+    xxl: 64,
   },
 
   // Z-Index

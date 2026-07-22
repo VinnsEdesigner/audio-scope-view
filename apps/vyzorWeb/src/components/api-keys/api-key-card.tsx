@@ -125,24 +125,11 @@ export function ApiKeyCard({
           <KeyId>ID: {apiKey.id.slice(0, 8)}...</KeyId>
         </KeyInfo>
         <CardActions>
-          <StatusBadge
-            backgroundColor={
-              status === "active"
-                ? "oklch(0.72 0.18 145 / 0.15)"
-                : status === "expired"
-                ? "oklch(0.65 0.2 85 / 0.15)"
-                : "oklch(0.55 0.2 25 / 0.15)"
-            }
-          >
+          <StatusBadge backgroundColor="$gray3" borderWidth={1} borderColor="$gray5">
             {(status === "expired" || status === "revoked") && (
-              <AlertCircle size={12} color={status === "expired" ? "#ca8a04" : "#dc2626"} />
+              <AlertCircle size={12} color="var(--color-gray11)" />
             )}
-            <Text
-              fontSize="$xs"
-              fontWeight="500"
-              color={status === "active" ? "#16a34a" : status === "expired" ? "#ca8a04" : "#dc2626"}
-              textTransform="capitalize"
-            >
+            <Text fontSize="$xs" fontWeight="500" color="$gray11" textTransform="capitalize">
               {status}
             </Text>
           </StatusBadge>

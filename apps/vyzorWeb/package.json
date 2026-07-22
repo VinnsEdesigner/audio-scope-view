@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "dev:ssr": "tsx server/index.ts",
     "build": "tsx scripts/build.ts",
     "build:spa": "BUILD_MODE=spa tsx scripts/build.ts",

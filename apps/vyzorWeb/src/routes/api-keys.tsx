@@ -138,12 +138,13 @@ export function ApiKeys(): React.ReactElement {
           padding="$xl"
           alignItems="center"
           justifyContent="center"
-          backgroundColor="$red1"
+          gap="$md"
+          backgroundColor="$gray2"
           borderRadius="$lg"
           borderWidth={1}
-          borderColor="$red6"
+          borderColor="$gray5"
         >
-          <Text color="$red11" fontSize="$md">
+          <Text color="$gray12" fontSize="$md">
             Failed to load API keys. Please try again.
           </Text>
           <Button variant="outline" onPress={() => window.location.reload()}>

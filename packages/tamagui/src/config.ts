@@ -1,4 +1,4 @@
-import { createTamagui, createTokens, createTheme } from "tamagui";
+import { createTamagui, createTokens, createTheme, createFont } from "tamagui";
 import { tokens } from "./tokens";
 
 // Create tamagui tokens from our design tokens
@@ -62,10 +62,21 @@ const tamaguiTokens = createTokens({
     xs: tokens.space.xs,
     sm: tokens.space.sm,
     md: tokens.space.md,
+    true: tokens.space.md,
     lg: tokens.space.lg,
     xl: tokens.space.xl,
     xxl: tokens.space.xxl,
     xxxl: tokens.space.xxxl,
+  },
+  size: {
+    zero: tokens.size.zero,
+    xs: tokens.size.xs,
+    sm: tokens.size.sm,
+    md: tokens.size.md,
+    true: tokens.size.md,
+    lg: tokens.size.lg,
+    xl: tokens.size.xl,
+    xxl: tokens.size.xxl,
   },
   radius: {
     none: tokens.radius.none,
@@ -105,6 +116,44 @@ const tamaguiTokens = createTokens({
     semibold: tokens.fontWeight.semibold,
     bold: tokens.fontWeight.bold,
   },
+  zIndex: {
+    hidden: -1,
+    base: 0,
+    sm: 1,
+    md: 10,
+    lg: 20,
+    xl: 30,
+    xxl: 40,
+    tooltip: 50,
+  },
+});
+
+const bodyFont = createFont({
+  family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  size: {
+    xs: 10, sm: 12, md: 14, true: 14, lg: 16, xl: 18,
+    "2xl": 20, "3xl": 24, "4xl": 32, "5xl": 40,
+  },
+  lineHeight: {
+    xs: 14, sm: 16, md: 20, true: 20, lg: 24, xl: 28,
+    "2xl": 28, "3xl": 32, "4xl": 40, "5xl": 48,
+  },
+  weight: { normal: "400", medium: "500", semibold: "600", bold: "700", true: "400" },
+  letterSpacing: { normal: 0, true: 0 },
+});
+
+const monoFont = createFont({
+  family: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  size: {
+    xs: 10, sm: 12, md: 14, true: 14, lg: 16, xl: 18,
+    "2xl": 20, "3xl": 24, "4xl": 32, "5xl": 40,
+  },
+  lineHeight: {
+    xs: 14, sm: 16, md: 20, true: 20, lg: 24, xl: 28,
+    "2xl": 28, "3xl": 32, "4xl": 40, "5xl": 48,
+  },
+  weight: { normal: "400", medium: "500", true: "400" },
+  letterSpacing: { normal: 0, true: 0 },
 });
 
 // Light theme - uses browser Canvas/CanvasText natively
@@ -200,6 +249,11 @@ export const darkTheme = createTheme({
 // Create Tamagui config
 export const tamaguiConfig = createTamagui({
   tokens: tamaguiTokens,
+  fonts: {
+    body: bodyFont,
+    heading: bodyFont,
+    mono: monoFont,
+  },
   themes: {
     light: lightTheme,
     dark: darkTheme,

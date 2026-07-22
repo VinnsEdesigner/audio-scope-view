@@ -8,3 +8,5 @@ export {
   SidebarItemText,
 } from "./sidebar";
 export { ContentArea, ContentRoot } from "./content-area";
+export { AppSidebar } from "./app-sidebar";
+export { TopBar } from "./top-bar";

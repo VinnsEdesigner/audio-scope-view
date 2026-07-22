@@ -144,13 +144,9 @@ export function ScopeList(): React.ReactElement {
                 </ScopeMeta>
               </ScopeInfo>
 
-              <StatusBadge backgroundColor={scope.isActive ? "oklch(0.72 0.18 145)" : "$muted"}>
-                <StatusDot backgroundColor={scope.isActive ? "#22c55e" : "$mutedForeground"} />
-                <Text
-                  fontSize="$xs"
-                  fontWeight="500"
-                  color={scope.isActive ? "#22c55e" : "$mutedForeground"}
-                >
+              <StatusBadge backgroundColor="$gray3" borderWidth={1} borderColor="$gray5">
+                <StatusDot backgroundColor={scope.isActive ? "$gray12" : "$gray8"} />
+                <Text fontSize="$xs" fontWeight="500" color="$gray11">
                   {scope.isActive ? "Active" : "Inactive"}
                 </Text>
               </StatusBadge>
