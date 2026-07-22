@@ -10,6 +10,8 @@
     "./domain": "./src/domain/index.ts",
     "./audioScopeView": "./src/audioScopeView/index.ts",
     "./audioScopeView/graphql": "./src/audioScopeView/graphql/index.ts",
+    "./audioScopeView/graphql/queries": "./src/audioScopeView/graphql/queries/index.ts",
+    "./audioScopeView/graphql/mutations": "./src/audioScopeView/graphql/mutations/index.ts",
     "./audioScopeView/websocket": "./src/audioScopeView/websocket/index.ts"
   },
   "scripts": {

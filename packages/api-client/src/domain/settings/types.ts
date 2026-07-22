@@ -18,7 +18,7 @@ export interface Settings {
   showMeasurements: boolean;
   gridDivisionsX: number;
   gridDivisionsY: number;
-  inputDevice: string | null;
+  inputDevice: string | undefined;
   inputChannels: number;
 }
 
@@ -48,6 +48,6 @@ export interface SettingsServer {
   show_measurements: boolean;
   grid_divisions_x: number;
   grid_divisions_y: number;
-  input_device: string | null;
+  input_device: string | undefined;
   input_channels: number;
 }

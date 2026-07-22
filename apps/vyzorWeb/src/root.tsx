@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { useIsMobile } from "./hooks";
+import { tamaguiConfig } from "@audio-scope-view/tamagui";
+import { TamaguiProvider, Stack } from "tamagui";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,18 +34,20 @@ function AppShell() {
   const isMobile = useIsMobile();
 
   return (
-    <div className={isMobile ? "mobile-layout" : "desktop-layout"}>
-      {!isMobile && <aside className="sidebar">Sidebar</aside>}
-      <main className="main-content">
-        <Outlet />
-      </main>
-    </div>
+    <Stack flex={1}>
+      <div className={isMobile ? "mobile-layout" : "desktop-layout"}>
+        {!isMobile && <aside className="sidebar">Sidebar</aside>}
+        <main className="main-content">
+          <Outlet />
+        </main>
+      </div>
+    </Stack>
   );
 }
 
 export function Root() {
   return (
-    <>
+    <TamaguiProvider config={tamaguiConfig}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
@@ -51,7 +55,7 @@ export function Root() {
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>
-    </>
+    </TamaguiProvider>
   );
 }
 
