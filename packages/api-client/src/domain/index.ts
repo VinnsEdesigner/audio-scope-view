@@ -3,3 +3,4 @@ export * from "./scope";
 export * from "./waveform";
 export * from "./settings";
 export * from "./dashboard";
+export * from "./api-key";

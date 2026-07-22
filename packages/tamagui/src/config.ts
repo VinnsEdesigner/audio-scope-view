@@ -47,10 +47,15 @@ const tamaguiTokens = createTokens({
     neutralStrong: tokens.color.neutralStrong,
     neutralForeground: tokens.color.neutralForeground,
 
-    // Waveform/scope (teal trace only)
+    // Waveform/scope
     scopeBackground: tokens.color.scopeBackground,
     scopeTrace: tokens.color.scopeTrace,
     scopeGrid: tokens.color.scopeGrid,
+
+    // Waveform trace colors (blue, red, teal)
+    traceBlue: tokens.color.traceBlue,
+    traceRed: tokens.color.traceRed,
+    traceTeal: tokens.color.traceTeal,
   },
   space: {
     zero: tokens.space.zero,
@@ -140,6 +145,11 @@ export const lightTheme = createTheme({
   scopeBackground: tokens.color.scopeBackground,
   scopeTrace: tokens.color.scopeTrace,
   scopeGrid: tokens.color.scopeGrid,
+
+  // Waveform trace colors (blue, red, teal)
+  traceBlue: tokens.color.traceBlue,
+  traceRed: tokens.color.traceRed,
+  traceTeal: tokens.color.traceTeal,
 });
 
 // Dark theme - proper dark mode using oklch for perceptual uniformity
@@ -180,6 +190,11 @@ export const darkTheme = createTheme({
   scopeBackground: "#000000",
   scopeTrace: "#60a5fa",
   scopeGrid: "oklch(0.25 0 0)",
+
+  // Waveform trace colors (blue, red, teal)
+  traceBlue: tokens.color.traceBlue,
+  traceRed: tokens.color.traceRed,
+  traceTeal: tokens.color.traceTeal,
 });
 
 // Create Tamagui config

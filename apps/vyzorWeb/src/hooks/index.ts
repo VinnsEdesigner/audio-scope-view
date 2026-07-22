@@ -32,4 +32,14 @@ export { useIsMobile, useIsTablet } from "./use-mobile";
 export { useTheme } from "./use-theme";
 
 // UI Store
-export { useUIStore } from "../stores";
+export { useUIStore } from "../store";
+
+// API Key hooks
+export {
+  useApiKeys,
+  useApiKey,
+  useVerifyApiKey,
+  useCreateApiKey,
+  useUpdateApiKey,
+  useDeleteApiKey,
+} from "./use-api-keys";

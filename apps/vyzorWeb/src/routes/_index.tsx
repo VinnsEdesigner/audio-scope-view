@@ -3,9 +3,11 @@
  * Displays stats grid and recent scopes
  */
 
-import { styled, YStack, XStack, Text, Spinner } from "tamagui";
+import { useNavigate } from "react-router-dom";
+import { styled, YStack, XStack, Text } from "tamagui";
 import { useDashboardSummary, useRecentScopes } from "@/hooks";
 import { StatsGrid } from "@/components/dashboard";
+import { DashboardStatsSkeleton, RecentScopesSkeleton } from "@audio-scope-view/ui/skeletons";
 
 const PageContainer = styled(YStack, {
   padding: "$lg",
@@ -42,22 +44,6 @@ const SectionTitle = styled(Text, {
   color: "$foreground",
 });
 
-const ViewAllLink = styled(Text, {
-  fontSize: "$sm",
-  color: "$primary",
-  cursor: "pointer",
-  "&:hover": {
-    textDecorationLine: "underline",
-  },
-});
-
-const LoadingContainer = styled(YStack, {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "$xl",
-});
-
 const EmptyState = styled(YStack, {
   padding: "$xl",
   alignItems: "center",
@@ -65,6 +51,7 @@ const EmptyState = styled(YStack, {
 });
 
 export function Dashboard(): React.ReactElement {
+  const navigate = useNavigate();
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const { data: recentScopes, isLoading: scopesLoading } = useRecentScopes();
 
@@ -73,10 +60,19 @@ export function Dashboard(): React.ReactElement {
   if (isLoading) {
     return (
       <PageContainer>
-        <LoadingContainer>
-          <Spinner size="large" />
-          <Text color="$mutedForeground">Loading dashboard...</Text>
-        </LoadingContainer>
+        <PageHeader>
+          <PageTitle>Dashboard</PageTitle>
+          <PageDescription>Overview of your audio scopes and recent activity</PageDescription>
+        </PageHeader>
+
+        <DashboardStatsSkeleton />
+
+        <YStack gap="$md">
+          <SectionHeader>
+            <SectionTitle>Recent Scopes</SectionTitle>
+          </SectionHeader>
+          <RecentScopesSkeleton />
+        </YStack>
       </PageContainer>
     );
   }
@@ -120,7 +116,20 @@ export function Dashboard(): React.ReactElement {
       <YStack gap="$md">
         <SectionHeader>
           <SectionTitle>Recent Scopes</SectionTitle>
-          <ViewAllLink>View all</ViewAllLink>
+          <button
+            type="button"
+            onClick={() => navigate("/scope")}
+            style={{
+              fontSize: "14px",
+              color: "var(--color-primary)",
+              cursor: "pointer",
+              backgroundColor: "transparent",
+              border: "none",
+              padding: 0,
+            }}
+          >
+            View all
+          </button>
         </SectionHeader>
 
         {recentScopes && recentScopes.length > 0 ? (

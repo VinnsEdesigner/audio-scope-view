@@ -3,6 +3,8 @@
  * Connects to GraphQL subscriptions for live waveform data
  */
 
+import { config } from "../../config";
+
 export interface WaveformStreamMessage {
   type: "waveform";
   data: {
@@ -32,11 +34,23 @@ export class WaveformStreamClient {
   }
 
   private buildEndpoint(): string {
+    // Use config's websocket endpoint if available, otherwise build from location
+    if (config.websocketEndpoint) {
+      // If it's an absolute URL, use it directly
+      if (config.websocketEndpoint.startsWith("ws://") || config.websocketEndpoint.startsWith("wss://")) {
+        return config.websocketEndpoint;
+      }
+      // Otherwise, it's a relative path - build from location
+      const httpProtocol = globalThis.window?.location?.protocol ?? "http:";
+      const wsProtocol = httpProtocol === "https:" ? "wss:" : "ws:";
+      const host = globalThis.window?.location?.host ?? "localhost:8080";
+      return `${wsProtocol}//${host}${config.websocketEndpoint}`;
+    }
+    // Fallback to building from location
     const httpProtocol = globalThis.window?.location?.protocol ?? "http:";
     const wsProtocol = httpProtocol === "https:" ? "wss:" : "ws:";
     const host = globalThis.window?.location?.host ?? "localhost:8080";
-    const graphqlEndpoint = import.meta.env?.VITE_GRAPHQL_WS_ENDPOINT ?? "/graphql";
-    return `${wsProtocol}//${host}${graphqlEndpoint}`;
+    return `${wsProtocol}//${host}/graphql`;
   }
 
   connect(): void {

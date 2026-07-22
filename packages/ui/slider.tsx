@@ -8,6 +8,13 @@ export interface SliderProps extends React.ComponentProps<typeof TamaguiSlider> 
 
 const Slider = React.forwardRef<React.ElementRef<typeof TamaguiSlider>, SliderProps>(
   ({ label, showValue, value, ...props }, ref) => {
+    // Ensure defaultValue is always number[]
+    const defaultValue: number[] = Array.isArray(value) 
+      ? value as number[]
+      : value !== undefined 
+        ? [value] 
+        : [0];
+
     return (
       <XStack alignItems="center" gap={12} width="100%">
         {label && (
@@ -18,13 +25,14 @@ const Slider = React.forwardRef<React.ElementRef<typeof TamaguiSlider>, SliderPr
         <TamaguiSlider
           ref={ref}
           flex={1}
-          defaultValue={value ? [value] : [0]}
+          defaultValue={defaultValue}
           {...props}
         >
           <TamaguiSlider.Track backgroundColor="$gray5" height={6} borderRadius="$full">
             <TamaguiSlider.TrackActive backgroundColor="$neutral" borderRadius="$full" />
           </TamaguiSlider.Track>
           <TamaguiSlider.Thumb
+            index={0}
             backgroundColor="$gray12"
             borderRadius="$full"
             width={20}
@@ -35,7 +43,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof TamaguiSlider>, SliderPr
         </TamaguiSlider>
         {showValue && value !== undefined && (
           <Text fontSize={14} color="$gray12" fontWeight="500" width={40} textAlign="right">
-            {value}
+            {Array.isArray(value) ? value[0] : value}
           </Text>
         )}
       </XStack>

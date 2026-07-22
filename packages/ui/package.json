@@ -47,6 +47,7 @@
     "./sheet": "./sheet.tsx",
     "./sidebar": "./sidebar.tsx",
     "./skeleton": "./skeleton.tsx",
+    "./skeletons": "./skeletons/index.ts",
     "./slider": "./slider.tsx",
     "./sonner": "./sonner.tsx",
     "./spinner": "./spinner.tsx",

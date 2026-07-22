@@ -1,12 +1,22 @@
 /**
  * Settings - Application settings page
- * Theme, audio device, and general app configuration
+ * Theme, audio device, waveform color, and general app configuration
  */
 
-import { styled, YStack, XStack, Text, Spinner } from "tamagui";
+import { styled, YStack, XStack, Text } from "tamagui";
+import { Sun, Moon, Monitor } from "lucide-react";
 import { useUIStore, useMediaDevices } from "@/hooks";
-import { Select } from "@audio-scope-view/ui/select";
+import type { WaveformColor } from "@/store/ui-store";
 import { Switch } from "@audio-scope-view/ui/switch";
+import { DeviceListSkeleton } from "@audio-scope-view/ui/skeletons";
+import type { MediaDevice } from "../store";
+
+// Waveform color options (blue, red, teal)
+const WAVEFORM_COLORS: { value: WaveformColor; label: string; color: string }[] = [
+  { value: "blue", label: "Blue", color: "#3b82f6" },
+  { value: "red", label: "Red", color: "#ef4444" },
+  { value: "teal", label: "Teal", color: "#14b8a6" },
+];
 
 const PageContainer = styled(YStack, {
   padding: "$lg",
@@ -69,45 +79,189 @@ const ThemeSelector = styled(XStack, {
   gap: "$sm",
 });
 
-const ThemeOption = styled(XStack, {
-  padding: "$sm",
-  paddingHorizontal: "$md",
-  borderRadius: "$md",
-  borderWidth: 2,
-  borderColor: "$border",
-  cursor: "pointer",
-  alignItems: "center",
+const DeviceSelector = styled(XStack, {
+  flexWrap: "wrap",
+  gap: "$sm",
+});
+
+const DeviceName = styled(Text, {
+  fontSize: "$sm",
+  color: "$foreground",
+});
+
+const ColorSelector = styled(XStack, {
+  flexWrap: "wrap",
   gap: "$xs",
-  "&:hover": {
-    borderColor: "$primary",
-  },
 });
 
-const ThemeIcon = styled(Text, {
-  fontSize: "$lg",
-});
+interface ThemeButtonProperties {
+  children: React.ReactNode;
+  onClick: () => void;
+  isSelected: boolean;
+  isDarkMode: boolean;
+}
 
-const LoadingContainer = styled(YStack, {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "$xl",
-});
+function getThemeBackgroundColor(isSelected: boolean, isDarkMode: boolean): string {
+  if (!isSelected) return "transparent";
+  return isDarkMode ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(var(--color-primary-rgb), 0.1)";
+}
 
-function handleDeviceChange(deviceId: string): void {
-  // Update selected device
-  console.log("Selected device:", deviceId);
+function ThemeButton({ children, onClick, isSelected, isDarkMode }: ThemeButtonProperties) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "8px 16px",
+        borderRadius: "6px",
+        borderWidth: 2,
+        borderStyle: "solid",
+        borderColor: isSelected ? "var(--color-primary)" : "var(--color-border)",
+        backgroundColor: getThemeBackgroundColor(isSelected, isDarkMode),
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        flexDirection: "row",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+interface DeviceButtonProperties {
+  children: React.ReactNode;
+  onClick: () => void;
+  isSelected: boolean;
+}
+
+function DeviceButton({ children, onClick, isSelected }: DeviceButtonProperties) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "8px 16px",
+        borderRadius: "6px",
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderColor: isSelected ? "var(--color-primary)" : "var(--color-border)",
+        backgroundColor: isSelected ? "var(--color-accent)" : "transparent",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "row",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+interface ColorButtonProperties {
+  color: string;
+  label: string;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+function ColorButton({ color, label, isSelected, onClick }: ColorButtonProperties) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: "50%",
+        borderWidth: isSelected ? 3 : 1,
+        borderStyle: "solid",
+        borderColor: isSelected ? "var(--color-primary)" : "var(--color-border)",
+        backgroundColor: color,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    />
+  );
+}
+
+function getPermissionText(permissionState: string): string {
+  switch (permissionState) {
+    case "granted": {
+      return "Granted";
+    }
+    case "denied": {
+      return "Denied";
+    }
+    default: {
+      return "Not requested";
+    }
+  }
+}
+
+function DeviceListContent({
+  devices,
+  devicesLoading,
+  selectedDeviceId,
+  setSelectedDeviceId,
+}: {
+  devices: MediaDevice[] | undefined;
+  devicesLoading: boolean;
+  selectedDeviceId: string | null;
+  setSelectedDeviceId: (id: string) => void;
+}): React.ReactElement {
+  if (devicesLoading) {
+    return <DeviceListSkeleton />;
+  }
+
+  if (devices && devices.length > 0) {
+    return (
+      <DeviceSelector>
+        {devices.map((device) => (
+          <DeviceButton
+            key={device.deviceId}
+            onClick={() => setSelectedDeviceId(device.deviceId)}
+            isSelected={selectedDeviceId === device.deviceId}
+          >
+            <DeviceName>{device.label || `Microphone ${device.deviceId.slice(0, 8)}`}</DeviceName>
+          </DeviceButton>
+        ))}
+      </DeviceSelector>
+    );
+  }
+
+  return (
+    <Text fontSize="$sm" color="$mutedForeground">
+      No audio input devices found
+    </Text>
+  );
 }
 
 export function Settings(): React.ReactElement {
-  const setTheme = useUIStore((s) => s.setTheme);
-  const { data: devices, isLoading: devicesLoading } = useMediaDevices();
+  const {
+    theme,
+    setTheme,
+    showGrid,
+    setShowGrid,
+    showMeasurements,
+    setShowMeasurements,
+    smoothWaveform,
+    setSmoothWaveform,
+    waveformColor,
+    setWaveformColor,
+  } = useUIStore();
 
-  const currentTheme = useUIStore((s) => s.theme);
+  const { devices, selectedDeviceId, setSelectedDeviceId, permissionState } = useMediaDevices();
+  const devicesLoading = devices === undefined;
 
-  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
-    setTheme(newTheme);
-  };
+  const isDarkMode =
+    theme === "dark" ||
+    (theme === "system" && globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches);
+
+  const isSelected = (checkTheme: string) => theme === checkTheme;
 
   return (
     <PageContainer>
@@ -127,32 +281,32 @@ export function Settings(): React.ReactElement {
         </SettingRow>
 
         <ThemeSelector>
-          <ThemeOption
-            as="button"
-            onPress={() => handleThemeChange("light")}
-            aria-pressed={currentTheme === "light"}
+          <ThemeButton
+            onClick={() => setTheme("light")}
+            isSelected={isSelected("light")}
+            isDarkMode={isDarkMode}
           >
-            <ThemeIcon>☀️</ThemeIcon>
+            <Sun size={18} />
             <Text fontSize="$sm">Light</Text>
-          </ThemeOption>
+          </ThemeButton>
 
-          <ThemeOption
-            as="button"
-            onPress={() => handleThemeChange("dark")}
-            aria-pressed={currentTheme === "dark"}
+          <ThemeButton
+            onClick={() => setTheme("dark")}
+            isSelected={isSelected("dark")}
+            isDarkMode={isDarkMode}
           >
-            <ThemeIcon>🌙</ThemeIcon>
+            <Moon size={18} />
             <Text fontSize="$sm">Dark</Text>
-          </ThemeOption>
+          </ThemeButton>
 
-          <ThemeOption
-            as="button"
-            onPress={() => handleThemeChange("system")}
-            aria-pressed={currentTheme === "system"}
+          <ThemeButton
+            onClick={() => setTheme("system")}
+            isSelected={isSelected("system")}
+            isDarkMode={isDarkMode}
           >
-            <ThemeIcon>💻</ThemeIcon>
+            <Monitor size={18} />
             <Text fontSize="$sm">System</Text>
-          </ThemeOption>
+          </ThemeButton>
         </ThemeSelector>
       </Section>
 
@@ -166,29 +320,23 @@ export function Settings(): React.ReactElement {
           </SettingLabel>
         </SettingRow>
 
-        {devicesLoading ? (
-          <LoadingContainer>
-            <Spinner size="small" />
-          </LoadingContainer>
-        ) : (
-          <Select value={devices?.[0]?.deviceId} onValueChange={handleDeviceChange}>
-            {devices?.map((device) => (
-              <Select.Trigger key={device.deviceId}>
-                <Select.Value placeholder="Select device">
-                  {device.label || `Device ${device.deviceId.slice(0, 8)}`}
-                </Select.Value>
-              </Select.Trigger>
-            ))}
-          </Select>
-        )}
+        <DeviceListContent
+          devices={devices}
+          devicesLoading={devicesLoading}
+          selectedDeviceId={selectedDeviceId ?? null}
+          setSelectedDeviceId={setSelectedDeviceId}
+        />
 
         <SettingRow>
           <SettingLabel>
             <SettingName>Permission Status</SettingName>
             <SettingDescription>Microphone access permission</SettingDescription>
           </SettingLabel>
-          <Text fontSize="$sm" color="$mutedForeground">
-            {devices ? "Granted" : "Not granted"}
+          <Text
+            fontSize="$sm"
+            color={permissionState === "granted" ? "$green" : "$mutedForeground"}
+          >
+            {getPermissionText(permissionState)}
           </Text>
         </SettingRow>
       </Section>
@@ -198,10 +346,10 @@ export function Settings(): React.ReactElement {
 
         <SettingRow>
           <SettingLabel>
-            <SettingName>Show Grid by Default</SettingName>
+            <SettingName>Show Grid</SettingName>
             <SettingDescription>Display grid overlay on waveform</SettingDescription>
           </SettingLabel>
-          <Switch defaultChecked />
+          <Switch checked={showGrid} onCheckedChange={setShowGrid} />
         </SettingRow>
 
         <SettingRow>
@@ -209,7 +357,7 @@ export function Settings(): React.ReactElement {
             <SettingName>Show Measurements</SettingName>
             <SettingDescription>Display amplitude and frequency measurements</SettingDescription>
           </SettingLabel>
-          <Switch defaultChecked />
+          <Switch checked={showMeasurements} onCheckedChange={setShowMeasurements} />
         </SettingRow>
 
         <SettingRow>
@@ -217,8 +365,26 @@ export function Settings(): React.ReactElement {
             <SettingName>Smooth Waveform</SettingName>
             <SettingDescription>Apply smoothing filter to waveform display</SettingDescription>
           </SettingLabel>
-          <Switch />
+          <Switch checked={smoothWaveform} onCheckedChange={setSmoothWaveform} />
         </SettingRow>
+
+        <SettingRow>
+          <SettingLabel>
+            <SettingName>Waveform Color</SettingName>
+            <SettingDescription>Choose trace color for waveform display</SettingDescription>
+          </SettingLabel>
+        </SettingRow>
+        <ColorSelector>
+          {WAVEFORM_COLORS.map(({ value, label, color }) => (
+            <ColorButton
+              key={value}
+              color={color}
+              label={label}
+              isSelected={waveformColor === value}
+              onClick={() => setWaveformColor(value)}
+            />
+          ))}
+        </ColorSelector>
       </Section>
 
       <Section>

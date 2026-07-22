@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Outlet, RouterProvider } from "react-router-dom";
-import { router } from "./router";
-import { useIsMobile } from "./hooks";
+import { Outlet } from "react-router-dom";
+import { useIsMobile, useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
-import { TamaguiProvider, Stack } from "tamagui";
+import { TamaguiProvider, Stack, Theme } from "tamagui";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +45,26 @@ function AppShell() {
   );
 }
 
+function ThemedApp() {
+  const theme = useUIStore((state) => state.theme);
+  
+  // Determine actual theme based on setting
+  const resolvedTheme = theme === "system" 
+    ? (globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : theme;
+
+  // Apply theme to document body for CSS variable access
+  useEffect(() => {
+    document.body.setAttribute("data-theme", resolvedTheme);
+  }, [resolvedTheme]);
+
+  return (
+    <Theme name={resolvedTheme}>
+      <AppShell />
+    </Theme>
+  );
+}
+
 export function Root() {
   return (
     <TamaguiProvider config={tamaguiConfig}>
@@ -53,7 +73,7 @@ export function Root() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
       />
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ThemedApp />
       </QueryClientProvider>
     </TamaguiProvider>
   );

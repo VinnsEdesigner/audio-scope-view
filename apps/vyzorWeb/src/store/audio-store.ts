@@ -79,11 +79,13 @@ export const useAudioStore = create<AudioStore>((set) => ({
   // Device actions
   setDevices: (devices) => set({ devices }),
   setSelectedDeviceId: (selectedDeviceId) =>
-    set((state) => ({
-      selectedDeviceId,
-      // Auto-select first device if none selected
-      devices: selectedDeviceId === undefined && devices.length > 0 ? state.devices : devices,
-    })),
+    set((state) => {
+      // Auto-select first device if setting to undefined and devices exist
+      const shouldAutoSelect = selectedDeviceId === undefined && state.devices.length > 0;
+      return {
+        selectedDeviceId: shouldAutoSelect ? state.devices[0].deviceId : selectedDeviceId,
+      };
+    }),
   setPermissionState: (permissionState) => set({ permissionState }),
 
   // Combined actions

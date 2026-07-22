@@ -65,10 +65,15 @@ export const tokens = {
     neutralStrong: "color-mix(in oklab, CanvasText 45%, Canvas)",
     neutralForeground: "CanvasText",
 
-    // Scope/waveform - blue trace only
+    // Scope/waveform
     scopeBackground: "Canvas",
     scopeTrace: "#3b82f6",
-    scopeGrid: "color-mix(in oklab, CanvasText 20%, transparent)",
+    scopeGrid: "color-mix(in oklab, CanvasText 15%, transparent)",
+
+    // Waveform trace colors (blue, red, teal)
+    traceBlue: "#3b82f6",
+    traceRed: "#ef4444",
+    traceTeal: "#14b8a6",
   },
 
   // Spacing

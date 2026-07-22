@@ -4,12 +4,14 @@
  */
 
 import { useParams } from "react-router-dom";
-import { styled, YStack, XStack, Text, Spinner } from "tamagui";
+import { styled, YStack, XStack, Text } from "tamagui";
 import { useScopeDetail, useWaveformStream, useSettings } from "@/hooks";
+import { useUIStore } from "@/store";
 import { WaveformDisplay } from "@/components/scope";
 import { Button } from "@audio-scope-view/ui/button";
 import { Slider } from "@audio-scope-view/ui/slider";
 import { Switch } from "@audio-scope-view/ui/switch";
+import { ScopeDetailSkeleton } from "@audio-scope-view/ui/skeletons";
 
 const PageContainer = styled(YStack, {
   padding: "$lg",
@@ -27,7 +29,7 @@ const BackLink = styled(XStack, {
   alignItems: "center",
   gap: "$xs",
   cursor: "pointer",
-  "&:hover": {
+  hoverStyle: {
     opacity: 0.8,
   },
 });
@@ -76,7 +78,6 @@ const ControlLabel = styled(Text, {
 const ControlValue = styled(Text, {
   fontSize: "$sm",
   color: "$mutedForeground",
-  fontVariantNumeric: "tabular-nums",
 });
 
 const StatsRow = styled(XStack, {
@@ -95,7 +96,6 @@ const StatValue = styled(Text, {
   fontSize: "$lg",
   fontWeight: "bold",
   color: "$foreground",
-  fontVariantNumeric: "tabular-nums",
 });
 
 const StatLabel = styled(Text, {
@@ -108,35 +108,22 @@ const ActionRow = styled(XStack, {
   justifyContent: "flex-end",
 });
 
-const LoadingContainer = styled(YStack, {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "$xl",
-});
-
 export function ScopeDetail(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const { data: scope, isLoading } = useScopeDetail(id);
   const { data: settings } = useSettings(id);
-  const waveformStream = useWaveformStream(id);
+  const waveformStream = useWaveformStream({ scopeId: id, enabled: Boolean(id) });
+  const { waveformColor } = useUIStore();
 
   if (isLoading || !scope) {
     return (
       <PageContainer>
-        <LoadingContainer>
-          <Spinner size="large" />
-          <Text color="$mutedForeground">Loading scope...</Text>
-        </LoadingContainer>
+        <ScopeDetailSkeleton />
       </PageContainer>
     );
   }
 
   const isCapturing = waveformStream.isConnected;
-
-  const handleStartCapture = () => {
-    waveformStream.connect();
-  };
 
   const handleStopCapture = () => {
     waveformStream.disconnect();
@@ -167,6 +154,7 @@ export function ScopeDetail(): React.ReactElement {
             showGrid={settings?.showGrid ?? true}
             showTrigger={true}
             showTimeMarkers={true}
+            waveformColor={waveformColor}
           />
         </WaveformContainer>
 
@@ -180,7 +168,7 @@ export function ScopeDetail(): React.ReactElement {
             <StatLabel>Buffer Size</StatLabel>
           </StatItem>
           <StatItem>
-            <StatValue>{waveformStream.buffers?.[0]?.samples?.length ?? 0}</StatValue>
+            <StatValue>{waveformStream.waveform?.samples?.length ?? 0}</StatValue>
             <StatLabel>Samples</StatLabel>
           </StatItem>
           <StatItem>
@@ -252,13 +240,9 @@ export function ScopeDetail(): React.ReactElement {
       </ControlsSection>
 
       <ActionRow>
-        {isCapturing ? (
+        {isCapturing && (
           <Button onPress={handleStopCapture} variant="destructive">
             Stop Capture
-          </Button>
-        ) : (
-          <Button onPress={handleStartCapture} variant="primary">
-            Start Capture
           </Button>
         )}
         <Button variant="outline">Configure</Button>

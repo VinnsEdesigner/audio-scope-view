@@ -6,7 +6,7 @@ const ContentRoot = styled(YStack, {
   height: "100%",
   backgroundColor: "$gray1",
   padding: "$md",
-  overflow: "auto",
+  overflow: "scroll",
 });
 
 export interface ContentAreaProperties {

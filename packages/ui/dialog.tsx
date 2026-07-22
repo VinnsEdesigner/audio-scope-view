@@ -6,10 +6,6 @@ const DialogRoot = TamaguiDialog;
 const DialogTrigger = TamaguiDialog.Trigger;
 
 const DialogContent = styled(YStack, {
-  position: "fixed",
-  top: "50%",
-  left: "50%",
-  transform: [["translateX(-50%)"], ["translateY(-50%)"]],
   backgroundColor: "$gray1",
   borderRadius: "$lg",
   padding: "$md",
@@ -25,7 +21,6 @@ const DialogContent = styled(YStack, {
 });
 
 const DialogOverlay = styled(YStack, {
-  position: "fixed",
   top: 0,
   left: 0,
   right: 0,
