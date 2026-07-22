@@ -116,6 +116,16 @@ const tamaguiTokens = createTokens({
     semibold: tokens.fontWeight.semibold,
     bold: tokens.fontWeight.bold,
   },
+  zIndex: {
+    hidden: -1,
+    base: 0,
+    sm: 1,
+    md: 10,
+    lg: 20,
+    xl: 30,
+    xxl: 40,
+    tooltip: 50,
+  },
 });
 
 const bodyFont = createFont({
