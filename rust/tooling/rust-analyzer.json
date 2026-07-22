@@ -1,0 +1,501 @@
+{
+  "$schema": "https://json.schemastore.org/rust-analyzer.json",
+  "rustLogoUri": "",
+  "runnables": {
+    "cargoCallback": {
+      "taskHandler": null,
+      "name": "Cargo Runnable Handler"
+    },
+    "commandArgumentFormat": {
+      "cliConcept": "CLI args",
+      "useInteractive": false
+    },
+    "commandPrefixFormatForTasks": {
+      "cliConcept": "CLI args",
+      "useInteractive": false
+    }
+  },
+  "rustc": {
+    "source": "discover"
+  },
+  "cargo": {
+    "buildScripts": {
+      "enable": true,
+      "targets": ["audio-scope-view", "scope-dsp"],
+      "extraArgs": [],
+      "extraEnv": {},
+      "overrideCargo": null,
+      "rustcWrapper": null
+    },
+    "features": ["all"],
+    "target": null,
+    "unsetTest": ["dev-dependencies"],
+    "noDefaultFeatures": false,
+    "allTargets": false,
+    "sysroot": "discover",
+    "lockfile": {
+      "bump": "IfWorse"
+    },
+    "units": {
+      "graphCliFormat": false
+    }
+  },
+  "procMacro": {
+    "enable": true,
+    "attributes": ["test", "bench", "ignore", "should_panic", "tokio::test"],
+    "interopStringLiterals": {
+      "enable": false
+    }
+  },
+  "rustfmt": {
+    "rangeFormatting": {
+      "enable": true,
+      "maxWidth": 100
+    },
+    "separateUnderlinesInsideCodeBlocks": false,
+    "mergeAndSmashProcMacro": false,
+    "smartTabs": false
+  },
+  "checkOnSave": {
+    "enable": true,
+    "command": "clippy",
+    "allTargets": false,
+    "extraArgs": ["--config-path", "tooling/clippy.toml"],
+    "allFeatures": true,
+    "workspace": true
+  },
+  "hover": {
+    "actions": {
+      "enable": true,
+      "memoryLayout": {
+        "enable": true,
+        "layout": "verbose",
+        "offset": "hex"
+      },
+      "run": {
+        "enable": true
+      },
+      "debug": {
+        "enable": true
+      },
+      "gotoTypeDef": {
+        "enable": true
+      }
+    },
+    "showTypeOfLiterals": true,
+    "showExprStructFieldNames": true,
+    "showRange_addFormat": true,
+    "linksInHover": true,
+    "documentation": {
+      "enable": true,
+      "键入": {
+        "enable": true
+      }
+    }
+  },
+  "references": {
+    "adjustsViewToChanged": true,
+    "excludeImports": false
+  },
+  "highlightRelated": {
+    "breakpoints": true,
+    "closingBrackets": true,
+    "discriminantReferences": true,
+    "fieldReferences": true,
+    "fnArgReferences": true,
+    "functionClicks": {
+      "enable": false
+    },
+    "geometricReferences": true,
+    "keywordRefs": true,
+    "labelReferences": true,
+    "loopBodyScopeReferences": true,
+    "methodCalls": true,
+    "parentheses": true,
+    "printOptions": {
+      "maxEntries": 5,
+      "maxLength": 25,
+      "maxStructFields": 5,
+      "maxTupleFields": 5,
+      "vecPreferExpanded": true
+    },
+    "propertyUsageReferences": true,
+    "traitItemReferences": false,
+    "typeDefinitionReferences": true,
+    "yieldReferences": true
+  },
+  "inlayHints": {
+    "enable": true,
+    "typeHints": {
+      "enable": true,
+      "hideNamedConstructor": false,
+      "hideUnitConstructor": true,
+      "hideOpaqueType": false,
+      "suffix": ""
+    },
+    "parameterHints": {
+      "enable": true,
+      "hideNamedParameterName": {
+        "maxLength": 19
+      },
+      "hideUnnamedParameter": false,
+      "prefix": "",
+      "suffix": ""
+    },
+    "closureReturnTypeHints": {
+      "enable": "always",
+      "suppressWhenArgsMatchTypes": true
+    },
+    "discriminantRelabelHints": {
+      "enable": false
+    },
+    "functionReturnTypeHints": {
+      "enable": "always",
+      "hideNamedConstructor": false,
+      "suppressUnnamedFunction": false
+    },
+    "reborrowHints": {
+      "enable": "stable",
+      "suppress谋": false
+    },
+    "renderColons": true,
+    "lifetimeHints": {
+      "enable": "always",
+      "mode": "elision"
+    },
+    "chainingHints": {
+      "enable": true
+    }
+  },
+  "diagnostics": {
+    "enable": true,
+    "experimental": {
+      "enable": true
+    },
+    "disabled": [
+      "alive_suppress",
+      "ambiguous-glob-imports",
+      "ambiguous-imports",
+      "broken-importer-slash",
+      "conflicting-imports",
+      "conflicting-re-exports",
+      "dead-code",
+      "duplicated-map-key-imports",
+      "early-returns",
+      "unused-fields",
+      "unused-imports",
+      "unused-lifetimes",
+      "unused-mut",
+      "unused-qualifications",
+      "unused-variables"
+    ],
+    "enableForAggressiveTests": false,
+    "gatherDirtyFiles": ["target/**", "**/.git/**"],
+    "remapPrefixedErrors": {
+      "enable": true,
+      "prefix": ""
+    },
+    "useRustvocabulary": true
+  },
+  "semanticTokens": {
+    "enable": true,
+    "highlight": {
+      "nonStandardTokenTypes": {
+        "enable": true
+      },
+      "modifierOverrides": {
+        "builtinType": "bold",
+        "comment": "italic",
+        "keyword": "bold",
+        "macro": "bold",
+        "attribute": "bold",
+        "derive": "bold",
+        "function": "bold",
+        "method": "bold",
+        "union": "bold",
+        "constant": "bold"
+      }
+    },
+    "refresh": "intermittent"
+  },
+  "lens": {
+    "enable": true,
+    "codeLens": {
+      "enable": true,
+      "cargowatch": {
+        "enable": false
+      },
+      "custom": {
+        "debug": {
+          "enable": true
+        },
+        "doc": {
+          "enable": true,
+          "annotations": [
+            "re-exports",
+            "implementations",
+            "method-super-trait"
+          ]
+        },
+        "enableExtendedHoverRegistry": true,
+        "ga": {
+          "enable": true
+        },
+        "impLEr": {
+          "enable": true
+        },
+        "locateCrate": {
+          "enable": true
+        },
+        "调式": {
+          "enable": true
+        },
+        "run": {
+          "enable": true
+        },
+        "typeLayout": {
+          "enable": true,
+          "memoryLayout": {
+            "depth": 2,
+            "offset": "hex",
+            "size": "both",
+            "visibility": "hover"
+          }
+        }
+      },
+      "references": {
+        "enable": true,
+        "shortNum": {
+          "enable": true,
+          "max": 5
+        }
+      }
+    },
+    "implementation": {
+      "enable": true,
+      "aditionalLines": {
+        "enable": true,
+        "min": 2
+      }
+    },
+    "references": {
+      "aditionalLines": {
+        "enable": true,
+        "min": 2
+      }
+    },
+    "run": {
+      "enable": true
+    }
+  },
+  "files": {
+    "excludeDirs": [
+      ".git",
+      "target",
+      "node_modules",
+      "data"
+    ],
+    "excludeGlobs": [
+      "**/*.lock"
+    ],
+    "include": [
+      "**/*.rs",
+      "**/Cargo.toml"
+    ],
+    "notInclude": []
+  },
+  "linkedProjects": [
+    {
+      "type": "Workspace",
+      "rust": true,
+      "features": ["all"],
+      "allTargets": false,
+      "unsetTest": []
+    }
+  ],
+  "workspace": {
+    "symbol": {
+      "enable": true,
+      "search": {
+        "enable": true,
+        "kind": "all",
+        "limit": 30,
+        "scopes": {
+          "enable": true,
+          "type": true,
+          "trait": true,
+          "function": true,
+          "method": true,
+          "macro": true,
+          "const": true,
+          "static": true,
+          "struct": true,
+          "enum": true,
+          "union": true,
+          "parameter": false,
+          "variable": false,
+          "module": true
+        }
+      },
+      "sortBy": "Frequency",
+      "workspaceSymbolSearchScope": "Workspace"
+    },
+    "symbolInnerSearch": {
+      "enable": true
+    }
+  },
+  "imports": {
+    "granularity": {
+      "group": " heuristics"
+    },
+    "prefix": "self",
+    "prefer_no_std": false,
+    "prefer_prelude": true,
+    "insert/use": {
+      "enable": true,
+      "add": true,
+      "group": {
+        "enable": true,
+        "merge": {
+          "nesting": true,
+          "groups": true
+        }
+      },
+      "individual": {
+        "enable": false,
+        "items": {}
+      }
+    },
+    "merge": {
+      "enable": true,
+      "glob": true,
+      "nested": true
+    },
+    "deduplicateSegments": {
+      "enable": true,
+      "heuristics": {
+        "enable": false
+      }
+    }
+  },
+  "suggestions": {
+    "enable": true,
+    "applyPasswordSyntaxHighlighting": true,
+    "awaitOutline": {
+      "enable": true
+    },
+    "calleeLocation": true,
+    "cargoEvaluator": {
+      "enable": true
+    },
+    "className": {
+      "enable": true,
+      "snippets": "replace"
+    },
+    "emitArgumentInertsPlaceholders": false,
+    "enableSnippets": true,
+    "fullName": {
+      "enable": true,
+      "separator": "::"
+    },
+    "gotoSourceDefinition": {
+      "enable": true
+    },
+    "hideKrateFromProjects": {
+      "enable": true
+    },
+    "importEnums": {
+      "enable": true
+    },
+    "importPrefix": {
+      "enable": true,
+      "kind": "self"
+    },
+    "importgroups": {
+      "enable": true
+    },
+    "insertArgumentPlaceholders": {
+      "enable": false
+    },
+    "insertFinalNewline": {
+      "enable": true
+    },
+    "labelForTypeAlias": {
+      "enable": false
+    },
+    "maxStructFields": {
+      "enable": true,
+      "threshold": 5
+    },
+    "maxTupleFields": {
+      "enable": true,
+      "threshold": 5
+    },
+    "onlyExtractTests": false,
+    "preferstituteTemplateOverFillArguments": true,
+    "removeDebugStatements": true,
+    "showIgnoreItems": {
+      "enable": true
+    },
+    "showSnippets": {
+      "enable": true
+    },
+    "textStyle": {
+      "enable": true,
+      "case": "snake_case",
+      "propertyEmptyCommaDelimited": true
+    },
+    "typeAliasGenerics": {
+      "enable": true
+    },
+    "useTemplate": {
+      "enable": true
+    },
+    "verboseItemImportLabel": {
+      "enable": false
+    },
+    "wrapProperties": {
+      "enable": "never"
+    }
+  },
+  "notifications": {
+    "cargoTouch": {
+      "enable": true
+    },
+    "rustfmtEnableCheckbox": {
+      "enable": true
+    },
+    "shouldSave园林": {
+      "enable": true
+    }
+  },
+  "index": {
+    "enable": true,
+    "renameLimit": {
+      "enable": true,
+      "items": 1000
+    },
+    "build": {
+      "enable": true,
+      "durable": false
+    },
+    "reduceMemoryUsage": "WhenLengthExceeds100MB",
+    "symbolArrows": {
+      "enable": true,
+      "depth": 5,
+      "prefix": "→"
+    }
+  },
+  "assistant": {
+    "enable": true,
+    "commentCodeBlockStyle": "/// Adds a...",
+    "endRegionMarker": "//"
+  },
+  "typing": {
+    "continueComments": {
+      "enable": true,
+      "onDoubleCurly": true,
+      "onHash": true
+    }
+  }
+}

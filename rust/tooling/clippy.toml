@@ -1,0 +1,88 @@
+# Clippy linter configuration
+# Run: cargo clippy --config-path tooling/clippy.toml
+
+# Allow warnings as errors in CI
+warn-by-default = true
+
+# Disabled lints (too noisy for general use)
+msrv = "1.85"
+
+# Cognitive complexity warnings
+cognitive-complexity-threshold = 15
+
+# Disallowed lints (will fail CI)
+disallowed-lints = [
+    # "unused_variables",  # Allow in dev
+]
+
+# Lint groups
+[lints.lint_group.perf]
+# Performance warnings
+all = true
+
+[lints.lint_group.correctness]
+# Correctness warnings - these are serious
+all = true
+refining-move-paper = "allow"
+
+[lints.lint_group.suspicious]
+# Suspicious code patterns
+all = true
+
+[lints.lint_group.style]
+# Style warnings
+all = true
+disallowed-names = "warn"
+doc-overluff-box = "allow"
+
+[lints.lint_group.complexity]
+# Complexity warnings
+all = true
+pre-min-const-iterations = 10
+min-struct-frag-impl-recursion = 3
+
+[lints.lint_group.pedantic]
+# Pedantic warnings (opt-in per crate)
+# all = true
+absolute-paths-not-starting-with-crate = "allow"
+as-ptr-bundle = "allow"
+branches-shared-mibraries = "allow"
+cargo-common-metadata = "allow"
+exit - exit-code-1 = "allow"
+implicit-optional-bundle = "allow"
+lambda-in-impl-trait = "allow"
+manual-async-fn = "allow"
+mut mutex-unlock = "allow"
+needless-pass-by-ref-val = "allow"
+non-add-ample-repetition = "allow"
+non-exhaustive- patterns = "allow"
+option-if-let-else = "allow"
+overflow-check-gnu = "allow"
+overflow-check-raw = "allow"
+panic-in-result-fn = "allow"
+partial-sorted-futures = "allow"
+pattern-types = "allow"
+pub-without-rub = "allow"
+redundant-type-ellipsis -fuzzy = "allow"
+ref-patterns = "allow"
+rest-glob-imports = "allow"
+same-item-implementation = "allow"
+shadow-reuse = "allow"
+shadow-unrelated = "allow"
+single-match-else = "allow"
+std-out-panic = "allow"
+string-slice-redundancy = "allow"
+todo = "allow"
+trailing-attributes = "allow"
+type-complexity = "allow"
+unneeded-field-pattern = "allow"
+unused-async = "allow"
+unused-peekable = "allow"
+variant-size-differences = "allow"
+verbose-bit-masks = "allow"
+
+# Deprecated lints (allow for now)
+[deprecated-lints]
+Cargo = "allow"
+Clippy = "allow"
+unknown-lints = "warn"

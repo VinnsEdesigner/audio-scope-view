@@ -1,0 +1,130 @@
+# Rustup configuration
+# Toolchain management
+
+# Default toolchain
+default = "stable"
+
+# Profile (minimal, default, complete)
+profile = "default"
+
+# Path to the Rust toolchain (leave empty for default)
+# override_toolchain = ""
+
+# Build targets
+targets = [
+    "x86_64-unknown-linux-gnu",
+    # Add more targets as needed:
+    # "aarch64-unknown-linux-gnu",
+    # "x86_64-apple-darwin",
+    # "wasm32-unknown-unknown",
+]
+
+# Include nightly for miri and other experimental tools
+# NOT added to PATH by default, use: rustup run nightly cargo ...
+nightly = {
+    presets = [
+        "minimal",
+        "rust-src",
+        "miri",
+    ],
+    targets = [
+        "x86_64-unknown-linux-gnu",
+    ],
+}
+
+# Environment variables passed to builds
+env = {
+    # RUST_BACKTRACE = "1",
+    # CARGO_NET_GIT_FETCH_WITH_CLI = "true",
+}
+
+# Directory settings
+# directories = {
+#     # Override toolchain directory
+#     toolchain = "~/.rustup/toolchains",
+#     # Override cache directory
+#     cache = "~/.rustup/cache",
+#     # Override config directory
+#     config = "~/.rustup/config",
+# }
+
+# History settings
+history_size = 100
+
+# Auto-self-update settings
+auto_self_update = "enable"
+
+# Update hash files (requires network)
+hash_check = "update"
+
+# Connection settings
+# network_concurrency = 4
+
+# GPG verification
+gpg = "ignore"
+
+# Retry failed downloads
+retry = 2
+
+# Timeout for slow connections
+timeout_ms = 30000
+
+[overrides]
+# Per-directory toolchain overrides
+# These can be created with: rustup override set <toolchain> <directory>
+# Example: rustup override set nightly-2024-01-01
+
+# Use stable by default, but allow per-directory overrides
+# Add this to workspace root .rustup folder to enforce stable
+# stable-2024-01-01 = "."
+
+[profile.default]
+# Components installed with default profile
+components = [
+    "rustc",
+    "rust-std",
+    "cargo",
+    "rustfmt",
+    "clippy",
+    "rust-analyzer",
+]
+
+# Optional components for default profile
+optional_components = [
+    "rust-docs",
+    "rust-src",
+]
+
+# Target platforms
+targets = [
+    "@TC",
+]
+
+[profile.minimal]
+# Minimal profile - only essential components
+components = [
+    "rustc",
+    "rust-std",
+    "cargo",
+]
+
+[profile.complete]
+# Complete profile - all available components
+components = [
+    "rustc",
+    "rust-std",
+    "cargo",
+    "rustfmt",
+    "clippy",
+    "rust-analyzer",
+    "rust-docs",
+    "rust-src",
+    "miri",
+    "rls",
+    "rust-analysis",
+    "rust-src",
+    "llvm-tools-preview",
+]
+
+[overrides.stable]
+# Stable toolchain settings

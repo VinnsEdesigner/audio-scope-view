@@ -1,0 +1,15 @@
+# Rust toolchain configuration
+# This file pins the toolchain version for reproducible builds
+
+[toolchain]
+channel = "nightly-2026-07-20"
+components = [
+    "rustfmt",
+    "clippy",
+    "rust-analyzer",
+    "rust-src",
+    "miri",
+]
+
+# Profile (minimal, default, complete)
+profile = "default"
