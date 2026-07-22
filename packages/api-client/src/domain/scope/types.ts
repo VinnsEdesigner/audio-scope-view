@@ -8,7 +8,7 @@
 export interface Scope {
   id: string;
   name: string;
-  description: string | null;
+  description: string | undefined;
   isActive: boolean;
   sampleRate: number;
   bufferSize: number;
@@ -44,7 +44,7 @@ export interface CaptureSettingsInput {
 export interface ScopeServer {
   id: string;
   name: string;
-  description: string | null;
+  description: string | undefined;
   is_active: boolean;
   sample_rate: number;
   buffer_size: number;

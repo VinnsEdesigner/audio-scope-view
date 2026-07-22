@@ -27,3 +27,9 @@ export { useMediaDevices } from "./use-media-devices";
 
 // Mobile/Responsive hooks
 export { useIsMobile, useIsTablet } from "./use-mobile";
+
+// Theme hooks
+export { useTheme } from "./use-theme";
+
+// UI Store
+export { useUIStore } from "../stores";

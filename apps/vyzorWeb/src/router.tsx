@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Root } from "./root";
+import { Dashboard, ScopeList, ScopeDetail, Settings } from "./routes";
 
 export const router = createBrowserRouter([
   {
@@ -8,15 +9,19 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <div>Dashboard</div>,
+        element: <Dashboard />,
+      },
+      {
+        path: "/scope",
+        element: <ScopeList />,
       },
       {
         path: "/scope/:id",
-        element: <div>Scope Page</div>,
+        element: <ScopeDetail />,
       },
       {
         path: "/settings",
-        element: <div>Settings Page</div>,
+        element: <Settings />,
       },
     ],
   },
