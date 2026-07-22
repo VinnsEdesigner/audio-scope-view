@@ -169,6 +169,21 @@ export const lightTheme = createTheme({
   colorHover: tokens.color.foreground,
   colorPress: tokens.color.foreground,
 
+  // Gray scale
+  gray1: tokens.color.gray1,
+  gray2: tokens.color.gray2,
+  gray3: tokens.color.gray3,
+  gray4: tokens.color.gray4,
+  gray5: tokens.color.gray5,
+  gray6: tokens.color.gray6,
+  gray7: tokens.color.gray7,
+  gray8: tokens.color.gray8,
+  gray9: tokens.color.gray9,
+  gray10: tokens.color.gray10,
+  gray11: tokens.color.gray11,
+  gray12: tokens.color.gray12,
+  gray13: tokens.color.gray13,
+
   // Borders
   borderColor: tokens.color.border,
   borderColorHover: "color-mix(in oklab, CanvasText 25%, transparent)",
@@ -213,6 +228,22 @@ export const darkTheme = createTheme({
   color: "#ffffff",
   colorHover: "oklch(0.95 0 0)",
   colorPress: "oklch(0.90 0 0)",
+
+  // Gray scale - adapted for dark mode (reversed for proper dark UI)
+  // gray1 uses neutral gray (#141414) to match sidebar for consistent dark theme
+  gray1: "#141414",
+  gray2: "#141414",
+  gray3: "#1f1f1f",
+  gray4: "#2a2a2a",
+  gray5: "#3a3a3a",
+  gray6: "#5a5a5a",
+  gray7: "#7a7a7a",
+  gray8: "#9a9a9a",
+  gray9: "#ababab",
+  gray10: "#c5c5c5",
+  gray11: "#d5d5d5",
+  gray12: "#e5e5e5",
+  gray13: "#f5f5f5",
 
   // Borders - subtle in dark
   borderColor: "oklch(0.25 0 0)",
