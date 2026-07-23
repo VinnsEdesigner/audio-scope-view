@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scopes - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Dark theme palette - refined audio equipment aesthetic */
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      --bg-active: #35353b;
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      --accent-primary: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-muted: rgba(59, 130, 246, 0.15);
+      
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --destructive: #ef4444;
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Layout */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #fb7185, #f43f5e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(251, 113, 133, 0.3);
+    }
+
+    .sidebar-logo-icon svg {
+      width: 22px;
+      height: 22px;
+      color: white;
+    }
+
+    .sidebar-logo-text {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 12px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      padding: 0 8px;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-link:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link.active {
+      background: var(--bg-active);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link svg {
+      width: 18px;
+      height: 18px;
+      opacity: 0.7;
+    }
+
+    .sidebar-link.active svg {
+      opacity: 1;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      padding: 48px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+
+    .page-header-left {
+      flex: 1;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .page-description {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .page-header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: #fb7185;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #f43f5e;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Filter tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding: 4px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      width: fit-content;
+    }
+
+    .filter-tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .filter-tab.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Scope grid */
+    .scope-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    /* Scope card */
+    .scope-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .scope-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .scope-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .scope-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .scope-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scope-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--text-secondary);
+    }
+
+    .scope-details h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .scope-meta {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .scope-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .scope-status-badge.live {
+      color: #fda4af;
+    }
+
+    .scope-status-badge.paused {
+      color: #fb7185;
+    }
+
+    .scope-status-badge.offline {
+      color: var(--text-tertiary);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Waveform preview */
+    .scope-waveform {
+      height: 80px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .waveform-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .waveform-center-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .waveform-trace {
+      position: absolute;
+      inset: 8px;
+    }
+
+    .waveform-line {
+      width: 100%;
+      height: 100%;
+    }
+
+    .waveform-line path {
+      stroke: #fb7185;
+    }
+
+    /* Scope stats */
+    .scope-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .scope-stat {
+      text-align: center;
+      padding: 10px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+    }
+
+    .scope-stat-value {
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: #fb7185;
+    }
+
+    .scope-stat-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* Scope footer */
+    .scope-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .scope-device {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .scope-device svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .scope-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .scope-action-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text-secondary);
+    }
+
+    .scope-action-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    .scope-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 40px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .empty-icon svg {
+      width: 40px;
+      height: 40px;
+      color: var(--text-tertiary);
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      margin-bottom: 24px;
+      max-width: 320px;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .scope-card {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .scope-card:nth-child(1) { animation-delay: 0ms; }
+    .scope-card:nth-child(2) { animation-delay: 80ms; }
+    .scope-card:nth-child(3) { animation-delay: 160ms; }
+    .scope-card:nth-child(4) { animation-delay: 240ms; }
+    .scope-card:nth-child(5) { animation-delay: 320ms; }
+    .scope-card:nth-child(6) { animation-delay: 400ms; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-dot.live {
+      animation: pulse 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 12 L5 8 L7 16 L9 6 L11 18 L13 4 L15 20 L17 8 L19 14 L21 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="21" cy="12" r="2" fill="white"/>
+          </svg>
+        </div>
+        <span class="sidebar-logo-text">Vyzor</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Workspace</div>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+            </svg>
+            Settings
+          </a>
+        </div>
+        
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Audio</div>
+          <a href="#" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+              <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+            </svg>
+            Scopes
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-7 0l2 2M3 12v2a2 2 0 002 2h2m8-12h2a2 2 0 012 2v2m-8 4h8a2 2 0 012 2v2"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            API Keys
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Scopes</h1>
+          <p class="page-description">Manage your audio capture scopes and monitor live signals</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0"/>
+              <path d="M3 12h2m14 0h2M12 3v2m0 14v2"/>
+            </svg>
+            Refresh
+          </button>
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+            New Scope
+          </button>
+        </div>
+      </header>
+
+      <!-- Filter tabs -->
+      <div class="filter-tabs">
+        <button class="filter-tab active">All Scopes</button>
+        <button class="filter-tab">Live</button>
+        <button class="filter-tab">Paused</button>
+        <button class="filter-tab">Offline</button>
+      </div>
+
+      <!-- Scope grid -->
+      <div class="scope-grid">
+        <!-- Live scope -->
+        <div class="scope-card">
+          <div class="scope-card-header">
+            <div class="scope-info">
+              <div class="scope-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+                  <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+                </svg>
+              </div>
+              <div class="scope-details">
+                <h3>Production Scope</h3>
+                <span class="scope-meta">Last activity: Just now</span>
+              </div>
+            </div>
+            <span class="scope-status-badge live">
+              <span class="status-dot live"></span>
+              Live
+            </span>
+          </div>
+          
+          <div class="scope-waveform">
+            <div class="waveform-grid"></div>
+            <div class="waveform-center-line"></div>
+            <div class="waveform-trace">
+              <svg class="waveform-line" viewBox="0 0 400 64" preserveAspectRatio="none">
+                <path d="M0,32 L10,32 L15,20 L20,44 L25,15 L30,49 L35,28 L40,36 L45,22 L50,42 L55,26 L60,38 L65,18 L70,46 L75,24 L80,40 L85,28 L90,36 L95,20 L100,44 L105,26 L110,38 L115,16 L120,48 L125,24 L130,40 L135,28 L140,36 L145,18 L150,46 L155,24 L160,40 L165,28 L170,36 L175,20 L180,44 L185,26 L190,38 L195,16 L200,48 L205,24 L210,40 L215,28 L220,36 L225,18 L230,46 L235,24 L240,40 L245,28 L250,36 L255,20 L260,44 L265,26 L270,38 L275,16 L280,48 L285,24 L290,40 L295,28 L300,36 L305,18 L310,46 L315,24 L320,40 L325,28 L330,36 L335,20 L340,44 L345,26 L350,38 L355,16 L360,48 L365,24 L370,40 L375,28 L380,36 L385,20 L390,44 L395,26 L400,32" 
+                      fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="scope-stats">
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.847</div>
+              <div class="scope-stat-label">Peak</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.523</div>
+              <div class="scope-stat-label">RMS</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">44.1</div>
+              <div class="scope-stat-label">kHz</div>
+            </div>
+          </div>
+          
+          <div class="scope-footer">
+            <span class="scope-device">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              </svg>
+              Built-in Microphone
+            </span>
+            <div class="scope-actions">
+              <button class="scope-action-btn" title="Pause">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+              </button>
+              <button class="scope-action-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paused scope -->
+        <div class="scope-card">
+          <div class="scope-card-header">
+            <div class="scope-info">
+              <div class="scope-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+                  <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+                </svg>
+              </div>
+              <div class="scope-details">
+                <h3>Lab Testing</h3>
+                <span class="scope-meta">Last activity: 15 min ago</span>
+              </div>
+            </div>
+            <span class="scope-status-badge paused">
+              <span class="status-dot"></span>
+              Paused
+            </span>
+          </div>
+          
+          <div class="scope-waveform">
+            <div class="waveform-grid"></div>
+            <div class="waveform-center-line"></div>
+            <div class="waveform-trace">
+              <svg class="waveform-line" viewBox="0 0 400 64" preserveAspectRatio="none">
+                <path d="M0,32 L20,32 L40,20 L60,44 L80,15 L100,49 L120,28 L140,36 L160,22 L180,42 L200,26 L220,38 L240,18 L260,46 L280,24 L300,40 L320,28 L340,36 L360,20 L380,44 L400,32" 
+                      fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="scope-stats">
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.623</div>
+              <div class="scope-stat-label">Peak</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.412</div>
+              <div class="scope-stat-label">RMS</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">48.0</div>
+              <div class="scope-stat-label">kHz</div>
+            </div>
+          </div>
+          
+          <div class="scope-footer">
+            <span class="scope-device">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              </svg>
+              USB Audio Interface
+            </span>
+            <div class="scope-actions">
+              <button class="scope-action-btn" title="Resume">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+              </button>
+              <button class="scope-action-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offline scope -->
+        <div class="scope-card">
+          <div class="scope-card-header">
+            <div class="scope-info">
+              <div class="scope-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+                  <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+                </svg>
+              </div>
+              <div class="scope-details">
+                <h3>Field Recording</h3>
+                <span class="scope-meta">Last activity: 1 hour ago</span>
+              </div>
+            </div>
+            <span class="scope-status-badge offline">
+              <span class="status-dot"></span>
+              Offline
+            </span>
+          </div>
+          
+          <div class="scope-waveform">
+            <div class="waveform-grid"></div>
+            <div class="waveform-center-line"></div>
+            <div class="waveform-trace">
+              <svg class="waveform-line" viewBox="0 0 400 64" preserveAspectRatio="none">
+                <path d="M0,32 L400,32" fill="none" stroke="var(--text-tertiary)" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="scope-stats">
+            <div class="scope-stat">
+              <div class="scope-stat-value">—</div>
+              <div class="scope-stat-label">Peak</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">—</div>
+              <div class="scope-stat-label">RMS</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">96.0</div>
+              <div class="scope-stat-label">kHz</div>
+            </div>
+          </div>
+          
+          <div class="scope-footer">
+            <span class="scope-device">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              </svg>
+              Bluetooth Headset
+            </span>
+            <div class="scope-actions">
+              <button class="scope-action-btn" title="Start">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+              </button>
+              <button class="scope-action-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Offline scope -->
+        <div class="scope-card">
+          <div class="scope-card-header">
+            <div class="scope-info">
+              <div class="scope-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+                  <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+                </svg>
+              </div>
+              <div class="scope-details">
+                <h3>Debug Monitor</h3>
+                <span class="scope-meta">Last activity: 3 hours ago</span>
+              </div>
+            </div>
+            <span class="scope-status-badge offline">
+              <span class="status-dot"></span>
+              Offline
+            </span>
+          </div>
+          
+          <div class="scope-waveform">
+            <div class="waveform-grid"></div>
+            <div class="waveform-center-line"></div>
+            <div class="waveform-trace">
+              <svg class="waveform-line" viewBox="0 0 400 64" preserveAspectRatio="none">
+                <path d="M0,32 L400,32" fill="none" stroke="var(--text-tertiary)" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="scope-stats">
+            <div class="scope-stat">
+              <div class="scope-stat-value">—</div>
+              <div class="scope-stat-label">Peak</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">—</div>
+              <div class="scope-stat-label">RMS</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">44.1</div>
+              <div class="scope-stat-label">kHz</div>
+            </div>
+          </div>
+          
+          <div class="scope-footer">
+            <span class="scope-device">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              </svg>
+              Built-in Microphone
+            </span>
+            <div class="scope-actions">
+              <button class="scope-action-btn" title="Start">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+              </button>
+              <button class="scope-action-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live scope -->
+        <div class="scope-card">
+          <div class="scope-card-header">
+            <div class="scope-info">
+              <div class="scope-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+                  <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+                </svg>
+              </div>
+              <div class="scope-details">
+                <h3>Studio Monitor</h3>
+                <span class="scope-meta">Last activity: Just now</span>
+              </div>
+            </div>
+            <span class="scope-status-badge live">
+              <span class="status-dot live"></span>
+              Live
+            </span>
+          </div>
+          
+          <div class="scope-waveform">
+            <div class="waveform-grid"></div>
+            <div class="waveform-center-line"></div>
+            <div class="waveform-trace">
+              <svg class="waveform-line" viewBox="0 0 400 64" preserveAspectRatio="none">
+                <path d="M0,32 L10,45 L15,20 L20,50 L25,10 L30,55 L35,25 L40,40 L45,18 L50,48 L55,22 L60,42 L65,15 L70,52 L75,28 L80,38 L85,20 L90,44 L95,25 L100,40 L105,18 L110,46 L115,22 L120,38 L125,15 L130,50 L135,28 L140,42 L145,20 L150,48 L155,25 L160,38 L165,18 L170,45 L175,28 L180,40 L185,20 L190,44 L195,25 L200,42 L205,20 L210,46 L215,28 L220,40 L225,18 L230,48 L235,28 L240,40 L245,20 L250,44 L255,28 L260,42 L265,18 L270,48 L275,28 L280,40 L285,20 L290,46 L295,28 L300,42 L305,18 L310,48 L315,28 L320,40 L325,20 L330,44 L335,28 L340,42 L345,18 L350,46 L355,28 L360,40 L365,20 L370,44 L375,28 L380,42 L385,20 L390,46 L395,28 L400,32" 
+                      fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="scope-stats">
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.912</div>
+              <div class="scope-stat-label">Peak</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.678</div>
+              <div class="scope-stat-label">RMS</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">48.0</div>
+              <div class="scope-stat-label">kHz</div>
+            </div>
+          </div>
+          
+          <div class="scope-footer">
+            <span class="scope-device">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              </svg>
+              USB Audio Interface
+            </span>
+            <div class="scope-actions">
+              <button class="scope-action-btn" title="Pause">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+              </button>
+              <button class="scope-action-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paused scope -->
+        <div class="scope-card">
+          <div class="scope-card-header">
+            <div class="scope-info">
+              <div class="scope-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+                  <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+                </svg>
+              </div>
+              <div class="scope-details">
+                <h3>Voice Analysis</h3>
+                <span class="scope-meta">Last activity: 2 hours ago</span>
+              </div>
+            </div>
+            <span class="scope-status-badge paused">
+              <span class="status-dot"></span>
+              Paused
+            </span>
+          </div>
+          
+          <div class="scope-waveform">
+            <div class="waveform-grid"></div>
+            <div class="waveform-center-line"></div>
+            <div class="waveform-trace">
+              <svg class="waveform-line" viewBox="0 0 400 64" preserveAspectRatio="none">
+                <path d="M0,32 L30,25 L50,40 L80,15 L110,50 L140,20 L170,45 L200,30 L230,42 L260,18 L290,48 L320,28 L350,38 L380,22 L400,32" 
+                      fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="scope-stats">
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.745</div>
+              <div class="scope-stat-label">Peak</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">0.489</div>
+              <div class="scope-stat-label">RMS</div>
+            </div>
+            <div class="scope-stat">
+              <div class="scope-stat-value">44.1</div>
+              <div class="scope-stat-label">kHz</div>
+            </div>
+          </div>
+          
+          <div class="scope-footer">
+            <span class="scope-device">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+              </svg>
+              Built-in Microphone
+            </span>
+            <div class="scope-actions">
+              <button class="scope-action-btn" title="Resume">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+              </button>
+              <button class="scope-action-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelector('.filter-tab.active').classList.remove('active');
+        tab.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

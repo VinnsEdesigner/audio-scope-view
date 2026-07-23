@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Dark theme palette - refined audio equipment aesthetic */
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      --bg-active: #35353b;
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      --accent-primary: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-muted: rgba(59, 130, 246, 0.15);
+      
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --destructive: #ef4444;
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Layout */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #fb7185, #f43f5e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(251, 113, 133, 0.3);
+    }
+
+    .sidebar-logo-icon svg {
+      width: 22px;
+      height: 22px;
+      color: white;
+    }
+
+    .sidebar-logo-text {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 12px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      padding: 0 8px;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-link:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link.active {
+      background: var(--bg-active);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link svg {
+      width: 18px;
+      height: 18px;
+      opacity: 0.7;
+    }
+
+    .sidebar-link.active svg {
+      opacity: 1;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      padding: 48px;
+      max-width: 800px;
+    }
+
+    .page-header {
+      margin-bottom: 40px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .page-description {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Settings sections */
+    .settings-section {
+      margin-bottom: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--text-secondary);
+    }
+
+    .section-title-group {
+      flex: 1;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 2px;
+    }
+
+    .section-description {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* Settings card */
+    .settings-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s ease;
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .settings-row-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .settings-label {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .settings-label-description {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+
+    .settings-control {
+      flex-shrink: 0;
+      margin-left: 24px;
+    }
+
+    /* Theme selector */
+    .theme-selector {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-primary);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .theme-option {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .theme-option:hover {
+      color: var(--text-primary);
+    }
+
+    .theme-option.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toggle.active {
+      background: #fb7185;
+      border-color: #fb7185;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+
+    /* Color picker */
+    .color-options {
+      display: flex;
+      gap: 8px;
+    }
+
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+    }
+
+    .color-option.selected {
+      border-color: white;
+      box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px currentColor;
+    }
+
+    .color-option.selected::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .color-cyan { background: #06b6d4; color: #06b6d4; }
+    .color-blue { background: #3b82f6; color: #3b82f6; }
+    .color-purple { background: #8b5cf6; color: #8b5cf6; }
+    .color-green { background: #22c55e; color: #22c55e; }
+    .color-orange { background: #f97316; color: #f97316; }
+    .color-red { background: #ef4444; color: #ef4444; }
+
+    /* Select dropdown */
+    .select-wrapper {
+      position: relative;
+    }
+
+    .select {
+      appearance: none;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 10px 40px 10px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      min-width: 180px;
+      transition: all 0.15s ease;
+    }
+
+    .select:hover {
+      border-color: var(--border-hover);
+    }
+
+    .select:focus {
+      outline: none;
+      border-color: #fb7185;
+      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-tertiary);
+    }
+
+    .select-arrow svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Version badge */
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+    }
+
+    .version-badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    /* Status indicator */
+    .status-row {
+      padding: 16px 24px;
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-dot.success { background: var(--success); }
+    .status-dot.warning { background: var(--warning); }
+    .status-dot.error { background: var(--destructive); }
+
+    /* Waveform preview */
+    .waveform-preview {
+      height: 80px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .waveform-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--accent-primary) 10%, 
+        var(--accent-primary) 15%,
+        transparent 20%,
+        transparent 25%,
+        var(--accent-primary) 30%,
+        var(--accent-primary) 35%,
+        transparent 40%,
+        transparent 45%,
+        var(--accent-primary) 55%,
+        var(--accent-primary) 60%,
+        transparent 65%,
+        transparent 70%,
+        var(--accent-primary) 75%,
+        var(--accent-primary) 80%,
+        transparent 85%,
+        transparent 90%,
+        var(--accent-primary) 95%,
+        transparent 100%
+      );
+      opacity: 0.8;
+    }
+
+    .waveform-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px),
+        linear-gradient(var(--border-subtle) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.5;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .settings-section {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .settings-section:nth-child(1) { animation-delay: 0ms; }
+    .settings-section:nth-child(2) { animation-delay: 80ms; }
+    .settings-section:nth-child(3) { animation-delay: 160ms; }
+    .settings-section:nth-child(4) { animation-delay: 240ms; }
+
+    /* Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: #fb7185;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #f43f5e;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 12 L5 8 L7 16 L9 6 L11 18 L13 4 L15 20 L17 8 L19 14 L21 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="21" cy="12" r="2" fill="white"/>
+          </svg>
+        </div>
+        <span class="sidebar-logo-text">Vyzor</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Workspace</div>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="#" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+            </svg>
+            Settings
+          </a>
+        </div>
+        
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Audio</div>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+              <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+            </svg>
+            Scopes
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-7 0l2 2M3 12v2a2 2 0 002 2h2m8-12h2a2 2 0 012 2v2m-8 4h8a2 2 0 012 2v2"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            API Keys
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="page-header">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-description">Configure your audio scope preferences and appearance</p>
+      </header>
+
+      <!-- Appearance Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </div>
+          <div class="section-title-group">
+            <h2 class="section-title">Appearance</h2>
+            <p class="section-description">Customize how Audio Scope View looks</p>
+          </div>
+        </div>
+        
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Theme</div>
+              <div class="settings-label-description">Choose your preferred color scheme</div>
+            </div>
+            <div class="settings-control">
+              <div class="theme-selector">
+                <button class="theme-option">Light</button>
+                <button class="theme-option active">Dark</button>
+                <button class="theme-option">System</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Waveform Color</div>
+              <div class="settings-label-description">Choose trace color for waveform display</div>
+            </div>
+            <div class="settings-control">
+              <div class="color-options">
+                <div class="color-option color-cyan selected"></div>
+                <div class="color-option color-blue"></div>
+                <div class="color-option color-purple"></div>
+                <div class="color-option color-green"></div>
+                <div class="color-option color-orange"></div>
+                <div class="color-option color-red"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Audio Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+              <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
+            </svg>
+          </div>
+          <div class="section-title-group">
+            <h2 class="section-title">Audio</h2>
+            <p class="section-description">Configure microphone and capture settings</p>
+          </div>
+        </div>
+        
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Input Device</div>
+              <div class="settings-label-description">Select the microphone or audio input device</div>
+            </div>
+            <div class="settings-control">
+              <div class="select-wrapper">
+                <select class="select">
+                  <option>Built-in Microphone</option>
+                  <option>USB Audio Interface</option>
+                  <option>Bluetooth Headset</option>
+                </select>
+                <div class="select-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Sample Rate</div>
+              <div class="settings-label-description">Audio sampling frequency</div>
+            </div>
+            <div class="settings-control">
+              <div class="select-wrapper">
+                <select class="select">
+                  <option>44.1 kHz</option>
+                  <option>48 kHz</option>
+                  <option>96 kHz</option>
+                </select>
+                <div class="select-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Buffer Size</div>
+              <div class="settings-label-description">Audio buffer for capture</div>
+            </div>
+            <div class="settings-control">
+              <div class="select-wrapper">
+                <select class="select">
+                  <option>256 samples</option>
+                  <option>512 samples</option>
+                  <option>1024 samples</option>
+                </select>
+                <div class="select-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="status-row">
+            <div class="status-item">
+              <div class="status-indicator">
+                <span class="status-dot warning"></span>
+                <span>Microphone access permission required</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Display Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+            </svg>
+          </div>
+          <div class="section-title-group">
+            <h2 class="section-title">Display</h2>
+            <p class="section-description">Adjust waveform visualization options</p>
+          </div>
+        </div>
+        
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Show Grid</div>
+              <div class="settings-label-description">Display grid overlay on waveform</div>
+            </div>
+            <div class="settings-control">
+              <div class="toggle active"></div>
+            </div>
+          </div>
+          
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Show Measurements</div>
+              <div class="settings-label-description">Display amplitude and frequency measurements</div>
+            </div>
+            <div class="settings-control">
+              <div class="toggle active"></div>
+            </div>
+          </div>
+          
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Smooth Waveform</div>
+              <div class="settings-label-description">Apply smoothing filter to waveform display</div>
+            </div>
+            <div class="settings-control">
+              <div class="toggle"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Preview Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+          <div class="section-title-group">
+            <h2 class="section-title">Preview</h2>
+            <p class="section-description">See your current display settings in action</p>
+          </div>
+        </div>
+        
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="waveform-preview">
+              <div class="waveform-grid"></div>
+              <div class="waveform-line"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4M12 8h.01"/>
+            </svg>
+          </div>
+          <div class="section-title-group">
+            <h2 class="section-title">About</h2>
+            <p class="section-description">Application information</p>
+          </div>
+        </div>
+        
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-content">
+              <div class="settings-label">Version</div>
+            </div>
+            <div class="settings-control">
+              <div class="version-badge">
+                <span class="version-badge-dot"></span>
+                1.0.0
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Theme selector
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelector('.theme-option.active').classList.remove('active');
+        option.classList.add('active');
+      });
+    });
+
+    // Color picker
+    document.querySelectorAll('.color-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelector('.color-option.selected').classList.remove('selected');
+        option.classList.add('selected');
+      });
+    });
+
+    // Toggle switches
+    document.querySelectorAll('.toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>

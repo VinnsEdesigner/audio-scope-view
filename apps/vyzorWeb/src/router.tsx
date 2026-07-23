@@ -4,8 +4,7 @@ import { Root } from "./root";
 
 // Lazy load route components for code splitting
 const Dashboard = lazy(() => import("./routes/_index").then((m) => ({ default: m.Dashboard })));
-const ScopeList = lazy(() => import("./routes/scope").then((m) => ({ default: m.ScopeList })));
-const ScopeDetail = lazy(() => import("./routes/scope-id").then((m) => ({ default: m.ScopeDetail })));
+const Oscilloscope = lazy(() => import("./routes/oscilloscope").then((m) => ({ default: m.Oscilloscope })));
 const Settings = lazy(() => import("./routes/settings").then((m) => ({ default: m.Settings })));
 const ApiKeys = lazy(() => import("./routes/api-keys").then((m) => ({ default: m.ApiKeys })));
 
@@ -40,12 +39,8 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
-        path: "/scope",
-        element: <ScopeList />,
-      },
-      {
-        path: "/scope/:id",
-        element: <ScopeDetail />,
+        path: "/oscilloscope",
+        element: <Oscilloscope />,
       },
       {
         path: "/settings",
@@ -65,8 +60,7 @@ export const router = createBrowserRouter([
 export const routeTree = {
   path: "/",
   children: [
-    { path: "/scope", element: "ScopeList" },
-    { path: "/scope/:id", element: "ScopeDetail" },
+    { path: "/oscilloscope", element: "Oscilloscope" },
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },
   ],

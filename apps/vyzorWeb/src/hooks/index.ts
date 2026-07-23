@@ -25,6 +25,9 @@ export { useAudioContext } from "./use-audio-context";
 // Media devices hooks
 export { useMediaDevices } from "./use-media-devices";
 
+// Audio settings hooks
+export { useAudioSettings } from "./use-audio-settings";
+
 // Mobile/Responsive hooks
 export { useIsMobile, useIsTablet } from "./use-mobile";
 
@@ -33,6 +36,9 @@ export { useTheme } from "./use-theme";
 
 // UI Store
 export { useUIStore } from "../store";
+
+// Audio Store (for direct access to sampleRate, bufferSize)
+export { useAudioStore } from "../store";
 
 // API Key hooks
 export {

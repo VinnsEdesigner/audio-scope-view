@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create New Scope - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      --bg-active: #35353b;
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      --accent-primary: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-muted: rgba(59, 130, 246, 0.15);
+      --accent-rose: #fb7185;
+      --accent-rose-hover: #f43f5e;
+      
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --destructive: #ef4444;
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Modal */
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease;
+      box-shadow: var(--shadow-lg);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal header */
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Modal body */
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Form groups */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .form-label .required {
+      color: var(--destructive);
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+    }
+
+    /* Inputs */
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .form-input:hover {
+      border-color: var(--border-hover);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-rose);
+      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    }
+
+    /* Select */
+    .form-select {
+      width: 100%;
+      padding: 10px 40px 10px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      transition: all 0.15s ease;
+    }
+
+    .form-select:hover {
+      border-color: var(--border-hover);
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: var(--accent-rose);
+      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    }
+
+    /* Checkbox */
+    .form-checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .form-checkbox input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent-rose);
+      cursor: pointer;
+    }
+
+    .form-checkbox-label {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .form-checkbox-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-left: 28px;
+      margin-top: -4px;
+    }
+
+    /* Divider */
+    .form-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 24px 0;
+    }
+
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+    }
+
+    /* Modal footer */
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn-primary {
+      background: #fb7185;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #f43f5e;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+    }
+
+    /* Preview */
+    .scope-preview {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 20px;
+    }
+
+    .preview-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .preview-waveform {
+      height: 60px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .preview-center {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .preview-line {
+      position: absolute;
+      inset: 8px;
+    }
+
+    .preview-line svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .preview-line path {
+      stroke: #fb7185;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal Overlay -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h2 class="modal-title">Create New Scope</h2>
+        <button class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Name -->
+        <div class="form-group">
+          <label class="form-label">
+            Name <span class="required">*</span>
+          </label>
+          <input type="text" class="form-input" placeholder="e.g., Production Scope">
+          <p class="form-hint">A friendly name to identify this scope</p>
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" class="form-input" placeholder="Optional description">
+          <p class="form-hint">Add a description to help identify this scope's purpose</p>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- Audio Settings Section -->
+        <div class="form-section-title">Audio Configuration</div>
+
+        <!-- Input Device -->
+        <div class="form-group">
+          <label class="form-label">Input Device</label>
+          <select class="form-select">
+            <option value="">Select a microphone</option>
+            <option value="builtin">Built-in Microphone</option>
+            <option value="usb">USB Audio Interface</option>
+            <option value="bluetooth">Bluetooth Headset</option>
+          </select>
+          <p class="form-hint">The audio input device to use for capture</p>
+        </div>
+
+        <!-- Sample Rate -->
+        <div class="form-group">
+          <label class="form-label">Sample Rate</label>
+          <select class="form-select">
+            <option value="44100">44.1 kHz</option>
+            <option value="48000" selected>48 kHz</option>
+            <option value="96000">96 kHz</option>
+          </select>
+          <p class="form-hint">Higher sample rates capture more detail but use more resources</p>
+        </div>
+
+        <!-- Buffer Size -->
+        <div class="form-group">
+          <label class="form-label">Buffer Size</label>
+          <select class="form-select">
+            <option value="128">128 samples</option>
+            <option value="256">256 samples</option>
+            <option value="512" selected>512 samples</option>
+            <option value="1024">1024 samples</option>
+          </select>
+          <p class="form-hint">Smaller buffers reduce latency but may cause audio glitches</p>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- Display Settings Section -->
+        <div class="form-section-title">Display Settings</div>
+
+        <!-- Default Toggles -->
+        <div class="form-checkbox-group">
+          <label class="form-checkbox">
+            <input type="checkbox" checked>
+            <span class="form-checkbox-label">Show Grid</span>
+          </label>
+          <p class="form-checkbox-hint">Display grid overlay on the waveform</p>
+
+          <label class="form-checkbox">
+            <input type="checkbox" checked>
+            <span class="form-checkbox-label">Show Measurements</span>
+          </label>
+          <p class="form-checkbox-hint">Display amplitude and frequency readings</p>
+
+          <label class="form-checkbox">
+            <input type="checkbox">
+            <span class="form-checkbox-label">Smooth Waveform</span>
+          </label>
+          <p class="form-checkbox-hint">Apply smoothing filter to reduce noise</p>
+        </div>
+
+        <!-- Preview -->
+        <div class="scope-preview">
+          <div class="preview-label">Preview</div>
+          <div class="preview-waveform">
+            <div class="preview-grid"></div>
+            <div class="preview-center"></div>
+            <div class="preview-line">
+              <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                <path d="M0,20 L20,18 L40,12 L60,28 L80,8 L100,32 L120,15 L140,25 L160,10 L180,30 L200,20"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-primary">Create Scope</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Close modal on button click
+    document.querySelector('.modal-close').addEventListener('click', () => {
+      document.querySelector('.modal-overlay').style.display = 'none';
+    });
+
+    document.querySelector('.btn-secondary').addEventListener('click', () => {
+      document.querySelector('.modal-overlay').style.display = 'none';
+    });
+
+    // Close on overlay click
+    document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+      if (e.target === document.querySelector('.modal-overlay')) {
+        document.querySelector('.modal-overlay').style.display = 'none';
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelector('.modal-overlay').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

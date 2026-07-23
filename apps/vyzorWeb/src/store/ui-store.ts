@@ -6,8 +6,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// Waveform trace color options (blue, red, teal)
-export type WaveformColor = "blue" | "red" | "teal";
+// Waveform trace color options
+export type WaveformColor = "cyan" | "blue" | "purple" | "green" | "orange" | "red";
 
 export interface UIState {
   // Sidebar
@@ -75,11 +75,11 @@ const initialState: UIState = {
   isSettingsModalOpen: false,
   isAboutModalOpen: false,
   isDeviceSelectorOpen: false,
-  theme: "system",
+  theme: "dark",
   showGrid: true,
   showMeasurements: true,
   smoothWaveform: false,
-  waveformColor: "blue",
+  waveformColor: "cyan",
   isMobile: false,
   isTablet: false,
   isInitializing: true,

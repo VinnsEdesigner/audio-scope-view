@@ -1,4 +1,6 @@
-export { WaveformDisplay } from "./waveform-display";
-export { GridOverlay } from "./grid-overlay";
-export { TriggerIndicator } from "./trigger-indicator";
-export { TimeMarkers } from "./time-markers";
+export { ScopePage } from "./scope-page";
+export { ScopeSidebar } from "./scope-sidebar";
+export { ScopeTopBar } from "./scope-top-bar";
+export { ScopeCanvas } from "./scope-canvas";
+export { ScopeControlPanel } from "./scope-control-panel";
+export { ScopeBottomBar } from "./scope-bottom-bar";

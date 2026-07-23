@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Scope - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0c;
+      --bg-secondary: #141417;
+      --bg-elevated: #1c1c20;
+      --bg-hover: #252529;
+      
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      
+      --accent: #fb7185;
+      --accent-dim: rgba(251, 113, 133, 0.15);
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+    }
+
+    .sidebar-logo {
+      padding: 0 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #fb7185, #f43f5e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar-logo-icon svg {
+      width: 18px;
+      height: 18px;
+      color: white;
+    }
+
+    .sidebar-logo-text {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 10px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 16px;
+    }
+
+    .sidebar-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+      padding: 0 8px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-link:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link svg {
+      width: 16px;
+      height: 16px;
+      opacity: 0.6;
+    }
+
+    .sidebar-link.active svg {
+      opacity: 1;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: 220px;
+      padding: 32px 40px;
+    }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      margin-bottom: 10px;
+      transition: color 0.15s ease;
+    }
+
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+
+    .back-link svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .page-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: var(--accent-dim);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .page-description {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* Waveform Section */
+    .waveform-section {
+      margin-bottom: 28px;
+    }
+
+    .waveform-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .waveform-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .meta-item {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .meta-item svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0.6;
+    }
+
+    .meta-item strong {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .waveform-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .waveform-display {
+      height: 240px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .waveform-grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.4;
+    }
+
+    .waveform-trace {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .waveform-svg {
+      width: 100%;
+      height: 80%;
+    }
+
+    .waveform-svg path {
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-item {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .stat-value.accent {
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Controls Grid */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .control-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .control-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .control-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .control-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Control rows */
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .control-row:last-child {
+      border-bottom: none;
+    }
+
+    .control-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .control-value {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+    }
+
+    /* Toggle */
+    .toggle {
+      width: 36px;
+      height: 20px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .toggle.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+
+    .toggle.active::after {
+      transform: translateX(16px);
+    }
+
+    /* Action bar */
+    .action-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #f43f5e;
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .page-header {
+      animation: fadeIn 0.3s ease;
+    }
+
+    .waveform-section {
+      animation: fadeIn 0.3s ease 0.05s both;
+    }
+
+    .controls-grid {
+      animation: fadeIn 0.3s ease 0.1s both;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 12 L5 8 L7 16 L9 6 L11 18 L13 4 L15 20 L17 8 L19 14 L21 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="21" cy="12" r="2" fill="white"/>
+          </svg>
+        </div>
+        <span class="sidebar-logo-text">Vyzor</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Workspace</div>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="#" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+              <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+            </svg>
+            Scopes
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-7 0l2 2M3 12v2a2 2 0 002 2h2m8-12h2a2 2 0 012 2v2"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            API Keys
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+            </svg>
+            Settings
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Page Header -->
+      <header class="page-header">
+        <a href="/scope" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Scopes
+        </a>
+        <div class="page-title-row">
+          <h1 class="page-title">Production Scope</h1>
+          <span class="status-badge">
+            <span class="status-dot"></span>
+            Live
+          </span>
+        </div>
+        <p class="page-description">Real-time audio waveform monitoring</p>
+      </header>
+
+      <!-- Waveform Section -->
+      <section class="waveform-section">
+        <div class="waveform-header">
+          <div class="waveform-meta">
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+              </svg>
+              USB Audio Interface
+            </span>
+            <span class="meta-item">
+              <strong>48.0 kHz</strong>
+            </span>
+            <span class="meta-item">
+              <strong>512</strong> samples
+            </span>
+          </div>
+          <div class="control-actions">
+            <button class="btn btn-secondary" style="padding: 6px 10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="waveform-container">
+          <div class="waveform-display">
+            <!-- Grid pattern via CSS -->
+            <svg class="waveform-grid" style="background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 40px 40px;"></svg>
+            
+            <div class="waveform-trace">
+              <svg class="waveform-svg" viewBox="0 0 800 100" preserveAspectRatio="none">
+                <path d="M0,50 L20,48 L40,35 L60,65 L80,25 L100,75 L120,20 L140,60 L160,35 L180,70 L200,30 L220,55 L240,40 L260,65 L280,25 L300,70 L320,35 L340,60 L360,30 L380,55 L400,45 L420,55 L440,35 L460,65 L480,30 L500,60 L520,40 L540,70 L560,25 L580,65 L600,35 L620,60 L640,30 L660,55 L680,40 L700,65 L720,30 L740,55 L760,45 L780,50 L800,50"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-value">48,000</div>
+              <div class="stat-label">Sample Rate</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">512</div>
+              <div class="stat-label">Buffer Size</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value accent">0.847</div>
+              <div class="stat-label">Peak</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value accent">0.523</div>
+              <div class="stat-label">RMS</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Controls Grid -->
+      <div class="controls-grid">
+        <!-- Display Controls -->
+        <div class="control-card">
+          <div class="control-header">
+            <span class="control-title">Display</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Time Scale</span>
+            <span class="control-value">2.0 ms/div</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Voltage Scale</span>
+            <span class="control-value">1.0 V/div</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Trigger Level</span>
+            <span class="control-value">45%</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Time Markers</span>
+            <button class="toggle active"></button>
+          </div>
+        </div>
+
+        <!-- Capture Status -->
+        <div class="control-card">
+          <div class="control-header">
+            <span class="control-title">Capture</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Status</span>
+            <span class="status-badge">
+              <span class="status-dot"></span>
+              Capturing
+            </span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Samples</span>
+            <span class="control-value">12,847</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Duration</span>
+            <span class="control-value">00:05:23</span>
+          </div>
+          
+          <div class="control-row">
+            <span class="control-label">Settings</span>
+            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+              </svg>
+              Configure
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <button class="btn btn-danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+          Stop Capture
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Toggle switches
+    document.querySelectorAll('.toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>

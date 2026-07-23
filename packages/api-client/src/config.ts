@@ -14,6 +14,16 @@ function getEnv(key: string, fallback: string): string {
 }
 
 /**
+ * Application version
+ */
+export const APP_VERSION = "2.0.0";
+
+/**
+ * Application name
+ */
+export const APP_NAME = "Audio Scope View";
+
+/**
  * Configuration interface for API Client
  */
 export interface ClientConfig {

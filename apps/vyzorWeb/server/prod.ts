@@ -139,10 +139,15 @@ async function startServer() {
   // Get the render function
   const render = await getRenderFunction();
 
-  // Check if SSR is available
+  // Check if SSR is available and working properly
   let ssrAvailable = true;
   try {
-    await render("/");
+    const result = await render("/");
+    // If SSR returns empty HTML, fall back to SPA mode
+    if (!result.html || result.html.trim().length === 0) {
+      console.log("SSR returned empty HTML, falling back to SPA mode");
+      ssrAvailable = false;
+    }
   } catch {
     ssrAvailable = false;
   }

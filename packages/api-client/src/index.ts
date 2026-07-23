@@ -14,7 +14,7 @@
  */
 
 // Configuration - Environment-based settings
-export { config, getConfig, isProduction, isDevelopment } from "./config";
+export { config, getConfig, isProduction, isDevelopment, APP_VERSION, APP_NAME } from "./config";
 export type { ClientConfig } from "./config";
 
 // Data Layer - GraphQL client, queries, mutations, WebSocket subscriptions
