@@ -395,7 +395,7 @@ export function Oscilloscope(): React.ReactElement {
             hoverStyle={{ backgroundColor: "$gray3" }}
             onPress={() => setIsMenuOpen(!isMenuOpen)}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="$gray10" strokeWidth="2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
             
@@ -403,7 +403,7 @@ export function Oscilloscope(): React.ReactElement {
               <HamburgerMenu>
                 <NavItem hoverStyle={{ backgroundColor: "$gray4" }} onPress={() => { setIsMenuOpen(false); }}>
                   <NavItemIcon>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="$gray12" strokeWidth="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="2" />
                       <path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49" />
                     </svg>
@@ -412,7 +412,7 @@ export function Oscilloscope(): React.ReactElement {
                 </NavItem>
                 <NavItem hoverStyle={{ backgroundColor: "$gray4" }} onPress={() => { setIsMenuOpen(false); }}>
                   <NavItemIcon>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="$gray12" strokeWidth="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                     </svg>
                   </NavItemIcon>
@@ -420,7 +420,7 @@ export function Oscilloscope(): React.ReactElement {
                 </NavItem>
                 <NavItem hoverStyle={{ backgroundColor: "$gray4" }} onPress={() => { setIsMenuOpen(false); }}>
                   <NavItemIcon>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="$gray12" strokeWidth="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" />
                     </svg>
                   </NavItemIcon>
@@ -429,7 +429,7 @@ export function Oscilloscope(): React.ReactElement {
                 <NavDivider />
                 <NavItem hoverStyle={{ backgroundColor: "$gray4" }} onPress={() => { setIsMenuOpen(false); }}>
                   <NavItemIcon>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="$gray12" strokeWidth="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M15 7h3a5 5 0 015 5 5 5 0 01-5 5h-3m-6 0H6a5 5 0 01-5-5 5 5 0 015-5h3" />
                       <path d="M8 12h8" />
                     </svg>
@@ -500,7 +500,7 @@ export function Oscilloscope(): React.ReactElement {
                     )}
                   </ActionButton>
                   <ActionButton backgroundColor="$gray3" borderWidth={1} borderColor="rgba(255, 255, 255, 0.06)" hoverStyle={{ backgroundColor: "$gray4" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="$gray12" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8" />
                       <path d="M21 3v5h-5" />
                     </svg>
