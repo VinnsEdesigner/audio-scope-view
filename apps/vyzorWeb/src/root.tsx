@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useIsMobile, useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
 import { TamaguiProvider, Theme, YStack, XStack } from "tamagui";
@@ -34,12 +34,16 @@ const seoData = {
 function AppShell() {
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  
+  // Hide sidebar for oscilloscope route
+  const isFullScreen = location.pathname === "/oscilloscope";
 
   return (
     <YStack flex={1} height="100vh" backgroundColor="$gray1">
-      <TopBar showMenu={isMobile} onMenuToggle={() => setMobileOpen((v) => !v)} />
+      {!isFullScreen && <TopBar showMenu={isMobile} onMenuToggle={() => setMobileOpen((v) => !v)} />}
       <XStack flex={1} overflow="hidden" position="relative">
-        {!isMobile && <AppSidebar />}
+        {!isMobile && !isFullScreen && <AppSidebar />}
         {isMobile && mobileOpen && (
           <>
             <YStack
