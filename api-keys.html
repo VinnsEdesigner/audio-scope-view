@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Keys - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Dark theme palette - refined audio equipment aesthetic */
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      --bg-active: #35353b;
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      --accent-primary: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-muted: rgba(59, 130, 246, 0.15);
+      
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --destructive: #ef4444;
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Layout */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #fb7185, #f43f5e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(251, 113, 133, 0.3);
+    }
+
+    .sidebar-logo-icon svg {
+      width: 22px;
+      height: 22px;
+      color: white;
+    }
+
+    .sidebar-logo-text {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0 12px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      padding: 0 8px;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-link:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link.active {
+      background: var(--bg-active);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link svg {
+      width: 18px;
+      height: 18px;
+      opacity: 0.7;
+    }
+
+    .sidebar-link.active svg {
+      opacity: 1;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      padding: 48px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+
+    .page-header-left {
+      flex: 1;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .page-description {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .page-header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: #fb7185;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #f43f5e;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* API Keys card */
+    .keys-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .keys-header {
+      display: grid;
+      grid-template-columns: 1fr 140px 120px 100px 80px 60px;
+      gap: 16px;
+      padding: 14px 24px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+    }
+
+    .keys-list {
+      divide: var(--border-subtle);
+    }
+
+    /* Key row */
+    .key-row {
+      display: grid;
+      grid-template-columns: 1fr 140px 120px 100px 80px 60px;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      align-items: center;
+      transition: background 0.15s ease;
+    }
+
+    .key-row:last-child {
+      border-bottom: none;
+    }
+
+    .key-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .key-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .key-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .key-id {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-tertiary);
+    }
+
+    .key-created {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .key-expires {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .key-expires.never {
+      color: var(--text-tertiary);
+    }
+
+    .key-expires.expired {
+      color: #ef4444;
+    }
+
+    .key-rate {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    .key-rate svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--bg-primary);
+    }
+
+    .status-badge.active {
+      color: #fda4af;
+    }
+
+    .status-badge.inactive {
+      color: var(--text-tertiary);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Key actions */
+    .key-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .key-action-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text-tertiary);
+    }
+
+    .key-action-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--border-default);
+      color: var(--text-secondary);
+    }
+
+    .key-action-btn.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+
+    .key-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Last used */
+    .key-lastused {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .key-lastused.never {
+      color: var(--text-tertiary);
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 40px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .empty-icon svg {
+      width: 40px;
+      height: 40px;
+      color: var(--text-tertiary);
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      margin-bottom: 24px;
+      max-width: 320px;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .page-header {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .keys-card {
+      animation: fadeInUp 0.4s ease forwards;
+      animation-delay: 80ms;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-tertiary);
+      transition: all 0.15s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .form-label .required {
+      color: #ef4444;
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-primary);
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .form-input:hover {
+      border-color: var(--border-hover);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #fb7185;
+      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* Select dropdown */
+    .form-select {
+      appearance: none;
+      width: 100%;
+      padding: 10px 40px 10px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-primary);
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    .form-select:hover {
+      border-color: var(--border-hover);
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: #fb7185;
+      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+
+    .modal-footer .btn {
+      min-width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 12 L5 8 L7 16 L9 6 L11 18 L13 4 L15 20 L17 8 L19 14 L21 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="21" cy="12" r="2" fill="white"/>
+          </svg>
+        </div>
+        <span class="sidebar-logo-text">Vyzor</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Workspace</div>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v10M1 12h6m6 0h10"/>
+            </svg>
+            Settings
+          </a>
+        </div>
+        
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Audio</div>
+          <a href="#" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+              <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+            </svg>
+            Scopes
+          </a>
+          <a href="#" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 2l-2 2m-7 0l2 2M3 12v2a2 2 0 002 2h2m8-12h2a2 2 0 012 2v2m-8 4h8a2 2 0 012 2v2"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            API Keys
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">API Keys</h1>
+          <p class="page-description">Manage your API keys for external access to audio scopes</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+            Create API Key
+          </button>
+        </div>
+      </header>
+
+      <!-- API Keys List -->
+      <div class="keys-card">
+        <div class="keys-header">
+          <span>Name</span>
+          <span>Created</span>
+          <span>Expires</span>
+          <span>Rate Limit</span>
+          <span>Status</span>
+          <span>Actions</span>
+        </div>
+        
+        <div class="keys-list">
+          <!-- Key 1: Active -->
+          <div class="key-row">
+            <div class="key-info">
+              <span class="key-name">Production API Key</span>
+              <span class="key-id">#ak_2x7kP9mZ</span>
+            </div>
+            <span class="key-created">Jan 15, 2024</span>
+            <span class="key-expires">Never</span>
+            <span class="key-rate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              </svg>
+              120/min
+            </span>
+            <span class="status-badge active">
+              <span class="status-dot"></span>
+              Active
+            </span>
+            <div class="key-actions">
+              <button class="key-action-btn" title="Copy Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+              </button>
+              <button class="key-action-btn" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="key-action-btn danger" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Key 2: Active with expiry -->
+          <div class="key-row">
+            <div class="key-info">
+              <span class="key-name">Testing Key</span>
+              <span class="key-id">#ak_8mN3qR5t</span>
+            </div>
+            <span class="key-created">Mar 8, 2024</span>
+            <span class="key-expires">Dec 31, 2024</span>
+            <span class="key-rate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              </svg>
+              60/min
+            </span>
+            <span class="status-badge active">
+              <span class="status-dot"></span>
+              Active
+            </span>
+            <div class="key-actions">
+              <button class="key-action-btn" title="Copy Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+              </button>
+              <button class="key-action-btn" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="key-action-btn danger" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Key 3: Inactive/Expired -->
+          <div class="key-row">
+            <div class="key-info">
+              <span class="key-name">Legacy Integration</span>
+              <span class="key-id">#ak_4jH7wL2p</span>
+            </div>
+            <span class="key-created">Sep 22, 2023</span>
+            <span class="key-expires expired">Expired</span>
+            <span class="key-rate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              </svg>
+              30/min
+            </span>
+            <span class="status-badge inactive">
+              <span class="status-dot"></span>
+              Expired
+            </span>
+            <div class="key-actions">
+              <button class="key-action-btn" title="Copy Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+              </button>
+              <button class="key-action-btn" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="key-action-btn danger" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Key 4: Never expires -->
+          <div class="key-row">
+            <div class="key-info">
+              <span class="key-name">CI/CD Pipeline</span>
+              <span class="key-id">#ak_9pK4vB6n</span>
+            </div>
+            <span class="key-created">Nov 3, 2024</span>
+            <span class="key-expires never">Never</span>
+            <span class="key-rate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              </svg>
+              200/min
+            </span>
+            <span class="status-badge active">
+              <span class="status-dot"></span>
+              Active
+            </span>
+            <div class="key-actions">
+              <button class="key-action-btn" title="Copy Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+              </button>
+              <button class="key-action-btn" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="key-action-btn danger" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Key 5: Last used recently -->
+          <div class="key-row">
+            <div class="key-info">
+              <span class="key-name">Analytics Dashboard</span>
+              <span class="key-id">#ak_5fM8xC3d</span>
+            </div>
+            <span class="key-created">Feb 28, 2024</span>
+            <span class="key-expires">Aug 15, 2025</span>
+            <span class="key-rate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              </svg>
+              100/min
+            </span>
+            <span class="status-badge active">
+              <span class="status-dot"></span>
+              Active
+            </span>
+            <div class="key-actions">
+              <button class="key-action-btn" title="Copy Key">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+              </button>
+              <button class="key-action-btn" title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="key-action-btn danger" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Create API Key Modal -->
+    <div class="modal-overlay" id="createKeyModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Create API Key</h2>
+          <button class="modal-close" onclick="closeModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">
+              Name <span class="required">*</span>
+            </label>
+            <input type="text" class="form-input" placeholder="e.g., Production API Key">
+            <p class="form-hint">A friendly name to identify this API key</p>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Expiration</label>
+            <select class="form-select">
+              <option value="">Never expires</option>
+              <option value="24">24 hours</option>
+              <option value="168">7 days</option>
+              <option value="720">30 days</option>
+              <option value="2160">90 days</option>
+              <option value="8760">1 year</option>
+            </select>
+            <p class="form-hint">Leave empty for a key that never expires</p>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Rate Limit</label>
+            <select class="form-select">
+              <option value="60">60 requests/min</option>
+              <option value="120" selected>120 requests/min</option>
+              <option value="200">200 requests/min</option>
+              <option value="500">500 requests/min</option>
+              <option value="1000">1000 requests/min</option>
+            </select>
+            <p class="form-hint">Maximum number of API requests per minute</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="closeModal()">Create Key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('createKeyModal');
+    
+    function openModal() {
+      modal.classList.add('active');
+    }
+    
+    function closeModal() {
+      modal.classList.remove('active');
+    }
+    
+    // Open modal on button click
+    document.querySelector('.page-header-actions .btn-primary').addEventListener('click', openModal);
+    
+    // Close modal on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+  </script>
+</body>
+</html>

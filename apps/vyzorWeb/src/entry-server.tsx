@@ -1,9 +1,10 @@
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RouterProvider } from "react-router-dom";
-import { router } from "./router";
+import { StaticRouter } from "react-router-dom/server";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
-import { TamaguiProvider, Stack } from "tamagui";
+import { TamaguiProvider } from "tamagui";
+import { Root } from "./root";
+import { routeTree } from "./router";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,15 +17,17 @@ const queryClient = new QueryClient({
 
 /**
  * SSR Render function
- * Renders the app to a string for SSR
+ * Renders the app to a string for SSR using StaticRouter
  */
 export async function render(url: string): Promise<{ html: string; status: number }> {
   try {
-    // SSR render with router context for proper hydration
+    // SSR render with StaticRouter for proper server-side rendering
     const html = renderToString(
       <TamaguiProvider config={tamaguiConfig}>
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
+          <StaticRouter location={url} basename="/">
+            <Root />
+          </StaticRouter>
         </QueryClientProvider>
       </TamaguiProvider>
     );

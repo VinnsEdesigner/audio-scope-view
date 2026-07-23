@@ -30,6 +30,10 @@ export interface AudioState {
   selectedDeviceId: string | undefined;
   permissionState: PermissionState;
 
+  // Audio settings
+  sampleRate: number;
+  bufferSize: number;
+
   // Audio context (stored as reference, not serializable)
   audioContext: AudioContext | undefined;
 }
@@ -47,6 +51,10 @@ export interface AudioActions {
   setSelectedDeviceId: (deviceId: string | undefined) => void;
   setPermissionState: (state: PermissionState) => void;
 
+  // Audio settings actions
+  setSampleRate: (sampleRate: number) => void;
+  setBufferSize: (bufferSize: number) => void;
+
   // Combined actions
   resetCapture: () => void;
   resetDevices: () => void;
@@ -63,6 +71,8 @@ const initialState: AudioState = {
   devices: [],
   selectedDeviceId: undefined,
   permissionState: "prompt",
+  sampleRate: 48000,
+  bufferSize: 512,
   audioContext: undefined,
 };
 
@@ -87,6 +97,10 @@ export const useAudioStore = create<AudioStore>((set) => ({
       };
     }),
   setPermissionState: (permissionState) => set({ permissionState }),
+
+  // Audio settings actions
+  setSampleRate: (sampleRate) => set({ sampleRate }),
+  setBufferSize: (bufferSize) => set({ bufferSize }),
 
   // Combined actions
   resetCapture: () =>

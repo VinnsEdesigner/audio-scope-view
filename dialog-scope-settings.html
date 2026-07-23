@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scope Settings - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      --bg-active: #35353b;
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      --accent-primary: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-muted: rgba(59, 130, 246, 0.15);
+      --accent-rose: #fb7185;
+      --accent-rose-hover: #f43f5e;
+      
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --destructive: #ef4444;
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Modal */
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease;
+      box-shadow: var(--shadow-lg);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal header */
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Scope info */
+    .scope-info {
+      padding: 16px 24px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scope-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scope-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--text-secondary);
+    }
+
+    .scope-details h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .scope-details p {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* Modal body */
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Settings section */
+    .settings-section {
+      margin-bottom: 24px;
+    }
+
+    .settings-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    /* Settings card */
+    .settings-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s ease;
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .settings-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .settings-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Slider */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider {
+      width: 100px;
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--accent-rose);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .slider-value {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 24px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toggle.active {
+      background: #fb7185;
+      border-color: #fb7185;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle.active::after {
+      transform: translateX(16px);
+    }
+
+    /* Select */
+    .form-select {
+      padding: 6px 30px 6px 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text-primary);
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      min-width: 100px;
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: var(--accent-rose);
+    }
+
+    /* Modal footer */
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+    }
+
+    .footer-left {
+      display: flex;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .btn-primary {
+      background: #fb7185;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #f43f5e;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--destructive);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Danger zone */
+    .danger-zone {
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .danger-zone .section-title {
+      color: var(--destructive);
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal Overlay -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h2 class="modal-title">Scope Settings</h2>
+        <button class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scope Info -->
+      <div class="scope-info">
+        <div class="scope-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 12h2m4 0h2m4 0h2m4 0h2"/>
+            <path d="M6 8v8M10 6v12M14 9v6M18 7v10"/>
+          </svg>
+        </div>
+        <div class="scope-details">
+          <h3>Production Scope</h3>
+          <p>USB Audio Interface • 48 kHz</p>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Display Settings (Scope-specific) -->
+        <section class="settings-section">
+          <h3 class="section-title">Display</h3>
+          <div class="settings-card">
+            <div class="settings-row">
+              <span class="settings-label">Time Scale</span>
+              <div class="settings-control">
+                <div class="slider-container">
+                  <input type="range" class="slider" min="0.1" max="10" step="0.1" value="2">
+                  <span class="slider-value">2.0 ms/div</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <span class="settings-label">Voltage Scale</span>
+              <div class="settings-control">
+                <div class="slider-container">
+                  <input type="range" class="slider" min="0.1" max="10" step="0.1" value="1">
+                  <span class="slider-value">1.0 V/div</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <span class="settings-label">Trigger Level</span>
+              <div class="settings-control">
+                <div class="slider-container">
+                  <input type="range" class="slider" min="0" max="100" step="1" value="45">
+                  <span class="slider-value">45%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Overlay Settings (Scope-specific only) -->
+        <section class="settings-section">
+          <h3 class="section-title">Overlays</h3>
+          <div class="settings-card">
+            <div class="settings-row">
+              <span class="settings-label">Show Time Markers</span>
+              <div class="settings-control">
+                <button class="toggle active" id="toggleTimeMarkers"></button>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <span class="settings-label">Show Trigger Line</span>
+              <div class="settings-control">
+                <button class="toggle active" id="toggleTrigger"></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Danger Zone -->
+        <section class="settings-section">
+          <div class="danger-zone">
+            <h3 class="section-title">Danger Zone</h3>
+            <div class="settings-card" style="background: transparent; border: none;">
+              <div class="settings-row" style="padding: 0;">
+                <div>
+                  <span class="settings-label">Delete this scope</span>
+                  <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">This action cannot be undone</p>
+                </div>
+                <button class="btn btn-danger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <div class="footer-left">
+          <button class="btn btn-secondary">Reset to Defaults</button>
+        </div>
+        <div class="footer-right">
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Close modal
+    document.querySelector('.modal-close').addEventListener('click', () => {
+      document.querySelector('.modal-overlay').style.display = 'none';
+    });
+
+    document.querySelectorAll('.btn-secondary').forEach(btn => {
+      if (btn.textContent.includes('Cancel') || btn.textContent.includes('Reset')) {
+        btn.addEventListener('click', () => {
+          document.querySelector('.modal-overlay').style.display = 'none';
+        });
+      }
+    });
+
+    // Close on overlay click
+    document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+      if (e.target === document.querySelector('.modal-overlay')) {
+        document.querySelector('.modal-overlay').style.display = 'none';
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelector('.modal-overlay').style.display = 'none';
+      }
+    });
+
+    // Toggle switches
+    document.querySelectorAll('.toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+      });
+    });
+
+    // Slider value updates
+    document.querySelectorAll('.slider').forEach(slider => {
+      slider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value).toFixed(1);
+        const unit = e.target.closest('.settings-row').querySelector('.slider-value').textContent.split(' ')[1];
+        e.target.closest('.settings-row').querySelector('.slider-value').textContent = `${value} ${unit}`;
+      });
+    });
+  </script>
+</body>
+</html>

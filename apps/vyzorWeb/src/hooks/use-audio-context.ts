@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useAudioStore } from "../store";
 
 export interface AudioContextState {
   audioContext: AudioContext | undefined;
@@ -8,12 +9,15 @@ export interface AudioContextState {
 }
 
 export interface UseAudioContextOptions {
-  sampleRate?: number;
   latencyHint?: AudioContextLatencyCategory | number;
 }
 
 export function useAudioContext(options: UseAudioContextOptions = {}) {
-  const { sampleRate = 44_100, latencyHint = "interactive" } = options;
+  const { latencyHint = "interactive" } = options;
+  
+  // Read sampleRate from audio store (settings)
+  const { sampleRate } = useAudioStore();
+  
   const [state, setState] = useState<AudioContextState>({
     audioContext: undefined,
     isRunning: false,
@@ -27,7 +31,9 @@ export function useAudioContext(options: UseAudioContextOptions = {}) {
       audioContextReference.current.close();
     }
 
-    const context = new AudioContext({ sampleRate, latencyHint });
+    // Use sampleRate from audio store, fallback to 48000 if not set
+    const actualSampleRate = sampleRate || 48000;
+    const context = new AudioContext({ sampleRate: actualSampleRate, latencyHint });
     audioContextReference.current = context;
 
     setState({

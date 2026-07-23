@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit API Key - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-default: rgba(255, 255, 255, 0.1);
+      
+      --accent: #fb7185;
+      --accent-hover: #f43f5e;
+      
+      --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Modal */
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 420px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal header */
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-close svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Modal body */
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Form fields */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .form-label span {
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.15);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    /* Permissions section */
+    .permissions-section {
+      margin-top: 20px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .permissions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .permission-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .permission-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .permission-item.checked {
+      border-color: var(--accent);
+      background: rgba(251, 113, 133, 0.08);
+    }
+
+    .permission-checkbox {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid var(--border-default);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .permission-item.checked .permission-checkbox {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .permission-checkbox svg {
+      width: 10px;
+      height: 10px;
+      color: white;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .permission-item.checked .permission-checkbox svg {
+      opacity: 1;
+    }
+
+    .permission-label {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    /* Modal footer */
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal Overlay -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h2 class="modal-title">Edit API Key</h2>
+        <button class="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Name -->
+        <div class="form-group">
+          <label class="form-label">Name <span>(required)</span></label>
+          <input type="text" class="form-input" value="Production API Key" placeholder="e.g., Production API Key">
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label class="form-label">Description <span>(optional)</span></label>
+          <textarea class="form-input form-textarea" placeholder="Add a description...">API key for production environment monitoring</textarea>
+        </div>
+
+        <!-- Permissions -->
+        <div class="permissions-section">
+          <h3 class="section-title">Permissions</h3>
+          <div class="permissions-grid">
+            <div class="permission-item checked">
+              <div class="permission-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+              <span class="permission-label">Read Scopes</span>
+            </div>
+            <div class="permission-item">
+              <div class="permission-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+              <span class="permission-label">Write Scopes</span>
+            </div>
+            <div class="permission-item checked">
+              <div class="permission-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+              <span class="permission-label">Read Waveforms</span>
+            </div>
+            <div class="permission-item checked">
+              <div class="permission-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+              <span class="permission-label">Read Settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Close modal
+    document.querySelector('.modal-close').addEventListener('click', () => {
+      document.querySelector('.modal-overlay').style.display = 'none';
+    });
+
+    document.querySelector('.btn-secondary').addEventListener('click', () => {
+      document.querySelector('.modal-overlay').style.display = 'none';
+    });
+
+    // Permission toggles
+    document.querySelectorAll('.permission-item').forEach(item => {
+      item.addEventListener('click', () => {
+        item.classList.toggle('checked');
+      });
+    });
+
+    // Close on overlay click
+    document.querySelector('.modal-overlay').addEventListener('click', (e) => {
+      if (e.target === document.querySelector('.modal-overlay')) {
+        document.querySelector('.modal-overlay').style.display = 'none';
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelector('.modal-overlay').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
