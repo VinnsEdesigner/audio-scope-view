@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
+import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "path";
 
 export default defineConfig(({ command, mode }) => {
@@ -9,6 +10,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       react(),
+      tailwindcss(),
       tsconfigPaths({
         root: ".",
       }),
@@ -24,9 +26,12 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         "@": resolve(__dirname, "./src"),
+        "@/lib/utils": resolve(__dirname, "./src/lib/utils"),
         "@audio-scope-view/ui": resolve(__dirname, "../../packages/ui"),
+        "@audio-scope-view/ui-radix": resolve(__dirname, "../../packages/ui-radix/src"),
         "@audio-scope-view/tamagui": resolve(__dirname, "../../packages/tamagui/src"),
         "@audio-scope-view/api-client": resolve(__dirname, "../../packages/api-client/src"),
+        "@audio-scope-view/tailwind": resolve(__dirname, "../../packages/tailwind/src"),
       },
     },
 

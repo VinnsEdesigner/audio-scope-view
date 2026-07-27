@@ -2,7 +2,6 @@
  * Settings - Application settings page
  */
 
-import { XStack } from "tamagui";
 import {
   Sun,
   Moon,
@@ -15,28 +14,92 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useUIStore, useMediaDevices, useAudioSettings } from "@/hooks";
+import { useToast } from "@/components/ui/toast";
 import type { WaveformColor } from "@/store/ui-store";
 import { APP_VERSION } from "@audio-scope-view/api-client";
+import { cn } from "@/lib/utils";
 
 // Waveform color options
-const WAVEFORM_COLORS: { value: WaveformColor; colorClass: string }[] = [
-  { value: "cyan", colorClass: "color-cyan" },
-  { value: "blue", colorClass: "color-blue" },
-  { value: "purple", colorClass: "color-purple" },
-  { value: "green", colorClass: "color-green" },
-  { value: "orange", colorClass: "color-orange" },
-  { value: "red", colorClass: "color-red" },
+const WAVEFORM_COLORS: { value: WaveformColor; color: string }[] = [
+  { value: "cyan", color: "#06b6d4" },
+  { value: "blue", color: "#3b82f6" },
+  { value: "purple", color: "#8b5cf6" },
+  { value: "green", color: "#22c55e" },
+  { value: "orange", color: "#f97316" },
+  { value: "red", color: "#ef4444" },
 ];
 
-function getPermissionStatus(permissionState: string): { text: string; statusClass: string } {
+function getPermissionStatus(permissionState: string): { text: string; className: string } {
   switch (permissionState) {
     case "granted":
-      return { text: "Microphone access granted", statusClass: "success" };
+      return { text: "Microphone access granted", className: "bg-success" };
     case "denied":
-      return { text: "Microphone access denied", statusClass: "error" };
+      return { text: "Microphone access denied", className: "bg-destructive" };
     default:
-      return { text: "Microphone access permission required", statusClass: "warning" };
+      return { text: "Microphone access permission required", className: "bg-warning" };
   }
+}
+
+interface SectionProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}
+
+function Section({ icon, title, description, children }: SectionProps) {
+  return (
+    <section className="mb-10 animate-[fadeInUp_0.4s_ease_forwards]">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 flex items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-text-secondary">
+          {icon}
+        </div>
+        <div className="flex-1">
+          <h2 className="text-base font-semibold text-foreground tracking-tight">{title}</h2>
+          <p className="text-sm text-text-tertiary">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+interface SettingsCardProps {
+  children: React.ReactNode;
+}
+
+function SettingsCard({ children }: SettingsCardProps) {
+  return (
+    <div className="rounded-lg border border-border-subtle bg-bg-secondary overflow-hidden">
+      {children}
+    </div>
+  );
+}
+
+interface SettingsRowProps {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+  border?: boolean;
+}
+
+function SettingsRow({ label, description, children, border = true }: SettingsRowProps) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between px-6 py-5 transition-colors hover:bg-bg-hover",
+        border && "border-b border-border-subtle"
+      )}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-foreground mb-0.5">{label}</div>
+        {description && (
+          <div className="text-xs text-text-tertiary leading-relaxed">{description}</div>
+        )}
+      </div>
+      <div className="ml-6 flex-shrink-0">{children}</div>
+    </div>
+  );
 }
 
 export function Settings(): React.ReactElement {
@@ -55,16 +118,15 @@ export function Settings(): React.ReactElement {
 
   const { devices, selectedDeviceId, setSelectedDeviceId, permissionState } = useMediaDevices();
   const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
+  const { addToast } = useToast();
   const permission = getPermissionStatus(permissionState);
 
-  // Sample rate options in Hz
   const sampleRateOptions = [
     { value: 44100, label: "44.1 kHz" },
     { value: 48000, label: "48 kHz" },
     { value: 96000, label: "96 kHz" },
   ];
 
-  // Buffer size options in samples
   const bufferSizeOptions = [
     { value: 256, label: "256 samples" },
     { value: 512, label: "512 samples" },
@@ -72,109 +134,82 @@ export function Settings(): React.ReactElement {
   ];
 
   return (
-    <div className="settings-page">
-      {/* Header */}
-      <header className="settings-header">
-        <h1 className="settings-title">Settings</h1>
-        <p className="settings-description">Configure your audio scope preferences and appearance</p>
-      </header>
+    <div className="w-full min-h-screen">
+      {/* Container: Edge-to-edge, hamburger overlays from top-left */}
+      <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
+        {/* Header */}
+        <header className="mb-8 lg:mb-12">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Settings</h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Configure your audio scope preferences and appearance
+          </p>
+        </header>
 
-      {/* Appearance Section */}
-      <section className="settings-section">
-        <div className="section-header">
-          <div className="section-icon">
-            <Palette size={20} />
-          </div>
-          <div className="section-title-group">
-            <h2 className="section-title">Appearance</h2>
-            <p className="section-description">Customize how Audio Scope View looks</p>
-          </div>
-        </div>
-
-        <div className="settings-card">
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Theme</div>
-              <div className="settings-label-description">Choose your preferred color scheme</div>
-            </div>
-            <div className="settings-control">
-              <div className="theme-selector">
-                <button
-                  className={`theme-option ${theme === "light" ? "active" : ""}`}
-                  onClick={() => setTheme("light")}
-                >
-                  <XStack alignItems="center" gap={6}>
-                    <Sun size={14} />
-                    <span>Light</span>
-                  </XStack>
-                </button>
-                <button
-                  className={`theme-option ${theme === "dark" ? "active" : ""}`}
-                  onClick={() => setTheme("dark")}
-                >
-                  <XStack alignItems="center" gap={6}>
-                    <Moon size={14} />
-                    <span>Dark</span>
-                  </XStack>
-                </button>
-                <button
-                  className={`theme-option ${theme === "system" ? "active" : ""}`}
-                  onClick={() => setTheme("system")}
-                >
-                  <XStack alignItems="center" gap={6}>
-                    <Monitor size={14} />
-                    <span>System</span>
-                  </XStack>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Waveform Color</div>
-              <div className="settings-label-description">Choose trace color for waveform display</div>
-            </div>
-            <div className="settings-control">
-              <div className="color-options">
-                {WAVEFORM_COLORS.map(({ value, colorClass }) => (
+        {/* Appearance Section */}
+        <Section icon={<Palette size={20} />} title="Appearance" description="Customize how Audio Scope View looks">
+          <SettingsCard>
+            <SettingsRow label="Theme" description="Choose your preferred color scheme">
+              <div className="flex gap-1 p-1 rounded-md bg-background border border-border-subtle">
+                {[
+                  { value: "light", icon: Sun, label: "Light" },
+                  { value: "dark", icon: Moon, label: "Dark" },
+                  { value: "system", icon: Monitor, label: "System" },
+                ].map(({ value, icon: Icon, label }) => (
                   <button
                     key={value}
-                    className={`color-option ${colorClass} ${waveformColor === value ? "selected" : ""}`}
-                    onClick={() => setWaveformColor(value)}
+                    onClick={() => {
+                      setTheme(value as "light" | "dark" | "system");
+                      addToast("success", `Theme changed to ${label}`);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-sm text-xs font-medium transition-all",
+                      theme === value
+                        ? "bg-bg-elevated text-foreground shadow-sm"
+                        : "text-text-secondary hover:text-foreground"
+                    )}
+                  >
+                    <Icon size={14} />
+                    <span className="hidden xs:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </SettingsRow>
+
+            <SettingsRow label="Waveform Color" description="Choose trace color for waveform display" border={false}>
+              <div className="flex gap-2">
+                {WAVEFORM_COLORS.map(({ value, color }) => (
+                  <button
+                    key={value}
+                    onClick={() => {
+                      setWaveformColor(value);
+                      addToast("success", `Waveform color changed to ${value}`);
+                    }}
+                    className={cn(
+                      "w-8 h-8 rounded-full transition-all relative flex-shrink-0",
+                      waveformColor === value && "ring-2 ring-white ring-offset-2 ring-offset-background"
+                    )}
+                    style={{ backgroundColor: color }}
                     title={value.charAt(0).toUpperCase() + value.slice(1)}
                   />
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </SettingsRow>
+          </SettingsCard>
+        </Section>
 
-      {/* Audio Section */}
-      <section className="settings-section">
-        <div className="section-header">
-          <div className="section-icon">
-            <Mic size={20} />
-          </div>
-          <div className="section-title-group">
-            <h2 className="section-title">Audio</h2>
-            <p className="section-description">Configure microphone and capture settings</p>
-          </div>
-        </div>
-
-        <div className="settings-card">
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Input Device</div>
-              <div className="settings-label-description">Select the microphone or audio input device</div>
-            </div>
-            <div className="settings-control">
-              <div className="select-wrapper">
+        {/* Audio Section */}
+        <Section icon={<Mic size={20} />} title="Audio" description="Configure microphone and capture settings">
+          <SettingsCard>
+            <SettingsRow label="Input Device" description="Select the microphone or audio input device">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select
-                  className="select"
+                  className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={selectedDeviceId ?? ""}
-                  onChange={(e) => setSelectedDeviceId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDeviceId(e.target.value);
+                    const device = devices?.find(d => d.deviceId === e.target.value);
+                    addToast("success", `Input device changed to ${device?.label || "new device"}`);
+                  }}
                 >
                   {devices && devices.length > 0 ? (
                     devices.map((device) => (
@@ -186,24 +221,19 @@ export function Settings(): React.ReactElement {
                     <option value="">No devices found</option>
                   )}
                 </select>
-                <div className="select-arrow">
-                  <ChevronDown size={16} />
-                </div>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
               </div>
-            </div>
-          </div>
+            </SettingsRow>
 
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Sample Rate</div>
-              <div className="settings-label-description">Audio sampling frequency</div>
-            </div>
-            <div className="settings-control">
-              <div className="select-wrapper">
+            <SettingsRow label="Sample Rate" description="Audio sampling frequency">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select
-                  className="select"
+                  className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={sampleRate || ""}
-                  onChange={(e) => setSampleRate(Number(e.target.value))}
+                  onChange={(e) => {
+                    setSampleRate(Number(e.target.value));
+                    addToast("success", `Sample rate changed to ${sampleRateOptions.find(o => o.value === Number(e.target.value))?.label}`);
+                  }}
                 >
                   <option value="">Select sample rate</option>
                   {sampleRateOptions.map((option) => (
@@ -212,24 +242,19 @@ export function Settings(): React.ReactElement {
                     </option>
                   ))}
                 </select>
-                <div className="select-arrow">
-                  <ChevronDown size={16} />
-                </div>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
               </div>
-            </div>
-          </div>
+            </SettingsRow>
 
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Buffer Size</div>
-              <div className="settings-label-description">Audio buffer for capture</div>
-            </div>
-            <div className="settings-control">
-              <div className="select-wrapper">
+            <SettingsRow label="Buffer Size" description="Audio buffer for capture">
+              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select
-                  className="select"
+                  className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={bufferSize || ""}
-                  onChange={(e) => setBufferSize(Number(e.target.value))}
+                  onChange={(e) => {
+                    setBufferSize(Number(e.target.value));
+                    addToast("success", `Buffer size changed to ${bufferSizeOptions.find(o => o.value === Number(e.target.value))?.label}`);
+                  }}
                 >
                   <option value="">Select buffer size</option>
                   {bufferSizeOptions.map((option) => (
@@ -238,132 +263,130 @@ export function Settings(): React.ReactElement {
                     </option>
                   ))}
                 </select>
-                <div className="select-arrow">
-                  <ChevronDown size={16} />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+              </div>
+            </SettingsRow>
+
+            <div className="px-4 sm:px-6 py-4 bg-bg-elevated border-t border-border-subtle">
+              <div className="flex items-center gap-3">
+                <span className={cn("w-2 h-2 rounded-full", permission.className)} />
+                <span className="text-sm text-text-secondary">{permission.text}</span>
+              </div>
+            </div>
+          </SettingsCard>
+        </Section>
+
+        {/* Display Section */}
+        <Section icon={<MonitorCheck size={20} />} title="Display" description="Adjust waveform visualization options">
+          <SettingsCard>
+            <SettingsRow label="Show Grid" description="Display grid overlay on waveform">
+              <button
+                onClick={() => {
+                  setShowGrid(!showGrid);
+                  addToast("success", `Grid ${!showGrid ? "enabled" : "disabled"}`);
+                }}
+                className={cn(
+                  "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
+                  showGrid ? "bg-accent border-accent" : "bg-background border border-border"
+                )}
+                role="switch"
+                aria-checked={showGrid}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                    showGrid && "translate-x-5"
+                  )}
+                />
+              </button>
+            </SettingsRow>
+
+            <SettingsRow label="Show Measurements" description="Display amplitude and frequency measurements">
+              <button
+                onClick={() => {
+                  setShowMeasurements(!showMeasurements);
+                  addToast("success", `Measurements ${!showMeasurements ? "enabled" : "disabled"}`);
+                }}
+                className={cn(
+                  "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
+                  showMeasurements ? "bg-accent border-accent" : "bg-background border border-border"
+                )}
+                role="switch"
+                aria-checked={showMeasurements}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                    showMeasurements && "translate-x-5"
+                  )}
+                />
+              </button>
+            </SettingsRow>
+
+            <SettingsRow label="Smooth Waveform" description="Apply smoothing filter to waveform display" border={false}>
+              <button
+                onClick={() => {
+                  setSmoothWaveform(!smoothWaveform);
+                  addToast("success", `Smooth waveform ${!smoothWaveform ? "enabled" : "disabled"}`);
+                }}
+                className={cn(
+                  "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
+                  smoothWaveform ? "bg-accent border-accent" : "bg-background border border-border"
+                )}
+                role="switch"
+                aria-checked={smoothWaveform}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                    smoothWaveform && "translate-x-5"
+                  )}
+                />
+              </button>
+            </SettingsRow>
+          </SettingsCard>
+        </Section>
+
+        {/* Preview Section */}
+        <Section icon={<Eye size={20} />} title="Preview" description="See your current display settings in action">
+          <SettingsCard>
+            <div className="p-4 sm:p-6">
+              <div className="h-20 bg-background border border-border-subtle rounded-md relative overflow-hidden">
+                {showGrid && (
+                  <div
+                    className="absolute inset-0 opacity-50"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px), linear-gradient(var(--color-border-subtle) 1px, transparent 1px)",
+                      backgroundSize: "40px 40px",
+                    }}
+                  />
+                )}
+                <div className="absolute inset-0 flex items-center">
+                  <div
+                    className="w-full h-0.5 opacity-80"
+                    style={{
+                      background: `linear-gradient(90deg, transparent 0%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 10%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 15%, transparent 20%, transparent 25%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 30%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 35%, transparent 40%, transparent 100%)`,
+                    }}
+                  />
                 </div>
               </div>
             </div>
-          </div>
+          </SettingsCard>
+        </Section>
 
-          <div className="status-row">
-            <div className="status-item">
-              <div className="status-indicator">
-                <span className={`status-dot ${permission.statusClass}`} />
-                <span>{permission.text}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Display Section */}
-      <section className="settings-section">
-        <div className="section-header">
-          <div className="section-icon">
-            <MonitorCheck size={20} />
-          </div>
-          <div className="section-title-group">
-            <h2 className="section-title">Display</h2>
-            <p className="section-description">Adjust waveform visualization options</p>
-          </div>
-        </div>
-
-        <div className="settings-card">
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Show Grid</div>
-              <div className="settings-label-description">Display grid overlay on waveform</div>
-            </div>
-            <div className="settings-control">
-              <button
-                className={`toggle ${showGrid ? "active" : ""}`}
-                onClick={() => setShowGrid(!showGrid)}
-                role="switch"
-                aria-checked={showGrid}
-              />
-            </div>
-          </div>
-
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Show Measurements</div>
-              <div className="settings-label-description">Display amplitude and frequency measurements</div>
-            </div>
-            <div className="settings-control">
-              <button
-                className={`toggle ${showMeasurements ? "active" : ""}`}
-                onClick={() => setShowMeasurements(!showMeasurements)}
-                role="switch"
-                aria-checked={showMeasurements}
-              />
-            </div>
-          </div>
-
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Smooth Waveform</div>
-              <div className="settings-label-description">Apply smoothing filter to waveform display</div>
-            </div>
-            <div className="settings-control">
-              <button
-                className={`toggle ${smoothWaveform ? "active" : ""}`}
-                onClick={() => setSmoothWaveform(!smoothWaveform)}
-                role="switch"
-                aria-checked={smoothWaveform}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Preview Section */}
-      <section className="settings-section">
-        <div className="section-header">
-          <div className="section-icon">
-            <Eye size={20} />
-          </div>
-          <div className="section-title-group">
-            <h2 className="section-title">Preview</h2>
-            <p className="section-description">See your current display settings in action</p>
-          </div>
-        </div>
-
-        <div className="settings-card">
-          <div className="settings-row">
-            <div className="waveform-preview">
-              {showGrid && <div className="waveform-grid" />}
-              <div className="waveform-line" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="settings-section">
-        <div className="section-header">
-          <div className="section-icon">
-            <Info size={20} />
-          </div>
-          <div className="section-title-group">
-            <h2 className="section-title">About</h2>
-            <p className="section-description">Application information</p>
-          </div>
-        </div>
-
-        <div className="settings-card">
-          <div className="settings-row">
-            <div className="settings-row-content">
-              <div className="settings-label">Version</div>
-            </div>
-            <div className="settings-control">
-              <div className="version-badge">
-                <span className="version-badge-dot" />
+        {/* About Section */}
+        <Section icon={<Info size={20} />} title="About" description="Application information">
+          <SettingsCard>
+            <SettingsRow label="Version" border={false}>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-background border border-border-subtle rounded-md text-sm font-mono text-text-secondary">
+                <span className="w-1.5 h-1.5 rounded-full bg-success" />
                 {APP_VERSION}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </SettingsRow>
+          </SettingsCard>
+        </Section>
+      </div>
     </div>
   );
 }

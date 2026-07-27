@@ -4,9 +4,9 @@ import { Root } from "./root";
 
 // Lazy load route components for code splitting
 const Dashboard = lazy(() => import("./routes/_index").then((m) => ({ default: m.Dashboard })));
-const Oscilloscope = lazy(() => import("./routes/oscilloscope").then((m) => ({ default: m.Oscilloscope })));
 const Settings = lazy(() => import("./routes/settings").then((m) => ({ default: m.Settings })));
 const ApiKeys = lazy(() => import("./routes/api-keys").then((m) => ({ default: m.ApiKeys })));
+const CreateApiKey = lazy(() => import("./routes/api-keys.create").then((m) => ({ default: m.CreateApiKey })));
 
 // Loading fallback component
 function PageLoader() {
@@ -39,8 +39,8 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
-        path: "/oscilloscope",
-        element: <Oscilloscope />,
+        path: "/scopes",
+        element: <Dashboard />,
       },
       {
         path: "/settings",
@@ -49,6 +49,10 @@ export const router = createBrowserRouter([
       {
         path: "/api-keys",
         element: <ApiKeys />,
+      },
+      {
+        path: "/api-keys/new",
+        element: <CreateApiKey />,
       },
     ],
   },
@@ -60,8 +64,10 @@ export const router = createBrowserRouter([
 export const routeTree = {
   path: "/",
   children: [
-    { path: "/oscilloscope", element: "Oscilloscope" },
+    { path: "/", element: "Dashboard" },
+    { path: "/scopes", element: "Scopes" },
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },
+    { path: "/api-keys/new", element: "CreateApiKey" },
   ],
 };
