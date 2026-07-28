@@ -24,7 +24,7 @@ import {
   formatTimestampRelative,
 } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
-import { useToast } from "../components/ui/toast";
+import { useToast } from "@/hooks";
 
 export function Home(): React.ReactElement {
   const navigate = useNavigate();
@@ -34,8 +34,8 @@ export function Home(): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<"recordings" | "scopes">("recordings");
   const [timeFilter, setTimeFilter] = React.useState<"all" | "today" | "week" | "month">("all");
   const [showAllScopes, setShowAllScopes] = React.useState(false);
-  const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
-  const [renamingId, setRenamingId] = React.useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = React.useState<string | undefined>();
+  const [renamingId, setRenamingId] = React.useState<string | undefined>();
   const [renameValue, setRenameValue] = React.useState("");
 
   const { data: stats, isLoading: statsLoading } = useRecordingStats();
@@ -47,11 +47,11 @@ export function Home(): React.ReactElement {
   const renameRecording = useRenameRecording();
 
   const filteredRecordings = React.useMemo(() => {
-    if (!recentData?.recordings) return [];
+    if (!recentData) return [];
 
     const now = new Date();
-    return recentData.recordings.filter((rec) => {
-      const recDate = new Date(rec.timestamp);
+    return recentData.filter((rec) => {
+      const recDate = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
       switch (timeFilter) {
         case "today": {
           return recDate.toDateString() === now.toDateString();
@@ -75,7 +75,7 @@ export function Home(): React.ReactElement {
 
   const handlePin = (id: string, isPinned: boolean) => {
     pinRecording.mutate({ id, isPinned: !isPinned });
-    setOpenMenuId(null);
+    setOpenMenuId(undefined);
     showToast({
       message: isPinned ? "Removing pin..." : "Pinning recording...",
       type: "info",
@@ -98,14 +98,14 @@ export function Home(): React.ReactElement {
           });
         },
       });
-      setOpenMenuId(null);
+      setOpenMenuId(undefined);
     }
   };
 
   const handleRenameStart = (id: string, currentName: string) => {
     setRenamingId(id);
     setRenameValue(currentName);
-    setOpenMenuId(null);
+    setOpenMenuId(undefined);
   };
 
   const handleRenameSubmit = (id: string) => {
@@ -115,7 +115,7 @@ export function Home(): React.ReactElement {
         message: "Recording name cannot be empty",
         type: "warning",
       });
-      setRenamingId(null);
+      setRenamingId(undefined);
       setRenameValue("");
       return;
     }
@@ -137,17 +137,17 @@ export function Home(): React.ReactElement {
         },
       },
     );
-    setRenamingId(null);
+    setRenamingId(undefined);
     setRenameValue("");
   };
 
   const handleRenameCancel = () => {
-    setRenamingId(null);
+    setRenamingId(undefined);
     setRenameValue("");
   };
 
   React.useEffect(() => {
-    const handleClick = () => setOpenMenuId(null);
+    const handleClick = () => setOpenMenuId(undefined);
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
@@ -161,19 +161,17 @@ export function Home(): React.ReactElement {
             <Radio size={20} className="text-text-secondary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">
-              Audio Scope View
-            </h1>
-            <p className="text-sm text-text-tertiary">Signal analysis dashboard</p>
+            <h1 className="text-4xl font-semibold text-foreground tracking-tight">Home</h1>
+            <p className="text-lg text-text-tertiary">Track, view, manage, and analyze your captured audio waveforms, with live waveforms, recorded traces, and detailed signal measurements</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMicDialogOpen(true)}
-            className="w-10 h-10 flex items-center justify-center bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
             title="Test Microphone"
           >
-            <Mic size={18} />
+            <Mic size={18} className="text-text-secondary" />
           </button>
           <button
             onClick={() => navigate("/settings")}
@@ -191,35 +189,35 @@ export function Home(): React.ReactElement {
         <div className="bg-bg-secondary border border-border-subtle rounded-xl p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-foreground">Overview</h2>
-              <p className="text-sm text-text-tertiary mt-0.5">
-                Your recording activity at a glance
+              <h2 className="text-3xl font-semibold text-foreground">Overview</h2>
+              <p className="text-lg text-text-tertiary mt-0.5">
+                Summary of your recording sessions, storage usage, and active scope count
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-4 bg-bg-elevated rounded-lg">
-              <div className="text-2xl font-bold font-mono text-foreground">
-                {statsLoading ? "-" : (stats?.total_recordings ?? 0)}
+              <div className="text-3xl font-bold font-mono text-foreground">
+                {statsLoading ? "-" : (stats?.totalRecordings ?? 0)}
               </div>
-              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">
+              <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
                 Recordings
               </div>
             </div>
             <div className="text-center p-4 bg-bg-elevated rounded-lg">
-              <div className="text-2xl font-bold font-mono text-foreground">
-                {statsLoading ? "-" : formatBytes(stats?.total_size_bytes ?? 0)}
+              <div className="text-3xl font-bold font-mono text-foreground">
+                {statsLoading ? "-" : formatBytes(stats?.totalSizeBytes ?? 0)}
               </div>
-              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">
+              <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
                 Storage
               </div>
             </div>
             <div className="text-center p-4 bg-bg-elevated rounded-lg">
-              <div className="text-2xl font-bold font-mono text-foreground">
+              <div className="text-3xl font-bold font-mono text-foreground">
                 {statsLoading ? "-" : counts.liveCount}
               </div>
-              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">
+              <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
                 Live Scopes
               </div>
             </div>
@@ -230,8 +228,8 @@ export function Home(): React.ReactElement {
         <div className="bg-bg-secondary border border-border-subtle rounded-xl p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-foreground">Scopes</h2>
-              <p className="text-sm text-text-tertiary mt-0.5">Status of all your audio scopes</p>
+              <h2 className="text-3xl font-semibold text-foreground">Scopes</h2>
+              <p className="text-lg text-text-tertiary mt-0.5">Your audio probes and their current state - live streaming or offline</p>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="flex items-center gap-1">
@@ -262,7 +260,7 @@ export function Home(): React.ReactElement {
                 <div
                   key={scope.id}
                   className="flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover cursor-pointer transition-colors"
-                  onClick={() => navigate(`/scopes/${scope.id}`)}
+                  onClick={() => navigate(`/scope/${scope.id}`)}
                 >
                   <span
                     className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -276,7 +274,7 @@ export function Home(): React.ReactElement {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">{scope.name}</div>
                     <div className="text-xs text-text-tertiary mt-0.5">
-                      {scope.recording_count} recordings
+                      {scope.recordingCount} recordings
                     </div>
                   </div>
                 </div>
@@ -314,7 +312,6 @@ export function Home(): React.ReactElement {
                     : "text-text-secondary hover:text-foreground"
                 }`}
               >
-                <FileAudio size={16} />
                 Recordings
               </button>
               <button
@@ -325,7 +322,6 @@ export function Home(): React.ReactElement {
                     : "text-text-secondary hover:text-foreground"
                 }`}
               >
-                <Radio size={16} />
                 All Scopes
               </button>
             </div>
@@ -370,7 +366,10 @@ export function Home(): React.ReactElement {
                   filteredRecordings.map((recording) => (
                     <div
                       key={recording.id}
-                      className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover transition-colors"
+                      className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover transition-colors cursor-pointer"
+                      onClick={() =>
+                        navigate(`/scope/${recording.scopeId}?recording=${recording.id}`)
+                      }
                     >
                       <div className="w-9 h-9 flex items-center justify-center bg-bg-primary rounded-lg">
                         <FileAudio size={16} className="text-text-secondary" />
@@ -381,10 +380,10 @@ export function Home(): React.ReactElement {
                             <input
                               type="text"
                               value={renameValue}
-                              onChange={(_evt) => setRenameValue(evt.target.value)}
-                              onKeyDown={(evt) => {
-                                if (evt.key === "Enter") handleRenameSubmit(recording.id);
-                                if (evt.key === "Escape") handleRenameCancel();
+                              onChange={(_event) => setRenameValue(_event.target.value)}
+                              onKeyDown={(_event) => {
+                                if (_event.key === "Enter") handleRenameSubmit(recording.id);
+                                if (_event.key === "Escape") handleRenameCancel();
                               }}
                               onBlur={() => handleRenameSubmit(recording.id)}
                               autoFocus
@@ -397,22 +396,21 @@ export function Home(): React.ReactElement {
                               <div className="text-sm font-medium text-foreground truncate">
                                 {recording.name}
                               </div>
-                              {recording.is_pinned && (
+                              {recording.isPinned && (
                                 <Pin size={12} className="text-accent flex-shrink-0" />
                               )}
                             </div>
                             <div className="text-xs text-text-tertiary mt-0.5">
-                              {recording.scope_name} •{" "}
-                              {formatTimestampRelative(recording.timestamp)} •{" "}
-                              {formatBytes(recording.size_bytes)}
+                              {recording.scopeName} • {formatTimestampRelative(recording.timestamp)}{" "}
+                              • {formatBytes(recording.sizeBytes)}
                             </div>
                           </>
                         )}
                       </div>
                       <div className="relative">
                         <button
-                          onClick={(_evt) => {
-                            evt.stopPropagation();
+                          onClick={(_event) => {
+                            _event.stopPropagation();
                             setOpenMenuId(openMenuId === recording.id ? undefined : recording.id);
                           }}
                           className="w-8 h-8 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-bg-active transition-all"
@@ -422,18 +420,18 @@ export function Home(): React.ReactElement {
                         {openMenuId === recording.id && (
                           <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-10">
                             <button
-                              onClick={(_evt) => {
-                                evt.stopPropagation();
-                                handlePin(recording.id, recording.is_pinned);
+                              onClick={(_event) => {
+                                _event.stopPropagation();
+                                handlePin(recording.id, recording.isPinned);
                               }}
                               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
                             >
-                              {recording.is_pinned ? <PinOff size={14} /> : <Pin size={14} />}
-                              {recording.is_pinned ? "Unpin" : "Pin"}
+                              {recording.isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+                              {recording.isPinned ? "Unpin" : "Pin"}
                             </button>
                             <button
-                              onClick={(_evt) => {
-                                evt.stopPropagation();
+                              onClick={(_event) => {
+                                _event.stopPropagation();
                                 handleRenameStart(recording.id, recording.name);
                               }}
                               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
@@ -442,8 +440,8 @@ export function Home(): React.ReactElement {
                               Rename
                             </button>
                             <button
-                              onClick={(_evt) => {
-                                evt.stopPropagation();
+                              onClick={(_event) => {
+                                _event.stopPropagation();
                                 handleDelete(recording.id);
                               }}
                               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
@@ -470,7 +468,7 @@ export function Home(): React.ReactElement {
                     <div
                       key={scope.id}
                       className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover cursor-pointer transition-colors"
-                      onClick={() => navigate(`/scopes/${scope.id}`)}
+                      onClick={() => navigate(`/scope/${scope.id}`)}
                     >
                       <div className="w-9 h-9 flex items-center justify-center bg-bg-primary rounded-lg">
                         <Radio size={16} className="text-text-secondary" />
@@ -493,8 +491,8 @@ export function Home(): React.ReactElement {
                           </span>
                         </div>
                         <div className="text-xs text-text-tertiary mt-0.5">
-                          {scope.recording_count} recordings • Created{" "}
-                          {formatTimestampRelative(scope.created_at)}
+                          {scope.recordingCount} recordings • Created{" "}
+                          {formatTimestampRelative(scope.createdAt)}
                         </div>
                       </div>
                     </div>

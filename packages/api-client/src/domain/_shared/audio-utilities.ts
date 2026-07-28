@@ -29,6 +29,38 @@ export function calculatePeak(data: Float32Array): number {
   return peak;
 }
 
+export function calculateDCOffset(data: Float32Array): number {
+  if (data.length === 0) return 0;
+
+  let sum = 0;
+  for (const datum of data) {
+    sum += datum;
+  }
+  return sum / data.length;
+}
+
+export function calculateFrequency(data: Float32Array, sampleRate: number): number {
+  if (data.length < 2) return 0;
+
+  // Zero-crossing rate approach for frequency detection
+  let zeroCrossings = 0;
+
+  for (let index = 1; index < data.length; index++) {
+    // Check for sign change (zero crossing)
+    if ((data[index - 1] >= 0 && data[index] < 0) || (data[index - 1] < 0 && data[index] >= 0)) {
+      zeroCrossings++;
+    }
+  }
+
+  // Each zero crossing represents half a period
+  const fullCycles = zeroCrossings / 2;
+  const durationInSeconds = data.length / sampleRate;
+
+  if (durationInSeconds === 0) return 0;
+
+  return fullCycles / durationInSeconds;
+}
+
 export function downsampleWaveform(data: Float32Array, targetPoints: number): number[] {
   if (data.length === 0) return [];
   if (data.length <= targetPoints) {
@@ -80,8 +112,8 @@ export function formatDurationLong(ms: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
-export function formatTimestampRelative(timestamp: string): string {
-  const date = new Date(timestamp);
+export function formatTimestampRelative(timestamp: string | Date): string {
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60_000);
@@ -93,4 +125,65 @@ export function formatTimestampRelative(timestamp: string): string {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
+}
+
+export interface ExportCSVOptions {
+  samples: Float32Array;
+  sampleRate: number;
+  includeHeader?: boolean;
+  delimiter?: string;
+}
+
+export function exportToCSV(options: ExportCSVOptions): string {
+  const { samples, sampleRate, includeHeader = true, delimiter = "," } = options;
+
+  if (samples.length === 0) {
+    return "";
+  }
+
+  const lines: string[] = [];
+
+  if (includeHeader) {
+    lines.push(`index${delimiter}time(s)${delimiter}value`);
+  }
+
+  const timeStep = 1 / sampleRate;
+  for (const [index, sample] of samples.entries()) {
+    const time = (index * timeStep).toFixed(9);
+    lines.push(`${index}${delimiter}${time}${delimiter}${sample.toFixed(9)}`);
+  }
+
+  return lines.join("\n");
+}
+
+export function downloadFile(content: string, filename: string, mimeType: string): void {
+  if (typeof document === "undefined") {
+    throw new TypeError("downloadFile can only be called in a browser environment");
+  }
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function captureCanvasAsPNG(canvas: HTMLCanvasElement): string {
+  return canvas.toDataURL("image/png");
+}
+
+export function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string): void {
+  if (typeof document === "undefined") {
+    throw new TypeError("downloadCanvasAsPNG can only be called in a browser environment");
+  }
+  const dataUrl = captureCanvasAsPNG(canvas);
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
 }

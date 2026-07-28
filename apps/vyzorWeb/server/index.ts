@@ -25,7 +25,7 @@ function injectScripts(template: string, scripts: string[]) {
 
 // Determine if request should be SSR or SPA
 function shouldSSR(url: string): boolean {
-  const ssrPaths = ["/", "/scope", "/settings", "/api-keys"];
+  const ssrPaths = ["/", "/scope", "/scope/", "/settings", "/api-keys"];
   const spaOnlyPaths = ["/assets", "/_app", "/favicon.ico", "/robots.txt", "/sitemap.xml"];
 
   // Check if it's a static asset

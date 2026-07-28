@@ -3,6 +3,7 @@ export interface Recording {
   scopeId: string;
   scopeName: string;
   name: string;
+  samples: number[];
   timestamp: Date;
   durationMs: number;
   sampleCount: number;
@@ -88,6 +89,7 @@ export interface RecordingServer {
   scope_id: string;
   scope_name: string;
   name: string;
+  samples: number[];
   timestamp: string;
   duration_ms: number;
   sample_count: number;

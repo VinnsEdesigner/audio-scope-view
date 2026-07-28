@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import {
   GET_RECORDINGS,
+  GET_RECORDINGS_BY_ID,
   GET_RECORDING_STATS,
   GET_RECENT_RECORDINGS,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries/recording-queries";
@@ -16,10 +17,18 @@ import {
   PAUSE_RECORDING,
   RESUME_RECORDING,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations/recording-mutations";
+import {
+  transformRecording,
+  transformRecordingSummary,
+  transformRecordingListResult,
+  transformRecordingStats,
+} from "@audio-scope-view/api-client/domain/recording/transforms";
 import type {
+  Recording,
   RecordingSummary,
   RecordingListResult,
   RecordingStats,
+  RecordingSummaryServer,
   TimeRange,
 } from "@audio-scope-view/api-client/domain/recording";
 
@@ -48,14 +57,14 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
         variables: { timeRange, scopeId, limit, offset, pinnedOnly },
         fetchPolicy: "cache-first",
       });
-      return result.data.recordings;
+      return transformRecordingListResult(result.data.recordings);
     },
     staleTime: 30 * 1000,
   });
 }
 
 export function useRecentRecordings(limit = 5) {
-  return useQuery<{ recordings: RecordingSummary[] }>({
+  return useQuery<RecordingSummary[]>({
     queryKey: ["recordings", "recent", limit],
     queryFn: async () => {
       const result = await graphqlClient.query({
@@ -63,9 +72,10 @@ export function useRecentRecordings(limit = 5) {
         variables: { limit },
         fetchPolicy: "cache-first",
       });
-      return result.data.recentRecordings;
+      return result.data.recentRecordings.recordings.map((rec: RecordingSummaryServer) =>
+        transformRecordingSummary(rec),
+      );
     },
-    select: (data) => data.recordings,
     staleTime: 30 * 1000,
   });
 }
@@ -79,8 +89,24 @@ export function useRecordingStats(timeRange?: TimeRange) {
         variables: { timeRange },
         fetchPolicy: "cache-first",
       });
-      return result.data.recordingStats;
+      return transformRecordingStats(result.data.recordingStats);
     },
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useRecording(recordingId: string | undefined) {
+  return useQuery({
+    queryKey: ["recordings", recordingId],
+    queryFn: async (): Promise<Recording> => {
+      const result = await graphqlClient.query({
+        query: GET_RECORDINGS_BY_ID,
+        variables: { id: recordingId },
+        fetchPolicy: "cache-first",
+      });
+      return transformRecording(result.data.recordings);
+    },
+    enabled: !!recordingId,
     staleTime: 30 * 1000,
   });
 }

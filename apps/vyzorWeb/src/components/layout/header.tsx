@@ -27,7 +27,7 @@ export interface HeaderProperties {
   children?: React.ReactNode;
 }
 
-function Header({ title = "Audio Scope View", children }: HeaderProperties): React.ReactElement {
+function Header({ title = "Home", children }: HeaderProperties): React.ReactElement {
   return (
     <HeaderRoot>
       <HeaderTitle>{title}</HeaderTitle>

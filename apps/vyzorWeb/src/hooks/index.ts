@@ -1,5 +1,3 @@
-export { useDashboardSummary, useRecentScopes } from "./use-dashboard-summary";
-
 export {
   useScopes,
   useActiveScopes,
@@ -13,6 +11,7 @@ export {
 
 export {
   useRecordings,
+  useRecording,
   useRecentRecordings,
   useRecordingStats,
   useRenameRecording,
@@ -43,6 +42,11 @@ export { useMediaDevices } from "./use-media-devices";
 
 export { useAudioAnalyzer } from "./use-audio-analyzer";
 
+export { useMockAudioAnalyzer } from "./use-mock-audio-analyzer";
+export type { WaveformType } from "./use-mock-audio-analyzer";
+
+export { useExport } from "./use-export";
+
 export {
   formatBytes,
   formatDuration,
@@ -56,9 +60,10 @@ export { useIsMobile, useIsTablet } from "./use-mobile";
 
 export { useTheme } from "./use-theme";
 
-export { useUIStore } from "../store";
+export { useUIStore, useAudioStore } from "../store";
+export type { WaveformColor, ScopeMode } from "../store";
 
-export { useAudioStore } from "../store";
+export { useToast } from "./use-toast";
 
 export {
   useApiKeys,
@@ -68,3 +73,6 @@ export {
   useUpdateApiKey,
   useDeleteApiKey,
 } from "./use-api-keys";
+
+export { useScopeDialogs } from "./use-scope-dialogs";
+export type { Recording } from "./use-scope-dialogs";

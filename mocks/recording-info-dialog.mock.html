@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recording Info Dialog - Mock</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Dark theme (default) */
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-elevated: #28282c;
+      --bg-hover: #2e2e33;
+      --bg-active: #35353b;
+      --text-primary: #ffffff;
+      --text-secondary: #a1a1aa;
+      --text-tertiary: #71717a;
+      --border-subtle: rgba(255, 255, 255, 0.1);
+      --border-default: rgba(255, 255, 255, 0.2);
+      --border-hover: rgba(255, 255, 255, 0.3);
+      --foreground: #ffffff;
+      --accent: #a855f7;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Dialog Overlay */
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 100;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Dialog Container */
+    .dialog {
+      width: 100%;
+      max-width: 28rem;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.75rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Dialog Header */
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .dialog-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--foreground);
+      letter-spacing: -0.01em;
+    }
+
+    .close-button {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.375rem;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .close-button:hover {
+      color: var(--foreground);
+      background-color: var(--bg-hover);
+    }
+
+    /* Dialog Content */
+    .dialog-content {
+      padding: 1.5rem;
+    }
+
+    /* Info Section */
+    .info-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Info Row */
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background-color: var(--bg-elevated);
+      border-radius: 0.5rem;
+    }
+
+    .info-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-tertiary);
+    }
+
+    .info-label svg {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    .info-value {
+      font-size: 0.875rem;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--text-primary);
+    }
+
+    /* Recording Name - Special styling */
+    .recording-name-row {
+      padding: 1rem;
+      background-color: var(--bg-elevated);
+      border-radius: 0.5rem;
+    }
+
+    .recording-name-label {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .recording-name-value {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+
+    /* Scope Tag */
+    .scope-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      background-color: var(--bg-active);
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.75rem;
+    }
+
+    .scope-tag svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+
+    .stat-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.75rem;
+      background-color: var(--bg-elevated);
+      border-radius: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--foreground);
+    }
+
+    .stat-label {
+      font-size: 0.625rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    /* Description Text */
+    .description {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog-overlay">
+    <div class="dialog">
+      <!-- Header -->
+      <div class="dialog-header">
+        <h2 class="dialog-title">Recording Info</h2>
+        <button class="close-button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="dialog-content">
+        <div class="info-section">
+          <!-- Recording Name -->
+          <div class="recording-name-row">
+            <div class="recording-name-label">Recording Name</div>
+            <div class="recording-name-value">Meeting Notes Audio</div>
+            <div class="scope-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <path d="M3 9h18"></path>
+              </svg>
+              Scope 1
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">1:24</div>
+              <div class="stat-label">Duration</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">2.4</div>
+              <div class="stat-label">MB</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">48</div>
+              <div class="stat-label">kHz</div>
+            </div>
+          </div>
+
+          <!-- Created Date -->
+          <div class="info-row">
+            <div class="info-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Created
+            </div>
+            <div class="info-value">Jul 28, 2026</div>
+          </div>
+
+          <!-- Time -->
+          <div class="info-row">
+            <div class="info-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Time
+            </div>
+            <div class="info-value">14:32</div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <p class="description" style="margin-top: 1rem;">
+          Recorded from audio scope during team standup meeting.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
 /**
  * Skeleton with shimmer animation.

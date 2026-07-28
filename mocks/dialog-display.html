@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Display Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Geist', sans-serif;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 420px;
+      background: #212124;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f5f5f7;
+    }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: #a1a1a6;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: #2e2e33;
+      color: #f5f5f7;
+    }
+    .dialog-content {
+      padding: 20px;
+    }
+    .setting-group {
+      margin-bottom: 20px;
+    }
+    .setting-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .setting-label:last-child {
+      border-bottom: none;
+    }
+    .setting-name {
+      font-size: 13px;
+      color: #f5f5f7;
+    }
+    .setting-desc {
+      font-size: 11px;
+      color: #6e6e73;
+      margin-top: 2px;
+    }
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      background: #1a1a1d;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .toggle.active {
+      background: #fb7185;
+      border-color: #fb7185;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+    .dialog-footer {
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      background: #28282c;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: white;
+    }
+    .btn:hover {
+      background: #2e2e33;
+    }
+    .btn-primary {
+      background: #2e2e33;
+    }
+    .btn-primary:hover {
+      background: #35353b;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <div class="dialog-header">
+      <span class="dialog-title">Display Settings</span>
+      <button class="close-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-content">
+      <div class="setting-group">
+        <div class="setting-label">
+          <div>
+            <div class="setting-name">Grid</div>
+            <div class="setting-desc">Show grid lines on canvas</div>
+          </div>
+          <div class="toggle active"></div>
+        </div>
+        <div class="setting-label">
+          <div>
+            <div class="setting-name">Glow</div>
+            <div class="setting-desc">Add glow effect to waveform</div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="setting-label">
+          <div>
+            <div class="setting-name">Auto-scale</div>
+            <div class="setting-desc">Automatically fit trace to screen</div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="setting-label">
+          <div>
+            <div class="setting-name">Invert</div>
+            <div class="setting-desc">Invert waveform vertically</div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn">Cancel</button>
+      <button class="btn btn-primary">Save Changes</button>
+    </div>
+  </div>
+</body>
+</html>

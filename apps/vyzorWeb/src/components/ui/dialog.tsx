@@ -15,10 +15,10 @@ export function Dialog({
   title,
   children,
   maxWidth = "max-w-md",
-}: DialogProperties): React.ReactElement | null {
+}: DialogProperties): React.ReactElement | undefined {
   React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isOpen) {
         onClose();
       }
     };
@@ -33,7 +33,7 @@ export function Dialog({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) return undefined;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">

@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { Check, X, AlertCircle, Info } from "lucide-react";
+import { ToastContext } from "./toast-context";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -12,23 +13,6 @@ interface Toast {
 interface ShowToastParameters {
   message: string;
   type?: ToastType;
-}
-
-interface ToastContextType {
-  toasts: Toast[];
-  showToast: (parameters: ShowToastParameters) => void;
-  addToast: (type: ToastType, message: string) => void;
-  removeToast: (id: string) => void;
-}
-
-const ToastContext = createContext<ToastContextType | null>(null);
-
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within ToastProvider");
-  }
-  return context;
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -69,7 +53,7 @@ function ToastContainer({
   toasts: Toast[];
   removeToast: (id: string) => void;
 }) {
-  if (toasts.length === 0) return null;
+  if (toasts.length === 0) return;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">

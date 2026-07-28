@@ -10,10 +10,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useUIStore, useMediaDevices, useAudioSettings } from "@/hooks";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks";
 import type { WaveformColor } from "@/store/ui-store";
 import { APP_VERSION } from "@audio-scope-view/api-client";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utilities";
 
 const WAVEFORM_COLORS: { value: WaveformColor; color: string }[] = [
   { value: "cyan", color: "#06b6d4" },
@@ -221,9 +221,9 @@ export function Settings(): React.ReactElement {
                 <select
                   className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={selectedDeviceId ?? ""}
-                  onChange={(_evt) => {
-                    setSelectedDeviceId(e.target.value);
-                    const device = devices?.find((d) => d.deviceId === e.target.value);
+                  onChange={(_event) => {
+                    setSelectedDeviceId(_event.target.value);
+                    const device = devices?.find((d) => d.deviceId === _event.target.value);
                     addToast("success", `Input device changed to ${device?.label || "new device"}`);
                   }}
                 >
@@ -246,11 +246,11 @@ export function Settings(): React.ReactElement {
                 <select
                   className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={sampleRate || ""}
-                  onChange={(_evt) => {
-                    setSampleRate(Number(e.target.value));
+                  onChange={(_event) => {
+                    setSampleRate(Number(_event.target.value));
                     addToast(
                       "success",
-                      `Sample rate changed to ${sampleRateOptions.find((o) => o.value === Number(e.target.value))?.label}`,
+                      `Sample rate changed to ${sampleRateOptions.find((o) => o.value === Number(_event.target.value))?.label}`,
                     );
                   }}
                 >
@@ -270,11 +270,11 @@ export function Settings(): React.ReactElement {
                 <select
                   className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={bufferSize || ""}
-                  onChange={(_evt) => {
-                    setBufferSize(Number(e.target.value));
+                  onChange={(_event) => {
+                    setBufferSize(Number(_event.target.value));
                     addToast(
                       "success",
-                      `Buffer size changed to ${bufferSizeOptions.find((o) => o.value === Number(e.target.value))?.label}`,
+                      `Buffer size changed to ${bufferSizeOptions.find((o) => o.value === Number(_event.target.value))?.label}`,
                     );
                   }}
                 >

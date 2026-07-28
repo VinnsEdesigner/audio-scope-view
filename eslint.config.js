@@ -37,13 +37,6 @@ export default [
           ],
         },
       ],
-    },
-  },
-  {
-    files: ['apps/vyzorWeb/**/*.{ts,tsx}'],
-    rules: {
-      'unicorn/prevent-abbreviations': 'off',
-      'unicorn/no-null': 'off',
       'unicorn/no-nested-ternary': 'off',
     },
   },

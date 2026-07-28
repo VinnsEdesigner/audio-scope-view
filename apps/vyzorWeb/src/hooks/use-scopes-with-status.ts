@@ -5,9 +5,14 @@ import {
   GET_ACTIVE_SCOPES_WITH_STATUS,
   GET_SCOPE_STATUS_COUNTS,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries/recording-queries";
+import {
+  transformScopeWithStatus,
+  transformScopeListResult,
+} from "@audio-scope-view/api-client/domain/recording/transforms";
 import type {
   ScopeWithStatus,
   ScopeListResult,
+  ScopeWithStatusServer,
 } from "@audio-scope-view/api-client/domain/recording";
 
 export interface UseScopesWithStatusOptions {
@@ -26,7 +31,7 @@ export function useScopesWithStatus(options: UseScopesWithStatusOptions = {}) {
         variables: { limit, offset },
         fetchPolicy: "cache-first",
       });
-      return result.data.scopesWithStatus;
+      return transformScopeListResult(result.data.scopesWithStatus);
     },
     staleTime: 30 * 1000,
   });
@@ -40,7 +45,9 @@ export function useActiveScopesWithStatus() {
         query: GET_ACTIVE_SCOPES_WITH_STATUS,
         fetchPolicy: "cache-first",
       });
-      return result.data.activeScopesWithStatus;
+      return result.data.activeScopesWithStatus.map((scope: ScopeWithStatusServer) =>
+        transformScopeWithStatus(scope),
+      );
     },
     staleTime: 15 * 1000,
   });

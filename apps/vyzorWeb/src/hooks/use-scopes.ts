@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import {
   GET_SCOPES,
-  GET_SCOPE,
+  GET_SCOPES_BY_ID,
   GET_ACTIVE_SCOPES,
   GET_SCOPE_COUNT,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
@@ -65,15 +65,15 @@ export function useScopeCount() {
 }
 export function useScopeDetail(id: string | undefined) {
   return useQuery<Scope | undefined>({
-    queryKey: ["scope", id],
+    queryKey: ["scopes", id],
     queryFn: async () => {
       if (!id) return;
       const result = await graphqlClient.query({
-        query: GET_SCOPE,
+        query: GET_SCOPES_BY_ID,
         variables: { id },
         fetchPolicy: "cache-first",
       });
-      return result.data.scope;
+      return result.data.scopes?.[0];
     },
     enabled: Boolean(id),
     staleTime: 60 * 1000,

@@ -38,7 +38,7 @@ function AppShell() {
       {}
       <TopNav />
       {}
-      <YStack flex={1} overflow="auto" backgroundColor="$gray1">
+      <YStack flex={1} overflow="hidden" backgroundColor="$gray1">
         <Outlet />
       </YStack>
     </YStack>

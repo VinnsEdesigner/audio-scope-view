@@ -10,27 +10,28 @@ import {
   ChevronDown,
   Save,
 } from "lucide-react";
-import { useToast } from "../ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
   useStartRecording,
   useAudioAnalyzer,
   useUIStore,
   formatDuration,
+  type WaveformColor,
 } from "../../hooks";
-
-const WAVEFORM_COLORS: Record<string, string> = {
-  cyan: "#06b6d4",
-  blue: "#3b82f6",
-  purple: "#8b5cf6",
-  green: "#22c55e",
-  orange: "#f97316",
-  red: "#ef4444",
-};
 
 const SMOOTHING_VALUE = {
   smooth: 0.8,
   normal: 0.3,
+};
+
+const WAVEFORM_COLORS: Record<WaveformColor, string> = {
+  cyan: "#22d3ee",
+  blue: "#3b82f6",
+  purple: "#a855f7",
+  green: "#22c55e",
+  orange: "#f97316",
+  red: "#ef4444",
 };
 
 interface DialogMicRecordingProperties {
@@ -314,7 +315,7 @@ export function DialogMicRecording({
             <div className="text-[10px] text-text-tertiary uppercase">kHz</div>
           </div>
           <div className="text-center p-2 bg-bg-elevated rounded-lg">
-            <div className="text-sm font-semibold font-mono text-accent">
+            <div className="text-sm font-semibold font-mono text-foreground">
               {volumeLevel.toFixed(2)}
             </div>
             <div className="text-[10px] text-text-tertiary uppercase">RMS</div>
@@ -339,14 +340,14 @@ export function DialogMicRecording({
           <>
             <button
               onClick={handleClose}
-              className="px-4 py-2.5 text-sm font-medium bg-bg-secondary border border-border text-foreground rounded-lg hover:bg-bg-hover transition-colors"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
             >
               Cancel
             </button>
             <button
               onClick={handleStartCapture}
               disabled={!hasPermission}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2 flex-1"
             >
               <Mic size={16} />
               Start Recording
@@ -356,7 +357,7 @@ export function DialogMicRecording({
           <>
             <button
               onClick={handleDiscard}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
             >
               <Trash2 size={16} />
               Discard
@@ -365,7 +366,7 @@ export function DialogMicRecording({
               {recordingState === "recording" ? (
                 <button
                   onClick={pauseCapture}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2 flex-1"
                 >
                   <Pause size={16} />
                   Pause
@@ -373,7 +374,7 @@ export function DialogMicRecording({
               ) : (
                 <button
                   onClick={resumeCapture}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2 flex-1"
                 >
                   <Play size={16} />
                   Resume
@@ -381,7 +382,7 @@ export function DialogMicRecording({
               )}
               <button
                 onClick={stopAndSave}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
               >
                 <Save size={16} />
                 Save

@@ -23,6 +23,15 @@ import type {
   ApiKeyVerifyResult,
   CreateApiKeyInput,
   UpdateApiKeyInput,
+  ApiKeyInfoServer,
+} from "@audio-scope-view/api-client/domain/api-key";
+
+// Re-export types for use by components (keeps domain types in one place)
+export type {
+  ApiKey,
+  CreatedApiKey,
+  CreateApiKeyInput,
+  UpdateApiKeyInput,
 } from "@audio-scope-view/api-client/domain/api-key";
 
 export function useApiKeys() {
@@ -34,7 +43,7 @@ export function useApiKeys() {
         fetchPolicy: "cache-first",
       });
 
-      return result.data.apiKeys.map((key) => transformApiKey(key));
+      return result.data.apiKeys.map((key: ApiKeyInfoServer) => transformApiKey(key));
     },
     staleTime: 60 * 1000,
   });

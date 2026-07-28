@@ -24,7 +24,7 @@ const IconButton = styled(XStack, {
 });
 
 function titleFor(pathname: string): string {
-  if (pathname === "/" || pathname === "") return "Dashboard";
+  if (pathname === "/" || pathname === "") return "Home";
   if (pathname.startsWith("/scope")) return "Scopes";
   if (pathname.startsWith("/api-keys")) return "API Keys";
   if (pathname.startsWith("/settings")) return "Settings";

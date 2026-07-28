@@ -20,6 +20,9 @@ describe("settings types", () => {
         gridDivisionsY: 8,
         inputDevice: "Microphone",
         inputChannels: 2,
+        glow: false,
+        autoScale: true,
+        invert: false,
       };
 
       expect(settings.id).toBeDefined();
@@ -35,6 +38,9 @@ describe("settings types", () => {
       expect(typeof settings.showMeasurements).toBe("boolean");
       expect(typeof settings.gridDivisionsX).toBe("number");
       expect(typeof settings.gridDivisionsY).toBe("number");
+      expect(typeof settings.glow).toBe("boolean");
+      expect(typeof settings.autoScale).toBe("boolean");
+      expect(typeof settings.invert).toBe("boolean");
     });
 
     it("should allow undefined inputDevice", () => {
@@ -54,9 +60,15 @@ describe("settings types", () => {
         gridDivisionsY: 10,
         inputDevice: undefined,
         inputChannels: 1,
+        glow: true,
+        autoScale: false,
+        invert: true,
       };
 
       expect(settings.inputDevice).toBeUndefined();
+      expect(settings.glow).toBe(true);
+      expect(settings.autoScale).toBe(false);
+      expect(settings.invert).toBe(true);
     });
   });
 
@@ -85,21 +97,33 @@ describe("settings types", () => {
     it("should allow updating trigger settings", () => {
       const input: UpdateSettingsInput = {
         triggerLevel: 0.75,
-        triggerMode: "single",
-        triggerEdge: "both",
+        triggerMode: "auto",
+        triggerEdge: "falling",
       };
 
       expect(input.triggerLevel).toBe(0.75);
-      expect(input.triggerMode).toBe("single");
-      expect(input.triggerEdge).toBe("both");
+      expect(input.triggerMode).toBe("auto");
+      expect(input.triggerEdge).toBe("falling");
     });
 
     it("should allow partial trigger updates", () => {
-      const input: UpdateSettingsInput = { triggerEdge: "falling" };
+      const input: UpdateSettingsInput = { triggerEdge: "rising" };
 
-      expect(input.triggerEdge).toBe("falling");
+      expect(input.triggerEdge).toBe("rising");
       expect(input.triggerLevel).toBeUndefined();
       expect(input.triggerMode).toBeUndefined();
+    });
+
+    it("should allow updating display effect settings", () => {
+      const input: UpdateSettingsInput = {
+        glow: true,
+        autoScale: false,
+        invert: true,
+      };
+
+      expect(input.glow).toBe(true);
+      expect(input.autoScale).toBe(false);
+      expect(input.invert).toBe(true);
     });
   });
 });

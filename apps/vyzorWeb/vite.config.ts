@@ -26,7 +26,7 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         "@": resolve(__dirname, "./src"),
-        "@/lib/utils": resolve(__dirname, "./src/lib/utils"),
+        "@/lib/utilities": resolve(__dirname, "./src/lib/utils"),
         "@audio-scope-view/ui": resolve(__dirname, "../../packages/ui"),
         "@audio-scope-view/ui-radix": resolve(__dirname, "../../packages/ui-radix/src"),
         "@audio-scope-view/tamagui": resolve(__dirname, "../../packages/tamagui/src"),

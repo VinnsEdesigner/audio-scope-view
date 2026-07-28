@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trigger Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Geist', sans-serif;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 420px;
+      background: #212124;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f5f5f7;
+    }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: #a1a1aa;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: #2e2e33;
+      color: #f5f5f7;
+    }
+    .dialog-content {
+      padding: 20px;
+    }
+    .setting-row {
+      margin-bottom: 20px;
+    }
+    .setting-row:last-child {
+      margin-bottom: 0;
+    }
+    .setting-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #f5f5f7;
+      margin-bottom: 10px;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider-track {
+      flex: 1;
+      height: 6px;
+      background: #28282c;
+      border-radius: 3px;
+      position: relative;
+    }
+    .slider-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 50%;
+      background: #fb7185;
+      border-radius: 3px;
+    }
+    .slider-thumb {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      background: #f5f5f7;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .slider-value {
+      min-width: 60px;
+      font-size: 13px;
+      font-family: 'Geist Mono', monospace;
+      color: #a1a1aa;
+      text-align: right;
+    }
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: #a1a1aa;
+    }
+    .btn:hover {
+      background: #2e2e33;
+      color: #f5f5f7;
+    }
+    .btn.active {
+      background: #2e2e33;
+      color: #f5f5f7;
+      border-color: rgba(255,255,255,0.2);
+    }
+    .dialog-footer {
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      background: #28282c;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .btn-footer {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: white;
+    }
+    .btn-footer:hover {
+      background: #2e2e33;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <div class="dialog-header">
+      <span class="dialog-title">Trigger Settings</span>
+      <button class="close-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-content">
+      <div class="setting-row">
+        <div class="setting-label">Edge</div>
+        <div class="btn-group">
+          <button class="btn active">Rising</button>
+          <button class="btn">Falling</button>
+          <button class="btn">Auto</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Level</div>
+        <div class="slider-container">
+          <div class="slider-track">
+            <div class="slider-fill"></div>
+            <div class="slider-thumb"></div>
+          </div>
+          <span class="slider-value">0.00 V</span>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-footer">Cancel</button>
+      <button class="btn-footer">Save Changes</button>
+    </div>
+  </div>
+</body>
+</html>

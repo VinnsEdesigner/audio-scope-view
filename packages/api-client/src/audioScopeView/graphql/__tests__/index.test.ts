@@ -5,7 +5,7 @@ import * as mutations from "../mutations";
 describe("Apollo queries", () => {
   it("should export scope queries", () => {
     expect(queries.GET_SCOPES).toBeDefined();
-    expect(queries.GET_SCOPE).toBeDefined();
+    expect(queries.GET_SCOPES_BY_ID).toBeDefined();
     expect(queries.GET_ACTIVE_SCOPES).toBeDefined();
     expect(queries.GET_SCOPE_COUNT).toBeDefined();
   });

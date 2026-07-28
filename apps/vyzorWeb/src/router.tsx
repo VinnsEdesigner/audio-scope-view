@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Root } from "./root";
+import { PageLoader } from "@/components/page-loader";
 
 const Home = lazy(() => import("./routes/home").then((m) => ({ default: m.Home })));
 const Settings = lazy(() => import("./routes/settings").then((m) => ({ default: m.Settings })));
@@ -8,22 +9,7 @@ const ApiKeys = lazy(() => import("./routes/api-keys").then((m) => ({ default: m
 const CreateApiKey = lazy(() =>
   import("./routes/api-keys.create").then((m) => ({ default: m.CreateApiKey })),
 );
-
-function PageLoader() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100vh",
-        color: "#666",
-      }}
-    >
-      Loading...
-    </div>
-  );
-}
+const ScopePage = lazy(() => import("./routes/scope-page").then((m) => ({ default: m.ScopePage })));
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +27,10 @@ export const router = createBrowserRouter([
       {
         path: "/scopes",
         element: <Home />,
+      },
+      {
+        path: "/scope/:id",
+        element: <ScopePage />,
       },
       {
         path: "/settings",
@@ -63,6 +53,7 @@ export const routeTree = {
   children: [
     { path: "/", element: "Home" },
     { path: "/scopes", element: "Scopes" },
+    { path: "/scope/:id", element: "ScopePage" },
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },
     { path: "/api-keys/new", element: "CreateApiKey" },

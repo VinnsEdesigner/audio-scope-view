@@ -6,6 +6,7 @@ export const RECORDING_FIELDS = gql`
     scope_id
     scope_name
     name
+    samples
     timestamp
     duration_ms
     sample_count
@@ -55,10 +56,10 @@ export const GET_RECORDINGS = gql`
   }
 `;
 
-export const GET_RECORDING = gql`
+export const GET_RECORDINGS_BY_ID = gql`
   ${RECORDING_FIELDS}
-  query GetRecording($id: String!) {
-    recording(id: $id) {
+  query GetRecordingsById($id: String!) {
+    recordings(id: $id) {
       ...RecordingFields
     }
   }

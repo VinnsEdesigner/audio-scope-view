@@ -1,10 +1,9 @@
 import { renderToString } from "react-dom/server";
+import { StaticRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { StaticRouter } from "react-router-dom/server";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
 import { TamaguiProvider } from "tamagui";
 import { Root } from "./root";
-import { routeTree as _routeTree } from "./router";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,12 +14,19 @@ const queryClient = new QueryClient({
   },
 });
 
-export async function render(url: string): Promise<{ html: string; status: number }> {
+export interface RenderOptions {
+  url: string;
+  mode?: "string";
+}
+
+export async function render(options: RenderOptions): Promise<{ html: string; status: number }> {
+  const { url } = options;
+
   try {
     const html = renderToString(
       <TamaguiProvider config={tamaguiConfig}>
         <QueryClientProvider client={queryClient}>
-          <StaticRouter location={url} basename="/">
+          <StaticRouter location={url}>
             <Root />
           </StaticRouter>
         </QueryClientProvider>
@@ -34,6 +40,6 @@ export async function render(url: string): Promise<{ html: string; status: numbe
 }
 
 export async function legacyRender(url: string): Promise<string> {
-  const { html } = await render(url);
+  const { html } = await render({ url });
   return html;
 }

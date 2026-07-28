@@ -3,6 +3,9 @@ import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graph
 import { GET_SETTINGS } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import { UPDATE_SETTINGS } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
 import type { Settings, UpdateSettingsInput } from "@audio-scope-view/api-client/domain/settings";
+
+// Re-export types for use by components
+export type { Settings, UpdateSettingsInput } from "@audio-scope-view/api-client/domain/settings";
 export function useSettings(scopeId: string | undefined) {
   return useQuery<Settings | undefined>({
     queryKey: ["settings", scopeId],

@@ -21,6 +21,9 @@ describe("settings transforms", () => {
         grid_divisions_y: 8,
         input_device: "Microphone",
         input_channels: 2,
+        glow: false,
+        auto_scale: true,
+        invert: false,
       };
 
       const settings = settingsFromRaw(serverSettings);
@@ -38,6 +41,9 @@ describe("settings transforms", () => {
       expect(settings.gridDivisionsY).toBe(8);
       expect(settings.inputDevice).toBe("Microphone");
       expect(settings.inputChannels).toBe(2);
+      expect(settings.glow).toBe(false);
+      expect(settings.autoScale).toBe(true);
+      expect(settings.invert).toBe(false);
     });
 
     it("should handle undefined input_device", () => {
@@ -57,11 +63,17 @@ describe("settings transforms", () => {
         grid_divisions_y: 10,
         input_device: undefined,
         input_channels: 1,
+        glow: true,
+        auto_scale: false,
+        invert: true,
       };
 
       const settings = settingsFromRaw(serverSettings);
 
       expect(settings.inputDevice).toBeUndefined();
+      expect(settings.glow).toBe(true);
+      expect(settings.autoScale).toBe(false);
+      expect(settings.invert).toBe(true);
     });
   });
 
@@ -92,25 +104,39 @@ describe("settings transforms", () => {
     it("should handle trigger settings", () => {
       const input: UpdateSettingsInput = {
         triggerLevel: 0.75,
-        triggerMode: "single",
-        triggerEdge: "both",
+        triggerMode: "auto",
+        triggerEdge: "falling",
       };
 
       const serverInput = settingsToServerInput(input);
 
       expect(serverInput.triggerLevel).toBe(0.75);
-      expect(serverInput.triggerMode).toBe("single");
-      expect(serverInput.triggerEdge).toBe("both");
+      expect(serverInput.triggerMode).toBe("auto");
+      expect(serverInput.triggerEdge).toBe("falling");
     });
 
     it("should allow partial trigger updates", () => {
-      const input: UpdateSettingsInput = { triggerEdge: "falling" };
+      const input: UpdateSettingsInput = { triggerEdge: "rising" };
 
       const serverInput = settingsToServerInput(input);
 
-      expect(serverInput.triggerEdge).toBe("falling");
+      expect(serverInput.triggerEdge).toBe("rising");
       expect(serverInput.triggerLevel).toBeUndefined();
       expect(serverInput.triggerMode).toBeUndefined();
+    });
+
+    it("should handle display settings", () => {
+      const input: UpdateSettingsInput = {
+        glow: true,
+        autoScale: false,
+        invert: true,
+      };
+
+      const serverInput = settingsToServerInput(input);
+
+      expect(serverInput.glow).toBe(true);
+      expect(serverInput.autoScale).toBe(false);
+      expect(serverInput.invert).toBe(true);
     });
   });
 });

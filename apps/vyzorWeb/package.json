@@ -22,9 +22,11 @@
     "@audio-scope-view/api-client": "workspace:*",
     "@audio-scope-view/tamagui": "workspace:*",
     "@audio-scope-view/ui": "workspace:*",
+    "@react-router/node": "^8.3.0",
     "@tanstack/react-query": "^5.62.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router": "^8.3.0",
     "react-router-dom": "^7.0.0",
     "tamagui": "^1.90.0",
     "zustand": "^5.0.0"

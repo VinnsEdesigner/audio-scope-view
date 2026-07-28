@@ -19,6 +19,7 @@ export function transformRecording(server: RecordingServer): Recording {
     scopeId: server.scope_id,
     scopeName: server.scope_name,
     name: server.name,
+    samples: server.samples,
     timestamp: new Date(server.timestamp),
     durationMs: server.duration_ms,
     sampleCount: server.sample_count,

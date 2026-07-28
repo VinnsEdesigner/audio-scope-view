@@ -3,6 +3,7 @@ import {
   normalizeAudioData,
   calculateRMS,
   calculatePeak,
+  calculateFrequency,
   downsampleWaveform,
   collectSamples,
 } from "@audio-scope-view/api-client/domain/_shared/audio-utilities";
@@ -25,6 +26,9 @@ export interface AudioAnalyzerState {
   sampleRate: number;
   duration: number;
   samples: Float32Array;
+  vpp: number;
+  frequency: number;
+  windowMs: number;
 }
 
 export interface UseAudioAnalyzerReturn extends AudioAnalyzerState {
@@ -34,7 +38,7 @@ export interface UseAudioAnalyzerReturn extends AudioAnalyzerState {
   stopCapture: () => void;
   discardCapture: () => void;
   isCapturing: boolean;
-  error: Error | null;
+  error: Error | undefined;
 }
 
 const DEFAULT_FFT_SIZE = 4096;
@@ -58,7 +62,9 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
   const [sampleRate, setSampleRate] = useState(44_100);
   const [duration, setDuration] = useState(0);
   const [samples, setSamples] = useState<Float32Array>(new Float32Array());
-  const [error, setError] = useState<Error | null>(null);
+  const [vpp, setVpp] = useState(0);
+  const [frequency, setFrequency] = useState(0);
+  const [error, setError] = useState<Error | undefined>();
 
   const audioContextReference = useRef<AudioContext | undefined>(undefined);
   const analyserReference = useRef<AnalyserNode | undefined>(undefined);
@@ -95,7 +101,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
 
   const startCapture = useCallback(async () => {
     try {
-      setError(null);
+      setError(undefined);
       cleanup();
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -133,7 +139,11 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
       const dataArray = new Uint8Array(bufferLength);
 
       const updateVisualization = () => {
-        if (!analyserReference.current || recordingState !== "recording") {
+        if (
+          !analyserReference.current ||
+          !audioContextReference.current ||
+          recordingState !== "recording"
+        ) {
           return;
         }
 
@@ -143,9 +153,12 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
 
         const rms = calculateRMS(normalizedData);
         const peak = calculatePeak(normalizedData);
+        const freq = calculateFrequency(normalizedData, audioContextReference.current.sampleRate);
 
         setVolumeLevel(Math.min(rms * 3, 1));
         setPeakLevel(Math.min(peak, 1));
+        setVpp(peak * 2);
+        setFrequency(freq);
 
         const waveform = downsampleWaveform(normalizedData, waveformPoints);
         setWaveformData(waveform);
@@ -207,6 +220,8 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
     setPeakLevel(0);
     setWaveformData([]);
     setDuration(0);
+    setVpp(0);
+    setFrequency(0);
   }, [cleanup]);
 
   return {
@@ -217,6 +232,9 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
     sampleRate,
     duration,
     samples,
+    vpp,
+    frequency,
+    windowMs: 0,
     isCapturing,
     error,
 

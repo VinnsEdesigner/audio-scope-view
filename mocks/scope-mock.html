@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scope Mock - Real Component Layout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #09090b;
+      --sidebar: #18181b;
+      --card: #27272a;
+      --muted: #3f3f46;
+      --text: #fafafa;
+      --muted-text: #a1a1aa;
+      --border: rgba(255,255,255,0.1);
+    }
+
+    body {
+      font-family: 'Geist', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .scope-container {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* ===== LEFT SIDEBAR (72px) ===== */
+    .sidebar {
+      width: 72px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 12px 8px;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 6px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: var(--muted-text);
+      cursor: pointer;
+      font-size: 10px;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover {
+      background: var(--muted);
+      color: var(--text);
+    }
+
+    .nav-btn.active {
+      background: var(--muted);
+      color: var(--text);
+    }
+
+    .nav-btn svg { width: 18px; height: 18px; }
+
+    .sidebar-spacer { flex: 1; }
+
+    /* ===== MAIN AREA ===== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* ===== TOP BAR ===== */
+    .topbar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--text);
+    }
+
+    .title-area h1 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .title-area p {
+      font-size: 11px;
+      color: var(--muted-text);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Gray buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn svg { width: 14px; height: 14px; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted-text);
+    }
+
+    .btn-ghost:hover {
+      background: var(--muted);
+      color: var(--text);
+    }
+
+    .btn-neutral {
+      background: var(--muted);
+      color: var(--text);
+    }
+
+    .btn-neutral:hover {
+      background: #52525b;
+    }
+
+    /* ===== CANVAS AREA ===== */
+    .canvas-area {
+      flex: 1;
+      position: relative;
+      background: #111820;
+      min-height: 0;
+    }
+
+    .canvas-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(120,160,170,0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120,160,170,0.15) 1px, transparent 1px);
+      background-size: 10% 12.5%;
+      pointer-events: none;
+    }
+
+    .hold-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--text);
+      color: var(--bg);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .canvas-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(17,24,32,0.7);
+      text-align: center;
+    }
+
+    .canvas-placeholder p {
+      max-width: 300px;
+      font-size: 14px;
+      color: var(--muted-text);
+      line-height: 1.5;
+    }
+
+    /* ===== BOTTOM CONTROLS ===== */
+    .bottom-controls {
+      border-top: 1px solid var(--border);
+      background: var(--card);
+    }
+
+    .controls-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+    }
+
+    .readouts {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+    }
+
+    .readout {
+      display: flex;
+      gap: 4px;
+    }
+
+    .readout-label {
+      text-transform: uppercase;
+      color: var(--muted-text);
+    }
+
+    .readout-value {
+      font-family: 'Geist Mono', monospace;
+      color: var(--text);
+    }
+
+    .controls-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: transparent;
+      border: none;
+      color: var(--muted-text);
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .controls-toggle:hover {
+      background: var(--muted);
+    }
+
+    .controls-toggle svg {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.15s;
+    }
+
+    .controls-content {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* View toggle buttons */
+    .view-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .view-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      color: var(--muted-text);
+      cursor: pointer;
+      text-transform: capitalize;
+      transition: all 0.15s;
+    }
+
+    .view-btn:hover {
+      background: var(--muted);
+    }
+
+    .view-btn.active {
+      background: var(--muted);
+      color: var(--text);
+    }
+
+    /* Slider control */
+    .slider-control {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .slider-label {
+      color: var(--muted-text);
+    }
+
+    .slider-value {
+      font-family: 'Geist Mono', monospace;
+      color: var(--text);
+    }
+
+    .slider-track {
+      width: 100%;
+      height: 6px;
+      background: var(--bg);
+      border-radius: 3px;
+      position: relative;
+    }
+
+    .slider-thumb {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      background: var(--text);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="scope-container">
+    <!-- ===== LEFT SIDEBAR ===== -->
+    <div class="sidebar">
+      <button class="nav-btn active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line>
+          <line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+        Display
+      </button>
+      <button class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="22" y1="12" x2="18" y2="12"></line>
+          <line x1="6" y1="12" x2="2" y2="12"></line>
+          <line x1="12" y1="6" x2="12" y2="2"></line>
+          <line x1="12" y1="22" x2="12" y2="18"></line>
+        </svg>
+        Trigger
+      </button>
+      <button class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        Measure
+      </button>
+      <button class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 12h20"></path>
+          <path d="M2 12l4-4"></path>
+          <path d="M2 12l4 4"></path>
+          <path d="M22 12l-4-4"></path>
+          <path d="M22 12l-4 4"></path>
+        </svg>
+        Cal
+      </button>
+      <button class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Export
+      </button>
+      <div class="sidebar-spacer"></div>
+    </div>
+
+    <!-- ===== MAIN AREA ===== -->
+    <div class="main">
+      <!-- Top Bar -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="title-area">
+            <h1>Scope</h1>
+            <p>48,000 Hz · local trace</p>
+          </div>
+        </div>
+        <div></div>
+        <div class="topbar-right">
+          <button class="btn btn-ghost">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            Freeze
+          </button>
+          <button class="btn btn-neutral">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Probe
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="canvas-area">
+        <div class="canvas-grid"></div>
+        <div class="canvas-placeholder">
+          <p>Press Probe to start capturing audio from your microphone.</p>
+        </div>
+      </div>
+
+      <!-- Bottom Controls -->
+      <div class="bottom-controls">
+        <div class="controls-header">
+          <div class="readouts">
+            <div class="readout">
+              <span class="readout-label">Vpp</span>
+              <span class="readout-value">0.000</span>
+            </div>
+            <div class="readout">
+              <span class="readout-label">Freq</span>
+              <span class="readout-value">0.0 Hz</span>
+            </div>
+            <div class="readout">
+              <span class="readout-label">Win</span>
+              <span class="readout-value">21.33 ms</span>
+            </div>
+          </div>
+          <button class="controls-toggle">
+            Controls
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div class="controls-content">
+          <div class="view-buttons">
+            <button class="view-btn active">Time</button>
+            <button class="view-btn">Spectrum</button>
+          </div>
+          <div class="slider-control">
+            <div class="slider-header">
+              <span class="slider-label">Timebase</span>
+              <span class="slider-value">1024 smp</span>
+            </div>
+            <div class="slider-track">
+              <div class="slider-thumb" style="left: 50%;"></div>
+            </div>
+          </div>
+          <div class="slider-control">
+            <div class="slider-header">
+              <span class="slider-label">Vertical gain</span>
+              <span class="slider-value">0.7x</span>
+            </div>
+            <div class="slider-track">
+              <div class="slider-thumb" style="left: 15%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

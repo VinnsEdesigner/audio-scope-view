@@ -22,10 +22,10 @@ export const GET_SCOPES = gql`
   }
 `;
 
-export const GET_SCOPE = gql`
+export const GET_SCOPES_BY_ID = gql`
   ${SCOPE_FIELDS}
-  query GetScope($id: String!) {
-    scope(id: $id) {
+  query GetScopesById($id: String!) {
+    scopes(id: $id) {
       ...ScopeFields
     }
   }

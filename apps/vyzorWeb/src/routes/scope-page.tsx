@@ -1,0 +1,407 @@
+import * as React from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useAudioAnalyzer, useMockAudioAnalyzer, useRecording, useScopeDetail, useScopeDialogs, useToast } from "@/hooks";
+import { useUIStore } from "@/store";
+import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
+import type { Recording } from "@/hooks/use-scope-dialogs";
+
+export function ScopePage(): React.ReactElement {
+  const { id: scopeId } = useParams<{ id: string }>();
+  const [searchParameters] = useSearchParams();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
+  const recordingId = searchParameters.get("recording") ?? undefined;
+  const isPlaybackMode = Boolean(recordingId);
+
+  // Set scope mode in store
+  const { setScopeMode, testMode, toggleTestMode } = useUIStore();
+
+  React.useEffect(() => {
+    setScopeMode(isPlaybackMode ? "playback" : "live");
+    return () => setScopeMode("live");
+  }, [isPlaybackMode, setScopeMode]);
+
+  // Both analyzers - we use one based on testMode
+  const realAnalyzer = useAudioAnalyzer();
+  const mockAnalyzer = useMockAudioAnalyzer();
+  const audioAnalyzer = testMode ? mockAnalyzer : realAnalyzer;
+
+  // PLAYBACK mode hooks
+  const {
+    data: recordingData,
+    isLoading: recordingLoading,
+    error: recordingError,
+  } = useRecording(recordingId);
+  const { data: scopeDetail, isLoading: scopeLoading } = useScopeDetail(scopeId);
+
+  // Recording for dialogs
+  const recordingForDialogs: Recording | undefined = recordingData
+    ? {
+        id: recordingData.id,
+        name: recordingData.name,
+        duration: recordingData.durationMs,
+        createdAt: recordingData.timestamp.toISOString(),
+        size: recordingData.sizeBytes,
+      }
+    : undefined;
+
+  // Canvas ref for export dialog
+  const canvasReference = React.useRef<HTMLCanvasElement | null>(null);
+
+  // Dialogs hook - handles all dialog state management
+  const { handlers: dialogHandlers, Dialogs } = useScopeDialogs({
+    mode: isPlaybackMode ? "playback" : "live",
+    recording: recordingForDialogs,
+    recordingId,
+    canvasRef: canvasReference,
+  });
+
+  // Playback state
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [currentPlaybackTime, setCurrentPlaybackTime] = React.useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
+  const [loopPlayback, setLoopPlayback] = React.useState(false);
+  const animationFrameReference = React.useRef<number | undefined>(undefined);
+  const lastTimestampReference = React.useRef<number | undefined>(undefined);
+
+  // Playback animation loop using requestAnimationFrame
+  React.useEffect(() => {
+    if (!isPlaybackMode || !isPlaying || !recordingData) {
+      if (animationFrameReference.current !== undefined) {
+        cancelAnimationFrame(animationFrameReference.current);
+        animationFrameReference.current = undefined;
+      }
+      return;
+    }
+
+    const durationMs = recordingData.durationMs;
+
+    const animate = (timestamp: number) => {
+      if (lastTimestampReference.current === undefined) {
+        lastTimestampReference.current = timestamp;
+      }
+
+      const deltaMs = timestamp - lastTimestampReference.current;
+      lastTimestampReference.current = timestamp;
+
+      setCurrentPlaybackTime((previousTime) => {
+        let newTime = previousTime + deltaMs * playbackSpeed;
+
+        if (newTime >= durationMs) {
+          if (loopPlayback) {
+            newTime = newTime % durationMs;
+          } else {
+            setIsPlaying(false);
+            return durationMs;
+          }
+        }
+
+        return newTime;
+      });
+
+      animationFrameReference.current = requestAnimationFrame(animate);
+    };
+
+    lastTimestampReference.current = undefined;
+    animationFrameReference.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameReference.current !== undefined) {
+        cancelAnimationFrame(animationFrameReference.current);
+        animationFrameReference.current = undefined;
+      }
+    };
+  }, [isPlaybackMode, isPlaying, recordingData, playbackSpeed, loopPlayback]);
+
+  // Calculate visible waveform data based on current playback time
+  const playbackWaveformData = React.useMemo(() => {
+    if (!isPlaybackMode || !recordingData?.samples || recordingData.samples.length === 0) {
+      return [];
+    }
+
+    const samples = recordingData.samples;
+    const sampleCount = recordingData.sampleCount;
+    const durationMs = recordingData.durationMs;
+    const timebase = 1024; // samples per window
+
+    if (durationMs === 0 || sampleCount === 0) {
+      return samples.slice(0, timebase);
+    }
+
+    // Calculate which sample index corresponds to currentPlaybackTime
+    const samplesPerMs = sampleCount / durationMs;
+    const currentSampleIndex = Math.floor(currentPlaybackTime * samplesPerMs);
+
+    // Calculate the window of samples to show
+    const halfWindow = Math.floor(timebase / 2);
+    let startIndex = Math.max(0, currentSampleIndex - halfWindow);
+    const endIndex = Math.min(sampleCount, startIndex + timebase);
+
+    // Adjust start if we're near the end
+    if (endIndex - startIndex < timebase) {
+      startIndex = Math.max(0, endIndex - timebase);
+    }
+
+    return samples.slice(startIndex, endIndex);
+  }, [isPlaybackMode, recordingData, currentPlaybackTime]);
+
+  // Use playback waveform in playback mode, live waveform otherwise
+  const waveformData = isPlaybackMode ? playbackWaveformData : audioAnalyzer.waveformData;
+
+  const isCapturing = !isPlaybackMode && audioAnalyzer.isCapturing;
+  const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
+
+  // Scope info
+  const scopeName = scopeDetail?.name ?? "Scope";
+  const sampleRate = scopeDetail?.sampleRate ?? 48_000;
+  const recordingName = recordingData?.name;
+
+  // Loading state
+  const isLoading = isPlaybackMode && (recordingLoading || scopeLoading);
+
+  // Error state
+  const error = isPlaybackMode ? recordingError : undefined;
+
+  // Handle back navigation
+  const handleBack = () => {
+    // Stop playback when navigating away
+    setIsPlaying(false);
+    navigate("/");
+  };
+
+  // Handle playback play/pause
+  const handlePlay = () => {
+    if (!recordingData) return;
+    setIsPlaying(true);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+  };
+
+  const handleStop = () => {
+    setIsPlaying(false);
+    setCurrentPlaybackTime(0);
+  };
+
+  const handleSeek = (time: number) => {
+    setCurrentPlaybackTime(Math.max(0, Math.min(time, recordingData?.durationMs ?? 0)));
+  };
+
+  const handleSpeedChange = (speed: number) => {
+    setPlaybackSpeed(speed);
+  };
+
+  const handleLoopToggle = () => {
+    setLoopPlayback((previous) => !previous);
+  };
+
+  // Toast for sidebar actions
+  const handleOpenDisplaySettings = () => {
+    dialogHandlers.onOpenDisplaySettings();
+  };
+
+  const handleOpenTriggerSettings = () => {
+    if (isPlaybackMode) {
+      showToast({ message: "Trigger is not available in playback mode", type: "info" });
+    } else {
+      dialogHandlers.onOpenTriggerSettings();
+    }
+  };
+
+  const handleOpenMeasurements = () => {
+    dialogHandlers.onOpenMeasurements();
+  };
+
+  const handleOpenExport = () => {
+    dialogHandlers.onOpenExport();
+  };
+
+  const handleOpenRecordingInfo = () => {
+    if (isPlaybackMode) {
+      dialogHandlers.onOpenRecordingInfo();
+    } else {
+      showToast({ message: "Recording info is only available in playback mode", type: "info" });
+    }
+  };
+
+  const handleRename = () => {
+    if (isPlaybackMode) {
+      dialogHandlers.onRename();
+    } else {
+      showToast({ message: "Rename is only available for recordings", type: "info" });
+    }
+  };
+
+  const handleDelete = () => {
+    if (isPlaybackMode) {
+      dialogHandlers.onDelete();
+    } else {
+      showToast({ message: "Delete is only available for recordings", type: "info" });
+    }
+  };
+
+  // Loading screen
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-[#09090b] text-white">
+        <div className="flex-1 flex flex-col">
+          {/* Minimal top bar for loading */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+            <button
+              onClick={handleBack}
+              className="p-2 rounded-md hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
+          </div>
+
+          {/* Loading spinner */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 size={32} className="animate-spin text-[#a1a1aa]" />
+              <p className="text-sm text-[#a1a1aa]">Loading recording...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error screen
+  if (error) {
+    return (
+      <div className="flex h-screen bg-[#09090b] text-white">
+        <div className="flex-1 flex flex-col">
+          {/* Minimal top bar for error */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+            <button
+              onClick={handleBack}
+              className="p-2 rounded-md hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <span className="text-sm font-medium">Error</span>
+          </div>
+
+          {/* Error message */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span className="text-red-400 text-2xl">!</span>
+              </div>
+              <p className="text-white font-medium">Failed to load recording</p>
+              <p className="text-sm text-[#a1a1aa] max-w-md">
+                {error instanceof Error ? error.message : "An unknown error occurred"}
+              </p>
+              <button
+                onClick={handleBack}
+                className="mt-4 px-4 py-2 bg-white text-[#09090b] rounded-md font-medium hover:bg-white/90 transition-colors"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main scope page UI (matches the mock exactly)
+  return (
+    <div className="flex h-screen bg-bg-primary text-foreground overflow-hidden">
+      {/* Left Sidebar */}
+      <ScopeSidebar
+        onOpenDisplaySettings={handleOpenDisplaySettings}
+        onOpenTriggerSettings={handleOpenTriggerSettings}
+        onOpenMeasurements={handleOpenMeasurements}
+        onOpenExport={handleOpenExport}
+        onOpenRecordingInfo={handleOpenRecordingInfo}
+        onRename={handleRename}
+        onDelete={handleDelete}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Bar */}
+        <ScopeTopBar
+          mode={isPlaybackMode ? "playback" : "live"}
+          scopeName={scopeName}
+          recordingName={recordingName}
+          sampleRate={sampleRate}
+          isPlaying={isPlaying}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStop={handleStop}
+          testMode={testMode}
+          onToggleTestMode={toggleTestMode}
+        />
+
+        {/* Canvas Area */}
+        <div className="flex-1 relative bg-[#111820] min-h-0">
+          {/* The actual canvas - passes ref for export dialog */}
+          <ScopeCanvas
+            waveformData={waveformData}
+            isCapturing={isCapturing}
+            isPaused={isPaused}
+            forwardedRef={canvasReference}
+          />
+
+          {/* Placeholder when no data */}
+          {!isCapturing && waveformData.length === 0 && !isPlaybackMode && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#111820]/70">
+              <p className="max-w-[300px] text-[14px] text-[#a1a1aa] text-center leading-relaxed">
+                Press Probe to start capturing audio from your microphone.
+              </p>
+            </div>
+          )}
+
+          {/* No recording data placeholder */}
+          {isPlaybackMode && waveformData.length === 0 && !recordingLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#111820]/70">
+              <p className="max-w-[300px] text-[14px] text-[#a1a1aa] text-center leading-relaxed">
+                No waveform data available for this recording.
+              </p>
+            </div>
+          )}
+
+          {/* Hold badge */}
+          {(isCapturing || isPaused) && (
+            <div className="absolute top-3 left-3 bg-white text-[#09090b] px-2 py-1 rounded text-[11px] font-semibold">
+              HOLD
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Controls */}
+        <ScopeBottomControls
+          mode={isPlaybackMode ? "playback" : "live"}
+          vpp={recordingData?.peakAmplitude ?? audioAnalyzer.vpp}
+          frequency={audioAnalyzer.frequency}
+          windowMs={audioAnalyzer.windowMs}
+          timebase={1024}
+          verticalGain={1}
+          duration={recordingData?.durationMs}
+          currentTime={currentPlaybackTime}
+          isPlaying={isPlaying}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStop={handleStop}
+          onSeek={handleSeek}
+          playbackSpeed={playbackSpeed}
+          onSpeedChange={handleSpeedChange}
+          loopPlayback={loopPlayback}
+          onLoopToggle={handleLoopToggle}
+        />
+      </div>
+
+      {/* Dialogs */}
+      <Dialogs />
+    </div>
+  );
+}
+
+export default ScopePage;

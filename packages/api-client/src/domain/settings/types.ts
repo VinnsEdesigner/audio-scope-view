@@ -6,25 +6,31 @@ export interface Settings {
   timeOffset: number;
   voltageOffset: number;
   triggerLevel: number;
-  triggerMode: string;
-  triggerEdge: string;
+  triggerMode: "normal" | "auto";
+  triggerEdge: "rising" | "falling" | "auto";
   showGrid: boolean;
   showMeasurements: boolean;
   gridDivisionsX: number;
   gridDivisionsY: number;
   inputDevice: string | undefined;
   inputChannels: number;
+  glow: boolean;
+  autoScale: boolean;
+  invert: boolean;
 }
 
 export interface UpdateSettingsInput {
   timeScale?: number;
   voltageScale?: number;
   triggerLevel?: number;
-  triggerMode?: string;
-  triggerEdge?: string;
+  triggerMode?: "normal" | "auto";
+  triggerEdge?: "rising" | "falling" | "auto";
   showGrid?: boolean;
   showMeasurements?: boolean;
   inputDevice?: string;
+  glow?: boolean;
+  autoScale?: boolean;
+  invert?: boolean;
 }
 
 export interface SettingsServer {
@@ -43,4 +49,7 @@ export interface SettingsServer {
   grid_divisions_y: number;
   input_device: string | undefined;
   input_channels: number;
+  glow: boolean;
+  auto_scale: boolean;
+  invert: boolean;
 }

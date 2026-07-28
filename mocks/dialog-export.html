@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Geist', sans-serif;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 420px;
+      background: #212124;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f5f5f7;
+    }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: #a1a1aa;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: #2e2e33;
+      color: #f5f5f7;
+    }
+    .dialog-content {
+      padding: 20px;
+    }
+    .info-text {
+      font-size: 12px;
+      color: #6e6e73;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .export-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .export-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: #28282c;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: left;
+    }
+    .export-btn:hover {
+      background: #2e2e33;
+      border-color: rgba(255,255,255,0.15);
+    }
+    .export-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      color: #a1a1aa;
+    }
+    .export-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    .export-info {
+      flex: 1;
+    }
+    .export-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #f5f5f7;
+    }
+    .export-desc {
+      font-size: 12px;
+      color: #6e6e73;
+      margin-top: 2px;
+    }
+    .export-arrow {
+      color: #52525b;
+    }
+    .dialog-footer {
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      background: #28282c;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .btn-footer {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: white;
+    }
+    .btn-footer:hover {
+      background: #2e2e33;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <div class="dialog-header">
+      <span class="dialog-title">Export</span>
+      <button class="close-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-content">
+      <p class="info-text">
+        Save the current view for reports or offline analysis.
+      </p>
+      <div class="export-options">
+        <button class="export-btn">
+          <div class="export-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <div class="export-info">
+            <div class="export-title">Snapshot (PNG)</div>
+            <div class="export-desc">Save canvas as image</div>
+          </div>
+          <div class="export-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        </button>
+        <button class="export-btn">
+          <div class="export-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div class="export-info">
+            <div class="export-title">Export CSV</div>
+            <div class="export-desc">Download trace samples</div>
+          </div>
+          <div class="export-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        </button>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-footer">Close</button>
+    </div>
+  </div>
+</body>
+</html>

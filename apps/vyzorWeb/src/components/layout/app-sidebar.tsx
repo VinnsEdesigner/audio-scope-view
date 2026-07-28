@@ -1,7 +1,7 @@
 import * as React from "react";
 import { NavLink } from "react-router-dom";
 import { styled, YStack, XStack, Text } from "tamagui";
-import { LayoutDashboard, Activity, KeyRound, Settings as SettingsIcon } from "lucide-react";
+import { LayoutDashboard, Monitor, KeyRound, Settings as SettingsIcon } from "lucide-react";
 
 const SidebarRoot = styled(YStack, {
   height: "100%",
@@ -54,8 +54,8 @@ const SectionLabel = styled(Text, {
 });
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/scope", label: "Scopes", icon: Activity, end: false },
+  { to: "/", label: "Home", icon: LayoutDashboard, end: true },
+  { to: "/scope", label: "Scopes", icon: Monitor, end: false },
   { to: "/api-keys", label: "API Keys", icon: KeyRound, end: false },
   { to: "/settings", label: "Settings", icon: SettingsIcon, end: false },
 ] as const;

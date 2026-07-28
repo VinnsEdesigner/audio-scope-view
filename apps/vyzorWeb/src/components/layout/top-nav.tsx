@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Settings, Key, Home, Radio } from "lucide-react";
+import { Menu, Settings, Key, Home, Monitor } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -10,7 +10,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/", icon: <Home size={18} /> },
-  { label: "Scopes", href: "/scopes", icon: <Radio size={18} /> },
+  { label: "Scopes", href: "/scopes", icon: <Monitor size={18} /> },
   { label: "API Keys", href: "/api-keys", icon: <Key size={18} /> },
   { label: "Settings", href: "/settings", icon: <Settings size={18} /> },
 ];
@@ -28,8 +28,8 @@ export function TopNav({ className = "" }: TopNavProperties): React.ReactElement
   }, [location.pathname]);
 
   React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isOpen) {
         setIsOpen(false);
       }
     };
@@ -80,11 +80,8 @@ export function TopNav({ className = "" }: TopNavProperties): React.ReactElement
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
-                      <span className={isActive ? "text-accent" : "text-text-tertiary"}>
-                        {item.icon}
-                      </span>
+                      <span className="text-text-tertiary">{item.icon}</span>
                       {item.label}
-                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent" />}
                     </Link>
                   );
                 })}

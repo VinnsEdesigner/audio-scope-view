@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 function getEnvironment(key: string, fallback: string): string {
   if (globalThis.window !== undefined) {
     return (import.meta.env[key] as string | undefined) ?? fallback;

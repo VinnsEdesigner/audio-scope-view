@@ -17,6 +17,9 @@ export function settingsFromRaw(serverSettings: SettingsServer): Settings {
     gridDivisionsY: serverSettings.grid_divisions_y,
     inputDevice: serverSettings.input_device,
     inputChannels: serverSettings.input_channels,
+    glow: serverSettings.glow,
+    autoScale: serverSettings.auto_scale,
+    invert: serverSettings.invert,
   };
 }
 
@@ -31,6 +34,9 @@ export function settingsToServerInput(input: UpdateSettingsInput): Record<string
   if (input.showGrid !== undefined) result.showGrid = input.showGrid;
   if (input.showMeasurements !== undefined) result.showMeasurements = input.showMeasurements;
   if (input.inputDevice !== undefined) result.inputDevice = input.inputDevice;
+  if (input.glow !== undefined) result.glow = input.glow;
+  if (input.autoScale !== undefined) result.autoScale = input.autoScale;
+  if (input.invert !== undefined) result.invert = input.invert;
 
   return result;
 }
