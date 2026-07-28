@@ -48,9 +48,6 @@ export function useScopeDialogs({
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
-  // Anchor rect for dialog positioning
-  const [dialogAnchorRects, setDialogAnchorRects] = React.useState<Record<string, DOMRect | null>>({});
-
   // Recording hooks
   const renameRecording = useRenameRecording();
   const deleteRecording = useDeleteRecording();
@@ -58,46 +55,24 @@ export function useScopeDialogs({
   // Effective recording ID
   const effectiveRecordingId = recordingId ?? recording?.id;
 
-  // Helper to capture anchor rect
-  const captureAnchor = React.useCallback((event: React.MouseEvent) => {
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    return rect;
-  }, []);
-
-  // Handlers for ScopeSidebar callbacks - they capture the button rect
-  const handleOpenDisplaySettings = React.useCallback((event?: React.MouseEvent) => {
-    if (event?.currentTarget) {
-      setDialogAnchorRects(prev => ({ ...prev, display: (event.currentTarget as HTMLElement).getBoundingClientRect() }));
-    }
+  // Handlers for ScopeSidebar callbacks
+  const handleOpenDisplaySettings = React.useCallback(() => {
     setDisplaySettingsOpen(true);
   }, []);
 
-  const handleOpenTriggerSettings = React.useCallback((event?: React.MouseEvent) => {
-    if (event?.currentTarget) {
-      setDialogAnchorRects(prev => ({ ...prev, trigger: (event.currentTarget as HTMLElement).getBoundingClientRect() }));
-    }
+  const handleOpenTriggerSettings = React.useCallback(() => {
     setTriggerSettingsOpen(true);
   }, []);
 
-  const handleOpenMeasurements = React.useCallback((event?: React.MouseEvent) => {
-    if (event?.currentTarget) {
-      setDialogAnchorRects(prev => ({ ...prev, measure: (event.currentTarget as HTMLElement).getBoundingClientRect() }));
-    }
+  const handleOpenMeasurements = React.useCallback(() => {
     setMeasurementsOpen(true);
   }, []);
 
-  const handleOpenExport = React.useCallback((event?: React.MouseEvent) => {
-    if (event?.currentTarget) {
-      setDialogAnchorRects(prev => ({ ...prev, export: (event.currentTarget as HTMLElement).getBoundingClientRect() }));
-    }
+  const handleOpenExport = React.useCallback(() => {
     setExportOpen(true);
   }, []);
 
-  const handleOpenRecordingInfo = React.useCallback((event?: React.MouseEvent) => {
-    if (event?.currentTarget) {
-      setDialogAnchorRects(prev => ({ ...prev, info: (event.currentTarget as HTMLElement).getBoundingClientRect() }));
-    }
+  const handleOpenRecordingInfo = React.useCallback(() => {
     setRecordingInfoOpen(true);
   }, []);
 
@@ -138,25 +113,19 @@ export function useScopeDialogs({
   const Dialogs = React.useMemo(
     () => () => (
       <>
-        {/* Display Settings - Anchored */}
+        {/* Display Settings */}
         <AnchoredDialog
           isOpen={displaySettingsOpen}
           onClose={handleCloseDisplaySettings}
-          title="Display Settings"
-          anchorRect={dialogAnchorRects.display}
-          maxWidth="max-w-sm"
         >
           <DisplaySettingsDialog isOpen={displaySettingsOpen} onClose={handleCloseDisplaySettings} />
         </AnchoredDialog>
 
-        {/* Trigger Settings - Anchored */}
+        {/* Trigger Settings */}
         {!isPlayback && (
           <AnchoredDialog
             isOpen={triggerSettingsOpen}
             onClose={handleCloseTriggerSettings}
-            title="Trigger Settings"
-            anchorRect={dialogAnchorRects.trigger}
-            maxWidth="max-w-sm"
           >
             <TriggerSettingsDialog
               isOpen={triggerSettingsOpen}
@@ -166,25 +135,19 @@ export function useScopeDialogs({
           </AnchoredDialog>
         )}
 
-        {/* Measurements - Anchored */}
+        {/* Measurements */}
         <AnchoredDialog
           isOpen={measurementsOpen}
           onClose={handleCloseMeasurements}
-          title="Measurements"
-          anchorRect={dialogAnchorRects.measure}
-          maxWidth="max-w-sm"
         >
           <MeasurementsDialog isOpen={measurementsOpen} onClose={handleCloseMeasurements} />
         </AnchoredDialog>
 
-        {/* Export - Anchored */}
+        {/* Export */}
         {canvasRef && (
           <AnchoredDialog
             isOpen={exportOpen}
             onClose={handleCloseExport}
-            title="Export"
-            anchorRect={dialogAnchorRects.export}
-            maxWidth="max-w-sm"
           >
             <ExportDialog
               isOpen={exportOpen}
@@ -195,14 +158,11 @@ export function useScopeDialogs({
           </AnchoredDialog>
         )}
 
-        {/* Recording Info - Anchored */}
+        {/* Recording Info */}
         {isPlayback && effectiveRecordingId && (
           <AnchoredDialog
             isOpen={recordingInfoOpen}
             onClose={handleCloseRecordingInfo}
-            title="Recording Info"
-            anchorRect={dialogAnchorRects.info}
-            maxWidth="max-w-sm"
           >
             <RecordingInfoDialog
               isOpen={recordingInfoOpen}
@@ -212,7 +172,7 @@ export function useScopeDialogs({
           </AnchoredDialog>
         )}
 
-        {/* Rename Dialog - centered modal (for forms) */}
+        {/* Rename Dialog */}
         {renameDialogOpen && (
           <RenameDialog
             isOpen={renameDialogOpen}
@@ -224,7 +184,7 @@ export function useScopeDialogs({
           />
         )}
 
-        {/* Delete Dialog - centered modal (for confirmations) */}
+        {/* Delete Dialog */}
         {deleteDialogOpen && (
           <DeleteConfirmationDialog
             isOpen={deleteDialogOpen}
@@ -250,7 +210,6 @@ export function useScopeDialogs({
       recording,
       effectiveRecordingId,
       canvasRef,
-      dialogAnchorRects,
       handleCloseDisplaySettings,
       handleCloseTriggerSettings,
       handleCloseMeasurements,

@@ -40,15 +40,15 @@ interface NavItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ size: number }>;
-  action: (event?: React.MouseEvent) => void;
+  action: () => void;
 }
 
 interface ScopeSidebarProperties {
-  onOpenDisplaySettings?: (event?: React.MouseEvent) => void;
-  onOpenTriggerSettings?: (event?: React.MouseEvent) => void;
-  onOpenMeasurements?: (event?: React.MouseEvent) => void;
-  onOpenExport?: (event?: React.MouseEvent) => void;
-  onOpenRecordingInfo?: (event?: React.MouseEvent) => void;
+  onOpenDisplaySettings?: () => void;
+  onOpenTriggerSettings?: () => void;
+  onOpenMeasurements?: () => void;
+  onOpenExport?: () => void;
+  onOpenRecordingInfo?: () => void;
   onRename?: () => void;
   onDelete?: () => void;
 }
@@ -97,10 +97,10 @@ export function ScopeSidebar({
     setShowMoreMenu(false);
   }, [isPlayback]);
 
-  const handleViewChange = (item: NavItem, event?: React.MouseEvent) => {
+  const handleViewChange = (item: NavItem) => {
     setActiveView(item.id);
     setShowMoreMenu(false);
-    item.action(event);
+    item.action();
   };
 
   return (
@@ -110,7 +110,7 @@ export function ScopeSidebar({
         return (
           <button
             key={item.id}
-            onClick={(e) => handleViewChange(item, e)}
+            onClick={() => handleViewChange(item)}
             className={`flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-md transition-all ${
               activeView === item.id
                 ? "bg-bg-active text-foreground font-medium"
