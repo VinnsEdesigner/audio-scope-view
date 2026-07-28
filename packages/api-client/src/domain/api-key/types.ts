@@ -1,85 +1,61 @@
-/**
- * Domain types for API Keys
- * These types match the server's GraphQL schema
- * Server returns: ApiKeyInfo, ApiKeyCreated, ApiKeyVerifyResult
- */
 
-/**
- * API Key info - represents a client's API key (without the actual key value)
- */
+
 export interface ApiKey {
-  id: string;
-  name: string;
-  createdAt: number; // Unix timestamp (seconds since epoch)
-  expiresAt: number | undefined; // Unix timestamp or undefined if never expires
-  lastUsedAt: number | undefined; // Unix timestamp or undefined if never used
-  rateLimitPerMinute: number;
-  isValid: boolean;
+ id: string;
+ name: string;
+ createdAt: number; 
+ expiresAt: number | undefined; 
+ lastUsedAt: number | undefined; 
+ rateLimitPerMinute: number;
+ isValid: boolean;
 }
 
-/**
- * API Key creation result - includes the actual key (only shown once!)
- */
 export interface CreatedApiKey {
-  id: string;
-  key: string; // The complete API key - ONLY available at creation time!
-  name: string;
+ id: string;
+ key: string; 
+ name: string;
 }
 
-/**
- * API Key verification result
- */
 export interface ApiKeyVerifyResult {
-  valid: boolean;
-  keyId: string | undefined;
-  name: string | undefined;
-  rateLimitPerMinute: number | undefined;
-  expiresAt: number | undefined;
+ valid: boolean;
+ keyId: string | undefined;
+ name: string | undefined;
+ rateLimitPerMinute: number | undefined;
+ expiresAt: number | undefined;
 }
 
-/**
- * Input for creating a new API key
- * Matches server's CreateApiKeyInput
- */
 export interface CreateApiKeyInput {
-  name: string;
-  expiresInHours?: number;
-  rateLimitPerMinute?: number;
+ name: string;
+ expiresInHours?: number;
+ rateLimitPerMinute?: number;
 }
 
-/**
- * Input for updating an existing API key
- * Matches server's UpdateApiKeyInput
- */
 export interface UpdateApiKeyInput {
-  name?: string;
-  rateLimitPerMinute?: number;
-  expiresInHours?: number;
+ name?: string;
+ rateLimitPerMinute?: number;
+ expiresInHours?: number;
 }
 
-/**
- * Server response types (snake_case from GraphQL)
- */
 export interface ApiKeyInfoServer {
-  id: string;
-  name: string;
-  created_at: string;
-  expires_at: string | null;
-  last_used_at: string | null;
-  rate_limit_per_minute: number;
-  is_valid: boolean;
+ id: string;
+ name: string;
+ created_at: string;
+ expires_at: string | null;
+ last_used_at: string | null;
+ rate_limit_per_minute: number;
+ is_valid: boolean;
 }
 
 export interface ApiKeyCreatedServer {
-  id: string;
-  key: string;
-  name: string;
+ id: string;
+ key: string;
+ name: string;
 }
 
 export interface ApiKeyVerifyResultServer {
-  valid: boolean;
-  key_id: string | null;
-  name: string | null;
-  rate_limit_per_minute: number | null;
-  expires_at: string | null;
+ valid: boolean;
+ key_id: string | null;
+ name: string | null;
+ rate_limit_per_minute: number | null;
+ expires_at: string | null;
 }
