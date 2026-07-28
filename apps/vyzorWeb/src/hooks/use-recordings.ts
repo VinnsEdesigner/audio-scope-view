@@ -20,6 +20,10 @@ import {
   DELETE_RECORDING,
   PIN_RECORDINGS,
   DELETE_RECORDINGS,
+  START_RECORDING,
+  STOP_RECORDING,
+  PAUSE_RECORDING,
+  RESUME_RECORDING,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations/recording-mutations";
 import type {
   RecordingSummary,
@@ -184,6 +188,76 @@ export function useDeleteRecordings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recordings"] });
       queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
+    },
+  });
+}
+
+// ============================================
+// RECORDING ACTION HOOKS (Start/Pause/Stop)
+// ============================================
+
+export function useStartRecording() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ scopeId, name }: { scopeId: string; name?: string }) => {
+      const result = await graphqlClient.mutate({
+        mutation: START_RECORDING,
+        variables: { scopeId, name },
+      });
+      return result.data.startRecording;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recordings"] });
+      queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
+    },
+  });
+}
+
+export function useStopRecording() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await graphqlClient.mutate({
+        mutation: STOP_RECORDING,
+        variables: { id },
+      });
+      return result.data.stopRecording;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recordings"] });
+      queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
+    },
+  });
+}
+
+export function usePauseRecording() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await graphqlClient.mutate({
+        mutation: PAUSE_RECORDING,
+        variables: { id },
+      });
+      return result.data.pauseRecording;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recordings"] });
+    },
+  });
+}
+
+export function useResumeRecording() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await graphqlClient.mutate({
+        mutation: RESUME_RECORDING,
+        variables: { id },
+      });
+      return result.data.resumeRecording;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recordings"] });
     },
   });
 }

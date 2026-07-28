@@ -23,6 +23,10 @@ export {
   useDeleteRecording,
   usePinRecordings,
   useDeleteRecordings,
+  useStartRecording,
+  useStopRecording,
+  usePauseRecording,
+  useResumeRecording,
 } from "./use-recordings";
 
 // Scope with status hooks

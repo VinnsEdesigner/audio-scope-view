@@ -117,20 +117,29 @@ export function Home(): React.ReactElement {
     pinRecording.mutate({ id, isPinned: !isPinned });
     setOpenMenuId(null);
     showToast({
-      message: isPinned ? "Recording unpinned" : "Recording pinned",
-      type: "success",
+      message: isPinned ? "Removing pin..." : "Pinning recording...",
+      type: "info",
     });
   };
 
   // Handle delete
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this recording?")) {
-      deleteRecording.mutate(id);
-      setOpenMenuId(null);
-      showToast({
-        message: "Recording deleted",
-        type: "success",
+    if (confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
+      deleteRecording.mutate(id, {
+        onSuccess: () => {
+          showToast({
+            message: "Recording deleted successfully",
+            type: "success",
+          });
+        },
+        onError: (error) => {
+          showToast({
+            message: `Failed to delete recording: ${error.message}`,
+            type: "error",
+          });
+        },
       });
+      setOpenMenuId(null);
     }
   };
 
@@ -143,13 +152,34 @@ export function Home(): React.ReactElement {
 
   // Handle rename submit
   const handleRenameSubmit = (id: string) => {
-    if (renameValue.trim()) {
-      renameRecording.mutate({ id, name: renameValue.trim() });
+    const trimmedName = renameValue.trim();
+    if (!trimmedName) {
       showToast({
-        message: "Recording renamed",
-        type: "success",
+        message: "Recording name cannot be empty",
+        type: "warning",
       });
+      setRenamingId(null);
+      setRenameValue("");
+      return;
     }
+    
+    renameRecording.mutate(
+      { id, name: trimmedName },
+      {
+        onSuccess: () => {
+          showToast({
+            message: "Recording renamed successfully",
+            type: "success",
+          });
+        },
+        onError: (error) => {
+          showToast({
+            message: `Failed to rename: ${error.message}`,
+            type: "error",
+          });
+        },
+      }
+    );
     setRenamingId(null);
     setRenameValue("");
   };
