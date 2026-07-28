@@ -31,23 +31,26 @@ const WAVEFORM_COLORS: { value: WaveformColor; color: string }[] = [
 
 function getPermissionStatus(permissionState: string): { text: string; className: string } {
   switch (permissionState) {
-    case "granted":
+    case "granted": {
       return { text: "Microphone access granted", className: "bg-success" };
-    case "denied":
+    }
+    case "denied": {
       return { text: "Microphone access denied", className: "bg-destructive" };
-    default:
+    }
+    default: {
       return { text: "Microphone access permission required", className: "bg-warning" };
+    }
   }
 }
 
-interface SectionProps {
+interface SectionProperties {
   icon: React.ReactNode;
   title: string;
   description: string;
   children: React.ReactNode;
 }
 
-function Section({ icon, title, description, children }: SectionProps) {
+function Section({ icon, title, description, children }: SectionProperties) {
   return (
     <section className="mb-10 animate-[fadeInUp_0.4s_ease_forwards]">
       <div className="flex items-center gap-3 mb-4">
@@ -64,11 +67,11 @@ function Section({ icon, title, description, children }: SectionProps) {
   );
 }
 
-interface SettingsCardProps {
+interface SettingsCardProperties {
   children: React.ReactNode;
 }
 
-function SettingsCard({ children }: SettingsCardProps) {
+function SettingsCard({ children }: SettingsCardProperties) {
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-secondary overflow-hidden">
       {children}
@@ -76,19 +79,19 @@ function SettingsCard({ children }: SettingsCardProps) {
   );
 }
 
-interface SettingsRowProps {
+interface SettingsRowProperties {
   label: string;
   description?: string;
   children: React.ReactNode;
   border?: boolean;
 }
 
-function SettingsRow({ label, description, children, border = true }: SettingsRowProps) {
+function SettingsRow({ label, description, children, border = true }: SettingsRowProperties) {
   return (
     <div
       className={cn(
         "flex items-center justify-between px-6 py-5 transition-colors hover:bg-bg-hover",
-        border && "border-b border-border-subtle"
+        border && "border-b border-border-subtle",
       )}
     >
       <div className="flex-1 min-w-0">
@@ -122,9 +125,9 @@ export function Settings(): React.ReactElement {
   const permission = getPermissionStatus(permissionState);
 
   const sampleRateOptions = [
-    { value: 44100, label: "44.1 kHz" },
-    { value: 48000, label: "48 kHz" },
-    { value: 96000, label: "96 kHz" },
+    { value: 44_100, label: "44.1 kHz" },
+    { value: 48_000, label: "48 kHz" },
+    { value: 96_000, label: "96 kHz" },
   ];
 
   const bufferSizeOptions = [
@@ -139,14 +142,20 @@ export function Settings(): React.ReactElement {
       <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
         {/* Header */}
         <header className="mb-8 lg:mb-12">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Settings
+          </h1>
           <p className="mt-1 text-sm text-text-secondary">
             Configure your audio scope preferences and appearance
           </p>
         </header>
 
         {/* Appearance Section */}
-        <Section icon={<Palette size={20} />} title="Appearance" description="Customize how Audio Scope View looks">
+        <Section
+          icon={<Palette size={20} />}
+          title="Appearance"
+          description="Customize how Audio Scope View looks"
+        >
           <SettingsCard>
             <SettingsRow label="Theme" description="Choose your preferred color scheme">
               <div className="flex gap-1 p-1 rounded-md bg-background border border-border-subtle">
@@ -165,7 +174,7 @@ export function Settings(): React.ReactElement {
                       "flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-sm text-xs font-medium transition-all",
                       theme === value
                         ? "bg-bg-elevated text-foreground shadow-sm"
-                        : "text-text-secondary hover:text-foreground"
+                        : "text-text-secondary hover:text-foreground",
                     )}
                   >
                     <Icon size={14} />
@@ -175,7 +184,11 @@ export function Settings(): React.ReactElement {
               </div>
             </SettingsRow>
 
-            <SettingsRow label="Waveform Color" description="Choose trace color for waveform display" border={false}>
+            <SettingsRow
+              label="Waveform Color"
+              description="Choose trace color for waveform display"
+              border={false}
+            >
               <div className="flex gap-2">
                 {WAVEFORM_COLORS.map(({ value, color }) => (
                   <button
@@ -186,7 +199,8 @@ export function Settings(): React.ReactElement {
                     }}
                     className={cn(
                       "w-8 h-8 rounded-full transition-all relative flex-shrink-0",
-                      waveformColor === value && "ring-2 ring-white ring-offset-2 ring-offset-background"
+                      waveformColor === value &&
+                        "ring-2 ring-white ring-offset-2 ring-offset-background",
                     )}
                     style={{ backgroundColor: color }}
                     title={value.charAt(0).toUpperCase() + value.slice(1)}
@@ -198,16 +212,23 @@ export function Settings(): React.ReactElement {
         </Section>
 
         {/* Audio Section */}
-        <Section icon={<Mic size={20} />} title="Audio" description="Configure microphone and capture settings">
+        <Section
+          icon={<Mic size={20} />}
+          title="Audio"
+          description="Configure microphone and capture settings"
+        >
           <SettingsCard>
-            <SettingsRow label="Input Device" description="Select the microphone or audio input device">
+            <SettingsRow
+              label="Input Device"
+              description="Select the microphone or audio input device"
+            >
               <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select
                   className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
                   value={selectedDeviceId ?? ""}
                   onChange={(e) => {
                     setSelectedDeviceId(e.target.value);
-                    const device = devices?.find(d => d.deviceId === e.target.value);
+                    const device = devices?.find((d) => d.deviceId === e.target.value);
                     addToast("success", `Input device changed to ${device?.label || "new device"}`);
                   }}
                 >
@@ -232,7 +253,10 @@ export function Settings(): React.ReactElement {
                   value={sampleRate || ""}
                   onChange={(e) => {
                     setSampleRate(Number(e.target.value));
-                    addToast("success", `Sample rate changed to ${sampleRateOptions.find(o => o.value === Number(e.target.value))?.label}`);
+                    addToast(
+                      "success",
+                      `Sample rate changed to ${sampleRateOptions.find((o) => o.value === Number(e.target.value))?.label}`,
+                    );
                   }}
                 >
                   <option value="">Select sample rate</option>
@@ -253,7 +277,10 @@ export function Settings(): React.ReactElement {
                   value={bufferSize || ""}
                   onChange={(e) => {
                     setBufferSize(Number(e.target.value));
-                    addToast("success", `Buffer size changed to ${bufferSizeOptions.find(o => o.value === Number(e.target.value))?.label}`);
+                    addToast(
+                      "success",
+                      `Buffer size changed to ${bufferSizeOptions.find((o) => o.value === Number(e.target.value))?.label}`,
+                    );
                   }}
                 >
                   <option value="">Select buffer size</option>
@@ -277,17 +304,21 @@ export function Settings(): React.ReactElement {
         </Section>
 
         {/* Display Section */}
-        <Section icon={<MonitorCheck size={20} />} title="Display" description="Adjust waveform visualization options">
+        <Section
+          icon={<MonitorCheck size={20} />}
+          title="Display"
+          description="Adjust waveform visualization options"
+        >
           <SettingsCard>
             <SettingsRow label="Show Grid" description="Display grid overlay on waveform">
               <button
                 onClick={() => {
                   setShowGrid(!showGrid);
-                  addToast("success", `Grid ${!showGrid ? "enabled" : "disabled"}`);
+                  addToast("success", `Grid ${showGrid ? "disabled" : "enabled"}`);
                 }}
                 className={cn(
                   "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
-                  showGrid ? "bg-accent border-accent" : "bg-background border border-border"
+                  showGrid ? "bg-accent border-accent" : "bg-background border border-border",
                 )}
                 role="switch"
                 aria-checked={showGrid}
@@ -295,21 +326,26 @@ export function Settings(): React.ReactElement {
                 <span
                   className={cn(
                     "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    showGrid && "translate-x-5"
+                    showGrid && "translate-x-5",
                   )}
                 />
               </button>
             </SettingsRow>
 
-            <SettingsRow label="Show Measurements" description="Display amplitude and frequency measurements">
+            <SettingsRow
+              label="Show Measurements"
+              description="Display amplitude and frequency measurements"
+            >
               <button
                 onClick={() => {
                   setShowMeasurements(!showMeasurements);
-                  addToast("success", `Measurements ${!showMeasurements ? "enabled" : "disabled"}`);
+                  addToast("success", `Measurements ${showMeasurements ? "disabled" : "enabled"}`);
                 }}
                 className={cn(
                   "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
-                  showMeasurements ? "bg-accent border-accent" : "bg-background border border-border"
+                  showMeasurements
+                    ? "bg-accent border-accent"
+                    : "bg-background border border-border",
                 )}
                 role="switch"
                 aria-checked={showMeasurements}
@@ -317,21 +353,25 @@ export function Settings(): React.ReactElement {
                 <span
                   className={cn(
                     "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    showMeasurements && "translate-x-5"
+                    showMeasurements && "translate-x-5",
                   )}
                 />
               </button>
             </SettingsRow>
 
-            <SettingsRow label="Smooth Waveform" description="Apply smoothing filter to waveform display" border={false}>
+            <SettingsRow
+              label="Smooth Waveform"
+              description="Apply smoothing filter to waveform display"
+              border={false}
+            >
               <button
                 onClick={() => {
                   setSmoothWaveform(!smoothWaveform);
-                  addToast("success", `Smooth waveform ${!smoothWaveform ? "enabled" : "disabled"}`);
+                  addToast("success", `Smooth waveform ${smoothWaveform ? "disabled" : "enabled"}`);
                 }}
                 className={cn(
                   "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
-                  smoothWaveform ? "bg-accent border-accent" : "bg-background border border-border"
+                  smoothWaveform ? "bg-accent border-accent" : "bg-background border border-border",
                 )}
                 role="switch"
                 aria-checked={smoothWaveform}
@@ -339,7 +379,7 @@ export function Settings(): React.ReactElement {
                 <span
                   className={cn(
                     "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    smoothWaveform && "translate-x-5"
+                    smoothWaveform && "translate-x-5",
                   )}
                 />
               </button>
@@ -348,7 +388,11 @@ export function Settings(): React.ReactElement {
         </Section>
 
         {/* Preview Section */}
-        <Section icon={<Eye size={20} />} title="Preview" description="See your current display settings in action">
+        <Section
+          icon={<Eye size={20} />}
+          title="Preview"
+          description="See your current display settings in action"
+        >
           <SettingsCard>
             <div className="p-4 sm:p-6">
               <div className="h-20 bg-background border border-border-subtle rounded-md relative overflow-hidden">

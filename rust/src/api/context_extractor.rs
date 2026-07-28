@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 //! GraphQL context - Injected into all resolvers
 
-use crate::application::{DashboardService, ScopeService, SettingsService, WaveformService};
+use crate::application::{DashboardService, RecordingService, ScopeService, SettingsService, WaveformService};
 use crate::api::auth::ApiKey;
 use std::sync::Arc;
 
@@ -19,6 +19,7 @@ pub struct GraphqlContext {
     pub settings_service: Arc<SettingsService>,
     pub dashboard_service: Arc<DashboardService>,
     pub waveform_service: Arc<WaveformService>,
+    pub recording_service: Arc<RecordingService>,
     pub auth: ApiKeyAuth,
 }
 
@@ -28,12 +29,14 @@ impl GraphqlContext {
         settings_service: Arc<SettingsService>,
         dashboard_service: Arc<DashboardService>,
         waveform_service: Arc<WaveformService>,
+        recording_service: Arc<RecordingService>,
     ) -> Self {
         Self {
             scope_service,
             settings_service,
             dashboard_service,
             waveform_service,
+            recording_service,
             auth: ApiKeyAuth::default(),
         }
     }

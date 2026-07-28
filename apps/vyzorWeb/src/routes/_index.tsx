@@ -4,16 +4,7 @@
  */
 
 import { Link } from "react-router-dom";
-import {
-  Radio,
-  Key,
-  Activity,
-  Clock,
-  PlusCircle,
-  Mic,
-  Copy,
-  TrendingUp,
-} from "lucide-react";
+import { Radio, Key, Activity, Clock, PlusCircle, Mic, Copy, TrendingUp } from "lucide-react";
 
 function cn(...classes: (string | boolean | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -47,7 +38,12 @@ function StatCard({
         {value}
       </div>
       {trend && (
-        <div className={cn("flex items-center gap-1.5 text-[13px]", trendDirection === "up" ? "text-rose-300" : "text-rose-400")}>
+        <div
+          className={cn(
+            "flex items-center gap-1.5 text-[13px]",
+            trendDirection === "up" ? "text-rose-300" : "text-rose-400",
+          )}
+        >
           <TrendingUp size={14} />
           {trend}
         </div>
@@ -110,7 +106,13 @@ function ScopeItem({
     <div className="flex items-center justify-between p-4 bg-bg-elevated rounded-lg hover:bg-bg-hover transition-all cursor-pointer">
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 bg-bg-primary rounded-lg flex items-center justify-center text-text-secondary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="w-5 h-5"
+          >
             <path d="M2 12h2m4 0h2m4 0h2m4 0h2" />
             <path d="M6 8v8M10 6v12M14 9v6M18 7v10" />
           </svg>
@@ -120,7 +122,9 @@ function ScopeItem({
           <div className="text-[12px] text-text-tertiary">Last activity: {lastActivity}</div>
         </div>
       </div>
-      <span className={cn("flex items-center gap-1.5 text-[12px] font-medium", statusStyles[status])}>
+      <span
+        className={cn("flex items-center gap-1.5 text-[12px] font-medium", statusStyles[status])}
+      >
         <span className={cn("w-1.5 h-1.5 rounded-full", dotStyles[status])} />
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
@@ -178,7 +182,9 @@ export function Dashboard(): React.ReactElement {
             {/* Live Waveform */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">Live Waveform</h2>
+                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">
+                  Live Waveform
+                </h2>
                 <span className="text-[12px] text-text-tertiary font-mono">2:34:56 PM</span>
               </div>
               <div className="bg-bg-secondary border border-border-subtle rounded-xl p-6">
@@ -187,7 +193,8 @@ export function Dashboard(): React.ReactElement {
                   <div
                     className="absolute inset-0"
                     style={{
-                      backgroundImage: "linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)",
+                      backgroundImage:
+                        "linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)",
                       backgroundSize: "20px 20px",
                     }}
                   />
@@ -213,15 +220,21 @@ export function Dashboard(): React.ReactElement {
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="text-center p-3 bg-bg-primary rounded-lg">
                     <div className="text-[18px] font-semibold font-mono text-rose-400">1.2kHz</div>
-                    <div className="text-[11px] uppercase tracking-wider text-text-tertiary mt-1">Frequency</div>
+                    <div className="text-[11px] uppercase tracking-wider text-text-tertiary mt-1">
+                      Frequency
+                    </div>
                   </div>
                   <div className="text-center p-3 bg-bg-primary rounded-lg">
                     <div className="text-[18px] font-semibold font-mono text-rose-400">3.6V</div>
-                    <div className="text-[11px] uppercase tracking-wider text-text-tertiary mt-1">Amplitude</div>
+                    <div className="text-[11px] uppercase tracking-wider text-text-tertiary mt-1">
+                      Amplitude
+                    </div>
                   </div>
                   <div className="text-center p-3 bg-bg-primary rounded-lg">
                     <div className="text-[18px] font-semibold font-mono text-rose-400">0°</div>
-                    <div className="text-[11px] uppercase tracking-wider text-text-tertiary mt-1">Phase</div>
+                    <div className="text-[11px] uppercase tracking-wider text-text-tertiary mt-1">
+                      Phase
+                    </div>
                   </div>
                 </div>
               </div>
@@ -230,8 +243,13 @@ export function Dashboard(): React.ReactElement {
             {/* Recent Scopes */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">Recent Scopes</h2>
-                <Link to="/scopes" className="text-[13px] font-medium text-accent-primary hover:text-accent-hover transition-colors">
+                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">
+                  Recent Scopes
+                </h2>
+                <Link
+                  to="/scopes"
+                  className="text-[13px] font-medium text-accent-primary hover:text-accent-hover transition-colors"
+                >
                   View all
                 </Link>
               </div>
@@ -249,7 +267,9 @@ export function Dashboard(): React.ReactElement {
             {/* Quick Actions */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">Quick Actions</h2>
+                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">
+                  Quick Actions
+                </h2>
               </div>
               <div className="space-y-3">
                 <ActionButton
@@ -278,7 +298,9 @@ export function Dashboard(): React.ReactElement {
             {/* System Status */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">System Status</h2>
+                <h2 className="text-[16px] font-semibold tracking-tight text-foreground">
+                  System Status
+                </h2>
               </div>
               <div className="bg-bg-secondary border border-border-subtle rounded-xl p-5">
                 <div className="space-y-3">

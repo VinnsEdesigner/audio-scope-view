@@ -12,6 +12,7 @@ pub mod schema_audio_input;
 pub mod schema_dashboard;
 pub mod schema_dsp;
 pub mod schema_export;
+pub mod schema_recording;
 pub mod schema_root;
 pub mod schema_scope;
 pub mod schema_settings;

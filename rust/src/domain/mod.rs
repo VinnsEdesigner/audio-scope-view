@@ -32,6 +32,9 @@ pub mod waveform_generators;
 // Trigger system
 pub mod trigger;
 
+// Recording module
+pub mod recording;
+
 #[allow(unused_imports)]
 pub use entity_capture::Capture;
 #[allow(unused_imports)]
@@ -51,3 +54,6 @@ pub use measurements::{
     compute_dc_offset, compute_rms, find_peak_amplitude, zero_crossing_rate,
 };
 pub use spectrogram::{SpectrogramConfig, SpectrogramData, SpectrogramProcessor};
+
+// Recording exports
+pub use recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, ScopeWithStatus};

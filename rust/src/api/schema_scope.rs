@@ -8,7 +8,7 @@ use crate::domain::Scope;
 use crate::domain::trait_audio_capture::AudioCapture;
 use crate::infrastructure::audio_capture_mock::MockAudioCapture;
 
-/// Scope output type
+/// Scope output type with recording count
 #[derive(Debug, SimpleObject)]
 pub struct ScopeOutput {
     pub id: String,
@@ -19,10 +19,13 @@ pub struct ScopeOutput {
     pub buffer_size: u32,
     pub created_at: String,
     pub updated_at: String,
+    /// Number of recordings associated with this scope
+    pub recording_count: i64,
 }
 
-impl From<Scope> for ScopeOutput {
-    fn from(scope: Scope) -> Self {
+impl ScopeOutput {
+    /// Create ScopeOutput from Scope without recording count
+    fn from_scope(scope: Scope) -> Self {
         Self {
             id: scope.id,
             name: scope.name,
@@ -32,7 +35,29 @@ impl From<Scope> for ScopeOutput {
             buffer_size: scope.buffer_size,
             created_at: scope.created_at.to_rfc3339(),
             updated_at: scope.updated_at.to_rfc3339(),
+            recording_count: 0,
         }
+    }
+
+    /// Create ScopeOutput from Scope with recording count
+    pub fn from_scope_with_count(scope: Scope, recording_count: u64) -> Self {
+        Self {
+            id: scope.id,
+            name: scope.name,
+            description: scope.description,
+            is_active: scope.is_active,
+            sample_rate: scope.sample_rate,
+            buffer_size: scope.buffer_size,
+            created_at: scope.created_at.to_rfc3339(),
+            updated_at: scope.updated_at.to_rfc3339(),
+            recording_count: recording_count as i64,
+        }
+    }
+}
+
+impl From<Scope> for ScopeOutput {
+    fn from(scope: Scope) -> Self {
+        Self::from_scope(scope)
     }
 }
 
@@ -51,7 +76,7 @@ pub struct ScopeQuery;
 
 #[Object]
 impl ScopeQuery {
-    /// Get all scopes with pagination
+    /// Get all scopes with pagination and recording counts
     async fn scopes(
         &self,
         ctx: &Context<'_>,
@@ -64,39 +89,68 @@ impl ScopeQuery {
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
 
-        context
+        let scopes = context
             .scope_service
             .list(limit, offset)
             .await
-            .map(|scopes| scopes.into_iter().map(ScopeOutput::from).collect())
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        // Get recording counts for each scope
+        let mut results: Vec<ScopeOutput> = Vec::new();
+        for scope in scopes {
+            let count = context
+                .recording_service
+                .get_recording_count_for_scope(&scope.id)
+                .await
+                .unwrap_or(0);
+            results.push(ScopeOutput::from_scope_with_count(scope, count));
+        }
+        results
     }
 
-    /// Get scope by ID
+    /// Get scope by ID with recording count
     async fn scope(&self, ctx: &Context<'_>, id: String) -> Option<ScopeOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        context
+        let scope = context
             .scope_service
             .get(&id)
             .await
             .ok()
-            .flatten()
-            .map(ScopeOutput::from)
+            .flatten()?;
+        
+        let count = context
+            .recording_service
+            .get_recording_count_for_scope(&scope.id)
+            .await
+            .unwrap_or(0);
+        
+        Some(ScopeOutput::from_scope_with_count(scope, count))
     }
 
-    /// Get all active scopes
+    /// Get all active scopes with recording counts
     async fn active_scopes(&self, ctx: &Context<'_>) -> Vec<ScopeOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        context
+        let scopes = context
             .scope_service
             .get_active()
             .await
-            .map(|scopes| scopes.into_iter().map(ScopeOutput::from).collect())
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        // Get recording counts for each scope
+        let mut results: Vec<ScopeOutput> = Vec::new();
+        for scope in scopes {
+            let count = context
+                .recording_service
+                .get_recording_count_for_scope(&scope.id)
+                .await
+                .unwrap_or(0);
+            results.push(ScopeOutput::from_scope_with_count(scope, count));
+        }
+        results
     }
 
     /// Get total scope count
@@ -135,6 +189,7 @@ impl ScopeMutation {
                     buffer_size: 1024,
                     created_at: chrono::Utc::now().to_rfc3339(),
                     updated_at: chrono::Utc::now().to_rfc3339(),
+                    recording_count: 0,
                 }
             })
     }

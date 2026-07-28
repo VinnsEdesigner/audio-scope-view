@@ -19,7 +19,10 @@ import type { ApiKey, CreateApiKeyInput } from "@audio-scope-view/api-client/dom
 // Mini blocks spinner component - 2s infinite rotation
 function MiniBlocksSpinner({ size = 16 }: { size?: number }) {
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <style>{`
         @keyframes mini-blocks-spin {
           0% { transform: rotate(0deg); }
@@ -31,7 +34,7 @@ function MiniBlocksSpinner({ size = 16 }: { size?: number }) {
       `}</style>
       <div
         className="mini-blocks-spin absolute inset-0 rounded-full border-2 border-current"
-        style={{ borderColor: 'white' }}
+        style={{ borderColor: "white" }}
       />
     </div>
   );
@@ -63,19 +66,22 @@ function Button({
   loading = false,
   disabled = false,
   children,
-  ...props
+  ...properties
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "default" | "outline" | "ghost" | "destructive";
   size?: "default" | "icon" | "sm";
   loading?: boolean;
 }) {
-  const baseStyles = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer";
+  const baseStyles =
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer";
 
   const variants = {
     default: "bg-bg-secondary text-foreground border border-border shadow-sm hover:bg-bg-hover",
-    outline: "border border-border bg-transparent shadow-sm hover:bg-bg-hover hover:text-foreground",
+    outline:
+      "border border-border bg-transparent shadow-sm hover:bg-bg-hover hover:text-foreground",
     ghost: "hover:bg-bg-hover hover:text-foreground",
-    destructive: "bg-transparent text-text-secondary border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive",
+    destructive:
+      "bg-transparent text-text-secondary border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive",
   };
 
   const sizes = {
@@ -86,9 +92,15 @@ function Button({
 
   return (
     <button
-      className={cn(baseStyles, variants[variant], sizes[size], loading && "bg-accent-hover", className)}
+      className={cn(
+        baseStyles,
+        variants[variant],
+        sizes[size],
+        loading && "bg-accent-hover",
+        className,
+      )}
       disabled={disabled || loading}
-      {...props}
+      {...properties}
     >
       {loading && <MiniBlocksSpinner size={16} />}
       {loading ? "Loading..." : children}
@@ -99,7 +111,9 @@ function Button({
 // Simple Card component
 function Card({ className = "", children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={`bg-bg-secondary border border-border-subtle rounded-lg overflow-hidden ${className}`}>
+    <div
+      className={`bg-bg-secondary border border-border-subtle rounded-lg overflow-hidden ${className}`}
+    >
       {children}
     </div>
   );
@@ -121,13 +135,13 @@ function Checkbox({
         "flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all",
         checked
           ? "bg-destructive/10 border border-destructive/40"
-          : "bg-destructive/5 border border-destructive/20 hover:bg-destructive/8"
+          : "bg-destructive/5 border border-destructive/20 hover:bg-destructive/8",
       )}
     >
       <div
         className={cn(
           "w-[18px] h-[18px] border rounded flex items-center justify-center transition-all",
-          checked ? "bg-destructive border-destructive" : "border border-border-default"
+          checked ? "bg-destructive border-destructive" : "border border-border-default",
         )}
         onClick={(e) => {
           e.preventDefault();
@@ -157,7 +171,9 @@ export function ApiKeys() {
   const [keyToDelete, setKeyToDelete] = useState<ApiKey | null>(null);
   const [keyToEdit, setKeyToEdit] = useState<ApiKey | null>(null);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
-  const [createdKey, setCreatedKey] = useState<{ id: string; key: string; name: string } | null>(null);
+  const [createdKey, setCreatedKey] = useState<{ id: string; key: string; name: string } | null>(
+    null,
+  );
   const [copied, setCopied] = useState(false);
 
   // Form states
@@ -188,8 +204,11 @@ export function ApiKeys() {
       setDeleteDialogOpen(false);
       setKeyToDelete(null);
       addToast("success", `API key "${keyToDelete.name}" deleted successfully`);
-    } catch (err) {
-      addToast("error", `Failed to delete API key: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } catch (error_) {
+      addToast(
+        "error",
+        `Failed to delete API key: ${error_ instanceof Error ? error_.message : "Unknown error"}`,
+      );
     } finally {
       setDeletingId(null);
     }
@@ -222,11 +241,11 @@ export function ApiKeys() {
       setCreateDialogOpen(false);
       setShowKeyDialogOpen(true);
       addToast("success", `API key "${result.name}" created successfully`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create API key";
+    } catch (error_) {
+      const message = error_ instanceof Error ? error_.message : "Failed to create API key";
       setCreateError(message);
       addToast("error", message);
-      console.error("Failed to create API key:", err);
+      console.error("Failed to create API key:", error_);
     }
   };
 
@@ -253,7 +272,10 @@ export function ApiKeys() {
               Manage your API keys for external access to audio scopes
             </p>
           </div>
-          <Button className="bg-accent hover:bg-accent-hover text-white gap-2" onClick={handleCreateClick}>
+          <Button
+            className="bg-accent hover:bg-accent-hover text-white gap-2"
+            onClick={handleCreateClick}
+          >
             <Plus size={16} />
             Create API Key
           </Button>
@@ -283,7 +305,10 @@ export function ApiKeys() {
             <p className="text-sm text-text-tertiary mb-6 max-w-sm mx-auto">
               Create your first API key to start integrating with external applications
             </p>
-            <Button className="bg-accent hover:bg-accent-hover text-white gap-2" onClick={handleCreateClick}>
+            <Button
+              className="bg-accent hover:bg-accent-hover text-white gap-2"
+              onClick={handleCreateClick}
+            >
               <Plus size={16} />
               Create API Key
             </Button>
@@ -316,7 +341,7 @@ export function ApiKeys() {
             <div className="divide-y divide-border-subtle">
               {apiKeys.map((apiKey) => {
                 const expired = isExpired(apiKey.expiresAt);
-                const status = !apiKey.isValid ? "revoked" : expired ? "expired" : "active";
+                const status = apiKey.isValid ? (expired ? "expired" : "active") : "revoked";
 
                 return (
                   <div
@@ -343,7 +368,11 @@ export function ApiKeys() {
                       <span
                         className={cn(
                           "text-sm",
-                          expired ? "text-destructive" : apiKey.expiresAt ? "text-text-secondary" : "text-text-tertiary"
+                          expired
+                            ? "text-destructive"
+                            : (apiKey.expiresAt
+                              ? "text-text-secondary"
+                              : "text-text-tertiary"),
                         )}
                       >
                         {apiKey.expiresAt ? formatDate(apiKey.expiresAt) : "Never"}
@@ -353,7 +382,13 @@ export function ApiKeys() {
                     {/* Rate Limit */}
                     <div className="hidden md:flex items-center gap-1.5 text-sm font-mono text-text-secondary">
                       <span className="w-3.5 h-3.5">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-full h-full">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="w-full h-full"
+                        >
                           <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
                         </svg>
                       </span>
@@ -367,11 +402,15 @@ export function ApiKeys() {
                           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium",
                           status === "active"
                             ? "bg-bg-primary text-rose-400"
-                            : "bg-bg-primary text-text-tertiary"
+                            : "bg-bg-primary text-text-tertiary",
                         )}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        {status === "active" ? "Active" : status === "expired" ? "Expired" : "Revoked"}
+                        {status === "active"
+                          ? "Active"
+                          : (status === "expired"
+                            ? "Expired"
+                            : "Revoked")}
                       </span>
                     </div>
 
@@ -423,7 +462,7 @@ export function ApiKeys() {
                       "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs",
                       apiKey.isValid
                         ? "bg-rose-400/10 text-rose-400"
-                        : "bg-bg-hover text-text-tertiary"
+                        : "bg-bg-hover text-text-tertiary",
                     )}
                   >
                     <span className="w-1 h-1 rounded-full bg-current" />
@@ -482,7 +521,8 @@ export function ApiKeys() {
               Are you sure you want to delete this API key?
             </h3>
             <p className="text-[13px] text-text-secondary leading-relaxed">
-              This action cannot be undone. Any applications using this key will immediately lose access.
+              This action cannot be undone. Any applications using this key will immediately lose
+              access.
             </p>
           </div>
         </div>
@@ -573,9 +613,7 @@ export function ApiKeys() {
           <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={() => setEditDialogOpen(false)}>
-            Save Changes
-          </Button>
+          <Button onClick={() => setEditDialogOpen(false)}>Save Changes</Button>
         </DialogFooter>
       </Dialog>
 
@@ -620,9 +658,7 @@ export function ApiKeys() {
 
         {/* Expiry */}
         <div className="mb-5">
-          <label className="block text-[13px] font-medium text-foreground mb-2">
-            Expires
-          </label>
+          <label className="block text-[13px] font-medium text-foreground mb-2">Expires</label>
           <select
             value={createExpiry ?? ""}
             onChange={(e) => setCreateExpiry(e.target.value ? Number(e.target.value) : null)}
@@ -651,7 +687,11 @@ export function ApiKeys() {
           <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!createName.trim()} loading={createApiKey.isPending}>
+          <Button
+            onClick={handleCreate}
+            disabled={!createName.trim()}
+            loading={createApiKey.isPending}
+          >
             Create API Key
           </Button>
         </DialogFooter>
@@ -697,7 +737,7 @@ export function ApiKeys() {
                 "flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-md border transition-all",
                 copied
                   ? "bg-success/15 border-success text-success"
-                  : "bg-bg-elevated border-border-default text-text-secondary hover:border-accent hover:text-accent"
+                  : "bg-bg-elevated border-border-default text-text-secondary hover:border-accent hover:text-accent",
               )}
               title="Copy to clipboard"
             >
@@ -723,7 +763,9 @@ export function ApiKeys() {
         <div className="flex gap-3 mb-5">
           <div className="flex-1 bg-bg-primary border border-border-subtle rounded-md p-3 text-center">
             <div className="text-sm font-medium text-foreground mb-0.5">Read</div>
-            <div className="text-[10px] uppercase tracking-wider text-text-tertiary">Permissions</div>
+            <div className="text-[10px] uppercase tracking-wider text-text-tertiary">
+              Permissions
+            </div>
           </div>
           <div className="flex-1 bg-bg-primary border border-border-subtle rounded-md p-3 text-center">
             <div className="text-sm font-medium text-foreground mb-0.5">0</div>

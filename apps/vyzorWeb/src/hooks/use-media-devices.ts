@@ -82,6 +82,7 @@ export function useMediaDevices() {
     selectedDeviceId,
     setSelectedDeviceId,
     permissionState,
+    hasPermission: permissionState === "granted",
     requestPermission,
     error,
     refreshDevices: enumerateDevices,

@@ -50,13 +50,13 @@ export function useApiKey(id: string | undefined) {
   return useQuery<ApiKey | undefined>({
     queryKey: ["apiKey", id],
     queryFn: async () => {
-      if (!id) return undefined;
+      if (!id) return;
       const result = await graphqlClient.query({
         query: GET_API_KEY,
         variables: { id },
         fetchPolicy: "cache-first",
       });
-      if (!result.data.apiKey) return undefined;
+      if (!result.data.apiKey) return;
       return transformApiKey(result.data.apiKey);
     },
     enabled: Boolean(id),

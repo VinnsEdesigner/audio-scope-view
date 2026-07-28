@@ -11,6 +11,7 @@ pub mod database_migrations;
 pub mod repo_sqlite_scope;
 pub mod repo_sqlite_settings;
 pub mod repo_sqlite_waveform;
+pub mod repo_sqlite_recording;
 
 pub use audio_capture_mock::MockAudioCapture;
 #[cfg(feature = "real-audio")]
@@ -21,3 +22,4 @@ pub use database_connection::DatabaseConnection;
 pub use repo_sqlite_scope::SqliteScopeRepository;
 pub use repo_sqlite_settings::SqliteSettingsRepository;
 pub use repo_sqlite_waveform::SqliteWaveformRepository;
+pub use repo_sqlite_recording::SqliteRecordingRepository;

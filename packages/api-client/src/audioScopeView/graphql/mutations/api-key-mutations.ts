@@ -3,7 +3,7 @@ import { gql } from "@apollo/client";
 /**
  * Mutation: Create a new API key
  * The key is only returned once at creation time - after that it cannot be retrieved
- * 
+ *
  * Input: name (required), expires_in_hours (optional), rate_limit_per_minute (optional)
  * Returns: id, key (the actual key - only shown once!), name
  */
@@ -19,7 +19,7 @@ export const CREATE_API_KEY = gql`
 
 /**
  * Mutation: Update an API key (name, rate limit, expiry)
- * 
+ *
  * Input: name (optional), rate_limit_per_minute (optional), expires_in_hours (optional)
  * Returns: Boolean (success)
  */
@@ -31,7 +31,7 @@ export const UPDATE_API_KEY = gql`
 
 /**
  * Mutation: Delete/Revoke an API key
- * 
+ *
  * Returns: Boolean (success)
  */
 export const DELETE_API_KEY = gql`

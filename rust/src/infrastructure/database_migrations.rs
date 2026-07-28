@@ -28,6 +28,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "create_waveforms",
         sql: include_str!("../../migrations/003_create_waveforms.sql"),
     },
+    Migration {
+        version: 4,
+        name: "create_recordings",
+        sql: include_str!("../../migrations/004_create_recordings.sql"),
+    },
 ];
 
 /// Run all pending migrations

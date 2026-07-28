@@ -14,10 +14,10 @@ export interface UseAudioContextOptions {
 
 export function useAudioContext(options: UseAudioContextOptions = {}) {
   const { latencyHint = "interactive" } = options;
-  
+
   // Read sampleRate from audio store (settings)
   const { sampleRate } = useAudioStore();
-  
+
   const [state, setState] = useState<AudioContextState>({
     audioContext: undefined,
     isRunning: false,
@@ -32,7 +32,7 @@ export function useAudioContext(options: UseAudioContextOptions = {}) {
     }
 
     // Use sampleRate from audio store, fallback to 48000 if not set
-    const actualSampleRate = sampleRate || 48000;
+    const actualSampleRate = sampleRate || 48_000;
     const context = new AudioContext({ sampleRate: actualSampleRate, latencyHint });
     audioContextReference.current = context;
 

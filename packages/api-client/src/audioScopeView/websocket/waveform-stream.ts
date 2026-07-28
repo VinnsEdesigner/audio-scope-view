@@ -37,7 +37,10 @@ export class WaveformStreamClient {
     // Use config's websocket endpoint if available, otherwise build from location
     if (config.websocketEndpoint) {
       // If it's an absolute URL, use it directly
-      if (config.websocketEndpoint.startsWith("ws://") || config.websocketEndpoint.startsWith("wss://")) {
+      if (
+        config.websocketEndpoint.startsWith("ws://") ||
+        config.websocketEndpoint.startsWith("wss://")
+      ) {
         return config.websocketEndpoint;
       }
       // Otherwise, it's a relative path - build from location

@@ -3,10 +3,12 @@ import { Suspense, lazy } from "react";
 import { Root } from "./root";
 
 // Lazy load route components for code splitting
-const Dashboard = lazy(() => import("./routes/_index").then((m) => ({ default: m.Dashboard })));
+const Home = lazy(() => import("./routes/home").then((m) => ({ default: m.Home })));
 const Settings = lazy(() => import("./routes/settings").then((m) => ({ default: m.Settings })));
 const ApiKeys = lazy(() => import("./routes/api-keys").then((m) => ({ default: m.ApiKeys })));
-const CreateApiKey = lazy(() => import("./routes/api-keys.create").then((m) => ({ default: m.CreateApiKey })));
+const CreateApiKey = lazy(() =>
+  import("./routes/api-keys.create").then((m) => ({ default: m.CreateApiKey })),
+);
 
 // Loading fallback component
 function PageLoader() {
@@ -36,11 +38,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: <Home />,
       },
       {
         path: "/scopes",
-        element: <Dashboard />,
+        element: <Home />,
       },
       {
         path: "/settings",
@@ -64,7 +66,7 @@ export const router = createBrowserRouter([
 export const routeTree = {
   path: "/",
   children: [
-    { path: "/", element: "Dashboard" },
+    { path: "/", element: "Home" },
     { path: "/scopes", element: "Scopes" },
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },

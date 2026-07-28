@@ -1,0 +1,427 @@
+//! SQLite implementation of RecordingRepository
+
+#![allow(dead_code)]
+
+use chrono::{DateTime, Utc};
+use serde_json;
+use sqlx::{FromRow, SqlitePool};
+
+use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, TimeRange};
+use crate::domain::error_domain::DomainError;
+
+/// Raw recording row from database
+#[derive(FromRow)]
+struct RecordingRow {
+    id: String,
+    scope_id: String,
+    name: String,
+    samples: String, // JSON array
+    sample_count: i32,
+    timestamp: String,
+    duration_ms: f64,
+    size_bytes: i64,
+    peak_amplitude: f32,
+    rms_amplitude: f32,
+    is_pinned: bool,
+    created_at: String,
+}
+
+impl TryFrom<RecordingRow> for Recording {
+    type Error = DomainError;
+
+    fn try_from(row: RecordingRow) -> Result<Self, Self::Error> {
+        let samples: Vec<f32> = serde_json::from_str(&row.samples)
+            .map_err(|e| DomainError::corruption(format!("Invalid samples JSON: {}", e)))?;
+        let timestamp = parse_datetime(&row.timestamp)?;
+
+        Ok(Recording {
+            id: row.id,
+            scope_id: row.scope_id,
+            name: row.name,
+            samples,
+            timestamp,
+            duration_ms: row.duration_ms,
+            size_bytes: row.size_bytes as u64,
+            peak_amplitude: row.peak_amplitude,
+            rms_amplitude: row.rms_amplitude,
+            is_pinned: row.is_pinned,
+        })
+    }
+}
+
+impl From<Recording> for RecordingRow {
+    fn from(recording: Recording) -> Self {
+        let samples_json = serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
+        Self {
+            id: recording.id,
+            scope_id: recording.scope_id,
+            name: recording.name,
+            samples: samples_json,
+            sample_count: recording.samples.len() as i32,
+            timestamp: recording.timestamp.to_rfc3339(),
+            duration_ms: recording.duration_ms,
+            size_bytes: recording.size_bytes as i64,
+            peak_amplitude: recording.peak_amplitude,
+            rms_amplitude: recording.rms_amplitude,
+            is_pinned: recording.is_pinned,
+            created_at: Utc::now().to_rfc3339(),
+        }
+    }
+}
+
+/// Parse datetime from SQLite string
+fn parse_datetime(s: &str) -> Result<DateTime<Utc>, DomainError> {
+    DateTime::parse_from_rfc3339(s)
+        .map(|dt| dt.with_timezone(&Utc))
+        .or_else(|_| {
+            chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").map(|ndt| ndt.and_utc())
+        })
+        .map_err(|_| DomainError::corruption(format!("Invalid datetime format: {}", s)))
+}
+
+/// SQLite implementation of RecordingRepository
+pub struct SqliteRecordingRepository {
+    pool: SqlitePool,
+}
+
+impl SqliteRecordingRepository {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn save(&self, recording: &Recording) -> Result<(), DomainError> {
+        let row = RecordingRow::from(recording.clone());
+        sqlx::query(
+            r#"
+            INSERT INTO recordings (
+                id, scope_id, name, samples, sample_count, timestamp, 
+                duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
+                is_pinned, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(&row.id)
+        .bind(&row.scope_id)
+        .bind(&row.name)
+        .bind(&row.samples)
+        .bind(row.sample_count)
+        .bind(&row.timestamp)
+        .bind(row.duration_ms)
+        .bind(row.size_bytes)
+        .bind(row.peak_amplitude)
+        .bind(row.rms_amplitude)
+        .bind(row.is_pinned)
+        .bind(&row.created_at)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(())
+    }
+
+    pub async fn find_by_id(&self, id: &str) -> Result<Option<Recording>, DomainError> {
+        let row: Option<RecordingRow> = sqlx::query_as("SELECT * FROM recordings WHERE id = ?")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+
+        match row {
+            Some(r) => Ok(Some(r.try_into()?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn list(
+        &self,
+        filter: Option<&RecordingFilter>,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<RecordingSummary>, u64, bool), DomainError> {
+        let mut query = String::from("SELECT * FROM recordings WHERE 1=1");
+        let mut count_query = String::from("SELECT COUNT(*) FROM recordings WHERE 1=1");
+        let mut params: Vec<String> = vec![];
+
+        if let Some(f) = filter {
+            if let Some(ref scope_id) = f.scope_id {
+                query.push_str(" AND scope_id = ?");
+                count_query.push_str(" AND scope_id = ?");
+                params.push(scope_id.clone());
+            }
+            if let Some(pinned) = f.is_pinned {
+                query.push_str(" AND is_pinned = ?");
+                count_query.push_str(" AND is_pinned = ?");
+                params.push(if pinned { "1" } else { "0" }.to_string());
+            }
+            if let Some(ref search) = f.search_query {
+                query.push_str(" AND name LIKE ?");
+                count_query.push_str(" AND name LIKE ?");
+                params.push(format!("%{}%", search));
+            }
+            if let Some(time_range) = f.time_range {
+                let (start, _) = get_time_range_bounds(time_range);
+                if let Some(start) = start {
+                    query.push_str(" AND timestamp >= ?");
+                    count_query.push_str(" AND timestamp >= ?");
+                    params.push(start.to_rfc3339());
+                }
+            }
+        }
+
+        query.push_str(" ORDER BY is_pinned DESC, timestamp DESC LIMIT ? OFFSET ?");
+
+        // Build and execute count query
+        let mut count_builder = sqlx::QueryBuilder::new(&count_query);
+        for param in &params {
+            count_builder.push_bind(param);
+        }
+        let (total,): (i64,) = count_builder
+            .build_query_as()
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+
+        // Build and execute main query
+        let mut builder = sqlx::QueryBuilder::new(&query);
+        for param in &params {
+            builder.push_bind(param);
+        }
+        builder.push_bind(limit as i32);
+        builder.push_bind(offset as i32);
+
+        let rows: Vec<RecordingRow> = builder
+            .build_query_as()
+            .fetch_all(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+
+        let recordings: Vec<RecordingSummary> = rows
+            .into_iter()
+            .map(|r| -> Result<RecordingSummary, DomainError> {
+                Ok(RecordingSummary {
+                    id: r.id,
+                    scope_id: r.scope_id,
+                    name: r.name,
+                    timestamp: parse_datetime(&r.timestamp)?,
+                    duration_ms: r.duration_ms,
+                    size_bytes: r.size_bytes as u64,
+                    peak_amplitude: r.peak_amplitude,
+                    rms_amplitude: r.rms_amplitude,
+                    is_pinned: r.is_pinned,
+                })
+            })
+            .collect::<Result<Vec<RecordingSummary>, DomainError>>()?;
+
+        let has_more = (offset as u64 + limit as u64) < total as u64;
+        Ok((recordings, total as u64, has_more))
+    }
+
+    pub async fn get_recent(&self, limit: u32) -> Result<Vec<RecordingSummary>, DomainError> {
+        let rows: Vec<RecordingRow> = sqlx::query_as(
+            r#"
+            SELECT * FROM recordings 
+            ORDER BY is_pinned DESC, timestamp DESC 
+            LIMIT ?
+            "#,
+        )
+        .bind(limit as i32)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        rows.into_iter()
+            .map(|r| {
+                Ok(RecordingSummary {
+                    id: r.id,
+                    scope_id: r.scope_id,
+                    name: r.name,
+                    timestamp: parse_datetime(&r.timestamp)?,
+                    duration_ms: r.duration_ms,
+                    size_bytes: r.size_bytes as u64,
+                    peak_amplitude: r.peak_amplitude,
+                    rms_amplitude: r.rms_amplitude,
+                    is_pinned: r.is_pinned,
+                })
+            })
+            .collect()
+    }
+
+    pub async fn update(&self, recording: &Recording) -> Result<(), DomainError> {
+        sqlx::query(
+            r#"
+            UPDATE recordings SET 
+                name = ?, is_pinned = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(&recording.name)
+        .bind(recording.is_pinned)
+        .bind(&recording.id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(())
+    }
+
+    pub async fn delete(&self, id: &str) -> Result<(), DomainError> {
+        sqlx::query("DELETE FROM recordings WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+        Ok(())
+    }
+
+    pub async fn delete_many(&self, ids: &[String]) -> Result<u64, DomainError> {
+        if ids.is_empty() {
+            return Ok(0);
+        }
+        let placeholders: Vec<&str> = ids.iter().map(|_| "?").collect();
+        let query = format!("DELETE FROM recordings WHERE id IN ({})", placeholders.join(","));
+        let mut builder = sqlx::QueryBuilder::new(&query);
+        for id in ids {
+            builder.push_bind(id);
+        }
+        let result = builder.build().execute(&self.pool).await.map_err(map_sqlx_err)?;
+        Ok(result.rows_affected())
+    }
+
+    pub async fn count_by_scope(&self, scope_id: &str) -> Result<u64, DomainError> {
+        let row: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM recordings WHERE scope_id = ?"
+        )
+        .bind(scope_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(row.0 as u64)
+    }
+
+    pub async fn get_stats(
+        &self,
+        scope_id: Option<&str>,
+        time_range: Option<TimeRange>,
+    ) -> Result<RecordingStats, DomainError> {
+        let mut query = String::from(
+            r#"
+            SELECT 
+                COUNT(*) as total_recordings,
+                COALESCE(SUM(size_bytes), 0) as total_size_bytes,
+                COALESCE(SUM(duration_ms), 0) as total_duration_ms,
+                COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count
+            FROM recordings WHERE 1=1
+            "#,
+        );
+        let mut params: Vec<String> = vec![];
+
+        if let Some(sid) = scope_id {
+            query.push_str(" AND scope_id = ?");
+            params.push(sid.to_string());
+        }
+        if let Some(range) = time_range {
+            let (start, _) = get_time_range_bounds(range);
+            if let Some(start) = start {
+                query.push_str(" AND timestamp >= ?");
+                params.push(start.to_rfc3339());
+            }
+        }
+
+        let mut builder = sqlx::QueryBuilder::new(&query);
+        for param in &params {
+            builder.push_bind(param);
+        }
+
+        let row: Option<RecordingStatsRow> = builder
+            .build_query_as()
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+
+        Ok(row.map(|r| {
+            let count = r.total_recordings as f64;
+            RecordingStats {
+                total_recordings: r.total_recordings as u64,
+                total_size_bytes: r.total_size_bytes as u64,
+                total_duration_ms: r.total_duration_ms,
+                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
+                average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
+                pinned_count: r.pinned_count as u64,
+            }
+        }).unwrap_or_default())
+    }
+
+    pub async fn get_recording_count_by_range(
+        &self,
+        scope_id: Option<&str>,
+    ) -> Result<RecordingStats, DomainError> {
+        let mut query = String::from(
+            r#"
+            SELECT 
+                COUNT(*) as total_recordings,
+                COALESCE(SUM(size_bytes), 0) as total_size_bytes,
+                COALESCE(SUM(duration_ms), 0) as total_duration_ms
+            FROM recordings WHERE 1=1
+            "#,
+        );
+        let mut params: Vec<String> = vec![];
+
+        if let Some(sid) = scope_id {
+            query.push_str(" AND scope_id = ?");
+            params.push(sid.to_string());
+        }
+
+        let mut builder = sqlx::QueryBuilder::new(&query);
+        for param in &params {
+            builder.push_bind(param);
+        }
+
+        let row: Option<RecordingStatsRow> = builder
+            .build_query_as()
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
+
+        Ok(row.map(|r| {
+            let count = r.total_recordings as f64;
+            RecordingStats {
+                total_recordings: r.total_recordings as u64,
+                total_size_bytes: r.total_size_bytes as u64,
+                total_duration_ms: r.total_duration_ms,
+                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
+                average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
+                pinned_count: r.pinned_count as u64,
+            }
+        }).unwrap_or_default())
+    }
+}
+
+#[derive(Debug, FromRow)]
+struct RecordingStatsRow {
+    total_recordings: i64,
+    total_size_bytes: f64,
+    total_duration_ms: f64,
+    pinned_count: i64,
+}
+
+fn get_time_range_bounds(range: TimeRange) -> (Option<DateTime<Utc>>, Option<DateTime<Utc>>) {
+    let now = Utc::now();
+    match range {
+        TimeRange::Today => {
+            let start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
+            (Some(start), None)
+        }
+        TimeRange::LastWeek => {
+            let start = now - chrono::Duration::days(7);
+            (Some(start), None)
+        }
+        TimeRange::LastMonth => {
+            let start = now - chrono::Duration::days(30);
+            (Some(start), None)
+        }
+        TimeRange::AllTime => (None, None),
+    }
+}
+
+fn map_sqlx_err(e: sqlx::Error) -> DomainError {
+    DomainError::repository(format!("Database error: {}", e))
+}

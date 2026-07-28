@@ -29,7 +29,7 @@ export async function render(url: string): Promise<{ html: string; status: numbe
             <Root />
           </StaticRouter>
         </QueryClientProvider>
-      </TamaguiProvider>
+      </TamaguiProvider>,
     );
     return { html, status: 200 };
   } catch (error) {

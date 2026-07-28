@@ -14,10 +14,10 @@ export interface ApiKeyState {
   isDeleteConfirmOpen: boolean;
 
   // Selected key for editing/deletion
-  selectedKeyId: string | null;
+  selectedKeyId: string | undefined;
 
   // Create key result (the full key is only shown once at creation)
-  newlyCreatedKey: CreatedApiKey | null;
+  newlyCreatedKey: CreatedApiKey | undefined;
 
   // Loading/error states for UI feedback
   isCreating: boolean;
@@ -35,7 +35,7 @@ export interface ApiKeyActions {
   closeDeleteConfirm: () => void;
 
   // Created key management
-  setNewlyCreatedKey: (key: CreatedApiKey | null) => void;
+  setNewlyCreatedKey: (key: CreatedApiKey | undefined) => void;
   clearNewlyCreatedKey: () => void;
 
   // Loading state actions
@@ -53,8 +53,8 @@ const initialState: ApiKeyState = {
   isCreateModalOpen: false,
   isEditModalOpen: false,
   isDeleteConfirmOpen: false,
-  selectedKeyId: null,
-  newlyCreatedKey: null,
+  selectedKeyId: undefined,
+  newlyCreatedKey: undefined,
   isCreating: false,
   isUpdating: false,
   isDeleting: false,
@@ -67,13 +67,13 @@ export const useApiKeyStore = create<ApiKeyStore>()((set) => ({
   openCreateModal: () => set({ isCreateModalOpen: true }),
   closeCreateModal: () => set({ isCreateModalOpen: false }),
   openEditModal: (keyId) => set({ isEditModalOpen: true, selectedKeyId: keyId }),
-  closeEditModal: () => set({ isEditModalOpen: false, selectedKeyId: null }),
+  closeEditModal: () => set({ isEditModalOpen: false, selectedKeyId: undefined }),
   openDeleteConfirm: (keyId) => set({ isDeleteConfirmOpen: true, selectedKeyId: keyId }),
-  closeDeleteConfirm: () => set({ isDeleteConfirmOpen: false, selectedKeyId: null }),
+  closeDeleteConfirm: () => set({ isDeleteConfirmOpen: false, selectedKeyId: undefined }),
 
   // Created key management
   setNewlyCreatedKey: (key) => set({ newlyCreatedKey: key }),
-  clearNewlyCreatedKey: () => set({ newlyCreatedKey: null }),
+  clearNewlyCreatedKey: () => set({ newlyCreatedKey: undefined }),
 
   // Loading state actions
   setIsCreating: (isCreating) => set({ isCreating }),

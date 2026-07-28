@@ -71,7 +71,7 @@ const initialState: AudioState = {
   devices: [],
   selectedDeviceId: undefined,
   permissionState: "prompt",
-  sampleRate: 48000,
+  sampleRate: 48_000,
   bufferSize: 512,
   audioContext: undefined,
 };

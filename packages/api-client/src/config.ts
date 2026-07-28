@@ -6,8 +6,8 @@
 /**
  * Get environment variable for browser or server context
  */
-function getEnv(key: string, fallback: string): string {
-  if (typeof window !== "undefined") {
+function getEnvironment(key: string, fallback: string): string {
+  if (globalThis.window !== undefined) {
     return (import.meta.env[key] as string | undefined) ?? fallback;
   }
   return process.env[key] ?? fallback;
@@ -66,8 +66,8 @@ const ENV_MAPPINGS: Record<keyof ClientConfig, string> = {
 function loadConfig(): ClientConfig {
   const config: ClientConfig = { ...DEFAULT_CONFIG };
 
-  for (const [key, envVar] of Object.entries(ENV_MAPPINGS)) {
-    const value = getEnv(envVar, DEFAULT_CONFIG[key as keyof ClientConfig]);
+  for (const [key, environmentVariable] of Object.entries(ENV_MAPPINGS)) {
+    const value = getEnvironment(environmentVariable, DEFAULT_CONFIG[key as keyof ClientConfig]);
     if (value) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (config as any)[key] = value;

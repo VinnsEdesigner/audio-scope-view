@@ -11,8 +11,8 @@ export interface ApiKey {
   id: string;
   name: string;
   createdAt: number; // Unix timestamp (seconds since epoch)
-  expiresAt: number | null; // Unix timestamp or null if never expires
-  lastUsedAt: number | null; // Unix timestamp or null if never used
+  expiresAt: number | undefined; // Unix timestamp or undefined if never expires
+  lastUsedAt: number | undefined; // Unix timestamp or undefined if never used
   rateLimitPerMinute: number;
   isValid: boolean;
 }
@@ -31,10 +31,10 @@ export interface CreatedApiKey {
  */
 export interface ApiKeyVerifyResult {
   valid: boolean;
-  keyId: string | null;
-  name: string | null;
-  rateLimitPerMinute: number | null;
-  expiresAt: number | null;
+  keyId: string | undefined;
+  name: string | undefined;
+  rateLimitPerMinute: number | undefined;
+  expiresAt: number | undefined;
 }
 
 /**

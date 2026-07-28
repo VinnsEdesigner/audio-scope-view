@@ -11,6 +11,7 @@ use super::{
         BatchCaptureMutationRoot, 
         ExportQueryRoot, SimulationMutationRoot, SimulationQueryRoot
     },
+    schema_recording::{RecordingMutation, RecordingQuery},
     schema_scope::{ScopeMutation, ScopeQuery},
     schema_settings::{SettingsMutation, SettingsQuery},
     schema_subscription::SubscriptionRoot,
@@ -24,6 +25,7 @@ pub struct Query(
     SettingsQuery, 
     DashboardQuery, 
     WaveformQuery, 
+    RecordingQuery,
     ExportQueryRoot, 
     SimulationQueryRoot,
     ApiKeyQueryRoot,
@@ -37,6 +39,7 @@ pub struct Mutation(
     ScopeMutation, 
     SettingsMutation, 
     WaveformMutation, 
+    RecordingMutation,
     BatchCaptureMutationRoot, 
     SimulationMutationRoot,
     ApiKeyMutationRoot,

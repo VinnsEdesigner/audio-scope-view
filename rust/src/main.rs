@@ -21,11 +21,12 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use api::auth::ApiKeyStore;
 use api::server_graphql::{AppState, start_server};
 use api::schema_subscription::{AudioStats, SpectrumData, WaveformData};
-use application::{BatchCaptureService, DashboardService, ScopeService, SettingsService, SimulationService, WaveformService};
+use application::{BatchCaptureService, DashboardService, RecordingService, ScopeService, SettingsService, SimulationService, WaveformService};
 use infrastructure::{
     config_loader::AppConfig, database_connection::DatabaseConnection,
     database_migrations::run_migrations, repo_sqlite_scope::SqliteScopeRepository,
     repo_sqlite_settings::SqliteSettingsRepository, repo_sqlite_waveform::SqliteWaveformRepository,
+    repo_sqlite_recording::SqliteRecordingRepository,
     AudioStreamEvent, AudioStreamManager,
 };
 
@@ -163,6 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scope_repo = Arc::new(SqliteScopeRepository::new(db.pool().clone()));
     let settings_repo = Arc::new(SqliteSettingsRepository::new(db.pool().clone()));
     let waveform_repo = Arc::new(SqliteWaveformRepository::new(db.pool().clone()));
+    let recording_repo = Arc::new(SqliteRecordingRepository::new(db.pool().clone()));
 
     // Create services
     let scope_service = Arc::new(ScopeService::new(scope_repo.clone()));
@@ -174,7 +176,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         scope_repo.clone(),
         waveform_repo.clone(),
     ));
-    let waveform_service = Arc::new(WaveformService::new(waveform_repo));
+    let waveform_service = Arc::new(WaveformService::new(waveform_repo.clone()));
+    let recording_service = Arc::new(RecordingService::new(
+        recording_repo,
+        scope_repo.clone(),
+    ));
     let simulation_service = Arc::new(SimulationService::new(waveform_service.clone()));
     let batch_capture_service = Arc::new(BatchCaptureService::new(waveform_service.clone()));
 
@@ -224,6 +230,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         settings_service,
         dashboard_service,
         waveform_service,
+        recording_service,
         simulation_service,
         batch_capture_service,
         bootstrap_key,

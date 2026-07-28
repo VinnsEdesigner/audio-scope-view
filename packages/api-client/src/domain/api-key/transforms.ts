@@ -22,9 +22,9 @@ export function transformApiKey(server: ApiKeyInfoServer): ApiKey {
   return {
     id: server.id,
     name: server.name,
-    createdAt: parseInt(server.created_at, 10),
-    expiresAt: server.expires_at ? parseInt(server.expires_at, 10) : null,
-    lastUsedAt: server.last_used_at ? parseInt(server.last_used_at, 10) : null,
+    createdAt: Number.parseInt(server.created_at, 10),
+    expiresAt: server.expires_at ? Number.parseInt(server.expires_at, 10) : undefined,
+    lastUsedAt: server.last_used_at ? Number.parseInt(server.last_used_at, 10) : undefined,
     rateLimitPerMinute: server.rate_limit_per_minute,
     isValid: server.is_valid,
   };
@@ -47,27 +47,25 @@ export function transformCreatedApiKey(server: ApiKeyCreatedServer): CreatedApiK
 export function transformApiKeyVerifyResult(server: ApiKeyVerifyResultServer): ApiKeyVerifyResult {
   return {
     valid: server.valid,
-    keyId: server.key_id,
-    name: server.name,
-    rateLimitPerMinute: server.rate_limit_per_minute,
-    expiresAt: server.expires_at ? parseInt(server.expires_at, 10) : null,
+    keyId: server.key_id ?? undefined,
+    name: server.name ?? undefined,
+    rateLimitPerMinute: server.rate_limit_per_minute ?? undefined,
+    expiresAt: server.expires_at ? Number.parseInt(server.expires_at, 10) : undefined,
   };
 }
 
 /**
  * Transform domain CreateApiKeyInput to server GraphQL input format
  */
-export function transformCreateApiKeyInput(
-  input: CreateApiKeyInput,
-): Record<string, unknown> {
+export function transformCreateApiKeyInput(input: CreateApiKeyInput): Record<string, unknown> {
   const result: Record<string, unknown> = {
     name: input.name,
   };
-  
+
   if (input.expiresInHours !== undefined) {
     result.expires_in_hours = input.expiresInHours;
   }
-  
+
   if (input.rateLimitPerMinute !== undefined) {
     result.rate_limit_per_minute = input.rateLimitPerMinute;
   }
@@ -78,13 +76,12 @@ export function transformCreateApiKeyInput(
 /**
  * Transform domain UpdateApiKeyInput to server GraphQL input format
  */
-export function transformUpdateApiKeyInput(
-  input: UpdateApiKeyInput,
-): Record<string, unknown> {
+export function transformUpdateApiKeyInput(input: UpdateApiKeyInput): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   if (input.name !== undefined) result.name = input.name;
-  if (input.rateLimitPerMinute !== undefined) result.rate_limit_per_minute = input.rateLimitPerMinute;
+  if (input.rateLimitPerMinute !== undefined)
+    result.rate_limit_per_minute = input.rateLimitPerMinute;
   if (input.expiresInHours !== undefined) result.expires_in_hours = input.expiresInHours;
 
   return result;
@@ -93,15 +90,15 @@ export function transformUpdateApiKeyInput(
 /**
  * Convert Unix timestamp to Date
  */
-export function timestampToDate(timestamp: number | null): Date | null {
-  if (timestamp === null) return null;
+export function timestampToDate(timestamp: number | null): Date | undefined {
+  if (timestamp === null) return undefined;
   return new Date(timestamp * 1000); // Convert seconds to milliseconds
 }
 
 /**
  * Convert Date to Unix timestamp
  */
-export function dateToTimestamp(date: Date | null): number | null {
-  if (date === null) return null;
+export function dateToTimestamp(date: Date | null): number | undefined {
+  if (date === null) return undefined;
   return Math.floor(date.getTime() / 1000); // Convert milliseconds to seconds
 }

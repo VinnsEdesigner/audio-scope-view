@@ -5,13 +5,7 @@
 
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  Menu,
-  Settings,
-  Key,
-  LayoutDashboard,
-  Radio,
-} from "lucide-react";
+import { Menu, Settings, Key, Home, Radio } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -20,17 +14,17 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/", icon: <LayoutDashboard size={18} /> },
+  { label: "Home", href: "/", icon: <Home size={18} /> },
   { label: "Scopes", href: "/scopes", icon: <Radio size={18} /> },
   { label: "API Keys", href: "/api-keys", icon: <Key size={18} /> },
   { label: "Settings", href: "/settings", icon: <Settings size={18} /> },
 ];
 
-interface TopNavProps {
+interface TopNavProperties {
   className?: string;
 }
 
-export function TopNav({ className = "" }: TopNavProps): React.ReactElement {
+export function TopNav({ className = "" }: TopNavProperties): React.ReactElement {
   const location = useLocation();
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -74,7 +68,7 @@ export function TopNav({ className = "" }: TopNavProps): React.ReactElement {
             className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsOpen(false)}
           />
-          
+
           {/* Menu Panel - positioned below floating button */}
           <div className="fixed top-20 left-4 z-50 animate-in slide-in-from-top duration-200">
             <nav className="bg-bg-secondary/95 backdrop-blur-md border border-border-subtle rounded-xl shadow-xl overflow-hidden min-w-[200px]">
@@ -97,9 +91,7 @@ export function TopNav({ className = "" }: TopNavProps): React.ReactElement {
                         {item.icon}
                       </span>
                       {item.label}
-                      {isActive && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent" />
-                      )}
+                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent" />}
                     </Link>
                   );
                 })}

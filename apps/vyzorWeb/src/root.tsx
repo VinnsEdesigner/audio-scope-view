@@ -48,20 +48,23 @@ function AppShell() {
 function ThemedApp() {
   const theme = useUIStore((state) => state.theme);
   const waveformColor = useUIStore((state) => state.waveformColor);
-  
+
   // Determine actual theme based on setting
-  const resolvedTheme = theme === "system" 
-    ? (globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    : theme;
+  const resolvedTheme =
+    theme === "system"
+      ? globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
 
   // Apply theme to document html element for CSS variable access
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", resolvedTheme);
+    document.documentElement.dataset.theme = resolvedTheme;
   }, [resolvedTheme]);
 
   // Apply waveform color to document html element for CSS variable access
   useEffect(() => {
-    document.documentElement.setAttribute("data-waveform-color", waveformColor);
+    document.documentElement.dataset.waveformColor = waveformColor;
   }, [waveformColor]);
 
   return (

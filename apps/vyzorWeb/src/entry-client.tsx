@@ -22,7 +22,7 @@ if (serverRenderedHtml && serverRenderedHtml.length > 0) {
     rootElement,
     <StrictMode>
       <RouterProvider router={router} />
-    </StrictMode>
+    </StrictMode>,
   );
 } else {
   // SPA mode - no server rendering, do full client render
@@ -30,6 +30,6 @@ if (serverRenderedHtml && serverRenderedHtml.length > 0) {
   root.render(
     <StrictMode>
       <RouterProvider router={router} />
-    </StrictMode>
+    </StrictMode>,
   );
 }

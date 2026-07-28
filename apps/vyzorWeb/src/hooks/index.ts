@@ -13,6 +13,26 @@ export {
   useCaptureWaveform,
 } from "./use-scopes";
 
+// Recording hooks
+export {
+  useRecordings,
+  useRecentRecordings,
+  useRecordingStats,
+  useRenameRecording,
+  usePinRecording,
+  useDeleteRecording,
+  usePinRecordings,
+  useDeleteRecordings,
+} from "./use-recordings";
+
+// Scope with status hooks
+export {
+  useScopesWithStatus,
+  useActiveScopesWithStatus,
+  useScopeStatusCounts,
+  useHomePageScopes,
+} from "./use-scopes-with-status";
+
 // Settings hooks
 export { useSettings, useUpdateSettings } from "./use-settings";
 

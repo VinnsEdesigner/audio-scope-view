@@ -24,7 +24,7 @@ use crate::api::auth::{ApiKey, ApiKeyStore};
 use crate::api::context_extractor::GraphqlContext;
 use crate::api::schema_root::build_schema;
 use crate::api::websocket::handler::WsState;
-use crate::application::{BatchCaptureService, DashboardService, ScopeService, SettingsService, SimulationService, WaveformService};
+use crate::application::{BatchCaptureService, DashboardService, RecordingService, ScopeService, SettingsService, SimulationService, WaveformService};
 use crate::shared::constants::{GRAPHQL_PATH, GRAPHQL_PLAYGROUND_PATH, HEALTH_PATH};
 
 /// Authentication info passed to resolvers
@@ -44,6 +44,7 @@ pub struct AppState {
     pub ws_state: Arc<WsState>,
     pub simulation_service: Arc<SimulationService>,
     pub batch_capture_service: Arc<BatchCaptureService>,
+    pub recording_service: Arc<RecordingService>,
     pub bootstrap_key_hash: [u8; 32],  // SHA256 hash of the bootstrap key (used for verification)
     pub key_store: Arc<ApiKeyStore>,    // User-created API keys
 }
@@ -100,6 +101,7 @@ impl AppState {
         settings_service: Arc<SettingsService>,
         dashboard_service: Arc<DashboardService>,
         waveform_service: Arc<WaveformService>,
+        recording_service: Arc<RecordingService>,
         simulation_service: Arc<SimulationService>,
         batch_capture_service: Arc<BatchCaptureService>,
         bootstrap_key: String,
@@ -110,6 +112,7 @@ impl AppState {
             settings_service,
             dashboard_service,
             waveform_service,
+            recording_service.clone(),
         );
 
         let schema = build_schema();
@@ -124,6 +127,7 @@ impl AppState {
             ws_state,
             simulation_service,
             batch_capture_service,
+            recording_service,
             bootstrap_key_hash,
             key_store,
         }

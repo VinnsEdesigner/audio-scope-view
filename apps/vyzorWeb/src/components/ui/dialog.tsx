@@ -6,7 +6,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 
-interface DialogProps {
+interface DialogProperties {
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -20,7 +20,7 @@ export function Dialog({
   title,
   children,
   maxWidth = "max-w-md",
-}: DialogProps): React.ReactElement | null {
+}: DialogProperties): React.ReactElement | null {
   // Close on Escape key
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -34,11 +34,7 @@ export function Dialog({
 
   // Prevent body scroll when dialog is open
   React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -49,10 +45,7 @@ export function Dialog({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
       {/* Overlay backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
       {/* Dialog box */}
       <div
@@ -63,9 +56,7 @@ export function Dialog({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-border-subtle">
-          <h2 className="text-lg font-semibold text-foreground tracking-tight">
-            {title}
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground tracking-tight">{title}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-hover transition-all"
