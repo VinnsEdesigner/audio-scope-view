@@ -27,7 +27,9 @@ export function DialogMicRecording({
   const { devices, selectedDeviceId, setSelectedDeviceId, hasPermission, requestPermission } = useMediaDevices();
   const [isListening, setIsListening] = React.useState(false);
   const [volumeLevel, setVolumeLevel] = React.useState(0);
+  const [peakLevel, setPeakLevel] = React.useState(0);
   const [waveformData, setWaveformData] = React.useState<number[]>([]);
+  const [sampleRate, setSampleRate] = React.useState(44100);
   
   const audioContextRef = React.useRef<AudioContext | null>(null);
   const analyserRef = React.useRef<AnalyserNode | null>(null);
@@ -36,31 +38,24 @@ export function DialogMicRecording({
   // Get input devices
   const inputDevices = devices.filter(d => d.kind === "audioinput");
 
-  // Format bytes to human readable
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  };
-
   // Start audio capture
   const startCapture = React.useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-          sampleRate: 48000,
         },
       });
 
-      const audioContext = new AudioContext({ sampleRate: 48000 });
+      const audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       
       analyser.fftSize = 2048;
       source.connect(analyser);
+      
+      // Set actual sample rate
+      setSampleRate(audioContext.sampleRate);
       
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
@@ -69,7 +64,6 @@ export function DialogMicRecording({
       // Animation loop for waveform and volume
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
-      const waveformArray: number[] = [];
 
       const updateVisualization = () => {
         if (analyserRef.current) {
@@ -77,12 +71,16 @@ export function DialogMicRecording({
           
           // Calculate RMS volume
           let sum = 0;
+          let peak = 0;
           for (let i = 0; i < bufferLength; i++) {
             const value = (dataArray[i] - 128) / 128;
             sum += value * value;
+            const absValue = Math.abs(value);
+            if (absValue > peak) peak = absValue;
           }
           const rms = Math.sqrt(sum / bufferLength);
-          setVolumeLevel(Math.min(rms * 3, 1)); // Scale for better visualization
+          setVolumeLevel(Math.min(rms * 3, 1));
+          setPeakLevel(Math.min(peak, 1));
 
           // Get waveform for display
           const newWaveform: number[] = [];
@@ -115,6 +113,7 @@ export function DialogMicRecording({
     analyserRef.current = null;
     setIsListening(false);
     setVolumeLevel(0);
+    setPeakLevel(0);
     setWaveformData([]);
   }, []);
 
@@ -262,7 +261,9 @@ export function DialogMicRecording({
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center p-3 bg-bg-elevated rounded-lg">
-            <div className="text-base font-semibold font-mono text-foreground">48.0</div>
+            <div className="text-base font-semibold font-mono text-foreground">
+              {(sampleRate / 1000).toFixed(1)}
+            </div>
             <div className="text-[10px] text-text-tertiary uppercase tracking-wider">kHz</div>
           </div>
           <div className="text-center p-3 bg-bg-elevated rounded-lg">
@@ -273,7 +274,7 @@ export function DialogMicRecording({
           </div>
           <div className="text-center p-3 bg-bg-elevated rounded-lg">
             <div className="text-base font-semibold font-mono text-foreground">
-              {(volumeLevel * 1.5).toFixed(2)}
+              {peakLevel.toFixed(2)}
             </div>
             <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Peak</div>
           </div>
