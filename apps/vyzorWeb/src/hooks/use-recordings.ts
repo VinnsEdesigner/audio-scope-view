@@ -74,6 +74,7 @@ export function useRecentRecordings(limit = 5) {
       });
       return result.data.recentRecordings;
     },
+    select: (data) => data.recordings, // Extract recordings array
     staleTime: 30 * 1000,
   });
 }
