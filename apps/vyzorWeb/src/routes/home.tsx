@@ -74,6 +74,8 @@ export function Home(): React.ReactElement {
   const [timeFilter, setTimeFilter] = React.useState<"all" | "today" | "week" | "month">("all");
   const [showAllScopes, setShowAllScopes] = React.useState(false);
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
+  const [renamingId, setRenamingId] = React.useState<string | null>(null);
+  const [renameValue, setRenameValue] = React.useState("");
 
   // Queries
   const { data: stats, isLoading: statsLoading } = useRecordingStats();
@@ -83,6 +85,7 @@ export function Home(): React.ReactElement {
   // Mutations
   const pinRecording = usePinRecording();
   const deleteRecording = useDeleteRecording();
+  const renameRecording = useRenameRecording();
 
   // Filter recordings based on time
   const filteredRecordings = React.useMemo(() => {
@@ -129,6 +132,32 @@ export function Home(): React.ReactElement {
         type: "success",
       });
     }
+  };
+
+  // Handle rename start
+  const handleRenameStart = (id: string, currentName: string) => {
+    setRenamingId(id);
+    setRenameValue(currentName);
+    setOpenMenuId(null);
+  };
+
+  // Handle rename submit
+  const handleRenameSubmit = (id: string) => {
+    if (renameValue.trim()) {
+      renameRecording.mutate({ id, name: renameValue.trim() });
+      showToast({
+        message: "Recording renamed",
+        type: "success",
+      });
+    }
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  // Handle rename cancel
+  const handleRenameCancel = () => {
+    setRenamingId(null);
+    setRenameValue("");
   };
 
   // Close menu when clicking outside
@@ -340,15 +369,34 @@ export function Home(): React.ReactElement {
                         <FileAudio size={16} className="text-text-secondary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-foreground truncate">{recording.name}</div>
-                          {recording.is_pinned && (
-                            <Pin size={12} className="text-accent flex-shrink-0" />
-                          )}
-                        </div>
-                        <div className="text-xs text-text-tertiary mt-0.5">
-                          {recording.scope_name} • {formatRelativeTime(recording.timestamp)} • {formatBytes(recording.size_bytes)}
-                        </div>
+                        {renamingId === recording.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameSubmit(recording.id);
+                                if (e.key === "Escape") handleRenameCancel();
+                              }}
+                              onBlur={() => handleRenameSubmit(recording.id)}
+                              autoFocus
+                              className="flex-1 px-2 py-1 text-sm bg-bg-primary border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-medium text-foreground truncate">{recording.name}</div>
+                              {recording.is_pinned && (
+                                <Pin size={12} className="text-accent flex-shrink-0" />
+                              )}
+                            </div>
+                            <div className="text-xs text-text-tertiary mt-0.5">
+                              {recording.scope_name} • {formatRelativeTime(recording.timestamp)} • {formatBytes(recording.size_bytes)}
+                            </div>
+                          </>
+                        )}
                       </div>
                       <div className="relative">
                         <button
@@ -375,8 +423,7 @@ export function Home(): React.ReactElement {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // TODO: Implement rename
-                                setOpenMenuId(null);
+                                handleRenameStart(recording.id, recording.name);
                               }}
                               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
                             >
