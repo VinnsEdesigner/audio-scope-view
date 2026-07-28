@@ -49,6 +49,9 @@ export { useAudioContext } from "./use-audio-context";
 // Media devices hooks
 export { useMediaDevices } from "./use-media-devices";
 
+// Audio analyzer hook
+export { useAudioAnalyzer } from "./use-audio-analyzer";
+
 // Audio settings hooks
 export { useAudioSettings } from "./use-audio-settings";
 

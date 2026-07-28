@@ -1,28 +1,38 @@
 /**
- * useTheme - Hook to get current theme (light/dark)
- * Uses Tamagui's built-in theme or falls back to CSS media query
+ * useTheme - Hook to get current resolved theme (light/dark)
+ * Uses CSS custom properties and media query for theme detection
  */
 
-import { useTheme as useTamaguiTheme } from "tamagui";
+import { useSyncExternalStore } from "react";
 
 export function useTheme(): "light" | "dark" {
-  const tamaguiTheme = useTamaguiTheme();
+  // Subscribe to both CSS media query changes and data-theme attribute changes
+  const subscribe = (callback: () => void) => {
+    // Listen to CSS media query changes
+    const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener("change", callback);
 
-  // Check if dark theme is active via Tamagui
-  if (tamaguiTheme && "name" in tamaguiTheme) {
-    const themeName = String(tamaguiTheme.name);
-    if (themeName === "dark") {
-      return "dark";
-    }
-    if (themeName === "light") {
-      return "light";
-    }
-  }
+    // Listen to data-theme attribute changes on document
+    const observer = new MutationObserver(callback);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
 
-  // Fallback to CSS media query
-  if (globalThis.window !== undefined) {
+    return () => {
+      mediaQuery.removeEventListener("change", callback);
+      observer.disconnect();
+    };
+  };
+
+  const getSnapshot = () => {
+    // Priority: data-theme attribute > system preference
+    const theme = document.documentElement.getAttribute("data-theme");
+    if (theme === "dark" || theme === "light") {
+      return theme;
+    }
     return globalThis.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
+  };
 
-  return "light";
+  return useSyncExternalStore(subscribe, getSnapshot, () => "light");
 }

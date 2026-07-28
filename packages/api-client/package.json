@@ -8,6 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./domain": "./src/domain/index.ts",
+    "./domain/_shared": "./src/domain/_shared/index.ts",
+    "./domain/_shared/audio-utils": "./src/domain/_shared/audio-utils.ts",
     "./domain/api-key": "./src/domain/api-key/index.ts",
     "./domain/api-key/transforms": "./src/domain/api-key/transforms.ts",
     "./domain/scope": "./src/domain/scope/index.ts",
