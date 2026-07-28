@@ -1,10 +1,12 @@
 import * as React from "react";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { useUIStore } from "@/store";
 
 interface DisplaySettingsDialogProperties {
   isOpen: boolean;
   onClose: () => void;
+  onCancel?: () => void;
+  onSave?: () => void;
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
@@ -46,7 +48,7 @@ function SettingRow({ label, description, checked, onChange }: SettingRowPropert
   );
 }
 
-export function DisplaySettingsDialog({ isOpen, onClose }: DisplaySettingsDialogProperties) {
+export function DisplaySettingsDialog({ isOpen, onClose, onCancel, onSave }: DisplaySettingsDialogProperties) {
   const { showGrid, setShowGrid, glow, setGlow, autoScale, setAutoScale, invert, setInvert } =
     useUIStore();
 
@@ -76,49 +78,69 @@ export function DisplaySettingsDialog({ isOpen, onClose }: DisplaySettingsDialog
     onClose();
   };
 
+  // When used inside AnchoredDialog, use prop callbacks; otherwise use internal handlers
+  const handleSaveFinal = onSave || handleSave;
+  const handleCancelFinal = onCancel || handleCancel;
+
   return (
-    <Dialog isOpen={isOpen} onClose={handleCancel} title="Display Settings" maxWidth="max-w-sm">
-      <div className="space-y-0">
-        <SettingRow
-          label="Grid"
-          description="Show grid lines on canvas"
-          checked={localShowGrid}
-          onChange={setLocalShowGrid}
-        />
-        <SettingRow
-          label="Glow"
-          description="Add glow effect to waveform"
-          checked={localGlow}
-          onChange={setLocalGlow}
-        />
-        <SettingRow
-          label="Auto-scale"
-          description="Automatically fit trace to screen"
-          checked={localAutoScale}
-          onChange={setLocalAutoScale}
-        />
-        <SettingRow
-          label="Invert"
-          description="Invert waveform vertically"
-          checked={localInvert}
-          onChange={setLocalInvert}
-        />
+    <div className="w-[320px]">
+      {/* Header - matches AnchoredDialog style */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-base font-semibold text-foreground tracking-tight">Display Settings</h2>
+        <button
+          onClick={handleCancelFinal}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-hover transition-all"
+          aria-label="Close dialog"
+        >
+          <X size={16} />
+        </button>
       </div>
 
-      <DialogFooter className="mt-6">
-        <button
-          onClick={handleCancel}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-bg-elevated shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
-        >
-          Save Changes
-        </button>
-      </DialogFooter>
-    </Dialog>
+      {/* Content */}
+      <div className="p-4">
+        <div className="space-y-0">
+          <SettingRow
+            label="Grid"
+            description="Show grid lines on canvas"
+            checked={localShowGrid}
+            onChange={setLocalShowGrid}
+          />
+          <SettingRow
+            label="Glow"
+            description="Add glow effect to waveform"
+            checked={localGlow}
+            onChange={setLocalGlow}
+          />
+          <SettingRow
+            label="Auto-scale"
+            description="Automatically fit trace to screen"
+            checked={localAutoScale}
+            onChange={setLocalAutoScale}
+          />
+          <SettingRow
+            label="Invert"
+            description="Invert waveform vertically"
+            checked={localInvert}
+            onChange={setLocalInvert}
+          />
+        </div>
+
+        {/* Footer buttons */}
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={handleCancelFinal}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveFinal}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-bg-elevated shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

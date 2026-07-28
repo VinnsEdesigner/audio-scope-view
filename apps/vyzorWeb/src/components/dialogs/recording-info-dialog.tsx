@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Calendar, Clock, Mic } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
+import { Calendar, Clock, Mic, X } from "lucide-react";
 import { useRecording } from "@/hooks";
 import {
   formatBytes,
@@ -87,51 +86,66 @@ export function RecordingInfoDialog({
   }, [recording?.sampleCount, recording?.durationMs]);
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="Recording Info" maxWidth="max-w-sm">
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-text-secondary">Loading...</div>
-        </div>
-      ) : recording ? (
-        <div className="space-y-4">
-          {/* Recording Name */}
-          <div className="p-4 bg-bg-elevated rounded-lg">
-            <div className="text-xs text-text-tertiary uppercase tracking-wide mb-2">
-              Recording Name
-            </div>
-            <div className="text-base font-medium text-foreground">{recording.name}</div>
-            <div className="inline-flex items-center gap-2 px-2 py-1 bg-bg-active rounded-full text-xs text-text-secondary mt-3">
-              <Mic size={12} />
-              <span>{recording.scopeName}</span>
-            </div>
-          </div>
+    <div className="w-[320px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-base font-semibold text-foreground tracking-tight">Recording Info</h2>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-hover transition-all"
+          aria-label="Close dialog"
+        >
+          <X size={16} />
+        </button>
+      </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            <StatCard value={formattedDuration} label="Duration" />
-            <StatCard value={formattedSize} label="Size" />
-            <StatCard value={formattedSampleRate} label="Sample Rate" />
+      {/* Content */}
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-text-secondary">Loading...</div>
           </div>
+        ) : recording ? (
+          <div className="space-y-4">
+            {/* Recording Name */}
+            <div className="p-4 bg-bg-elevated rounded-lg">
+              <div className="text-xs text-text-tertiary uppercase tracking-wide mb-2">
+                Recording Name
+              </div>
+              <div className="text-base font-medium text-foreground">{recording.name}</div>
+              <div className="inline-flex items-center gap-2 px-2 py-1 bg-bg-active rounded-full text-xs text-text-secondary mt-3">
+                <Mic size={12} />
+                <span>{recording.scopeName}</span>
+              </div>
+            </div>
 
-          {/* Info Rows */}
-          <div className="space-y-2">
-            <InfoRow
-              icon={<Calendar size={16} className="opacity-70" />}
-              label="Created"
-              value={formattedDate}
-            />
-            <InfoRow
-              icon={<Clock size={16} className="opacity-70" />}
-              label="Time"
-              value={formattedTime}
-            />
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard value={formattedDuration} label="Duration" />
+              <StatCard value={formattedSize} label="Size" />
+              <StatCard value={formattedSampleRate} label="Sample Rate" />
+            </div>
+
+            {/* Info Rows */}
+            <div className="space-y-2">
+              <InfoRow
+                icon={<Calendar size={16} className="opacity-70" />}
+                label="Created"
+                value={formattedDate}
+              />
+              <InfoRow
+                icon={<Clock size={16} className="opacity-70" />}
+                label="Time"
+                value={formattedTime}
+              />
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-sm text-text-secondary">Recording not found</div>
-        </div>
-      )}
-    </Dialog>
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-text-secondary">Recording not found</div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

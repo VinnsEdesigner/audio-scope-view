@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Dialog } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { useAudioAnalyzer } from "@/hooks";
 import {
   calculatePeak,
@@ -82,8 +82,21 @@ export function MeasurementsDialog({ isOpen, onClose }: MeasurementsDialogProper
   }, [samples, sampleRate, isCapturing]);
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="Measurements" maxWidth="max-w-sm">
-      <div className="space-y-4">
+    <div className="w-[320px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-base font-semibold text-foreground tracking-tight">Measurements</h2>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-hover transition-all"
+          aria-label="Close dialog"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 space-y-4">
         <p className="text-xs text-text-tertiary leading-relaxed">
           Live readouts from the DSP engine. Values follow calibration and update several times per
           second.
@@ -104,6 +117,6 @@ export function MeasurementsDialog({ isOpen, onClose }: MeasurementsDialogProper
           />
         </div>
       </div>
-    </Dialog>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { useUIStore } from "@/store";
 import type { ScopeMode } from "@/store";
 
@@ -100,65 +100,81 @@ export function TriggerSettingsDialog({
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={handleCancel} title="Trigger Settings" maxWidth="max-w-sm">
-      {isPlayback && (
-        <div className="mb-4 p-3 bg-bg-elevated rounded-lg border border-border">
-          <p className="text-sm text-text-secondary">
-            Trigger settings are not available in playback mode.
-          </p>
-        </div>
-      )}
-      <div className={`space-y-6 ${isPlayback ? "opacity-50 pointer-events-none" : ""}`}>
-        {/* Edge Selection */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-3">Edge</label>
-          <div className="flex gap-2">
-            {EDGE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setLocalEdge(option.value)}
-                disabled={isPlayback}
-                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors border ${
-                  localEdge === option.value
-                    ? "bg-bg-elevated text-foreground border-border"
-                    : "bg-transparent text-text-secondary border-border hover:bg-bg-hover hover:text-foreground"
-                } ${isPlayback ? "cursor-not-allowed" : ""}`}
-              >
-                {option.label}
-              </button>
-            ))}
+    <div className="w-[320px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-base font-semibold text-foreground tracking-tight">Trigger Settings</h2>
+        <button
+          onClick={handleCancel}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-hover transition-all"
+          aria-label="Close dialog"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        {isPlayback && (
+          <div className="mb-4 p-3 bg-bg-elevated rounded-lg border border-border">
+            <p className="text-sm text-text-secondary">
+              Trigger settings are not available in playback mode.
+            </p>
+          </div>
+        )}
+        <div className={`space-y-6 ${isPlayback ? "opacity-50 pointer-events-none" : ""}`}>
+          {/* Edge Selection */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-3">Edge</label>
+            <div className="flex gap-2">
+              {EDGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setLocalEdge(option.value)}
+                  disabled={isPlayback}
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors border ${
+                    localEdge === option.value
+                      ? "bg-bg-elevated text-foreground border-border"
+                      : "bg-transparent text-text-secondary border-border hover:bg-bg-hover hover:text-foreground"
+                  } ${isPlayback ? "cursor-not-allowed" : ""}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Level Slider */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-3">Level</label>
+            <Slider
+              value={localLevel}
+              onChange={setLocalLevel}
+              min={-1}
+              max={1}
+              step={0.01}
+              formatValue={formatVoltage}
+              disabled={isPlayback}
+            />
           </div>
         </div>
 
-        {/* Level Slider */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-3">Level</label>
-          <Slider
-            value={localLevel}
-            onChange={setLocalLevel}
-            min={-1}
-            max={1}
-            step={0.01}
-            formatValue={formatVoltage}
-            disabled={isPlayback}
-          />
+        {/* Footer buttons */}
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={handleCancel}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-bg-elevated shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
+          >
+            Save Changes
+          </button>
         </div>
       </div>
-
-      <DialogFooter className="mt-6">
-        <button
-          onClick={handleCancel}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-bg-elevated shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
-        >
-          Save Changes
-        </button>
-      </DialogFooter>
-    </Dialog>
+    </div>
   );
 }

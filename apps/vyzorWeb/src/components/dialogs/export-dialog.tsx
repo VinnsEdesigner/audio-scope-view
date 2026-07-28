@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Camera, FileText } from "lucide-react";
-import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { Camera, FileText, X } from "lucide-react";
 import { useExport } from "@/hooks/use-export";
 import type { ScopeMode } from "@/store";
 
@@ -42,9 +41,22 @@ export function ExportDialog({
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="Export" maxWidth="sm:max-w-md">
-      <div className="space-y-4 py-4">
-        <p className="text-sm text-text-tertiary mb-4">{getDescription()}</p>
+    <div className="w-[320px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-base font-semibold text-foreground tracking-tight">Export</h2>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-hover transition-all"
+          aria-label="Close dialog"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 space-y-4">
+        <p className="text-sm text-text-tertiary">{getDescription()}</p>
 
         <button
           type="button"
@@ -77,16 +89,6 @@ export function ExportDialog({
           </div>
         </button>
       </div>
-
-      <DialogFooter>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
-        >
-          Cancel
-        </button>
-      </DialogFooter>
-    </Dialog>
+    </div>
   );
 }
