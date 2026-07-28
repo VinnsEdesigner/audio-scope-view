@@ -19,8 +19,7 @@ import {
   Save,
 } from "lucide-react";
 import { useToast } from "../ui/toast";
-import { useMediaDevices, useStartRecording, useAudioAnalyzer, useUIStore } from "../../hooks";
-import { formatDuration } from "@audio-scope-view/api-client/domain/_shared/audio-utils";
+import { useMediaDevices, useStartRecording, useAudioAnalyzer, useUIStore, formatDuration } from "../../hooks";
 
 // Waveform color mapping (matches settings page)
 const WAVEFORM_COLORS: Record<string, string> = {

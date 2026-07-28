@@ -4,10 +4,10 @@
  */
 
 import * as React from "react";
-import { 
-  Mic, 
-  Radio, 
-  Settings as SettingsIcon, 
+import {
+  Mic,
+  Radio,
+  Settings as SettingsIcon,
   Clock,
   Pin,
   PinOff,
@@ -17,57 +17,27 @@ import {
   ChevronDown,
   ChevronUp,
   FileAudio,
-  Circle
+  Circle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { 
-  useRecordingStats, 
+import {
+  useRecordingStats,
   useRecentRecordings,
   useHomePageScopes,
   usePinRecording,
   useDeleteRecording,
+  useRenameRecording,
+  formatBytes,
+  formatDurationLong,
+  formatTimestampRelative,
 } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
 import { useToast } from "../components/ui/toast";
 
-// Format bytes to human readable
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-};
-
-// Format duration
-const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${ms.toFixed(0)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  const minutes = Math.floor(ms / 60000);
-  const seconds = ((ms % 60000) / 1000).toFixed(0);
-  return `${minutes}m ${seconds}s`;
-};
-
-// Format relative time
-const formatRelativeTime = (timestamp: string): string => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-};
-
 export function Home(): React.ReactElement {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+
   // State
   const [isMicDialogOpen, setIsMicDialogOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"recordings" | "scopes">("recordings");
@@ -90,21 +60,25 @@ export function Home(): React.ReactElement {
   // Filter recordings based on time
   const filteredRecordings = React.useMemo(() => {
     if (!recentData?.recordings) return [];
-    
+
     const now = new Date();
-    return recentData.recordings.filter(rec => {
+    return recentData.recordings.filter((rec) => {
       const recDate = new Date(rec.timestamp);
       switch (timeFilter) {
-        case "today":
+        case "today": {
           return recDate.toDateString() === now.toDateString();
-        case "week":
+        }
+        case "week": {
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           return recDate >= weekAgo;
-        case "month":
+        }
+        case "month": {
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           return recDate >= monthAgo;
-        default:
+        }
+        default: {
           return true;
+        }
       }
     });
   }, [recentData, timeFilter]);
@@ -162,7 +136,7 @@ export function Home(): React.ReactElement {
       setRenameValue("");
       return;
     }
-    
+
     renameRecording.mutate(
       { id, name: trimmedName },
       {
@@ -178,7 +152,7 @@ export function Home(): React.ReactElement {
             type: "error",
           });
         },
-      }
+      },
     );
     setRenamingId(null);
     setRenameValue("");
@@ -206,7 +180,9 @@ export function Home(): React.ReactElement {
             <Radio size={20} className="text-text-secondary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">Audio Scope View</h1>
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">
+              Audio Scope View
+            </h1>
             <p className="text-sm text-text-tertiary">Signal analysis dashboard</p>
           </div>
         </div>
@@ -235,28 +211,36 @@ export function Home(): React.ReactElement {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-base font-semibold text-foreground">Overview</h2>
-              <p className="text-sm text-text-tertiary mt-0.5">Your recording activity at a glance</p>
+              <p className="text-sm text-text-tertiary mt-0.5">
+                Your recording activity at a glance
+              </p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-4 bg-bg-elevated rounded-lg">
               <div className="text-2xl font-bold font-mono text-foreground">
                 {statsLoading ? "-" : (stats?.total_recordings ?? 0)}
               </div>
-              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">Recordings</div>
+              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">
+                Recordings
+              </div>
             </div>
             <div className="text-center p-4 bg-bg-elevated rounded-lg">
               <div className="text-2xl font-bold font-mono text-foreground">
                 {statsLoading ? "-" : formatBytes(stats?.total_size_bytes ?? 0)}
               </div>
-              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">Storage</div>
+              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">
+                Storage
+              </div>
             </div>
             <div className="text-center p-4 bg-bg-elevated rounded-lg">
               <div className="text-2xl font-bold font-mono text-foreground">
                 {statsLoading ? "-" : counts.liveCount}
               </div>
-              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">Live Scopes</div>
+              <div className="text-xs text-text-tertiary uppercase tracking-wider mt-1">
+                Live Scopes
+              </div>
             </div>
           </div>
         </div>
@@ -285,7 +269,7 @@ export function Home(): React.ReactElement {
               <div className="text-center py-8 text-text-tertiary">
                 <Radio size={24} className="mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No scopes created yet</p>
-                <button 
+                <button
                   onClick={() => navigate("/scopes")}
                   className="text-accent hover:underline text-sm mt-1"
                 >
@@ -299,11 +283,15 @@ export function Home(): React.ReactElement {
                   className="flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover cursor-pointer transition-colors"
                   onClick={() => navigate(`/scopes/${scope.id}`)}
                 >
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    scope.status === "live" ? "bg-success" :
-                    scope.status === "paused" ? "bg-text-primary" :
-                    "bg-destructive"
-                  }`} />
+                  <span
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      scope.status === "live"
+                        ? "bg-success"
+                        : (scope.status === "paused"
+                          ? "bg-text-primary"
+                          : "bg-destructive")
+                    }`}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">{scope.name}</div>
                     <div className="text-xs text-text-tertiary mt-0.5">
@@ -321,9 +309,13 @@ export function Home(): React.ReactElement {
               className="flex items-center justify-center gap-1.5 w-full py-2.5 mt-3 text-sm text-text-secondary hover:text-foreground transition-colors"
             >
               {showAllScopes ? (
-                <>Show less <ChevronUp size={14} /></>
+                <>
+                  Show less <ChevronUp size={14} />
+                </>
               ) : (
-                <>View {scopes.length - 3} more scopes <ChevronDown size={14} /></>
+                <>
+                  View {scopes.length - 3} more scopes <ChevronDown size={14} />
+                </>
               )}
             </button>
           )}
@@ -369,9 +361,13 @@ export function Home(): React.ReactElement {
                         : "text-text-tertiary hover:text-text-secondary"
                     }`}
                   >
-                    {filter === "all" ? "All" :
-                     filter === "today" ? "Today" :
-                     filter === "week" ? "7 days" : "30 days"}
+                    {filter === "all"
+                      ? "All"
+                      : filter === "today"
+                        ? "Today"
+                        : filter === "week"
+                          ? "7 days"
+                          : "30 days"}
                   </button>
                 ))}
               </div>
@@ -417,13 +413,16 @@ export function Home(): React.ReactElement {
                         ) : (
                           <>
                             <div className="flex items-center gap-2">
-                              <div className="text-sm font-medium text-foreground truncate">{recording.name}</div>
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {recording.name}
+                              </div>
                               {recording.is_pinned && (
                                 <Pin size={12} className="text-accent flex-shrink-0" />
                               )}
                             </div>
                             <div className="text-xs text-text-tertiary mt-0.5">
-                              {recording.scope_name} • {formatRelativeTime(recording.timestamp)} • {formatBytes(recording.size_bytes)}
+                              {recording.scope_name} • {formatTimestampRelative(recording.timestamp)} •{" "}
+                              {formatBytes(recording.size_bytes)}
                             </div>
                           </>
                         )}
@@ -496,17 +495,24 @@ export function Home(): React.ReactElement {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-foreground truncate">{scope.name}</div>
-                          <span className={`px-1.5 py-0.5 text-[10px] font-medium uppercase rounded ${
-                            scope.status === "live" ? "bg-success/10 text-success" :
-                            scope.status === "paused" ? "bg-text-tertiary/10 text-text-tertiary" :
-                            "bg-destructive/10 text-destructive"
-                          }`}>
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {scope.name}
+                          </div>
+                          <span
+                            className={`px-1.5 py-0.5 text-[10px] font-medium uppercase rounded ${
+                              scope.status === "live"
+                                ? "bg-success/10 text-success"
+                                : (scope.status === "paused"
+                                  ? "bg-text-tertiary/10 text-text-tertiary"
+                                  : "bg-destructive/10 text-destructive")
+                            }`}
+                          >
                             {scope.status}
                           </span>
                         </div>
                         <div className="text-xs text-text-tertiary mt-0.5">
-                          {scope.recording_count} recordings • Created {formatRelativeTime(scope.created_at)}
+                          {scope.recording_count} recordings • Created{" "}
+                          {formatTimestampRelative(scope.created_at)}
                         </div>
                       </div>
                     </div>
@@ -519,10 +525,7 @@ export function Home(): React.ReactElement {
       </main>
 
       {/* Test Microphone Dialog */}
-      <DialogMicRecording
-        isOpen={isMicDialogOpen}
-        onClose={() => setIsMicDialogOpen(false)}
-      />
+      <DialogMicRecording isOpen={isMicDialogOpen} onClose={() => setIsMicDialogOpen(false)} />
     </div>
   );
 }

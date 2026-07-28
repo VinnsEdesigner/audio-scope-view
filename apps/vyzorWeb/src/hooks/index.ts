@@ -52,6 +52,14 @@ export { useMediaDevices } from "./use-media-devices";
 // Audio analyzer hook
 export { useAudioAnalyzer } from "./use-audio-analyzer";
 
+// Formatting utilities (from api-client)
+export {
+  formatBytes,
+  formatDuration,
+  formatDurationLong,
+  formatTimestampRelative,
+} from "@audio-scope-view/api-client/domain/_shared/audio-utils";
+
 // Audio settings hooks
 export { useAudioSettings } from "./use-audio-settings";
 
