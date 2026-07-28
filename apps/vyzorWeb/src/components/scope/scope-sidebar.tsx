@@ -113,7 +113,7 @@ export function ScopeSidebar({
             onClick={(e) => handleViewChange(item, e)}
             className={`flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-md transition-all ${
               activeView === item.id
-                ? "bg-bg-elevated text-foreground"
+                ? "bg-bg-active text-foreground font-medium"
                 : "bg-transparent text-foreground/70 hover:bg-bg-elevated hover:text-foreground"
             }`}
           >
@@ -130,7 +130,7 @@ export function ScopeSidebar({
             onClick={() => setShowMoreMenu(!showMoreMenu)}
             className={`w-full flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-md transition-all ${
               showMoreMenu
-                ? "bg-bg-elevated text-foreground"
+                ? "bg-bg-active text-foreground font-medium"
                 : "bg-transparent text-foreground/70 hover:bg-bg-elevated hover:text-foreground"
             }`}
           >
