@@ -1,10 +1,8 @@
 import * as React from "react";
-import { X } from "lucide-react";
 
 export interface AnchoredDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
   children: React.ReactNode;
   anchorRect?: DOMRect | null;
   maxWidth?: string;
@@ -14,14 +12,14 @@ export interface AnchoredDialogProps {
 export function AnchoredDialog({
   isOpen,
   onClose,
-  title,
   children,
   anchorRect,
-  maxWidth = "max-w-md",
+  maxWidth = "max-w-sm",
   className = "",
 }: AnchoredDialogProps): React.ReactElement | undefined {
   const dialogRef = React.useRef<HTMLDivElement>(null);
-  const [position, setPosition] = React.useState({ top: 0, left: 0 });
+  const pointerRef = React.useRef<HTMLDivElement>(null);
+  const [isPositioned, setIsPositioned] = React.useState(false);
 
   // Handle escape key
   React.useEffect(() => {
@@ -34,37 +32,55 @@ export function AnchoredDialog({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  // Calculate position based on anchor
+  // Reset positioned state when dialog closes
   React.useEffect(() => {
-    if (!isOpen || !anchorRect) return;
+    if (!isOpen) {
+      setIsPositioned(false);
+    }
+  }, [isOpen]);
 
+  // Apply position and pointer directly to DOM elements
+  React.useEffect(() => {
+    if (!isOpen || !anchorRect || !dialogRef.current) return;
+
+    const dialog = dialogRef.current;
+    const pointer = pointerRef.current;
     const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
+    
+    // Capture values for RAF closure
+    const buttonTop = anchorRect.top;
+    const buttonHeight = anchorRect.height;
 
-    // Sidebar is 72px wide, so dialog should be at x = 72 (right edge of sidebar)
-    const sidebarWidth = 72;
-    const gap = 12; // Gap between sidebar and dialog
-    const pointerSize = 10; // Size of the pointer triangle
-    const estimatedDialogHeight = 300; // Estimated height before render
-    const estimatedDialogWidth = 320; // Estimated width
+    // Fixed X: right of sidebar (72px) + gap (8px) + pointer (12px) = 92px
+    const left = 92;
+    
+    // Get dialog height after first render
+    requestAnimationFrame(() => {
+      if (!dialog) return;
+      const dialogRect = dialog.getBoundingClientRect();
+      
+      // Vertical center on anchor button
+      let top = buttonTop + buttonHeight / 2 - dialogRect.height / 2;
 
-    let top = anchorRect.top + anchorRect.height / 2 - estimatedDialogHeight / 2;
-    let left = sidebarWidth + gap + pointerSize;
+      // Clamp to viewport
+      if (top < 16) top = 16;
+      if (top + dialogRect.height > viewportHeight - 16) {
+        top = viewportHeight - dialogRect.height - 16;
+      }
 
-    // Clamp to viewport bounds
-    if (top < 16) {
-      top = 16;
-    }
-    if (top + estimatedDialogHeight > viewportHeight - 16) {
-      top = viewportHeight - estimatedDialogHeight - 16;
-    }
-
-    // If dialog would go off the right edge, position to the left of the anchor
-    if (left + estimatedDialogWidth > viewportWidth - 16) {
-      left = anchorRect.left - estimatedDialogWidth - gap - pointerSize;
-    }
-
-    setPosition({ top, left });
+      // Apply dialog position
+      dialog.style.left = `${left}px`;
+      dialog.style.top = `${top}px`;
+      
+      // Position pointer relative to dialog - center on button
+      if (pointer) {
+        const buttonCenter = buttonTop + buttonHeight / 2;
+        const pointerTop = buttonCenter - top - 10;
+        pointer.style.top = `${pointerTop}px`;
+      }
+      
+      setIsPositioned(true);
+    });
   }, [isOpen, anchorRect]);
 
   if (!isOpen) return undefined;
@@ -74,32 +90,31 @@ export function AnchoredDialog({
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose} />
 
-      {/* Dialog positioned near anchor */}
+      {/* Dialog - hidden until positioned */}
       <div
         ref={dialogRef}
         className={`absolute pointer-events-auto ${maxWidth} ${className}`}
-        style={{
-          top: position.top,
-          left: position.left,
+        style={{ 
+          left: '92px', 
+          top: '100px',
+          opacity: isPositioned ? 1 : 0,
+          transition: 'opacity 0.1s ease-out',
         }}
       >
-        {/* Pointer triangle pointing to the anchor */}
-        {anchorRect && position.left > 0 && (
-          <div
-            className="absolute w-0 h-0 pointer-events-none"
-            style={{
-              // Position the pointer at the vertical center of the anchor button
-              top: anchorRect.top + anchorRect.height / 2 - 10,
-              left: -20,
-              borderTop: "10px solid transparent",
-              borderBottom: "10px solid transparent",
-              borderRight: "20px solid hsl(var(--bg-secondary))",
-              filter: "drop-shadow(-2px 0 2px rgba(0,0,0,0.1))",
-            }}
-          />
-        )}
+        {/* Pointer triangle - positioned via ref in useEffect */}
+        <div
+          ref={pointerRef}
+          className="absolute w-0 h-0 pointer-events-none"
+          style={{
+            left: -12,
+            borderTop: '10px solid transparent',
+            borderBottom: '10px solid transparent',
+            borderRight: '12px solid hsl(var(--bg-secondary))',
+            filter: 'drop-shadow(-1px 0 1px rgba(0,0,0,0.15))',
+          }}
+        />
 
-        {/* Dialog content - just wraps children, no header since child dialogs have their own */}
+        {/* Dialog content */}
         <div className="bg-bg-secondary border border-border-subtle rounded-xl shadow-2xl overflow-hidden">
           {children}
         </div>
@@ -111,16 +126,6 @@ export function AnchoredDialog({
 // Hook to track anchor element ref
 export function useAnchoredDialog() {
   const [anchorRect, setAnchorRect] = React.useState<DOMRect | null>(null);
-  const anchorRef = React.useRef<HTMLElement | null>(null);
-
-  const openAtElement = React.useCallback((element: HTMLElement | null) => {
-    if (element) {
-      const rect = element.getBoundingClientRect();
-      setAnchorRect(rect);
-    } else {
-      setAnchorRect(null);
-    }
-  }, []);
 
   const openAtCurrentTarget = React.useCallback((event: React.MouseEvent) => {
     const target = event.currentTarget as HTMLElement;
@@ -134,8 +139,6 @@ export function useAnchoredDialog() {
 
   return {
     anchorRect,
-    anchorRef,
-    openAtElement,
     openAtCurrentTarget,
     close,
   };
