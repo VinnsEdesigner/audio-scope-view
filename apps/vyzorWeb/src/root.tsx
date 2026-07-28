@@ -8,86 +8,83 @@ import { TopNav } from "./components/layout/top-nav";
 import { ToastProvider } from "./components/ui/toast";
 
 const queryClient = new QueryClient({
- defaultOptions: {
- queries: {
- staleTime: 60 * 1000,
- retry: 1,
- },
- },
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      retry: 1,
+    },
+  },
 });
 
 const seoData = {
- "@context": "https://schema.org",
- "@type": "WebApplication",
- name: "Audio Scope View",
- description:
- "Turn your phone's ADC / microphone line into an oscilloscope probe with live HTML5 canvas traces.",
- url: "https://your-domain.com",
- applicationCategory: "DeveloperTool",
- operatingSystem: "Web Browser",
- offers: {
- "@type": "Offer",
- price: "0",
- priceCurrency: "USD",
- },
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Audio Scope View",
+  description:
+    "Turn your phone's ADC / microphone line into an oscilloscope probe with live HTML5 canvas traces.",
+  url: "https://your-domain.com",
+  applicationCategory: "DeveloperTool",
+  operatingSystem: "Web Browser",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
 };
 
 function AppShell() {
- return (
- <YStack flex={1} height="100vh" backgroundColor="$gray1">
- { }
- <TopNav />
- { }
- <YStack flex={1} overflow="auto" backgroundColor="$gray1">
- <Outlet />
- </YStack>
- </YStack>
- );
+  return (
+    <YStack flex={1} height="100vh" backgroundColor="$gray1">
+      {}
+      <TopNav />
+      {}
+      <YStack flex={1} overflow="auto" backgroundColor="$gray1">
+        <Outlet />
+      </YStack>
+    </YStack>
+  );
 }
 
 function ThemedApp() {
- const theme = useUIStore((state) => state.theme);
- const waveformColor = useUIStore((state) => state.waveformColor);
+  const theme = useUIStore((state) => state.theme);
+  const waveformColor = useUIStore((state) => state.waveformColor);
 
- 
- const resolvedTheme =
- theme === "system"
- ? globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches
- ? "dark"
- : "light"
- : theme;
+  const resolvedTheme =
+    theme === "system"
+      ? globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
 
- 
- useEffect(() => {
- document.documentElement.dataset.theme = resolvedTheme;
- }, [resolvedTheme]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme;
+  }, [resolvedTheme]);
 
- 
- useEffect(() => {
- document.documentElement.dataset.waveformColor = waveformColor;
- }, [waveformColor]);
+  useEffect(() => {
+    document.documentElement.dataset.waveformColor = waveformColor;
+  }, [waveformColor]);
 
- return (
- <Theme name={resolvedTheme}>
- <AppShell />
- </Theme>
- );
+  return (
+    <Theme name={resolvedTheme}>
+      <AppShell />
+    </Theme>
+  );
 }
 
 export function Root() {
- return (
- <TamaguiProvider config={tamaguiConfig}>
- <script
- type="application/ld+json"
- dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
- />
- <QueryClientProvider client={queryClient}>
- <ToastProvider>
- <ThemedApp />
- </ToastProvider>
- </QueryClientProvider>
- </TamaguiProvider>
- );
+  return (
+    <TamaguiProvider config={tamaguiConfig}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
+      />
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <ThemedApp />
+        </ToastProvider>
+      </QueryClientProvider>
+    </TamaguiProvider>
+  );
 }
 
 export { AppShell };

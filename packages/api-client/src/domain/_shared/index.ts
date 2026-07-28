@@ -1,2 +1,2 @@
 export * from "./types";
-export * from "./audio-utils";
+export * from "./audio-utilities";

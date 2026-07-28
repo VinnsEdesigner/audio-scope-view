@@ -1,93 +1,79 @@
-
-
 import { create } from "zustand";
 
 export interface WaveformMessage {
- type: "waveform";
- scopeId: string;
- samples: number[];
- sampleRate: number;
- timestamp: number;
+  type: "waveform";
+  scopeId: string;
+  samples: number[];
+  sampleRate: number;
+  timestamp: number;
 }
 
 export interface WaveformState {
- 
- isConnected: boolean;
- error: Error | undefined;
- scopeId: string | undefined;
+  isConnected: boolean;
+  error: Error | undefined;
+  scopeId: string | undefined;
 
- 
- waveform: WaveformMessage | undefined;
+  waveform: WaveformMessage | undefined;
 
- 
- buffer: WaveformMessage[];
+  buffer: WaveformMessage[];
 
- 
- maxBufferSize: number;
+  maxBufferSize: number;
 }
 
 export interface WaveformActions {
- 
- setConnected: (isConnected: boolean) => void;
- setScopeId: (scopeId: string | undefined) => void;
- setError: (error: Error | undefined) => void;
+  setConnected: (isConnected: boolean) => void;
+  setScopeId: (scopeId: string | undefined) => void;
+  setError: (error: Error | undefined) => void;
 
- 
- setWaveform: (waveform: WaveformMessage) => void;
- addToBuffer: (waveform: WaveformMessage) => void;
- clearBuffer: () => void;
+  setWaveform: (waveform: WaveformMessage) => void;
+  addToBuffer: (waveform: WaveformMessage) => void;
+  clearBuffer: () => void;
 
- 
- setMaxBufferSize: (size: number) => void;
+  setMaxBufferSize: (size: number) => void;
 
- 
- reset: () => void;
+  reset: () => void;
 }
 
 export type WaveformStore = WaveformState & WaveformActions;
 
 const initialState: WaveformState = {
- isConnected: false,
- error: undefined,
- scopeId: undefined,
- waveform: undefined,
- buffer: [],
- maxBufferSize: 10,
+  isConnected: false,
+  error: undefined,
+  scopeId: undefined,
+  waveform: undefined,
+  buffer: [],
+  maxBufferSize: 10,
 };
 
 export const useWaveformStore = create<WaveformStore>((set) => ({
- ...initialState,
+  ...initialState,
 
- 
- setConnected: (isConnected) => set({ isConnected }),
- setScopeId: (scopeId) => set({ scopeId }),
- setError: (error) => set({ error }),
+  setConnected: (isConnected) => set({ isConnected }),
+  setScopeId: (scopeId) => set({ scopeId }),
+  setError: (error) => set({ error }),
 
- 
- setWaveform: (waveform) =>
- set((state) => {
- const newBuffer = [...state.buffer, waveform];
- 
- if (newBuffer.length > state.maxBufferSize) {
- newBuffer.shift();
- }
- return { waveform, buffer: newBuffer };
- }),
+  setWaveform: (waveform) =>
+    set((state) => {
+      const newBuffer = [...state.buffer, waveform];
 
- addToBuffer: (waveform) =>
- set((state) => {
- const newBuffer = [...state.buffer, waveform];
- if (newBuffer.length > state.maxBufferSize) {
- newBuffer.shift();
- }
- return { buffer: newBuffer };
- }),
+      if (newBuffer.length > state.maxBufferSize) {
+        newBuffer.shift();
+      }
+      return { waveform, buffer: newBuffer };
+    }),
 
- clearBuffer: () => set({ buffer: [], waveform: undefined }),
+  addToBuffer: (waveform) =>
+    set((state) => {
+      const newBuffer = [...state.buffer, waveform];
+      if (newBuffer.length > state.maxBufferSize) {
+        newBuffer.shift();
+      }
+      return { buffer: newBuffer };
+    }),
 
- 
- setMaxBufferSize: (maxBufferSize) => set({ maxBufferSize }),
+  clearBuffer: () => set({ buffer: [], waveform: undefined }),
 
- 
- reset: () => set(initialState),
+  setMaxBufferSize: (maxBufferSize) => set({ maxBufferSize }),
+
+  reset: () => set(initialState),
 }));

@@ -2,19 +2,19 @@ import * as React from "react";
 import { YStack, styled } from "tamagui";
 
 const ContentRoot = styled(YStack, {
- flex: 1,
- height: "100%",
- backgroundColor: "$gray1",
- padding: "$md",
- overflow: "scroll",
+  flex: 1,
+  height: "100%",
+  backgroundColor: "$gray1",
+  padding: "$md",
+  overflow: "scroll",
 });
 
 export interface ContentAreaProperties {
- children?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 function ContentArea({ children }: ContentAreaProperties): React.ReactElement {
- return <ContentRoot>{children}</ContentRoot>;
+  return <ContentRoot>{children}</ContentRoot>;
 }
 
 ContentArea.displayName = "ContentArea";

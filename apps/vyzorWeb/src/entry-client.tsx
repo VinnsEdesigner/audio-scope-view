@@ -10,19 +10,17 @@ if (!rootElement) throw new Error("Root element not found");
 const serverRenderedHtml = rootElement.innerHTML;
 
 if (serverRenderedHtml && serverRenderedHtml.length > 0) {
- 
- hydrateRoot(
- rootElement,
- <StrictMode>
- <RouterProvider router={router} />
- </StrictMode>,
- );
+  hydrateRoot(
+    rootElement,
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>,
+  );
 } else {
- 
- const root = createRoot(rootElement);
- root.render(
- <StrictMode>
- <RouterProvider router={router} />
- </StrictMode>,
- );
+  const root = createRoot(rootElement);
+  root.render(
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>,
+  );
 }

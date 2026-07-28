@@ -1,5 +1,3 @@
-
-
 export { config, getConfig, isProduction, isDevelopment, APP_VERSION, APP_NAME } from "./config";
 export type { ClientConfig } from "./config";
 
