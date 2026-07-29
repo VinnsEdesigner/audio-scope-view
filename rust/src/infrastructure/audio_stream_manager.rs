@@ -59,7 +59,7 @@ pub enum AudioStreamEvent {
 /// Stream configuration
 #[derive(Debug, Clone)]
 pub struct StreamConfig {
-    /// Scope ID this stream is for
+    /// Session ID this stream is for
     pub session_id: String,
     /// Sample rate (0 = use default)
     pub sample_rate: u32,
@@ -147,7 +147,7 @@ pub struct AudioStreamManager {
     #[cfg(not(feature = "real-audio"))]
     capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
     /// Per-session stream configurations
-    scopes: RwLock<HashMap<String, SessionStream>>,
+    sessions: RwLock<HashMap<String, SessionStream>>,
     /// FFT processor for spectrum analysis
     fft: RwLock<FftProcessor>,
     /// Event sender for broadcasting to clients
@@ -258,7 +258,7 @@ impl AudioStreamManager {
     pub fn new() -> Self {
         Self {
             capture: RwLock::new(None),
-            scopes: RwLock::new(HashMap::new()),
+            sessions: RwLock::new(HashMap::new()),
             fft: RwLock::new(FftProcessor::new()),
             event_sender: RwLock::new(None),
             task_handle: RwLock::new(None),
@@ -306,41 +306,41 @@ impl AudioStreamManager {
     }
 
     /// Register a session stream configuration
-    pub fn register_scope(&self, config: StreamConfig) -> crate::domain::DomainResult<()> {
-        let mut scopes = self.scopes.write().unwrap();
-        if scopes.contains_key(&config.session_id) {
+    pub fn register_session(&self, config: StreamConfig) -> crate::domain::DomainResult<()> {
+        let mut sessions = self.sessions.write().unwrap();
+        if sessions.contains_key(&config.session_id) {
             return Err(crate::domain::DomainError::invalid_operation(
-                format!("Scope '{}' already registered", config.session_id)
+                format!("Session '{}' already registered", config.session_id)
             ));
         }
-        scopes.insert(config.session_id.clone(), SessionStream::new(config));
+        sessions.insert(config.session_id.clone(), SessionStream::new(config));
         Ok(())
     }
 
     /// Unregister a session
-    pub fn unregister_scope(&self, session_id: &str) -> bool {
-        let mut scopes = self.scopes.write().unwrap();
-        scopes.remove(session_id).is_some()
+    pub fn unregister_session(&self, session_id: &str) -> bool {
+        let mut sessions = self.sessions.write().unwrap();
+        sessions.remove(session_id).is_some()
     }
 
     /// Get session configuration
     pub fn get_session_config(&self, session_id: &str) -> Option<StreamConfig> {
-        let scopes = self.scopes.read().unwrap();
-        scopes.get(session_id).map(|s| s.config.clone())
+        let sessions = self.sessions.read().unwrap();
+        sessions.get(session_id).map(|s| s.config.clone())
     }
 
     /// Get session statistics
     pub fn get_session_stats(&self, session_id: &str) -> Option<StreamStats> {
-        let scopes = self.scopes.read().unwrap();
-        scopes.get(session_id).map(|s| s.stats.clone())
+        let sessions = self.sessions.read().unwrap();
+        sessions.get(session_id).map(|s| s.stats.clone())
     }
 
     /// Start capture for a specific session
     pub async fn start_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
         // Get or create session config
         let needs_register = {
-            let scopes = self.scopes.read().unwrap();
-            !scopes.contains_key(session_id)
+            let sessions = self.sessions.read().unwrap();
+            !sessions.contains_key(session_id)
         };
 
         if needs_register {
@@ -349,7 +349,7 @@ impl AudioStreamManager {
                 session_id: session_id.to_string(),
                 ..Default::default()
             };
-            self.register_scope(config)?;
+            self.register_session(config)?;
         }
 
         // Start the capture backend
@@ -361,12 +361,12 @@ impl AudioStreamManager {
         drop(capture_guard);
 
         // Update session state
-        let mut scopes = self.scopes.write().unwrap();
-        if let Some(session) = scopes.get_mut(session_id) {
+        let mut sessions = self.sessions.write().unwrap();
+        if let Some(session) = sessions.get_mut(session_id) {
             session.running.store(true, Ordering::SeqCst);
             session.capture_start = Some(Instant::now());
         }
-        drop(scopes);
+        drop(sessions);
 
         // Send event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
@@ -376,25 +376,25 @@ impl AudioStreamManager {
             }).await;
         }
 
-        info!("Started capture for scope: {}", session_id);
+        info!("Started capture for session: {}", session_id);
         Ok(())
     }
 
     /// Stop capture for a specific session
     pub async fn stop_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
-        let mut scopes = self.scopes.write().unwrap();
-        if let Some(session) = scopes.get_mut(session_id) {
+        let mut sessions = self.sessions.write().unwrap();
+        if let Some(session) = sessions.get_mut(session_id) {
             session.running.store(false, Ordering::SeqCst);
         }
-        drop(scopes);
+        drop(sessions);
 
         // Check if any sessions are still running
         let any_running = {
-            let scopes = self.scopes.read().unwrap();
-            scopes.values().any(|s| s.running.load(Ordering::SeqCst))
+            let sessions = self.sessions.read().unwrap();
+            sessions.values().any(|s| s.running.load(Ordering::SeqCst))
         };
 
-        // If no scopes running, stop the backend
+        // If no sessions running, stop the backend
         if !any_running {
             let mut capture_guard = self.capture.write().unwrap();
             if let Some(capture) = capture_guard.as_mut()
@@ -410,7 +410,7 @@ impl AudioStreamManager {
             }).await;
         }
 
-        info!("Stopped capture for scope: {}", session_id);
+        info!("Stopped capture for session: {}", session_id);
         Ok(())
     }
 
@@ -442,11 +442,11 @@ impl AudioStreamManager {
             }
         }
 
-        // Process for each active scope
-        let scopes = self.scopes.read().unwrap();
+        // Process for each active session
+        let sessions = self.sessions.read().unwrap();
         let mut processed = 0;
 
-        for (session_id, session) in scopes.iter() {
+        for (session_id, session) in sessions.iter() {
             if !session.running.load(Ordering::SeqCst) {
                 continue;
             }
@@ -473,7 +473,7 @@ impl AudioStreamManager {
                 };
                 
                 if sender.send(event).await.is_err() {
-                    warn!("Failed to send waveform event for scope {}", session_id);
+                    warn!("Failed to send waveform event for session {}", session_id);
                 }
                 processed += 1;
             }
@@ -502,16 +502,16 @@ impl AudioStreamManager {
         Ok(processed)
     }
 
-    /// Check if any scope is actively capturing
+    /// Check if any session is actively capturing
     pub fn is_any_capturing(&self) -> bool {
-        let scopes = self.scopes.read().unwrap();
-        scopes.values().any(|s| s.running.load(Ordering::SeqCst))
+        let sessions = self.sessions.read().unwrap();
+        sessions.values().any(|s| s.running.load(Ordering::SeqCst))
     }
 
-    /// Get list of active scope IDs
+    /// Get list of active session IDs
     pub fn active_sessions(&self) -> Vec<String> {
-        let scopes = self.scopes.read().unwrap();
-        scopes
+        let sessions = self.sessions.read().unwrap();
+        sessions
             .iter()
             .filter(|(_, s)| s.running.load(Ordering::SeqCst))
             .map(|(id, _)| id.clone())
@@ -543,8 +543,8 @@ impl AudioStreamManager {
                 let _ = capture.stop().await;
             }
 
-        // Clear all scopes
-        self.scopes.write().unwrap().clear();
+        // Clear all sessions
+        self.sessions.write().unwrap().clear();
 
         // Send shutdown event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
@@ -592,15 +592,15 @@ mod tests {
         let manager = AudioStreamManager::new();
         
         let config = StreamConfig {
-            session_id: "test-scope".to_string(),
+            session_id: "test-session".to_string(),
             ..Default::default()
         };
         
-        manager.register_scope(config.clone()).unwrap();
-        assert!(manager.get_session_config("test-scope").is_some());
+        manager.register_session(config.clone()).unwrap();
+        assert!(manager.get_session_config("test-session").is_some());
         
         // Duplicate registration should fail
-        assert!(manager.register_scope(config).is_err());
+        assert!(manager.register_session(config).is_err());
     }
 
     #[tokio::test]
@@ -608,13 +608,13 @@ mod tests {
         let manager = AudioStreamManager::new();
         
         let config = StreamConfig {
-            session_id: "test-scope".to_string(),
+            session_id: "test-session".to_string(),
             ..Default::default()
         };
         
-        manager.register_scope(config).unwrap();
-        assert!(manager.unregister_scope("test-scope"));
-        assert!(!manager.unregister_scope("nonexistent"));
+        manager.register_session(config).unwrap();
+        assert!(manager.unregister_session("test-session"));
+        assert!(!manager.unregister_session("nonexistent"));
     }
 
     #[tokio::test]
@@ -624,10 +624,10 @@ mod tests {
         
         // Register and start
         let config = StreamConfig {
-            session_id: "test-scope".to_string(),
+            session_id: "test-session".to_string(),
             ..Default::default()
         };
-        manager.register_scope(config).unwrap();
+        manager.register_session(config).unwrap();
         
         // Initially not capturing
         assert!(!manager.is_any_capturing());

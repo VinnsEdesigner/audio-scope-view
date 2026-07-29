@@ -4,7 +4,7 @@
 
 Refactor the application to replace the "Scope" concept with "Session" in the API layer, aligning with how users actually think about oscilloscope usage.
 
-**STATUS**: ✅ Backend API implementation complete - compiles successfully
+**STATUS**: ✅ Backend API refactoring complete - session naming throughout
 
 ---
 
@@ -59,22 +59,19 @@ Refactor the application to replace the "Scope" concept with "Session" in the AP
 - Original `scopes` table kept for backwards compatibility
 
 ### Files Updated
-- `src/domain/entity_scope.rs` - Replaced Scope entity with Session entity
+- `src/domain/entity_session.rs` - Session entity (renamed from entity_scope.rs)
 - `src/domain/mod.rs` - Updated exports
-- `src/api/schema_scope.rs` - Renamed to SessionQuery/SessionMutation
+- `src/domain/trait_session_repository.rs` - SessionRepository trait (renamed from trait_scope_repository.rs)
+- `src/api/schema_session.rs` - SessionQuery/SessionMutation (renamed from schema_scope.rs)
+- `src/api/resolver_session.rs` - SessionResolver (renamed from resolver_scope.rs)
 - `src/api/schema_root.rs` - Updated imports
+- `src/api/mod.rs` - Updated module declarations
 - `src/application/service_scope.rs` - Updated to SessionService methods
 - `src/application/service_dashboard.rs` - Updated to work with Sessions
 - `src/application/service_recording.rs` - Updated scope→session in queries
-- `src/infrastructure/repo_sqlite_scope.rs` - Updated to Session model
+- `src/infrastructure/repo_sqlite_session.rs` - Session repository
 - `src/infrastructure/database_migrations.rs` - Added v5 migration
-
-### Not Changed (Backwards Compatibility)
-- `src/infrastructure/audio_stream_manager.rs` - Still uses scope_id internally
-- `src/domain/entity_waveform.rs` - Still has scope_id field
-- `src/domain/entity_settings.rs` - Still has scope_id field
-- `src/infrastructure/repo_sqlite_waveform.rs` - Still queries by scope_id
-- `src/infrastructure/repo_sqlite_settings.rs` - Still queries by scope_id
+- `src/infrastructure/audio_stream_manager.rs` - Uses session_id throughout, renamed internal field and methods
 
 ---
 
@@ -174,9 +171,10 @@ type SessionMutation {
 - [ ] Add session management hook
 - [ ] Update recordings to send session_id
 
-### Phase 3: Cleanup ⏳ TODO
-- [ ] Update domain types (Waveform, Settings) to use session_id
-- [ ] Update audio_stream_manager to use session_id
-- [ ] Remove scope UI components
-- [ ] Update tests
-- [ ] Update documentation
+### Phase 3: Backend Cleanup ✅ COMPLETE
+- [x] Update domain types (Waveform, Settings) to use session_id
+- [x] Update audio_stream_manager to use session_id
+- [x] Rename files: entity_scope → entity_session, trait_scope_repository → trait_session_repository
+- [x] Rename API files: schema_scope → schema_session, resolver_scope → resolver_session
+- [x] Update tests
+- [x] Update documentation

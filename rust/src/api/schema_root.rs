@@ -12,7 +12,7 @@ use super::{
         ExportQueryRoot, SimulationMutationRoot, SimulationQueryRoot
     },
     schema_recording::{RecordingMutation, RecordingQuery},
-    schema_scope::{SessionMutation, SessionQuery},
+    schema_session::{SessionMutation, SessionQuery},
     schema_settings::{SettingsMutation, SettingsQuery},
     schema_subscription::SubscriptionRoot,
     schema_waveform::{WaveformMutation, WaveformQuery},

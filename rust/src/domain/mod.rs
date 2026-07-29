@@ -6,12 +6,12 @@
 #[allow(unused_imports)]
 pub mod entity_capture;
 pub mod entity_dashboard_summary;
-pub mod entity_scope;
+pub mod entity_session;
 pub mod entity_settings;
 pub mod entity_waveform;
 
 pub mod trait_audio_capture;
-pub mod trait_scope_repository;
+pub mod trait_session_repository;
 pub mod trait_settings_repository;
 pub mod trait_waveform_repository;
 
@@ -39,7 +39,7 @@ pub mod recording;
 pub use entity_capture::Capture;
 #[allow(unused_imports)]
 pub use entity_dashboard_summary::{DashboardSummary, RecentScope};
-pub use entity_scope::Session;
+pub use entity_session::Session;
 pub use entity_settings::{Settings, TriggerEdge, TriggerMode};
 #[allow(unused_imports)]
 pub use entity_waveform::{Waveform, WaveformStreamData};
