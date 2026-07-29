@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Activity, Sun, Play, Pause, Square } from "lucide-react";
+import { Sun, Play, Pause, Square } from "lucide-react";
 import { TestModeIcon } from "@/components/icons/test-mode-icon";
 import { useAudioAnalyzer } from "@/hooks";
 import type { ScopeMode } from "@/store";
@@ -40,7 +40,6 @@ export function ScopeTopBar({
 
   const isPlayback = mode === "playback";
   const effectiveSampleRate = sampleRate ?? liveSampleRate;
-  const isFrozen = recordingState === "paused";
 
   const handleFreeze = () => {
     if (recordingState === "recording") {

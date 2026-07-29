@@ -45,7 +45,7 @@ function StatCard({ value, label }: StatCardProperties) {
 }
 
 export function RecordingInfoDialog({
-  isOpen,
+  isOpen: _isOpen,
   onClose,
   recordingId,
 }: RecordingInfoDialogProperties) {

@@ -44,7 +44,7 @@ function formatPeriod(freq: number): string {
   return (1000 / freq).toFixed(3);
 }
 
-export function MeasurementsDialog({ isOpen, onClose }: MeasurementsDialogProperties) {
+export function MeasurementsDialog({ isOpen: _isOpen, onClose }: MeasurementsDialogProperties) {
   const { samples, sampleRate, isCapturing } = useAudioAnalyzer();
 
   const [measurements, setMeasurements] = React.useState({

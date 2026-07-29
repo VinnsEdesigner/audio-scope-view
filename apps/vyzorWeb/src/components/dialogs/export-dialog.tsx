@@ -11,7 +11,7 @@ interface ExportDialogProperties {
 }
 
 export function ExportDialog({
-  isOpen,
+  isOpen: _isOpen,
   onClose,
   canvasRef,
   mode = "live",

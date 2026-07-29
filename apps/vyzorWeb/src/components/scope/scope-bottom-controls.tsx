@@ -357,7 +357,9 @@ export function ScopeBottomControls({
           {/* Vertical gain slider */}
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-[12px]">
-              <span className="text-foreground/80">Vertical gain {isPlayback && "(read-only)"}</span>
+              <span className="text-foreground/80">
+                Vertical gain {isPlayback && "(read-only)"}
+              </span>
               <span className="font-mono text-foreground">{effectiveVerticalGain.toFixed(1)}x</span>
             </div>
             <Slider

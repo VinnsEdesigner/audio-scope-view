@@ -1,7 +1,14 @@
 import * as React from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useAudioAnalyzer, useMockAudioAnalyzer, useRecording, useScopeDetail, useScopeDialogs, useToast } from "@/hooks";
+import {
+  useAudioAnalyzer,
+  useMockAudioAnalyzer,
+  useRecording,
+  useScopeDetail,
+  useScopeDialogs,
+  useToast,
+} from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
 import type { Recording } from "@/hooks/use-scope-dialogs";

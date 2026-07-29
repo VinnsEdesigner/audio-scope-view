@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   normalizeAudioData,
   calculateRMS,
@@ -86,16 +86,16 @@ export function useMockAudioAnalyzer(
 
   const isCapturing = recordingState !== "idle";
 
-  const createNoiseSource = useCallback((ctx: AudioContext): AudioBufferSourceNode => {
-    const bufferSize = ctx.sampleRate * 2;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const createNoiseSource = useCallback((context: AudioContext): AudioBufferSourceNode => {
+    const bufferSize = context.sampleRate * 2;
+    const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
     const data = buffer.getChannelData(0);
-    
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+
+    for (let index = 0; index < bufferSize; index++) {
+      data[index] = Math.random() * 2 - 1;
     }
-    
-    const noise = ctx.createBufferSource();
+
+    const noise = context.createBufferSource();
     noise.buffer = buffer;
     noise.loop = true;
     return noise;
@@ -140,6 +140,16 @@ export function useMockAudioAnalyzer(
     }
   }, []);
 
+  const setFrequency = useCallback((newFrequency: number) => {
+    setFrequencyState(newFrequency);
+    if (oscillatorReference.current && audioContextReference.current) {
+      oscillatorReference.current.frequency.setValueAtTime(
+        newFrequency,
+        audioContextReference.current.currentTime,
+      );
+    }
+  }, []);
+
   const startCapture = useCallback(() => {
     try {
       setError(undefined);
@@ -152,7 +162,9 @@ export function useMockAudioAnalyzer(
 
       // Create oscillator for the base waveform
       const oscillator = audioContext.createOscillator();
-      oscillator.type = currentWaveformType;
+      if (currentWaveformType !== "noise") {
+        oscillator.type = currentWaveformType;
+      }
       oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
 
       // Create noise source
@@ -205,8 +217,10 @@ export function useMockAudioAnalyzer(
 
       // Generate initial samples
       const initialSamples: number[] = [];
-      for (let i = 0; i < 1024; i++) {
-        initialSamples.push(generateSample(i, frequency, sampleRate, amplitude, currentWaveformType));
+      for (let index = 0; index < 1024; index++) {
+        initialSamples.push(
+          generateSample(index, frequency, sampleRate, amplitude, currentWaveformType),
+        );
       }
       samplesReference.current = new Float32Array(initialSamples);
 
@@ -244,7 +258,18 @@ export function useMockAudioAnalyzer(
       setError(error_ instanceof Error ? error_ : new Error("Failed to start capture"));
       cleanup();
     }
-  }, [cleanup, createNoiseSource, frequency, amplitude, sampleRate, currentWaveformType, waveformPoints, noiseLevel]);
+  }, [
+    cleanup,
+    createNoiseSource,
+    frequency,
+    amplitude,
+    sampleRate,
+    currentWaveformType,
+    waveformPoints,
+    noiseLevel,
+    recordingState,
+    setFrequency,
+  ]);
 
   // Generate a single sample based on waveform type
   const generateSample = (
@@ -258,21 +283,26 @@ export function useMockAudioAnalyzer(
     let sample = 0;
 
     switch (type) {
-      case "sine":
+      case "sine": {
         sample = Math.sin(2 * Math.PI * freq * t);
         break;
-      case "square":
+      }
+      case "square": {
         sample = Math.sin(2 * Math.PI * freq * t) >= 0 ? 1 : -1;
         break;
-      case "sawtooth":
+      }
+      case "sawtooth": {
         sample = 2 * ((freq * t) % 1) - 1;
         break;
-      case "triangle":
-        sample = 4 * Math.abs((freq * t) % 1 - 0.5) - 1;
+      }
+      case "triangle": {
+        sample = 4 * Math.abs(((freq * t) % 1) - 0.5) - 1;
         break;
-      case "noise":
+      }
+      case "noise": {
         sample = Math.random() * 2 - 1;
         break;
+      }
     }
 
     return sample * amp;
@@ -301,7 +331,6 @@ export function useMockAudioAnalyzer(
       analyserReference.current.getByteTimeDomainData(dataArray);
       samplesReference.current = new Float32Array(dataArray);
     }
-    setSamples(samplesReference.current);
     cleanup();
     setRecordingState("idle");
   }, [cleanup]);
@@ -309,7 +338,6 @@ export function useMockAudioAnalyzer(
   const discardCapture = useCallback(() => {
     collectedSamplesReference.current = new Float32Array();
     samplesReference.current = new Float32Array();
-    setSamples(new Float32Array());
     cleanup();
     setRecordingState("idle");
     setVolumeLevel(0);
@@ -318,28 +346,21 @@ export function useMockAudioAnalyzer(
     setDuration(0);
     setVpp(0);
     setFrequency(0);
-  }, [cleanup]);
+  }, [cleanup, setFrequency]);
 
-  const setFrequency = useCallback((newFrequency: number) => {
-    setFrequencyState(newFrequency);
-    if (oscillatorReference.current && audioContextReference.current) {
-      oscillatorReference.current.frequency.setValueAtTime(
-        newFrequency,
+  const setAmplitude = useCallback((newAmplitude: number) => {
+    setAmplitudeState(newAmplitude);
+    if (gainReference.current && audioContextReference.current) {
+      gainReference.current.gain.setValueAtTime(
+        newAmplitude,
         audioContextReference.current.currentTime,
       );
     }
   }, []);
 
-  const setAmplitude = useCallback((newAmplitude: number) => {
-    setAmplitudeState(newAmplitude);
-    if (gainReference.current && audioContextReference.current) {
-      gainReference.current.gain.setValueAtTime(newAmplitude, audioContextReference.current.currentTime);
-    }
-  }, []);
-
   const setWaveformType = useCallback((newType: WaveformType) => {
     setWaveformTypeState(newType);
-    if (oscillatorReference.current) {
+    if (oscillatorReference.current && newType !== "noise") {
       oscillatorReference.current.type = newType;
     }
   }, []);

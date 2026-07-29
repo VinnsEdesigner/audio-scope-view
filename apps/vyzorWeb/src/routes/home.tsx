@@ -162,7 +162,10 @@ export function Home(): React.ReactElement {
           </div>
           <div>
             <h1 className="text-4xl font-semibold text-foreground tracking-tight">Home</h1>
-            <p className="text-lg text-text-tertiary">Track, view, manage, and analyze your captured audio waveforms, with live waveforms, recorded traces, and detailed signal measurements</p>
+            <p className="text-lg text-text-tertiary">
+              Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
+              recorded traces, and detailed signal measurements
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -229,7 +232,9 @@ export function Home(): React.ReactElement {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-3xl font-semibold text-foreground">Scopes</h2>
-              <p className="text-lg text-text-tertiary mt-0.5">Your audio probes and their current state - live streaming or offline</p>
+              <p className="text-lg text-text-tertiary mt-0.5">
+                Your audio probes and their current state - live streaming or offline
+              </p>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="flex items-center gap-1">

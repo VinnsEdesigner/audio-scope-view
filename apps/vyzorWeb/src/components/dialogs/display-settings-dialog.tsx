@@ -48,7 +48,12 @@ function SettingRow({ label, description, checked, onChange }: SettingRowPropert
   );
 }
 
-export function DisplaySettingsDialog({ isOpen, onClose, onCancel, onSave }: DisplaySettingsDialogProperties) {
+export function DisplaySettingsDialog({
+  isOpen,
+  onClose,
+  onCancel,
+  onSave,
+}: DisplaySettingsDialogProperties) {
   const { showGrid, setShowGrid, glow, setGlow, autoScale, setAutoScale, invert, setInvert } =
     useUIStore();
 

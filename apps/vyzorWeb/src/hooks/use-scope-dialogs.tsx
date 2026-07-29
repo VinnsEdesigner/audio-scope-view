@@ -114,19 +114,16 @@ export function useScopeDialogs({
     () => () => (
       <>
         {/* Display Settings */}
-        <AnchoredDialog
-          isOpen={displaySettingsOpen}
-          onClose={handleCloseDisplaySettings}
-        >
-          <DisplaySettingsDialog isOpen={displaySettingsOpen} onClose={handleCloseDisplaySettings} />
+        <AnchoredDialog isOpen={displaySettingsOpen} onClose={handleCloseDisplaySettings}>
+          <DisplaySettingsDialog
+            isOpen={displaySettingsOpen}
+            onClose={handleCloseDisplaySettings}
+          />
         </AnchoredDialog>
 
         {/* Trigger Settings */}
         {!isPlayback && (
-          <AnchoredDialog
-            isOpen={triggerSettingsOpen}
-            onClose={handleCloseTriggerSettings}
-          >
+          <AnchoredDialog isOpen={triggerSettingsOpen} onClose={handleCloseTriggerSettings}>
             <TriggerSettingsDialog
               isOpen={triggerSettingsOpen}
               onClose={handleCloseTriggerSettings}
@@ -136,19 +133,13 @@ export function useScopeDialogs({
         )}
 
         {/* Measurements */}
-        <AnchoredDialog
-          isOpen={measurementsOpen}
-          onClose={handleCloseMeasurements}
-        >
+        <AnchoredDialog isOpen={measurementsOpen} onClose={handleCloseMeasurements}>
           <MeasurementsDialog isOpen={measurementsOpen} onClose={handleCloseMeasurements} />
         </AnchoredDialog>
 
         {/* Export */}
         {canvasRef && (
-          <AnchoredDialog
-            isOpen={exportOpen}
-            onClose={handleCloseExport}
-          >
+          <AnchoredDialog isOpen={exportOpen} onClose={handleCloseExport}>
             <ExportDialog
               isOpen={exportOpen}
               onClose={handleCloseExport}
@@ -160,10 +151,7 @@ export function useScopeDialogs({
 
         {/* Recording Info */}
         {isPlayback && effectiveRecordingId && (
-          <AnchoredDialog
-            isOpen={recordingInfoOpen}
-            onClose={handleCloseRecordingInfo}
-          >
+          <AnchoredDialog isOpen={recordingInfoOpen} onClose={handleCloseRecordingInfo}>
             <RecordingInfoDialog
               isOpen={recordingInfoOpen}
               onClose={handleCloseRecordingInfo}
