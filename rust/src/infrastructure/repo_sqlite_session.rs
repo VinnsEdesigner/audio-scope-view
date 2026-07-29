@@ -61,9 +61,9 @@ impl SqliteSessionRepository {
         )
         .bind(&session.id)
         .bind(&session.user_id)
-        .bind(&session.started_at.to_rfc3339())
-        .bind(&session.ended_at.map(|dt| dt.to_rfc3339()))
-        .bind(&session.duration_seconds)
+        .bind(session.started_at.to_rfc3339())
+        .bind(session.ended_at.map(|dt| dt.to_rfc3339()))
+        .bind(session.duration_seconds)
         .execute(&self.pool)
         .await
         .map_err(map_sqlx_err)?;
@@ -79,9 +79,9 @@ impl SqliteSessionRepository {
             "#,
         )
         .bind(&session.user_id)
-        .bind(&session.started_at.to_rfc3339())
-        .bind(&session.ended_at.map(|dt| dt.to_rfc3339()))
-        .bind(&session.duration_seconds)
+        .bind(session.started_at.to_rfc3339())
+        .bind(session.ended_at.map(|dt| dt.to_rfc3339()))
+        .bind(session.duration_seconds)
         .bind(&session.id)
         .execute(&self.pool)
         .await

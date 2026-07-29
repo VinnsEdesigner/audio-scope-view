@@ -343,7 +343,7 @@ impl SqliteRecordingRepository {
                 total_recordings: r.total_recordings as u64,
                 total_size_bytes: r.total_size_bytes as u64,
                 total_duration_ms: r.total_duration_ms,
-                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
+                average_size_bytes: if count > 0.0 { r.total_size_bytes / count } else { 0.0 },
                 average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
                 pinned_count: r.pinned_count as u64,
             }
@@ -387,7 +387,7 @@ impl SqliteRecordingRepository {
                 total_recordings: r.total_recordings as u64,
                 total_size_bytes: r.total_size_bytes as u64,
                 total_duration_ms: r.total_duration_ms,
-                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
+                average_size_bytes: if count > 0.0 { r.total_size_bytes / count } else { 0.0 },
                 average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
                 pinned_count: r.pinned_count as u64,
             }
