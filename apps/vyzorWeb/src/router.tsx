@@ -29,7 +29,7 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/scope/:id",
+        path: "/oscilloscope",
         element: <ScopePage />,
       },
       {
@@ -53,7 +53,7 @@ export const routeTree = {
   children: [
     { path: "/", element: "Home" },
     { path: "/scopes", element: "Scopes" },
-    { path: "/scope/:id", element: "ScopePage" },
+    { path: "/oscilloscope", element: "Oscilloscope" },
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },
     { path: "/api-keys/new", element: "CreateApiKey" },

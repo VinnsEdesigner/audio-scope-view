@@ -5,7 +5,7 @@ import * as mutations from "../mutations";
 describe("Apollo queries", () => {
   it("should export session queries", () => {
     expect(queries.GET_SESSIONS).toBeDefined();
-    expect(queries.GET_SESSION_BY_ID).toBeDefined();
+    expect(queries.GET_SESSIONS_BY_ID).toBeDefined();
     expect(queries.GET_ACTIVE_SESSIONS).toBeDefined();
     expect(queries.GET_SESSION_COUNT).toBeDefined();
   });

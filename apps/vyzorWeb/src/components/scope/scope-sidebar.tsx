@@ -61,10 +61,10 @@ export function ScopeSidebar({
   onRename,
   onDelete,
 }: ScopeSidebarProperties) {
-  const { scopeMode } = useUIStore();
+  const { sessionMode } = useUIStore();
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
 
-  const isPlayback = scopeMode === "playback";
+  const isPlayback = sessionMode === "playback";
 
   // Default IDs for each mode
   const defaultLiveViewId = "display";
@@ -112,7 +112,7 @@ export function ScopeSidebar({
             onClick={() => handleViewChange(item)}
             className={`flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-md transition-all ${
               activeView === item.id
-                ? "bg-bg-active text-foreground font-medium"
+                ? "bg-bg-elevated text-foreground"
                 : "bg-transparent text-foreground/70 hover:bg-bg-elevated hover:text-foreground"
             }`}
           >
@@ -129,7 +129,7 @@ export function ScopeSidebar({
             onClick={() => setShowMoreMenu(!showMoreMenu)}
             className={`w-full flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-md transition-all ${
               showMoreMenu
-                ? "bg-bg-active text-foreground font-medium"
+                ? "bg-bg-elevated text-foreground"
                 : "bg-transparent text-foreground/70 hover:bg-bg-elevated hover:text-foreground"
             }`}
           >

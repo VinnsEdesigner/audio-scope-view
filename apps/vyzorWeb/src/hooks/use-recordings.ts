@@ -34,7 +34,7 @@ import type {
 
 export interface UseRecordingsOptions {
   timeRange?: TimeRange;
-  scopeId?: string;
+  sessionId?: string;
   limit?: number;
   offset?: number;
   pinnedOnly?: boolean;
@@ -43,18 +43,18 @@ export interface UseRecordingsOptions {
 export function useRecordings(options: UseRecordingsOptions = {}) {
   const {
     timeRange = "last_24_hours",
-    scopeId,
+    sessionId,
     limit = 20,
     offset = 0,
     pinnedOnly = false,
   } = options;
 
   return useQuery<RecordingListResult>({
-    queryKey: ["recordings", { timeRange, scopeId, limit, offset, pinnedOnly }],
+    queryKey: ["recordings", { timeRange, sessionId, limit, offset, pinnedOnly }],
     queryFn: async () => {
       const result = await graphqlClient.query({
         query: GET_RECORDINGS,
-        variables: { timeRange, scopeId, limit, offset, pinnedOnly },
+        variables: { timeRange, sessionId, limit, offset, pinnedOnly },
         fetchPolicy: "cache-first",
       });
       return transformRecordingListResult(result.data.recordings);
@@ -196,10 +196,10 @@ export function useDeleteRecordings() {
 export function useStartRecording() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ scopeId, name }: { scopeId: string; name?: string }) => {
+    mutationFn: async ({ sessionId, name }: { sessionId: string; name?: string }) => {
       const result = await graphqlClient.mutate({
         mutation: START_RECORDING,
-        variables: { scopeId, name },
+        variables: { sessionId, name },
       });
       return result.data.startRecording;
     },

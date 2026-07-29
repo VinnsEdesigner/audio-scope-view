@@ -2,10 +2,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type WaveformColor = "cyan" | "blue" | "purple" | "green" | "orange" | "red";
-export type ScopeMode = "live" | "playback";
+export type SessionMode = "live" | "playback";
 
 export interface UIState {
-  scopeMode: ScopeMode;
+  sessionMode: SessionMode;
   isSidebarOpen: boolean;
 
   isSettingsModalOpen: boolean;
@@ -47,7 +47,7 @@ export interface UIState {
 }
 
 export interface UIActions {
-  setScopeMode: (mode: ScopeMode) => void;
+  setSessionMode: (mode: SessionMode) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (isOpen: boolean) => void;
 
@@ -100,7 +100,7 @@ export interface UIActions {
 export type UIStore = UIState & UIActions;
 
 const initialState: UIState = {
-  scopeMode: "live",
+  sessionMode: "live",
   isSidebarOpen: true,
   isSettingsModalOpen: false,
   isAboutModalOpen: false,
@@ -135,7 +135,7 @@ export const useUIStore = create<UIStore>()(
     (set) => ({
       ...initialState,
 
-      setScopeMode: (scopeMode) => set({ scopeMode }),
+      setSessionMode: (sessionMode) => set({ sessionMode }),
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
       setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Calendar, Clock, Mic, X } from "lucide-react";
+import { Calendar, Clock, X } from "lucide-react";
 import { useRecording } from "@/hooks";
 import {
   formatBytes,
@@ -113,10 +113,6 @@ export function RecordingInfoDialog({
                 Recording Name
               </div>
               <div className="text-base font-medium text-foreground">{recording.name}</div>
-              <div className="inline-flex items-center gap-2 px-2 py-1 bg-bg-active rounded-full text-xs text-text-secondary mt-3">
-                <Mic size={12} />
-                <span>{recording.scopeName}</span>
-              </div>
             </div>
 
             {/* Stats Grid */}

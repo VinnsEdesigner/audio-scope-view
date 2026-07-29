@@ -1,150 +1,153 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import {
-  GET_SCOPES,
-  GET_SCOPES_BY_ID,
-  GET_ACTIVE_SCOPES,
-  GET_SCOPE_COUNT,
+  GET_SESSIONS,
+  GET_SESSIONS_BY_ID,
+  GET_ACTIVE_SESSIONS,
+  GET_SESSION_COUNT,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import {
-  CREATE_SCOPE,
-  UPDATE_SCOPE,
-  DELETE_SCOPE,
+  START_SESSION,
+  END_SESSION,
+  DELETE_SESSION,
   CAPTURE_WAVEFORM,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
-import type {
-  Scope,
-  CreateScopeInput,
-  UpdateScopeInput,
-  CaptureSettingsInput,
-} from "@audio-scope-view/api-client/domain/scope";
-export interface UseScopesOptions {
+import type { Session, CaptureSettingsInput } from "@audio-scope-view/api-client/domain/session";
+
+export interface UseSessionsOptions {
   limit?: number;
   offset?: number;
 }
-export function useScopes(options: UseScopesOptions = {}) {
+
+export function useSessions(options: UseSessionsOptions = {}) {
   const { limit = 50, offset = 0 } = options;
-  return useQuery<Scope[]>({
-    queryKey: ["scopes", { limit, offset }],
+  return useQuery<Session[]>({
+    queryKey: ["sessions", { limit, offset }],
     queryFn: async () => {
       const result = await graphqlClient.query({
-        query: GET_SCOPES,
+        query: GET_SESSIONS,
         variables: { limit, offset },
         fetchPolicy: "cache-first",
       });
-      return result.data.scopes;
+      return result.data.sessions;
     },
     staleTime: 60 * 1000,
   });
 }
-export function useActiveScopes() {
-  return useQuery<Scope[]>({
-    queryKey: ["scopes", "active"],
+
+export function useActiveSessions() {
+  return useQuery<Session[]>({
+    queryKey: ["sessions", "active"],
     queryFn: async () => {
       const result = await graphqlClient.query({
-        query: GET_ACTIVE_SCOPES,
+        query: GET_ACTIVE_SESSIONS,
         fetchPolicy: "cache-first",
       });
-      return result.data.activeScopes;
+      return result.data.activeSessions;
     },
     staleTime: 30 * 1000,
   });
 }
-export function useScopeCount() {
+
+export function useSessionCount() {
   return useQuery<number>({
-    queryKey: ["scopes", "count"],
+    queryKey: ["sessions", "count"],
     queryFn: async () => {
       const result = await graphqlClient.query({
-        query: GET_SCOPE_COUNT,
+        query: GET_SESSION_COUNT,
         fetchPolicy: "cache-first",
       });
-      return result.data.scopeCount;
+      return result.data.sessionCount;
     },
     staleTime: 60 * 1000,
   });
 }
-export function useScopeDetail(id: string | undefined) {
-  return useQuery<Scope | undefined>({
-    queryKey: ["scopes", id],
+
+export function useSessionDetail(id: string | undefined) {
+  return useQuery<Session | undefined>({
+    queryKey: ["sessions", id],
     queryFn: async () => {
       if (!id) return;
       const result = await graphqlClient.query({
-        query: GET_SCOPES_BY_ID,
+        query: GET_SESSIONS_BY_ID,
         variables: { id },
         fetchPolicy: "cache-first",
       });
-      return result.data.scopes?.[0];
+      return result.data.sessions?.[0];
     },
     enabled: Boolean(id),
     staleTime: 60 * 1000,
   });
 }
-export function useCreateScope() {
+
+export function useStartSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: CreateScopeInput) => {
+    mutationFn: async () => {
       const result = await graphqlClient.mutate({
-        mutation: CREATE_SCOPE,
-        variables: { name: input.name },
+        mutation: START_SESSION,
       });
-      return result.data.createScope;
+      return result.data.startSession;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["scopes"] });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });
 }
-export function useUpdateScope() {
+
+export function useEndSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...input }: UpdateScopeInput & { id: string }) => {
+    mutationFn: async (id: string) => {
       const result = await graphqlClient.mutate({
-        mutation: UPDATE_SCOPE,
-        variables: { id, ...input },
+        mutation: END_SESSION,
+        variables: { id },
       });
-      return result.data.updateScope;
+      return result.data.endSession;
     },
-    onSuccess: (scope) => {
-      queryClient.setQueryData(["scope", scope.id], scope);
-      queryClient.invalidateQueries({ queryKey: ["scopes"] });
+    onSuccess: (session) => {
+      queryClient.setQueryData(["session", session.id], session);
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });
 }
-export function useDeleteScope() {
+
+export function useDeleteSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       await graphqlClient.mutate({
-        mutation: DELETE_SCOPE,
+        mutation: DELETE_SESSION,
         variables: { id },
       });
       return id;
     },
     onSuccess: (id) => {
-      queryClient.removeQueries({ queryKey: ["scope", id] });
-      queryClient.invalidateQueries({ queryKey: ["scopes"] });
+      queryClient.removeQueries({ queryKey: ["session", id] });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });
 }
+
 export function useCaptureWaveform() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      scopeId,
+      sessionId,
       settings,
     }: {
-      scopeId: string;
+      sessionId: string;
       settings?: CaptureSettingsInput;
     }) => {
       const result = await graphqlClient.mutate({
         mutation: CAPTURE_WAVEFORM,
-        variables: { scopeId, settings },
+        variables: { sessionId, settings },
       });
       return result.data.capture;
     },
-    onSuccess: (scope) => {
-      queryClient.setQueryData(["scope", scope.id], scope);
-      queryClient.invalidateQueries({ queryKey: ["scopes"] });
+    onSuccess: (session) => {
+      queryClient.setQueryData(["session", session.id], session);
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });
 }

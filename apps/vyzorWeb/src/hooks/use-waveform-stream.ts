@@ -6,14 +6,14 @@ import { CREATE_WAVEFORM } from "@audio-scope-view/api-client/audioScopeView/gra
 import type { WaveformMessage } from "../store";
 
 export interface UseWaveformStreamOptions {
-  scopeId: string | undefined;
+  sessionId: string | undefined;
   enabled?: boolean;
 }
 
 export function useWaveformStream(options: UseWaveformStreamOptions) {
-  const { scopeId, enabled = true } = options;
+  const { sessionId, enabled = true } = options;
 
-  const { isConnected, error, waveform, setConnected, setScopeId, setError, setWaveform, reset } =
+  const { isConnected, error, waveform, setConnected, setSessionId, setError, setWaveform, reset } =
     useWaveformStore();
 
   const wsReference = useRef<WebSocket | undefined>(undefined);
@@ -30,9 +30,9 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
   }, [reset]);
 
   useEffect(() => {
-    if (!enabled || !scopeId) return;
+    if (!enabled || !sessionId) return;
 
-    setScopeId(scopeId);
+    setSessionId(sessionId);
 
     const wsProtocol = globalThis.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProtocol}//${globalThis.location.host}/graphql`;
@@ -48,7 +48,7 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
           ws.send(
             JSON.stringify({
               type: "subscribe",
-              topic: `waveform:${scopeId}`,
+              topic: `waveform:${sessionId}`,
             }),
           );
         });
@@ -56,7 +56,7 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
         ws.addEventListener("message", (event) => {
           try {
             const data = JSON.parse(event.data) as WaveformMessage;
-            if (data.type === "waveform" && data.scopeId === scopeId) {
+            if (data.type === "waveform" && data.sessionId === sessionId) {
               setWaveform(data);
             }
           } catch (error) {
@@ -87,7 +87,7 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
         wsReference.current.close();
       }
     };
-  }, [scopeId, enabled, setConnected, setScopeId, setError, setWaveform, reset]);
+  }, [sessionId, enabled, setConnected, setSessionId, setError, setWaveform, reset]);
 
   return {
     waveform,
@@ -98,21 +98,21 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
 }
 
 export interface UseSubmitWaveformOptions {
-  scopeId: string | undefined;
+  sessionId: string | undefined;
 }
 
 export function useSubmitWaveform(options: UseSubmitWaveformOptions) {
-  const { scopeId } = options;
+  const { sessionId } = options;
 
   return useMutation({
     mutationFn: async (input: { samples: number[]; sampleRate: number; timestampMs: number }) => {
-      if (!scopeId) throw new Error("Scope ID is required");
+      if (!sessionId) throw new Error("Session ID is required");
 
       const result = await graphqlClient.mutate({
         mutation: CREATE_WAVEFORM,
         variables: {
           input: {
-            scopeId,
+            sessionId,
             samples: input.samples,
           },
         },

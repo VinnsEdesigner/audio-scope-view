@@ -1,13 +1,13 @@
 export {
-  useScopes,
-  useActiveScopes,
-  useScopeCount,
-  useScopeDetail,
-  useCreateScope,
-  useUpdateScope,
-  useDeleteScope,
+  useSessions,
+  useActiveSessions,
+  useSessionCount,
+  useSessionDetail,
+  useStartSession,
+  useEndSession,
+  useDeleteSession,
   useCaptureWaveform,
-} from "./use-scopes";
+} from "./use-sessions";
 
 export {
   useRecordings,
@@ -26,11 +26,11 @@ export {
 } from "./use-recordings";
 
 export {
-  useScopesWithStatus,
-  useActiveScopesWithStatus,
-  useScopeStatusCounts,
-  useHomePageScopes,
-} from "./use-scopes-with-status";
+  useSessionsWithStatus,
+  useActiveSessionsWithStatus,
+  useSessionStatusCounts,
+  useHomePageSessions,
+} from "./use-sessions-with-status";
 
 export { useSettings, useUpdateSettings } from "./use-settings";
 
@@ -61,7 +61,7 @@ export { useIsMobile, useIsTablet } from "./use-mobile";
 export { useTheme } from "./use-theme";
 
 export { useUIStore, useAudioStore } from "../store";
-export type { WaveformColor, ScopeMode } from "../store";
+export type { WaveformColor, SessionMode } from "../store";
 
 export { useToast } from "./use-toast";
 
@@ -74,5 +74,5 @@ export {
   useDeleteApiKey,
 } from "./use-api-keys";
 
-export { useScopeDialogs } from "./use-scope-dialogs";
-export type { Recording } from "./use-scope-dialogs";
+export { useSessionDialogs } from "./use-session-dialogs";
+export type { Recording } from "./use-session-dialogs";

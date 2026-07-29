@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export interface WaveformMessage {
   type: "waveform";
-  scopeId: string;
+  sessionId: string;
   samples: number[];
   sampleRate: number;
   timestamp: number;
@@ -11,7 +11,7 @@ export interface WaveformMessage {
 export interface WaveformState {
   isConnected: boolean;
   error: Error | undefined;
-  scopeId: string | undefined;
+  sessionId: string | undefined;
 
   waveform: WaveformMessage | undefined;
 
@@ -22,7 +22,7 @@ export interface WaveformState {
 
 export interface WaveformActions {
   setConnected: (isConnected: boolean) => void;
-  setScopeId: (scopeId: string | undefined) => void;
+  setSessionId: (sessionId: string | undefined) => void;
   setError: (error: Error | undefined) => void;
 
   setWaveform: (waveform: WaveformMessage) => void;
@@ -39,7 +39,7 @@ export type WaveformStore = WaveformState & WaveformActions;
 const initialState: WaveformState = {
   isConnected: false,
   error: undefined,
-  scopeId: undefined,
+  sessionId: undefined,
   waveform: undefined,
   buffer: [],
   maxBufferSize: 10,
@@ -49,7 +49,7 @@ export const useWaveformStore = create<WaveformStore>((set) => ({
   ...initialState,
 
   setConnected: (isConnected) => set({ isConnected }),
-  setScopeId: (scopeId) => set({ scopeId }),
+  setSessionId: (sessionId) => set({ sessionId }),
   setError: (error) => set({ error }),
 
   setWaveform: (waveform) =>

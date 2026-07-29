@@ -6,34 +6,34 @@ import type { Settings, UpdateSettingsInput } from "@audio-scope-view/api-client
 
 // Re-export types for use by components
 export type { Settings, UpdateSettingsInput } from "@audio-scope-view/api-client/domain/settings";
-export function useSettings(scopeId: string | undefined) {
+export function useSettings(sessionId: string | undefined) {
   return useQuery<Settings | undefined>({
-    queryKey: ["settings", scopeId],
+    queryKey: ["settings", sessionId],
     queryFn: async () => {
-      if (!scopeId) return;
+      if (!sessionId) return;
       const result = await graphqlClient.query({
         query: GET_SETTINGS,
-        variables: { scopeId },
+        variables: { sessionId },
         fetchPolicy: "cache-first",
       });
       return result.data.settings;
     },
-    enabled: Boolean(scopeId),
+    enabled: Boolean(sessionId),
     staleTime: Infinity,
   });
 }
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ scopeId, ...input }: UpdateSettingsInput & { scopeId: string }) => {
+    mutationFn: async ({ sessionId, ...input }: UpdateSettingsInput & { sessionId: string }) => {
       const result = await graphqlClient.mutate({
         mutation: UPDATE_SETTINGS,
-        variables: { scopeId, ...input },
+        variables: { sessionId, ...input },
       });
       return result.data.updateSettings;
     },
     onSuccess: (settings) => {
-      queryClient.setQueryData(["settings", settings.scopeId], settings);
+      queryClient.setQueryData(["settings", settings.sessionId], settings);
     },
   });
 }

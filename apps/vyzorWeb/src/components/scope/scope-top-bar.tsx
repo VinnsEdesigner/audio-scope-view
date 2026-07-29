@@ -2,10 +2,10 @@ import * as React from "react";
 import { Sun, Play, Pause, Square } from "lucide-react";
 import { TestModeIcon } from "@/components/icons/test-mode-icon";
 import { useAudioAnalyzer } from "@/hooks";
-import type { ScopeMode } from "@/store";
+import type { SessionMode } from "@/store";
 
 interface ScopeTopBarProperties {
-  mode?: ScopeMode;
+  mode?: SessionMode;
   scopeName?: string;
   recordingName?: string;
   sampleRate?: number;

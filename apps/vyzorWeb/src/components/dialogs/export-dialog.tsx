@@ -1,13 +1,13 @@
 import * as React from "react";
 import { Camera, FileText, X } from "lucide-react";
 import { useExport } from "@/hooks/use-export";
-import type { ScopeMode } from "@/store";
+import type { SessionMode } from "@/store";
 
 interface ExportDialogProperties {
   isOpen: boolean;
   onClose: () => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  mode?: ScopeMode;
+  mode?: SessionMode;
 }
 
 export function ExportDialog({

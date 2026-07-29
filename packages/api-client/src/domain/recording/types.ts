@@ -1,7 +1,7 @@
 export interface Recording {
   id: string;
-  scopeId: string;
-  scopeName: string;
+  sessionId: string;
+  sessionName: string;
   name: string;
   samples: number[];
   timestamp: Date;
@@ -16,8 +16,8 @@ export interface Recording {
 
 export interface RecordingSummary {
   id: string;
-  scopeId: string;
-  scopeName: string;
+  sessionId: string;
+  sessionName: string;
   name: string;
   timestamp: Date;
   durationMs: number;
@@ -29,7 +29,7 @@ export interface RecordingListParameters {
   timeRange?: TimeRange;
   limit?: number;
   offset?: number;
-  scopeId?: string;
+  sessionId?: string;
   pinnedOnly?: boolean;
 }
 
@@ -46,29 +46,25 @@ export interface RecordingStats {
   pinnedCount: number;
 }
 
-export type ScopeStatus = "live" | "paused" | "offline";
+export type SessionStatus = "live" | "paused" | "offline";
 
-export interface ScopeWithStatus {
+export interface SessionWithStatus {
   id: string;
-  name: string;
-  description: string | undefined;
-  status: ScopeStatus;
-  sampleRate: number;
-  bufferSize: number;
-  createdAt: Date;
-  updatedAt: Date;
-  lastActivityAt: Date;
+  startedAt: Date;
+  endedAt: Date | null;
+  status: SessionStatus;
+  durationSeconds: number | null;
   recordingCount: number;
 }
 
-export interface ScopeListResult {
-  scopes: ScopeWithStatus[];
+export interface SessionListResult {
+  sessions: SessionWithStatus[];
   total: number;
   hasMore: boolean;
 }
 
 export interface CreateRecordingInput {
-  scopeId: string;
+  sessionId: string;
   name?: string;
 }
 
@@ -86,8 +82,8 @@ export type TimeRange = "last_hour" | "last_24_hours" | "last_7_days" | "last_30
 
 export interface RecordingServer {
   id: string;
-  scope_id: string;
-  scope_name: string;
+  session_id: string;
+  session_name: string;
   name: string;
   samples: number[];
   timestamp: string;
@@ -102,8 +98,8 @@ export interface RecordingServer {
 
 export interface RecordingSummaryServer {
   id: string;
-  scope_id: string;
-  scope_name: string;
+  session_id: string;
+  session_name: string;
   name: string;
   timestamp: string;
   duration_ms: number;
@@ -124,21 +120,17 @@ export interface RecordingStatsServer {
   pinned_count: number;
 }
 
-export interface ScopeWithStatusServer {
+export interface SessionWithStatusServer {
   id: string;
-  name: string;
-  description: string | undefined;
+  started_at: string;
+  ended_at: string | null;
   status: string;
-  sample_rate: number;
-  buffer_size: number;
-  created_at: string;
-  updated_at: string;
-  last_activity_at: string;
+  duration_seconds: number | null;
   recording_count: number;
 }
 
-export interface ScopeListResultServer {
-  scopes: ScopeWithStatusServer[];
+export interface SessionListResultServer {
+  sessions: SessionWithStatusServer[];
   total: number;
   has_more: boolean;
 }

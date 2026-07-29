@@ -16,6 +16,7 @@
     "./domain/recording": "./src/domain/recording/index.ts",
     "./domain/recording/transforms": "./src/domain/recording/transforms.ts",
     "./domain/scope": "./src/domain/scope/index.ts",
+    "./domain/session": "./src/domain/session/index.ts",
     "./domain/settings": "./src/domain/settings/index.ts",
     "./domain/dashboard": "./src/domain/dashboard/index.ts",
     "./domain/waveform": "./src/domain/waveform/index.ts",

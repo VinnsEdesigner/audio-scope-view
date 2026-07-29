@@ -19,10 +19,10 @@ export const GET_SESSIONS = gql`
   }
 `;
 
-export const GET_SESSION_BY_ID = gql`
+export const GET_SESSIONS_BY_ID = gql`
   ${SESSION_FIELDS}
-  query GetSessionById($id: String!) {
-    session(id: $id) {
+  query GetSessionsById($id: String!) {
+    sessions(id: $id) {
       ...SessionFields
     }
   }

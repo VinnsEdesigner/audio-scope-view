@@ -3,21 +3,21 @@ import type {
   RecordingSummary,
   RecordingListResult,
   RecordingStats,
-  ScopeWithStatus,
-  ScopeListResult,
+  SessionWithStatus,
+  SessionListResult,
   RecordingServer,
   RecordingSummaryServer,
   RecordingListResultServer,
   RecordingStatsServer,
-  ScopeWithStatusServer,
-  ScopeListResultServer,
+  SessionWithStatusServer,
+  SessionListResultServer,
 } from "./types";
 
 export function transformRecording(server: RecordingServer): Recording {
   return {
     id: server.id,
-    scopeId: server.scope_id,
-    scopeName: server.scope_name,
+    sessionId: server.session_id,
+    sessionName: server.session_name,
     name: server.name,
     samples: server.samples,
     timestamp: new Date(server.timestamp),
@@ -34,8 +34,8 @@ export function transformRecording(server: RecordingServer): Recording {
 export function transformRecordingSummary(server: RecordingSummaryServer): RecordingSummary {
   return {
     id: server.id,
-    scopeId: server.scope_id,
-    scopeName: server.scope_name,
+    sessionId: server.session_id,
+    sessionName: server.session_name,
     name: server.name,
     timestamp: new Date(server.timestamp),
     durationMs: server.duration_ms,
@@ -63,24 +63,20 @@ export function transformRecordingStats(server: RecordingStatsServer): Recording
   };
 }
 
-export function transformScopeWithStatus(server: ScopeWithStatusServer): ScopeWithStatus {
+export function transformSessionWithStatus(server: SessionWithStatusServer): SessionWithStatus {
   return {
     id: server.id,
-    name: server.name,
-    description: server.description,
+    startedAt: new Date(server.started_at),
+    endedAt: server.ended_at ? new Date(server.ended_at) : null,
     status: server.status as "live" | "paused" | "offline",
-    sampleRate: server.sample_rate,
-    bufferSize: server.buffer_size,
-    createdAt: new Date(server.created_at),
-    updatedAt: new Date(server.updated_at),
-    lastActivityAt: new Date(server.last_activity_at),
+    durationSeconds: server.duration_seconds,
     recordingCount: server.recording_count,
   };
 }
 
-export function transformScopeListResult(server: ScopeListResultServer): ScopeListResult {
+export function transformSessionListResult(server: SessionListResultServer): SessionListResult {
   return {
-    scopes: server.scopes.map((s) => transformScopeWithStatus(s)),
+    sessions: server.sessions.map((s) => transformSessionWithStatus(s)),
     total: server.total,
     hasMore: server.has_more,
   };
@@ -89,7 +85,7 @@ export function transformScopeListResult(server: ScopeListResultServer): ScopeLi
 export function transformRecordingToServer(recording: Partial<Recording>): Record<string, unknown> {
   return {
     ...(recording.id && { id: recording.id }),
-    ...(recording.scopeId && { scope_id: recording.scopeId }),
+    ...(recording.sessionId && { session_id: recording.sessionId }),
     ...(recording.name && { name: recording.name }),
     ...(recording.isPinned !== undefined && { is_pinned: recording.isPinned }),
   };

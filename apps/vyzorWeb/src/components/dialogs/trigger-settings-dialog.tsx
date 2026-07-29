@@ -1,12 +1,12 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { useUIStore } from "@/store";
-import type { ScopeMode } from "@/store";
+import type { SessionMode } from "@/store";
 
 interface TriggerSettingsDialogProperties {
   isOpen: boolean;
   onClose: () => void;
-  mode?: ScopeMode;
+  mode?: SessionMode;
 }
 
 type TriggerEdge = "rising" | "falling" | "auto";

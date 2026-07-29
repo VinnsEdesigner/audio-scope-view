@@ -1,12 +1,11 @@
 import * as React from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import {
   useAudioAnalyzer,
   useMockAudioAnalyzer,
   useRecording,
-  useScopeDetail,
-  useScopeDialogs,
+  useSessionDialogs,
   useToast,
 } from "@/hooks";
 import { useUIStore } from "@/store";
@@ -14,7 +13,6 @@ import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/c
 import type { Recording } from "@/hooks";
 
 export function ScopePage(): React.ReactElement {
-  const { id: scopeId } = useParams<{ id: string }>();
   const [searchParameters] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -23,12 +21,12 @@ export function ScopePage(): React.ReactElement {
   const isPlaybackMode = Boolean(recordingId);
 
   // Set scope mode in store
-  const { setScopeMode, testMode, toggleTestMode } = useUIStore();
+  const { setSessionMode, testMode, toggleTestMode } = useUIStore();
 
   React.useEffect(() => {
-    setScopeMode(isPlaybackMode ? "playback" : "live");
-    return () => setScopeMode("live");
-  }, [isPlaybackMode, setScopeMode]);
+    setSessionMode(isPlaybackMode ? "playback" : "live");
+    return () => setSessionMode("live");
+  }, [isPlaybackMode, setSessionMode]);
 
   // Both analyzers - we use one based on testMode
   const realAnalyzer = useAudioAnalyzer();
@@ -41,7 +39,6 @@ export function ScopePage(): React.ReactElement {
     isLoading: recordingLoading,
     error: recordingError,
   } = useRecording(recordingId);
-  const { data: scopeDetail, isLoading: scopeLoading } = useScopeDetail(scopeId);
 
   // Recording for dialogs
   const recordingForDialogs: Recording | undefined = recordingData
@@ -58,7 +55,7 @@ export function ScopePage(): React.ReactElement {
   const canvasReference = React.useRef<HTMLCanvasElement | null>(null);
 
   // Dialogs hook - handles all dialog state management
-  const { handlers: dialogHandlers, Dialogs } = useScopeDialogs({
+  const { handlers: dialogHandlers, Dialogs } = useSessionDialogs({
     mode: isPlaybackMode ? "playback" : "live",
     recording: recordingForDialogs,
     recordingId,
@@ -161,12 +158,12 @@ export function ScopePage(): React.ReactElement {
   const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
 
   // Scope info
-  const scopeName = scopeDetail?.name ?? "Scope";
-  const sampleRate = scopeDetail?.sampleRate ?? 48_000;
+  const scopeName = "Oscilloscope";
+  const sampleRate = 48_000;
   const recordingName = recordingData?.name;
 
   // Loading state
-  const isLoading = isPlaybackMode && (recordingLoading || scopeLoading);
+  const isLoading = isPlaybackMode && recordingLoading;
 
   // Error state
   const error = isPlaybackMode ? recordingError : undefined;

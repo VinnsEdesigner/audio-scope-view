@@ -9,4 +9,4 @@ export { ExportDialog } from "./export-dialog";
 export { RecordingInfoDialog } from "./recording-info-dialog";
 export { RenameDialog } from "./rename-dialog";
 export { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
-export { CreateScopeDialog } from "./create-scope-dialog";
+export { CreateSessionDialog } from "./create-session-dialog";

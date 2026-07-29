@@ -19,19 +19,19 @@ export interface Recording {
   size: number;
 }
 
-export interface UseScopeDialogsOptions {
+export interface UseSessionDialogsOptions {
   mode?: "live" | "playback";
   recording?: Recording;
   recordingId?: string;
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
-export function useScopeDialogs({
+export function useSessionDialogs({
   mode = "live",
   recording,
   recordingId,
   canvasRef,
-}: UseScopeDialogsOptions) {
+}: UseSessionDialogsOptions) {
   const isPlayback = mode === "playback";
 
   // Dialog open states
@@ -55,7 +55,7 @@ export function useScopeDialogs({
   // Effective recording ID
   const effectiveRecordingId = recordingId ?? recording?.id;
 
-  // Handlers for ScopeSidebar callbacks
+  // Handlers for SessionSidebar callbacks
   const handleOpenDisplaySettings = React.useCallback(() => {
     setDisplaySettingsOpen(true);
   }, []);

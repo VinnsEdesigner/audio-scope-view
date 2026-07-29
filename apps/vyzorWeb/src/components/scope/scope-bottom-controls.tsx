@@ -2,7 +2,7 @@ import * as React from "react";
 import { ChevronDown, Play, Pause, Square, Repeat } from "lucide-react";
 import { useUIStore } from "@/store";
 import { useAudioAnalyzer } from "@/hooks";
-import type { ScopeMode } from "@/store";
+import type { SessionMode } from "@/store";
 
 interface SliderProperties {
   value: number;
@@ -55,7 +55,7 @@ function formatTime(ms: number): string {
 }
 
 interface ScopeBottomControlsProperties {
-  mode?: ScopeMode;
+  mode?: SessionMode;
   vpp?: number;
   frequency?: number;
   windowMs?: number;

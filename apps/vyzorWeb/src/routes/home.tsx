@@ -11,13 +11,12 @@ import {
   ChevronDown,
   ChevronUp,
   FileAudio,
-  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   useRecordingStats,
   useRecentRecordings,
-  useHomePageScopes,
+  useHomePageSessions,
   usePinRecording,
   useDeleteRecording,
   useRenameRecording,
@@ -25,7 +24,6 @@ import {
   formatTimestampRelative,
 } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
-import { CreateScopeDialog } from "../components/dialogs/create-scope-dialog";
 import { useToast } from "@/hooks";
 
 export function Home(): React.ReactElement {
@@ -33,17 +31,16 @@ export function Home(): React.ReactElement {
   const { showToast } = useToast();
 
   const [isMicDialogOpen, setIsMicDialogOpen] = React.useState(false);
-  const [isCreateScopeDialogOpen, setIsCreateScopeDialogOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"recordings" | "scopes">("recordings");
+  const [activeTab, setActiveTab] = React.useState<"recordings" | "sessions">("recordings");
   const [timeFilter, setTimeFilter] = React.useState<"all" | "today" | "week" | "month">("all");
-  const [showAllScopes, setShowAllScopes] = React.useState(false);
+  const [showAllSessions, setShowAllSessions] = React.useState(false);
   const [openMenuId, setOpenMenuId] = React.useState<string | undefined>();
   const [renamingId, setRenamingId] = React.useState<string | undefined>();
   const [renameValue, setRenameValue] = React.useState("");
 
   const { data: stats, isLoading: statsLoading } = useRecordingStats();
   const { data: recentData, isLoading: recordingsLoading } = useRecentRecordings(20);
-  const { scopes, counts } = useHomePageScopes();
+  const { sessions, counts } = useHomePageSessions();
 
   const pinRecording = usePinRecording();
   const deleteRecording = useDeleteRecording();
@@ -74,7 +71,7 @@ export function Home(): React.ReactElement {
     });
   }, [recentData, timeFilter]);
 
-  const displayScopes = showAllScopes ? scopes : scopes.slice(0, 3);
+  const displaySessions = showAllSessions ? sessions : sessions.slice(0, 3);
 
   const handlePin = (id: string, isPinned: boolean) => {
     pinRecording.mutate({ id, isPinned: !isPinned });
@@ -197,7 +194,7 @@ export function Home(): React.ReactElement {
             <div>
               <h2 className="text-3xl font-semibold text-foreground">Overview</h2>
               <p className="text-lg text-text-tertiary mt-0.5">
-                Summary of your recording sessions, storage usage, and active scope count
+                Summary of your recordings, storage usage, and active sessions
               </p>
             </div>
           </div>
@@ -224,7 +221,7 @@ export function Home(): React.ReactElement {
                 {statsLoading ? "-" : counts.liveCount}
               </div>
               <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
-                Live Scopes
+                Live Sessions
               </div>
             </div>
           </div>
@@ -234,9 +231,9 @@ export function Home(): React.ReactElement {
         <div className="bg-bg-secondary border border-border-subtle rounded-xl p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-3xl font-semibold text-foreground">Scopes</h2>
+              <h2 className="text-3xl font-semibold text-foreground">Sessions</h2>
               <p className="text-lg text-text-tertiary mt-0.5">
-                Your audio probes and their current state - live streaming or offline
+                Your active recording sessions and their current state
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs">
@@ -252,37 +249,32 @@ export function Home(): React.ReactElement {
           </div>
 
           <div className="space-y-2">
-            {displayScopes.length === 0 ? (
+            {displaySessions.length === 0 ? (
               <div className="text-center py-8 text-text-tertiary">
                 <Radio size={24} className="mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No scopes created yet</p>
-                <button
-                  onClick={() => navigate("/scopes")}
-                  className="text-accent hover:underline text-sm mt-1"
-                >
-                  Create your first scope
-                </button>
+                <p className="text-sm">No active sessions</p>
               </div>
             ) : (
-              displayScopes.map((scope) => (
+              displaySessions.map((session) => (
                 <div
-                  key={scope.id}
-                  className="flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover cursor-pointer transition-colors"
-                  onClick={() => navigate(`/scope/${scope.id}`)}
+                  key={session.id}
+                  className="flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"
                 >
                   <span
                     className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      scope.status === "live"
+                      session.status === "live"
                         ? "bg-success"
-                        : scope.status === "paused"
+                        : session.status === "paused"
                           ? "bg-text-primary"
                           : "bg-destructive"
                     }`}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground truncate">{scope.name}</div>
+                    <div className="text-sm font-medium text-foreground truncate">
+                      Session {session.id.slice(0, 8)}
+                    </div>
                     <div className="text-xs text-text-tertiary mt-0.5">
-                      {scope.recordingCount} recordings
+                      {session.recordingCount} recordings
                     </div>
                   </div>
                 </div>
@@ -290,18 +282,18 @@ export function Home(): React.ReactElement {
             )}
           </div>
 
-          {scopes.length > 3 && (
+          {sessions.length > 3 && (
             <button
-              onClick={() => setShowAllScopes(!showAllScopes)}
+              onClick={() => setShowAllSessions(!showAllSessions)}
               className="flex items-center justify-center gap-1.5 w-full py-2.5 mt-3 text-sm text-text-secondary hover:text-foreground transition-colors"
             >
-              {showAllScopes ? (
+              {showAllSessions ? (
                 <>
                   Show less <ChevronUp size={14} />
                 </>
               ) : (
                 <>
-                  View {scopes.length - 3} more scopes <ChevronDown size={14} />
+                  View {sessions.length - 3} more sessions <ChevronDown size={14} />
                 </>
               )}
             </button>
@@ -323,14 +315,14 @@ export function Home(): React.ReactElement {
                 Recordings
               </button>
               <button
-                onClick={() => setActiveTab("scopes")}
+                onClick={() => setActiveTab("sessions")}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === "scopes"
+                  activeTab === "sessions"
                     ? "bg-bg-active text-foreground"
                     : "text-text-secondary hover:text-foreground"
                 }`}
               >
-                All Scopes
+                All Sessions
               </button>
             </div>
 
@@ -375,9 +367,7 @@ export function Home(): React.ReactElement {
                     <div
                       key={recording.id}
                       className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover transition-colors cursor-pointer"
-                      onClick={() =>
-                        navigate(`/scope/${recording.scopeId}?recording=${recording.id}`)
-                      }
+                      onClick={() => navigate(`/oscilloscope?recording=${recording.id}`)}
                     >
                       <div className="w-9 h-9 flex items-center justify-center bg-bg-primary rounded-lg">
                         <FileAudio size={16} className="text-text-secondary" />
@@ -409,8 +399,9 @@ export function Home(): React.ReactElement {
                               )}
                             </div>
                             <div className="text-xs text-text-tertiary mt-0.5">
-                              {recording.scopeName} • {formatTimestampRelative(recording.timestamp)}{" "}
-                              • {formatBytes(recording.sizeBytes)}
+                              {recording.sessionName} •{" "}
+                              {formatTimestampRelative(recording.timestamp)} •{" "}
+                              {formatBytes(recording.sizeBytes)}
                             </div>
                           </>
                         )}
@@ -466,17 +457,16 @@ export function Home(): React.ReactElement {
               </div>
             ) : (
               <div className="space-y-2">
-                {scopes.length === 0 ? (
+                {sessions.length === 0 ? (
                   <div className="text-center py-8 text-text-tertiary">
                     <Radio size={24} className="mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No scopes created yet</p>
+                    <p className="text-sm">No active sessions</p>
                   </div>
                 ) : (
-                  scopes.map((scope) => (
+                  sessions.map((session) => (
                     <div
-                      key={scope.id}
-                      className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover cursor-pointer transition-colors"
-                      onClick={() => navigate(`/scope/${scope.id}`)}
+                      key={session.id}
+                      className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"
                     >
                       <div className="w-9 h-9 flex items-center justify-center bg-bg-primary rounded-lg">
                         <Radio size={16} className="text-text-secondary" />
@@ -484,23 +474,23 @@ export function Home(): React.ReactElement {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <div className="text-sm font-medium text-foreground truncate">
-                            {scope.name}
+                            Session {session.id.slice(0, 8)}
                           </div>
                           <span
                             className={`px-1.5 py-0.5 text-[10px] font-medium uppercase rounded ${
-                              scope.status === "live"
+                              session.status === "live"
                                 ? "bg-success/10 text-success"
-                                : scope.status === "paused"
+                                : session.status === "paused"
                                   ? "bg-text-tertiary/10 text-text-tertiary"
                                   : "bg-destructive/10 text-destructive"
                             }`}
                           >
-                            {scope.status}
+                            {session.status}
                           </span>
                         </div>
                         <div className="text-xs text-text-tertiary mt-0.5">
-                          {scope.recordingCount} recordings • Created{" "}
-                          {formatTimestampRelative(scope.createdAt)}
+                          {session.recordingCount} recordings • Started{" "}
+                          {formatTimestampRelative(session.startedAt)}
                         </div>
                       </div>
                     </div>

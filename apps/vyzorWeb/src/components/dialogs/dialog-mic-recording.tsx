@@ -37,14 +37,14 @@ const WAVEFORM_COLORS: Record<WaveformColor, string> = {
 interface DialogMicRecordingProperties {
   isOpen: boolean;
   onClose: () => void;
-  scopeId?: string;
+  sessionId?: string;
   _scopeName?: string;
 }
 
 export function DialogMicRecording({
   isOpen,
   onClose,
-  scopeId = "default",
+  sessionId = "default",
   _scopeName,
 }: DialogMicRecordingProperties): React.ReactElement {
   const { showToast } = useToast();
@@ -123,10 +123,10 @@ export function DialogMicRecording({
   const stopAndSave = async () => {
     stopCapture();
 
-    if (samples.length > 0 && scopeId) {
+    if (samples.length > 0 && sessionId) {
       try {
         await startRecordingMutation.mutateAsync({
-          scopeId,
+          sessionId,
           name: recordingName || `Recording ${new Date().toLocaleString()}`,
         });
         showToast({ message: "Recording saved successfully!", type: "success" });
