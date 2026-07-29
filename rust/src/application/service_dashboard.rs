@@ -2,114 +2,107 @@
 
 use crate::domain::entity_dashboard_summary::{DashboardSummary, RecentScope};
 use crate::domain::valueobject_timerange::TimeRange;
-use crate::infrastructure::repo_sqlite_scope::SqliteScopeRepository;
+use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;
 use crate::infrastructure::repo_sqlite_waveform::SqliteWaveformRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
 /// Dashboard service for aggregated data
 pub struct DashboardService {
-    scope_repository: Arc<SqliteScopeRepository>,
+    session_repository: Arc<SqliteSessionRepository>,
     waveform_repository: Arc<SqliteWaveformRepository>,
 }
 
 impl DashboardService {
     pub fn new(
-        scope_repository: Arc<SqliteScopeRepository>,
+        session_repository: Arc<SqliteSessionRepository>,
         waveform_repository: Arc<SqliteWaveformRepository>,
     ) -> Self {
         Self {
-            scope_repository,
+            session_repository,
             waveform_repository,
         }
     }
 
-    /// Get dashboard summary with real waveform statistics
+    /// Get dashboard summary with session statistics
     pub async fn get_summary(&self, time_range: TimeRange) -> AppResult<DashboardSummary> {
-        let total_scopes = self
-            .scope_repository
-            .count()
-            .await
-            .map_err(AppError::Domain)?;
-        let active_scopes = self
-            .scope_repository
-            .count_active()
+        let total_sessions = self
+            .session_repository
+            .count_sessions()
             .await
             .map_err(AppError::Domain)?;
 
-        // Get all scopes to aggregate waveform stats
-        let all_scopes = self
-            .scope_repository
-            .find_all(100, 0)
+        // Get recent sessions
+        let recent_sessions = self
+            .session_repository
+            .find_all_sessions(5, 0)
             .await
             .map_err(AppError::Domain)?;
 
-        // Aggregate waveform statistics across all scopes
+        // For now, aggregate waveform stats across all sessions
         let mut total_waveforms: u64 = 0;
         let mut total_samples: u64 = 0;
         let mut total_peak: f32 = 0.0;
         let mut total_rms: f32 = 0.0;
-        let mut scopes_with_data: u32 = 0;
 
-        for scope in &all_scopes {
+        for session in &recent_sessions {
             let stats = self
                 .waveform_repository
-                .get_statistics(&scope.id)
+                .get_statistics(&session.id)
                 .await
                 .map_err(AppError::Domain)?;
-            if stats.total_count > 0 {
-                total_waveforms += stats.total_count;
-                total_samples += stats.total_samples;
-                total_peak += stats.average_peak;
-                total_rms += stats.average_rms;
-                scopes_with_data += 1;
-            }
+            total_waveforms += stats.total_count;
+            total_samples += stats.total_samples;
+            total_peak += stats.average_peak;
+            total_rms += stats.average_rms;
         }
 
         // Calculate averages
-        let avg_peak = if scopes_with_data > 0 {
-            total_peak / scopes_with_data as f32
+        let session_count = recent_sessions.len() as u32;
+        let avg_peak = if session_count > 0 {
+            total_peak / session_count as f32
         } else {
             0.0
         };
-        let avg_rms = if scopes_with_data > 0 {
-            total_rms / scopes_with_data as f32
+        let avg_rms = if session_count > 0 {
+            total_rms / session_count as f32
         } else {
             0.0
         };
 
-        let scopes = self
-            .scope_repository
-            .find_all(5, 0)
-            .await
-            .map_err(AppError::Domain)?;
-        let recent_scopes = scopes
+        // Convert sessions to RecentScope format for compatibility
+        let recent_sessions = recent_sessions
             .into_iter()
-            .take(5)
-            .map(|s| RecentScope::new(s.id, s.name).with_last_activity(s.updated_at))
+            .map(|s| {
+                let short_id = if s.id.len() >= 8 { &s.id[..8] } else { &s.id };
+                RecentScope::new(s.id.clone(), format!("Session {}", short_id)).with_last_activity(s.started_at)
+            })
             .collect();
 
         let summary = DashboardSummary::new(time_range)
-            .with_scope_stats(total_scopes, active_scopes)
+            .with_scope_stats(total_sessions, 0) // sessions don't have "active" status
             .with_capture_stats(total_waveforms)
             .with_waveform_stats(total_waveforms, total_samples, avg_peak, avg_rms)
-            .with_recent_scopes(recent_scopes);
+            .with_recent_sessions(recent_sessions);
 
         Ok(summary)
     }
 
-    /// Get recent scopes
-    pub async fn get_recent_scopes(&self, limit: u32) -> AppResult<Vec<RecentScope>> {
-        let scopes = self
-            .scope_repository
-            .find_all(limit, 0)
+    /// Get recent sessions (as RecentScope for compatibility)
+    pub async fn get_recent_sessions(&self, limit: u32) -> AppResult<Vec<RecentScope>> {
+        let sessions = self
+            .session_repository
+            .find_all_sessions(limit, 0)
             .await
             .map_err(AppError::Domain)?;
 
-        Ok(scopes
+        Ok(sessions
             .into_iter()
             .take(limit as usize)
-            .map(|s| RecentScope::new(s.id, s.name).with_last_activity(s.updated_at))
+            .map(|s| {
+                let short_id = if s.id.len() >= 8 { &s.id[..8] } else { &s.id };
+                RecentScope::new(s.id.clone(), format!("Session {}", short_id)).with_last_activity(s.started_at)
+            })
             .collect())
     }
 }

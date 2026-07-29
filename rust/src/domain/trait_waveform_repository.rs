@@ -22,26 +22,26 @@ pub trait WaveformRepository: Send + Sync {
     /// Find a waveform by ID
     async fn find_by_id(&self, id: &str) -> DomainResult<Option<Waveform>>;
 
-    /// Find waveforms by scope ID
-    async fn find_by_scope(
+    /// Find waveforms by session ID
+    async fn find_by_session(
         &self,
-        scope_id: &str,
+        session_id: &str,
         limit: u32,
         offset: u32,
     ) -> DomainResult<Vec<Waveform>>;
 
-    /// Find recent waveforms by scope ID
-    async fn find_recent(&self, scope_id: &str, limit: u32) -> DomainResult<Vec<Waveform>>;
+    /// Find recent waveforms by session ID
+    async fn find_recent(&self, session_id: &str, limit: u32) -> DomainResult<Vec<Waveform>>;
 
-    /// Count waveforms by scope ID
-    async fn count_by_scope(&self, scope_id: &str) -> DomainResult<u64>;
+    /// Count waveforms by session ID
+    async fn count_by_session(&self, session_id: &str) -> DomainResult<u64>;
 
-    /// Delete waveforms by scope ID
-    async fn delete_by_scope(&self, scope_id: &str) -> DomainResult<u64>;
+    /// Delete waveforms by session ID
+    async fn delete_by_session(&self, session_id: &str) -> DomainResult<u64>;
 
     /// Delete waveforms older than a date
     async fn delete_older_than(&self, before: DateTime<Utc>) -> DomainResult<u64>;
 
     /// Get statistics for a scope
-    async fn get_statistics(&self, scope_id: &str) -> DomainResult<WaveformStatistics>;
+    async fn get_statistics(&self, session_id: &str) -> DomainResult<WaveformStatistics>;
 }

@@ -22,7 +22,7 @@ impl CaptureState {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Capture {
     pub id: String,
-    pub scope_id: String,
+    pub session_id: String,
     pub state: CaptureState,
     pub started_at: Option<DateTime<Utc>>,
     pub stopped_at: Option<DateTime<Utc>>,
@@ -32,10 +32,10 @@ pub struct Capture {
 
 impl Capture {
     /// Create a new capture session
-    pub fn new(id: String, scope_id: String) -> Self {
+    pub fn new(id: String, session_id: String) -> Self {
         Self {
             id,
-            scope_id,
+            session_id,
             state: CaptureState::Idle,
             started_at: None,
             stopped_at: None,

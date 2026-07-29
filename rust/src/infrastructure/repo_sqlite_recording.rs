@@ -13,7 +13,7 @@ use crate::domain::error_domain::DomainError;
 #[derive(FromRow)]
 struct RecordingRow {
     id: String,
-    scope_id: String,
+    session_id: String,
     name: String,
     samples: String, // JSON array
     sample_count: i32,
@@ -36,7 +36,7 @@ impl TryFrom<RecordingRow> for Recording {
 
         Ok(Recording {
             id: row.id,
-            scope_id: row.scope_id,
+            session_id: row.session_id,
             name: row.name,
             samples,
             timestamp,
@@ -54,7 +54,7 @@ impl From<Recording> for RecordingRow {
         let samples_json = serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
         Self {
             id: recording.id,
-            scope_id: recording.scope_id,
+            session_id: recording.session_id,
             name: recording.name,
             samples: samples_json,
             sample_count: recording.samples.len() as i32,
@@ -94,7 +94,7 @@ impl SqliteRecordingRepository {
         sqlx::query(
             r#"
             INSERT INTO recordings (
-                id, scope_id, name, samples, sample_count, timestamp, 
+                id, session_id, name, samples, sample_count, timestamp, 
                 duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
                 is_pinned, created_at
             )
@@ -102,7 +102,7 @@ impl SqliteRecordingRepository {
             "#,
         )
         .bind(&row.id)
-        .bind(&row.scope_id)
+        .bind(&row.session_id)
         .bind(&row.name)
         .bind(&row.samples)
         .bind(row.sample_count)
@@ -143,10 +143,10 @@ impl SqliteRecordingRepository {
         let mut params: Vec<String> = vec![];
 
         if let Some(f) = filter {
-            if let Some(ref scope_id) = f.scope_id {
-                query.push_str(" AND scope_id = ?");
-                count_query.push_str(" AND scope_id = ?");
-                params.push(scope_id.clone());
+            if let Some(ref session_id) = f.session_id {
+                query.push_str(" AND session_id = ?");
+                count_query.push_str(" AND session_id = ?");
+                params.push(session_id.clone());
             }
             if let Some(pinned) = f.is_pinned {
                 query.push_str(" AND is_pinned = ?");
@@ -200,7 +200,7 @@ impl SqliteRecordingRepository {
             .map(|r| -> Result<RecordingSummary, DomainError> {
                 Ok(RecordingSummary {
                     id: r.id,
-                    scope_id: r.scope_id,
+                    session_id: r.session_id,
                     name: r.name,
                     timestamp: parse_datetime(&r.timestamp)?,
                     duration_ms: r.duration_ms,
@@ -233,7 +233,7 @@ impl SqliteRecordingRepository {
             .map(|r| {
                 Ok(RecordingSummary {
                     id: r.id,
-                    scope_id: r.scope_id,
+                    session_id: r.session_id,
                     name: r.name,
                     timestamp: parse_datetime(&r.timestamp)?,
                     duration_ms: r.duration_ms,
@@ -286,11 +286,11 @@ impl SqliteRecordingRepository {
         Ok(result.rows_affected())
     }
 
-    pub async fn count_by_scope(&self, scope_id: &str) -> Result<u64, DomainError> {
+    pub async fn count_by_scope(&self, session_id: &str) -> Result<u64, DomainError> {
         let row: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM recordings WHERE scope_id = ?"
+            "SELECT COUNT(*) FROM recordings WHERE session_id = ?"
         )
-        .bind(scope_id)
+        .bind(session_id)
         .fetch_one(&self.pool)
         .await
         .map_err(map_sqlx_err)?;
@@ -299,7 +299,7 @@ impl SqliteRecordingRepository {
 
     pub async fn get_stats(
         &self,
-        scope_id: Option<&str>,
+        session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> Result<RecordingStats, DomainError> {
         let mut query = String::from(
@@ -314,8 +314,8 @@ impl SqliteRecordingRepository {
         );
         let mut params: Vec<String> = vec![];
 
-        if let Some(sid) = scope_id {
-            query.push_str(" AND scope_id = ?");
+        if let Some(sid) = session_id {
+            query.push_str(" AND session_id = ?");
             params.push(sid.to_string());
         }
         if let Some(range) = time_range {
@@ -352,7 +352,7 @@ impl SqliteRecordingRepository {
 
     pub async fn get_recording_count_by_range(
         &self,
-        scope_id: Option<&str>,
+        session_id: Option<&str>,
     ) -> Result<RecordingStats, DomainError> {
         let mut query = String::from(
             r#"
@@ -365,8 +365,8 @@ impl SqliteRecordingRepository {
         );
         let mut params: Vec<String> = vec![];
 
-        if let Some(sid) = scope_id {
-            query.push_str(" AND scope_id = ?");
+        if let Some(sid) = session_id {
+            query.push_str(" AND session_id = ?");
             params.push(sid.to_string());
         }
 

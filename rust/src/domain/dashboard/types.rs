@@ -9,9 +9,9 @@ use crate::domain::valueobject_timerange::TimeRange;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DashboardSummary {
     /// Total number of scopes
-    pub total_scopes: u32,
+    pub total_sessions: u32,
     /// Number of active scopes
-    pub active_scopes: u32,
+    pub active_sessions: u32,
     /// Total waveform captures
     pub total_captures: u64,
     /// Total waveforms stored
@@ -27,15 +27,15 @@ pub struct DashboardSummary {
     /// When this summary was generated
     pub generated_at: DateTime<Utc>,
     /// Recent scopes
-    pub recent_scopes: Vec<RecentScope>,
+    pub recent_sessions: Vec<RecentScope>,
 }
 
 impl DashboardSummary {
     /// Create a new dashboard summary
     pub fn new(time_range: TimeRange) -> Self {
         Self {
-            total_scopes: 0,
-            active_scopes: 0,
+            total_sessions: 0,
+            active_sessions: 0,
             total_captures: 0,
             total_waveforms: 0,
             total_samples: 0,
@@ -43,14 +43,14 @@ impl DashboardSummary {
             average_rms_amplitude: 0.0,
             time_range,
             generated_at: Utc::now(),
-            recent_scopes: Vec::new(),
+            recent_sessions: Vec::new(),
         }
     }
 
     /// Set scope statistics
     pub fn with_scope_stats(mut self, total: u32, active: u32) -> Self {
-        self.total_scopes = total;
-        self.active_scopes = active;
+        self.total_sessions = total;
+        self.active_sessions = active;
         self
     }
 
@@ -61,14 +61,14 @@ impl DashboardSummary {
     }
 
     /// Set recent scopes
-    pub fn with_recent_scopes(mut self, scopes: Vec<RecentScope>) -> Self {
-        self.recent_scopes = scopes;
+    pub fn with_recent_sessions(mut self, scopes: Vec<RecentScope>) -> Self {
+        self.recent_sessions = scopes;
         self
     }
 
     /// Calculate inactive scopes
-    pub fn inactive_scopes(&self) -> u32 {
-        self.total_scopes.saturating_sub(self.active_scopes)
+    pub fn inactive_sessions(&self) -> u32 {
+        self.total_sessions.saturating_sub(self.active_sessions)
     }
 }
 
@@ -133,7 +133,7 @@ impl Default for DashboardFilter {
     fn default() -> Self {
         Self {
             time_range: TimeRange::Last24Hours,
-            scope_id: None,
+            session_id: None,
             include_inactive: true,
         }
     }

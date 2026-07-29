@@ -15,23 +15,23 @@ pub struct Migration {
 pub const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 1,
-        name: "create_scopes",
-        sql: include_str!("../../migrations/001_create_scopes.sql"),
-    },
-    Migration {
-        version: 2,
         name: "create_settings",
         sql: include_str!("../../migrations/002_create_settings.sql"),
     },
     Migration {
-        version: 3,
+        version: 2,
         name: "create_waveforms",
         sql: include_str!("../../migrations/003_create_waveforms.sql"),
     },
     Migration {
-        version: 4,
+        version: 3,
         name: "create_recordings",
         sql: include_str!("../../migrations/004_create_recordings.sql"),
+    },
+    Migration {
+        version: 4,
+        name: "create_sessions",
+        sql: include_str!("../../migrations/005_create_sessions.sql"),
     },
 ];
 

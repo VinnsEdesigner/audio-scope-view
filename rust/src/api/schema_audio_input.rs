@@ -95,11 +95,11 @@ impl AudioInputMutationRoot {
     async fn submit_audio(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
         input: AudioInput,
     ) -> AudioSubmitResult {
-        info!("AUDIO: Received {} samples at {}Hz for scope '{}'", 
-              input.samples.len(), input.sample_rate, scope_id);
+        info!("AUDIO: Received {} samples at {}Hz for session '{}'", 
+              input.samples.len(), input.sample_rate, session_id);
 
         // Validate input
         if input.samples.is_empty() {

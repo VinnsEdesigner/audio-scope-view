@@ -1,63 +1,51 @@
-//! Scope GraphQL schema
+//! Session GraphQL schema - Ephemeral canvas tracking
 
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 use chrono::Utc;
 
 use crate::api::context_extractor::GraphqlContext;
-use crate::domain::Scope;
+use crate::domain::Session;
 use crate::domain::trait_audio_capture::AudioCapture;
 use crate::infrastructure::audio_capture_mock::MockAudioCapture;
 
-/// Scope output type with recording count
+/// Session output type
 #[derive(Debug, SimpleObject)]
-pub struct ScopeOutput {
+pub struct SessionOutput {
     pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub is_active: bool,
-    pub sample_rate: u32,
-    pub buffer_size: u32,
-    pub created_at: String,
-    pub updated_at: String,
-    /// Number of recordings associated with this scope
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub duration_seconds: Option<i64>,
+    /// Number of recordings created during this session
     pub recording_count: i64,
 }
 
-impl ScopeOutput {
-    /// Create ScopeOutput from Scope without recording count
-    fn from_scope(scope: Scope) -> Self {
+impl SessionOutput {
+    /// Create SessionOutput from Session without recording count
+    fn from_session(session: Session) -> Self {
         Self {
-            id: scope.id,
-            name: scope.name,
-            description: scope.description,
-            is_active: scope.is_active,
-            sample_rate: scope.sample_rate,
-            buffer_size: scope.buffer_size,
-            created_at: scope.created_at.to_rfc3339(),
-            updated_at: scope.updated_at.to_rfc3339(),
+            id: session.id,
+            started_at: session.started_at.to_rfc3339(),
+            ended_at: session.ended_at.map(|dt| dt.to_rfc3339()),
+            duration_seconds: session.duration_seconds,
             recording_count: 0,
         }
     }
 
-    /// Create ScopeOutput from Scope with recording count
-    pub fn from_scope_with_count(scope: Scope, recording_count: u64) -> Self {
+    /// Create SessionOutput from Session with recording count
+    pub fn from_session_with_count(session: Session, recording_count: i64) -> Self {
         Self {
-            id: scope.id,
-            name: scope.name,
-            description: scope.description,
-            is_active: scope.is_active,
-            sample_rate: scope.sample_rate,
-            buffer_size: scope.buffer_size,
-            created_at: scope.created_at.to_rfc3339(),
-            updated_at: scope.updated_at.to_rfc3339(),
-            recording_count: recording_count as i64,
+            id: session.id,
+            started_at: session.started_at.to_rfc3339(),
+            ended_at: session.ended_at.map(|dt| dt.to_rfc3339()),
+            duration_seconds: session.duration_seconds,
+            recording_count,
         }
     }
 }
 
-impl From<Scope> for ScopeOutput {
-    fn from(scope: Scope) -> Self {
-        Self::from_scope(scope)
+impl From<Session> for SessionOutput {
+    fn from(session: Session) -> Self {
+        Self::from_session(session)
     }
 }
 
@@ -70,178 +58,123 @@ pub struct CaptureSettingsInput {
     pub duration_ms: Option<u32>, // Capture duration in ms, default 100
 }
 
-/// Scope query operations
+/// Session query operations
 #[derive(Default)]
-pub struct ScopeQuery;
+pub struct SessionQuery;
 
 #[Object]
-impl ScopeQuery {
-    /// Get all scopes with pagination and recording counts
-    async fn scopes(
+impl SessionQuery {
+    /// Get all sessions with pagination
+    async fn sessions(
         &self,
         ctx: &Context<'_>,
         limit: Option<i32>,
         offset: Option<i32>,
-    ) -> Vec<ScopeOutput> {
+    ) -> Vec<SessionOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
 
-        let scopes = context
-            .scope_service
+        let sessions = context
+            .session_service
             .list(limit, offset)
             .await
             .unwrap_or_default();
 
-        // Get recording counts for each scope
-        let mut results: Vec<ScopeOutput> = Vec::new();
-        for scope in scopes {
+        // Get recording counts for each session
+        let mut results: Vec<SessionOutput> = Vec::new();
+        for session in sessions {
             let count = context
                 .recording_service
-                .get_recording_count_for_scope(&scope.id)
+                .get_recording_count_for_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            results.push(ScopeOutput::from_scope_with_count(scope, count));
+            results.push(SessionOutput::from_session_with_count(session, count as i64));
         }
         results
     }
 
-    /// Get scope by ID with recording count
-    async fn scope(&self, ctx: &Context<'_>, id: String) -> Option<ScopeOutput> {
+    /// Get session by ID
+    async fn session(&self, ctx: &Context<'_>, id: String) -> Option<SessionOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        let scope = context
-            .scope_service
+        let session = context
+            .session_service
             .get(&id)
             .await
             .ok()
             .flatten()?;
-        
+
         let count = context
             .recording_service
-            .get_recording_count_for_scope(&scope.id)
+            .get_recording_count_for_scope(&session.id)
             .await
             .unwrap_or(0);
-        
-        Some(ScopeOutput::from_scope_with_count(scope, count))
+
+        Some(SessionOutput::from_session_with_count(session, count as i64))
     }
 
-    /// Get all active scopes with recording counts
-    async fn active_scopes(&self, ctx: &Context<'_>) -> Vec<ScopeOutput> {
+    /// Get total session count
+    async fn session_count(&self, ctx: &Context<'_>) -> i32 {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        let scopes = context
-            .scope_service
-            .get_active()
-            .await
-            .unwrap_or_default();
-
-        // Get recording counts for each scope
-        let mut results: Vec<ScopeOutput> = Vec::new();
-        for scope in scopes {
-            let count = context
-                .recording_service
-                .get_recording_count_for_scope(&scope.id)
-                .await
-                .unwrap_or(0);
-            results.push(ScopeOutput::from_scope_with_count(scope, count));
-        }
-        results
-    }
-
-    /// Get total scope count
-    async fn scope_count(&self, ctx: &Context<'_>) -> i32 {
-        let context = ctx
-            .data::<GraphqlContext>()
-            .expect("Missing GraphqlContext");
-        context.scope_service.count().await.unwrap_or(0) as i32
+        context.session_service.count().await.unwrap_or(0) as i32
     }
 }
 
-/// Scope mutation operations
+/// Session mutation operations
 #[derive(Default)]
-pub struct ScopeMutation;
+pub struct SessionMutation;
 
 #[Object]
-impl ScopeMutation {
-    /// Create a new scope
-    async fn create_scope(&self, ctx: &Context<'_>, name: String) -> ScopeOutput {
+impl SessionMutation {
+    /// Create a new session (auto-called when canvas opens)
+    async fn create_session(&self, ctx: &Context<'_>) -> SessionOutput {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
-            .scope_service
-            .create(name)
+            .session_service
+            .create_session()
             .await
-            .map(ScopeOutput::from)
+            .map(SessionOutput::from)
             .unwrap_or_else(|_| {
-                // Return a placeholder if creation fails
-                ScopeOutput {
+                SessionOutput {
                     id: uuid::Uuid::new_v4().to_string(),
-                    name: "New Scope".to_string(),
-                    description: None,
-                    is_active: true,
-                    sample_rate: 44100,
-                    buffer_size: 1024,
-                    created_at: chrono::Utc::now().to_rfc3339(),
-                    updated_at: chrono::Utc::now().to_rfc3339(),
+                    started_at: chrono::Utc::now().to_rfc3339(),
+                    ended_at: None,
+                    duration_seconds: None,
                     recording_count: 0,
                 }
             })
     }
 
-    /// Update a scope
-    #[allow(clippy::too_many_arguments)]
-    async fn update_scope(
-        &self,
-        ctx: &Context<'_>,
-        id: String,
-        name: Option<String>,
-        description: Option<String>,
-        sample_rate: Option<u32>,
-        buffer_size: Option<u32>,
-        is_active: Option<bool>,
-    ) -> Option<ScopeOutput> {
+    /// End a session
+    async fn end_session(&self, ctx: &Context<'_>, id: String) -> Option<SessionOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-
-        // Get existing scope
-        let mut scope = context.scope_service.get(&id).await.ok().flatten()?;
-
-        // Update fields
-        if let Some(n) = name {
-            scope.name = n;
-        }
-        if let Some(d) = description {
-            scope.description = Some(d);
-        }
-        if let Some(sr) = sample_rate {
-            scope.sample_rate = sr;
-        }
-        if let Some(bs) = buffer_size {
-            scope.buffer_size = bs;
-        }
-        if let Some(active) = is_active {
-            scope.is_active = active;
-        }
-        scope.updated_at = chrono::Utc::now();
-
-        // Save and return
-        context.scope_service.update(scope.clone()).await.ok()?;
-        Some(ScopeOutput::from(scope))
+        context.session_service.end_session(&id).await.ok().map(SessionOutput::from)
     }
 
-    /// Delete a scope
-    async fn delete_scope(&self, ctx: &Context<'_>, id: String) -> bool {
+    /// Heartbeat to keep session alive
+    async fn session_heartbeat(&self, ctx: &Context<'_>, id: String) -> bool {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        context.scope_service.delete(&id).await.is_ok()
+        context.session_service.heartbeat(&id).await.is_ok()
+    }
+
+    /// Delete a session
+    async fn delete_session(&self, ctx: &Context<'_>, id: String) -> bool {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
+        context.session_service.delete(&id).await.is_ok()
     }
 
     /// Capture audio and create a waveform
@@ -249,17 +182,17 @@ impl ScopeMutation {
     async fn capture(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
         settings: Option<CaptureSettingsInput>,
     ) -> Option<crate::api::schema_waveform::WaveformOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        // Get scope to verify it exists
-        let scope = context.scope_service.get(&scope_id).await.ok().flatten()?;
+        // Verify session exists
+        let _session = context.session_service.get(&session_id).await.ok().flatten()?;
 
-        // Get capture settings
+        // Default capture settings
         let capture_settings = settings.unwrap_or(CaptureSettingsInput {
             frequency: Some(440.0),
             amplitude: Some(0.5),
@@ -269,14 +202,15 @@ impl ScopeMutation {
 
         // Create mock audio capture with settings
         let mut capture = MockAudioCapture::new()
-            .with_sample_rate(scope.sample_rate)
+            .with_sample_rate(44100) // Default sample rate for session
             .with_frequency(capture_settings.frequency.unwrap_or(440.0))
             .with_amplitude(capture_settings.amplitude.unwrap_or(0.5))
             .with_noise(capture_settings.noise_level.unwrap_or(0.02));
 
         // Calculate number of samples
         let duration_ms = capture_settings.duration_ms.unwrap_or(100) as usize;
-        let num_samples = (scope.sample_rate as usize * duration_ms) / 1000;
+        let sample_rate = 44100u32;
+        let num_samples = (sample_rate as usize * duration_ms) / 1000;
         let mut buffer = vec![0.0f32; num_samples];
 
         // Start capture and read samples
@@ -290,7 +224,7 @@ impl ScopeMutation {
         // Create waveform
         let waveform = crate::domain::Waveform::new(
             uuid::Uuid::new_v4().to_string(),
-            scope_id,
+            session_id,
             buffer,
             Utc::now(),
         );

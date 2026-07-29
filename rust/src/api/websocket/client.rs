@@ -9,16 +9,16 @@ use uuid::Uuid;
 pub enum WsMessage {
     /// Subscribe to a scope's waveform stream
     #[serde(rename = "subscribe")]
-    Subscribe { scope_id: String },
+    Subscribe { session_id: String },
     /// Unsubscribe from a scope
     #[serde(rename = "unsubscribe")]
-    Unsubscribe { scope_id: String },
+    Unsubscribe { session_id: String },
     /// Request spectrum stream
     #[serde(rename = "subscribe_spectrum")]
-    SubscribeSpectrum { scope_id: String },
+    SubscribeSpectrum { session_id: String },
     /// Unsubscribe from spectrum
     #[serde(rename = "unsubscribe_spectrum")]
-    UnsubscribeSpectrum { scope_id: String },
+    UnsubscribeSpectrum { session_id: String },
     /// Ping/pong for keepalive
     #[serde(rename = "ping")]
     Ping,
@@ -40,14 +40,14 @@ pub enum WsMessage {
 pub enum OutgoingMessage {
     /// Waveform data (uncompressed)
     Waveform {
-        scope_id: String,
+        session_id: String,
         samples: Vec<f32>,
         timestamp: i64,
         sample_rate: u32,
     },
     /// Waveform data (LZ4 compressed)
     CompressedWaveform {
-        scope_id: String,
+        session_id: String,
         data: Vec<u8>,
         sample_count: usize,
         original_size: usize,
@@ -56,14 +56,14 @@ pub enum OutgoingMessage {
     },
     /// Spectrum data
     Spectrum {
-        scope_id: String,
+        session_id: String,
         frequencies: Vec<f32>,
         magnitudes: Vec<f32>,
         timestamp: i64,
     },
     /// Analysis results
     Analysis {
-        scope_id: String,
+        session_id: String,
         peak_amplitude: f32,
         rms_amplitude: f32,
         dominant_frequency: f32,
@@ -72,9 +72,9 @@ pub enum OutgoingMessage {
         timestamp: i64,
     },
     /// Subscription confirmed
-    Subscribed { scope_id: String, stream_type: String },
+    Subscribed { session_id: String, stream_type: String },
     /// Unsubscription confirmed
-    Unsubscribed { scope_id: String, stream_type: String },
+    Unsubscribed { session_id: String, stream_type: String },
     /// Pong response
     Pong,
     /// Error message
@@ -94,7 +94,7 @@ pub enum OutgoingMessage {
 /// Client connection state
 pub struct WsClient {
     pub id: String,
-    pub subscribed_scopes: Vec<String>,
+    pub subscribed_sessions: Vec<String>,
     pub subscribed_spectrum: Vec<String>,
     pub compression_enabled: bool,
 }
@@ -103,31 +103,31 @@ impl WsClient {
     pub fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
-            subscribed_scopes: Vec::new(),
+            subscribed_sessions: Vec::new(),
             subscribed_spectrum: Vec::new(),
             compression_enabled: false,
         }
     }
 
-    pub fn subscribe(&mut self, scope_id: &str) {
-        if !self.subscribed_scopes.contains(&scope_id.to_string()) {
-            self.subscribed_scopes.push(scope_id.to_string());
+    pub fn subscribe(&mut self, session_id: &str) {
+        if !self.subscribed_sessions.contains(&session_id.to_string()) {
+            self.subscribed_sessions.push(session_id.to_string());
         }
     }
 
-    pub fn unsubscribe(&mut self, scope_id: &str) {
-        self.subscribed_scopes.retain(|s| s != scope_id);
-        self.subscribed_spectrum.retain(|s| s != scope_id);
+    pub fn unsubscribe(&mut self, session_id: &str) {
+        self.subscribed_sessions.retain(|s| s != session_id);
+        self.subscribed_spectrum.retain(|s| s != session_id);
     }
 
-    pub fn subscribe_spectrum(&mut self, scope_id: &str) {
-        if !self.subscribed_spectrum.contains(&scope_id.to_string()) {
-            self.subscribed_spectrum.push(scope_id.to_string());
+    pub fn subscribe_spectrum(&mut self, session_id: &str) {
+        if !self.subscribed_spectrum.contains(&session_id.to_string()) {
+            self.subscribed_spectrum.push(session_id.to_string());
         }
     }
 
-    pub fn unsubscribe_spectrum(&mut self, scope_id: &str) {
-        self.subscribed_spectrum.retain(|s| s != scope_id);
+    pub fn unsubscribe_spectrum(&mut self, session_id: &str) {
+        self.subscribed_spectrum.retain(|s| s != session_id);
     }
 
     pub fn set_compression(&mut self, enabled: bool) {

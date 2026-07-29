@@ -9,7 +9,7 @@ use crate::domain::{Settings, TriggerEdge, TriggerMode};
 #[derive(Debug, SimpleObject)]
 pub struct SettingsOutput {
     pub id: String,
-    pub scope_id: String,
+    pub session_id: String,
     pub time_scale: f64,
     pub voltage_scale: f64,
     pub time_offset: f64,
@@ -29,7 +29,7 @@ impl From<Settings> for SettingsOutput {
     fn from(settings: Settings) -> Self {
         Self {
             id: settings.id,
-            scope_id: settings.scope_id,
+            session_id: settings.session_id,
             time_scale: settings.time_scale,
             voltage_scale: settings.voltage_scale,
             time_offset: settings.time_offset,
@@ -54,13 +54,13 @@ pub struct SettingsQuery;
 #[Object]
 impl SettingsQuery {
     /// Get settings by scope ID
-    async fn settings(&self, ctx: &Context<'_>, scope_id: String) -> Option<SettingsOutput> {
+    async fn settings(&self, ctx: &Context<'_>, session_id: String) -> Option<SettingsOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
             .settings_service
-            .get_by_scope(&scope_id)
+            .get_by_session(&session_id)
             .await
             .ok()
             .flatten()
@@ -75,13 +75,13 @@ pub struct SettingsMutation;
 #[Object]
 impl SettingsMutation {
     /// Create default settings for a scope
-    async fn create_settings(&self, ctx: &Context<'_>, scope_id: String) -> Option<SettingsOutput> {
+    async fn create_settings(&self, ctx: &Context<'_>, session_id: String) -> Option<SettingsOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
             .settings_service
-            .create_for_scope(&scope_id)
+            .create_for_session(&session_id)
             .await
             .ok()
             .map(SettingsOutput::from)
@@ -92,7 +92,7 @@ impl SettingsMutation {
     async fn update_settings(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
         time_scale: Option<f64>,
         voltage_scale: Option<f64>,
         trigger_level: Option<f64>,
@@ -109,7 +109,7 @@ impl SettingsMutation {
         // Get or create settings
         let mut settings = context
             .settings_service
-            .get_by_scope(&scope_id)
+            .get_by_session(&session_id)
             .await
             .ok()
             .flatten()?;
@@ -154,13 +154,13 @@ impl SettingsMutation {
     }
 
     /// Delete settings for a scope
-    async fn delete_settings(&self, ctx: &Context<'_>, scope_id: String) -> bool {
+    async fn delete_settings(&self, ctx: &Context<'_>, session_id: String) -> bool {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
             .settings_service
-            .delete_by_scope(&scope_id)
+            .delete_by_session(&session_id)
             .await
             .is_ok()
     }

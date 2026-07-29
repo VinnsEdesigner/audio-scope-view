@@ -47,7 +47,7 @@ impl From<ExportFormat> for AppExportFormat {
 
 #[derive(Debug, Clone, InputObject)]
 pub struct BatchCaptureInput {
-    pub scope_id: String,
+    pub session_id: String,
     pub count: u32,
     pub interval_ms: u64,
     pub sample_rate: u32,
@@ -175,7 +175,7 @@ impl BatchCaptureMutationRoot {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
         
         let settings = BatchCaptureSettings {
-            scope_id: input.scope_id,
+            session_id: input.session_id,
             count: input.count,
             interval_ms: input.interval_ms,
             sample_rate: input.sample_rate,

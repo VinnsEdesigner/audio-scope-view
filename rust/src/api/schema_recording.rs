@@ -3,14 +3,14 @@
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 
 use crate::api::context_extractor::GraphqlContext;
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, ScopeWithStatus, TimeRange};
+use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, SessionWithStatus, TimeRange};
 
 /// Recording output type (full data)
 #[derive(Debug, SimpleObject)]
 pub struct RecordingOutput {
     pub id: String,
-    pub scope_id: String,
-    pub scope_name: String,
+    pub session_id: String,
+    pub session_name: String,
     pub name: String,
     pub samples: Vec<f32>,
     pub sample_count: i32,
@@ -24,12 +24,12 @@ pub struct RecordingOutput {
 }
 
 impl RecordingOutput {
-    pub fn from_recording(recording: Recording, scope_name: String) -> Self {
+    pub fn from_recording(recording: Recording, session_name: String) -> Self {
         let sample_count = recording.samples.len() as i32;
         Self {
             id: recording.id,
-            scope_id: recording.scope_id,
-            scope_name,
+            session_id: recording.session_id,
+            session_name,
             name: recording.name,
             samples: recording.samples,
             sample_count,
@@ -48,8 +48,8 @@ impl RecordingOutput {
 #[derive(Debug, SimpleObject)]
 pub struct RecordingSummaryOutput {
     pub id: String,
-    pub scope_id: String,
-    pub scope_name: String,
+    pub session_id: String,
+    pub session_name: String,
     pub name: String,
     pub timestamp: String,
     pub duration_ms: f64,
@@ -58,11 +58,11 @@ pub struct RecordingSummaryOutput {
 }
 
 impl RecordingSummaryOutput {
-    pub fn from_recording(recording: Recording, scope_name: String) -> Self {
+    pub fn from_recording(recording: Recording, session_name: String) -> Self {
         Self {
             id: recording.id,
-            scope_id: recording.scope_id,
-            scope_name,
+            session_id: recording.session_id,
+            session_name,
             name: recording.name,
             timestamp: recording.timestamp.to_rfc3339(),
             duration_ms: recording.duration_ms,
@@ -71,11 +71,11 @@ impl RecordingSummaryOutput {
         }
     }
     
-    pub fn from_summary(summary: RecordingSummary, scope_name: String) -> Self {
+    pub fn from_summary(summary: RecordingSummary, session_name: String) -> Self {
         Self {
             id: summary.id,
-            scope_id: summary.scope_id,
-            scope_name,
+            session_id: summary.session_id,
+            session_name,
             name: summary.name,
             timestamp: summary.timestamp.to_rfc3339(),
             duration_ms: summary.duration_ms,
@@ -107,7 +107,7 @@ impl From<RecordingStats> for RecordingStatsOutput {
 
 /// Scope with status output for home page
 #[derive(Debug, SimpleObject)]
-pub struct ScopeWithStatusOutput {
+pub struct SessionWithStatusOutput {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
@@ -120,24 +120,24 @@ pub struct ScopeWithStatusOutput {
     pub recording_count: i64,
 }
 
-impl From<ScopeWithStatus> for ScopeWithStatusOutput {
-    fn from(scope: ScopeWithStatus) -> Self {
-        let status_str = match scope.status {
+impl From<SessionWithStatus> for SessionWithStatusOutput {
+    fn from(session: SessionWithStatus) -> Self {
+        let status_str = match session.status {
             ScopeStatus::Live => "live",
             ScopeStatus::Paused => "paused",
             ScopeStatus::Offline => "offline",
         };
         Self {
-            id: scope.id,
-            name: scope.name,
-            description: scope.description,
+            id: session.id,
+            name: session.name,
+            description: session.description,
             status: status_str.to_string(),
-            sample_rate: scope.sample_rate as i32,
-            buffer_size: scope.buffer_size as i32,
-            created_at: scope.created_at.to_rfc3339(),
-            updated_at: scope.updated_at.to_rfc3339(),
-            last_activity_at: scope.last_activity_at.map(|dt| dt.to_rfc3339()),
-            recording_count: scope.recording_count as i64,
+            sample_rate: session.sample_rate as i32,
+            buffer_size: session.buffer_size as i32,
+            created_at: session.created_at.to_rfc3339(),
+            updated_at: session.updated_at.to_rfc3339(),
+            last_activity_at: session.last_activity_at.map(|dt| dt.to_rfc3339()),
+            recording_count: session.recording_count as i64,
         }
     }
 }
@@ -161,8 +161,8 @@ pub struct RecordingListResultOutput {
 
 /// Scope list result output
 #[derive(Debug, SimpleObject)]
-pub struct ScopeListResultOutput {
-    pub scopes: Vec<ScopeWithStatusOutput>,
+pub struct SessionListResultOutput {
+    pub sessions: Vec<SessionWithStatusOutput>,
     pub total: i64,
     pub has_more: bool,
 }
@@ -170,7 +170,7 @@ pub struct ScopeListResultOutput {
 /// Input for recording filters
 #[derive(Debug, InputObject)]
 pub struct RecordingFilterInput {
-    pub scope_id: Option<String>,
+    pub session_id: Option<String>,
     pub time_range: Option<String>, // "today", "last_week", "last_month", "all_time"
     pub is_pinned: Option<bool>,
     pub search_query: Option<String>,
@@ -179,7 +179,7 @@ pub struct RecordingFilterInput {
 /// Input for creating a recording
 #[derive(Debug, InputObject)]
 pub struct CreateRecordingInput {
-    pub scope_id: String,
+    pub session_id: String,
     pub name: String,
     pub samples: Vec<f32>,
 }
@@ -201,11 +201,9 @@ impl RecordingQuery {
     async fn recording(&self, ctx: &Context<'_>, id: String) -> Option<RecordingOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let recording = context.recording_service.get(&id).await.ok().flatten()?;
-        let scope_name = context.scope_service.get(&recording.scope_id).await
-            .ok().flatten()
-            .map(|s| s.name)
-            .unwrap_or_else(|| "Unknown".to_string());
-        Some(RecordingOutput::from_recording(recording, scope_name))
+        // Since scopes are deprecated, use a placeholder name
+        let session_name = "Recording".to_string();
+        Some(RecordingOutput::from_recording(recording, session_name))
     }
 
     /// Get recordings with filters
@@ -229,7 +227,7 @@ impl RecordingQuery {
                 _ => TimeRange::AllTime,
             });
             RecordingFilter {
-                scope_id: f.scope_id,
+                session_id: f.session_id,
                 time_range,
                 is_pinned: f.is_pinned,
                 search_query: f.search_query,
@@ -244,15 +242,11 @@ impl RecordingQuery {
             .await
             .unwrap_or_default();
 
-        // Get scope names for recordings
-        let mut recordings_output = Vec::new();
-        for summary in result.0 {
-            let scope_name = context.scope_service.get(&summary.scope_id).await
-                .ok().flatten()
-                .map(|s| s.name)
-                .unwrap_or_else(|| "Unknown".to_string());
-            recordings_output.push(RecordingSummaryOutput::from_summary(summary, scope_name));
-        }
+        // Since scopes are deprecated, use a placeholder for all recordings
+        let recordings_output = result.0
+            .into_iter()
+            .map(|summary| RecordingSummaryOutput::from_summary(summary, "Recording".to_string()))
+            .collect();
 
         RecordingListResultOutput {
             recordings: recordings_output,
@@ -276,23 +270,18 @@ impl RecordingQuery {
             .await
             .unwrap_or_default();
 
-        // Get scope names for recordings
-        let mut result = Vec::new();
-        for summary in recordings {
-            let scope_name = context.scope_service.get(&summary.scope_id).await
-                .ok().flatten()
-                .map(|s| s.name)
-                .unwrap_or_else(|| "Unknown".to_string());
-            result.push(RecordingSummaryOutput::from_summary(summary, scope_name));
-        }
-        result
+        // Since scopes are deprecated, use a placeholder for all recordings
+        recordings
+            .into_iter()
+            .map(|summary| RecordingSummaryOutput::from_summary(summary, "Recording".to_string()))
+            .collect()
     }
 
     /// Get recording statistics
     async fn recording_stats(
         &self,
         ctx: &Context<'_>,
-        scope_id: Option<String>,
+        session_id: Option<String>,
         time_range: Option<String>,
     ) -> RecordingStatsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
@@ -306,7 +295,7 @@ impl RecordingQuery {
 
         context
             .recording_service
-            .get_stats(scope_id.as_deref(), range)
+            .get_stats(session_id.as_deref(), range)
             .await
             .map(RecordingStatsOutput::from)
             .unwrap_or(RecordingStatsOutput {
@@ -323,22 +312,22 @@ impl RecordingQuery {
         ctx: &Context<'_>,
         limit: Option<i32>,
         offset: Option<i32>,
-    ) -> ScopeListResultOutput {
+    ) -> SessionListResultOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
 
         context
             .recording_service
-            .get_scopes_with_status(limit, offset)
+            .get_sessions_with_status(limit, offset)
             .await
-            .map(|(scopes, total, has_more)| ScopeListResultOutput {
-                scopes: scopes.into_iter().map(ScopeWithStatusOutput::from).collect(),
+            .map(|(sessions, total, has_more)| SessionListResultOutput {
+                sessions: sessions.into_iter().map(SessionWithStatusOutput::from).collect(),
                 total: total as i64,
                 has_more,
             })
-            .unwrap_or(ScopeListResultOutput {
-                scopes: vec![],
+            .unwrap_or(SessionListResultOutput {
+                sessions: vec![],
                 total: 0,
                 has_more: false,
             })
@@ -348,22 +337,22 @@ impl RecordingQuery {
     async fn active_scopes_with_status(
         &self,
         ctx: &Context<'_>,
-    ) -> Vec<ScopeWithStatusOutput> {
+    ) -> Vec<SessionWithStatusOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         context
             .recording_service
-            .get_active_scopes_with_status()
+            .get_active_sessions_with_status()
             .await
             .unwrap_or_default()
             .into_iter()
-            .map(ScopeWithStatusOutput::from)
+            .map(SessionWithStatusOutput::from)
             .collect()
     }
 
     /// Get scope status counts
     async fn scope_status_counts(&self, ctx: &Context<'_>) -> ScopeStatusCountsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
-        let counts = context.recording_service.get_scope_status_counts().await;
+        let counts = context.recording_service.get_session_status_counts().await;
         let total = counts.live + counts.paused + counts.offline;
         ScopeStatusCountsOutput {
             live_count: counts.live as i64,
@@ -377,12 +366,12 @@ impl RecordingQuery {
     async fn recording_count_by_range(
         &self,
         ctx: &Context<'_>,
-        scope_id: Option<String>,
+        session_id: Option<String>,
     ) -> RecordingStatsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         context
             .recording_service
-            .get_recording_count_by_range(scope_id.as_deref())
+            .get_recording_count_by_range(session_id.as_deref())
             .await
             .map(RecordingStatsOutput::from)
             .unwrap_or(RecordingStatsOutput {
@@ -410,18 +399,15 @@ impl RecordingMutation {
 
         let recording = Recording::new(
             uuid::Uuid::new_v4().to_string(),
-            input.scope_id.clone(),
+            input.session_id.clone(),
             input.name.clone(),
             input.samples,
             44100, // Default sample rate
         );
 
         let saved = context.recording_service.save(recording).await.ok()?;
-        let scope_name = context.scope_service.get(&input.scope_id).await
-            .ok().flatten()
-            .map(|s| s.name)
-            .unwrap_or_else(|| "Unknown".to_string());
-        Some(RecordingOutput::from_recording(saved, scope_name))
+        // Since scopes are deprecated, use a placeholder name
+        Some(RecordingOutput::from_recording(saved, "Recording".to_string()))
     }
 
     /// Rename a recording
@@ -433,22 +419,16 @@ impl RecordingMutation {
     ) -> Option<RecordingOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let recording = context.recording_service.rename(&id, &name).await.ok()??;
-        let scope_name = context.scope_service.get(&recording.scope_id).await
-            .ok().flatten()
-            .map(|s| s.name)
-            .unwrap_or_else(|| "Unknown".to_string());
-        Some(RecordingOutput::from_recording(recording, scope_name))
+        // Since scopes are deprecated, use a placeholder name
+        Some(RecordingOutput::from_recording(recording, "Recording".to_string()))
     }
 
     /// Toggle recording pin status
     async fn pin_recording(&self, ctx: &Context<'_>, id: String) -> Option<RecordingOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let recording = context.recording_service.toggle_pin(&id).await.ok()??;
-        let scope_name = context.scope_service.get(&recording.scope_id).await
-            .ok().flatten()
-            .map(|s| s.name)
-            .unwrap_or_else(|| "Unknown".to_string());
-        Some(RecordingOutput::from_recording(recording, scope_name))
+        // Since scopes are deprecated, use a placeholder name
+        Some(RecordingOutput::from_recording(recording, "Recording".to_string()))
     }
 
     /// Delete a recording

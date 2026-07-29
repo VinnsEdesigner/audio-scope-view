@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApolloProvider } from "@apollo/client";
 import { Outlet } from "react-router-dom";
 import { useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
@@ -6,6 +7,8 @@ import { TamaguiProvider, Theme, YStack } from "tamagui";
 import { useEffect } from "react";
 import { TopNav } from "./components/layout/top-nav";
 import { ToastProvider } from "./components/ui/toast";
+import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
+import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,18 +75,24 @@ function ThemedApp() {
 }
 
 export function Root() {
+  // ApolloProvider requires ApolloClient<NormalizedCacheObject>, but due to version
+  // mismatches in the monorepo we need to cast
+  const apolloClient = graphqlClient as unknown as ApolloClient<NormalizedCacheObject>;
+
   return (
-    <TamaguiProvider config={tamaguiConfig}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
-      />
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <ThemedApp />
-        </ToastProvider>
-      </QueryClientProvider>
-    </TamaguiProvider>
+    <ApolloProvider client={apolloClient}>
+      <TamaguiProvider config={tamaguiConfig}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
+        />
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <ThemedApp />
+          </ToastProvider>
+        </QueryClientProvider>
+      </TamaguiProvider>
+    </ApolloProvider>
   );
 }
 

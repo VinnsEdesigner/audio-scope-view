@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileAudio,
+  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -24,6 +25,7 @@ import {
   formatTimestampRelative,
 } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
+import { CreateScopeDialog } from "../components/dialogs/create-scope-dialog";
 import { useToast } from "@/hooks";
 
 export function Home(): React.ReactElement {
@@ -31,6 +33,7 @@ export function Home(): React.ReactElement {
   const { showToast } = useToast();
 
   const [isMicDialogOpen, setIsMicDialogOpen] = React.useState(false);
+  const [isCreateScopeDialogOpen, setIsCreateScopeDialogOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"recordings" | "scopes">("recordings");
   const [timeFilter, setTimeFilter] = React.useState<"all" | "today" | "week" | "month">("all");
   const [showAllScopes, setShowAllScopes] = React.useState(false);

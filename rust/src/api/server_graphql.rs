@@ -24,7 +24,7 @@ use crate::api::auth::{ApiKey, ApiKeyStore};
 use crate::api::context_extractor::GraphqlContext;
 use crate::api::schema_root::build_schema;
 use crate::api::websocket::handler::WsState;
-use crate::application::{BatchCaptureService, DashboardService, RecordingService, ScopeService, SettingsService, SimulationService, WaveformService};
+use crate::application::{BatchCaptureService, DashboardService, RecordingService, SessionService, SettingsService, SimulationService, WaveformService};
 use crate::shared::constants::{GRAPHQL_PATH, GRAPHQL_PLAYGROUND_PATH, HEALTH_PATH};
 
 /// Authentication info passed to resolvers
@@ -97,7 +97,7 @@ fn verify_bootstrap_key(provided_key: &str, expected_hash: &[u8; 32]) -> bool {
 impl AppState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        scope_service: Arc<ScopeService>,
+        session_service: Arc<SessionService>,
         settings_service: Arc<SettingsService>,
         dashboard_service: Arc<DashboardService>,
         waveform_service: Arc<WaveformService>,
@@ -108,7 +108,7 @@ impl AppState {
         key_store: Arc<ApiKeyStore>,
     ) -> Self {
         let context = GraphqlContext::new(
-            scope_service,
+            session_service,
             settings_service,
             dashboard_service,
             waveform_service,

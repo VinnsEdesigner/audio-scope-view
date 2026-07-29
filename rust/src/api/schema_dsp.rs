@@ -456,11 +456,11 @@ impl DspMutationRoot {
     async fn process_audio(
         &self,
         _ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
         input: crate::api::schema_audio_input::AudioInput,
     ) -> FullDspResult {
-        info!("DSP: Full processing for scope '{}' - {} samples at {}Hz", 
-              scope_id, input.samples.len(), input.sample_rate);
+        info!("DSP: Full processing for session '{}' - {} samples at {}Hz", 
+              session_id, input.samples.len(), input.sample_rate);
         
         let sample_rate = input.sample_rate as u32;
         let sample_rate_f = sample_rate as f32;
@@ -468,7 +468,7 @@ impl DspMutationRoot {
         // Create waveform for spectrogram
         let waveform = Waveform::new(
             uuid::Uuid::new_v4().to_string(),
-            scope_id.clone(),
+            session_id.clone(),
             input.samples.clone(),
             Utc::now(),
         );

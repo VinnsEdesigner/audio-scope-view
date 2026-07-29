@@ -21,10 +21,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use api::auth::ApiKeyStore;
 use api::server_graphql::{AppState, start_server};
 use api::schema_subscription::{AudioStats, SpectrumData, WaveformData};
-use application::{BatchCaptureService, DashboardService, RecordingService, ScopeService, SettingsService, SimulationService, WaveformService};
+use application::{BatchCaptureService, DashboardService, RecordingService, SessionService, SettingsService, SimulationService, WaveformService};
 use infrastructure::{
     config_loader::AppConfig, database_connection::DatabaseConnection,
-    database_migrations::run_migrations, repo_sqlite_scope::SqliteScopeRepository,
+    database_migrations::run_migrations, repo_sqlite_session::SqliteSessionRepository,
     repo_sqlite_settings::SqliteSettingsRepository, repo_sqlite_waveform::SqliteWaveformRepository,
     repo_sqlite_recording::SqliteRecordingRepository,
     AudioStreamEvent, AudioStreamManager,
@@ -38,7 +38,7 @@ async fn audio_event_processor(
     while let Some(event) = event_receiver.recv().await {
         match event {
             AudioStreamEvent::Waveform { 
-                scope_id, 
+                session_id, 
                 samples, 
                 timestamp_ms, 
                 sample_rate 
@@ -48,7 +48,7 @@ async fn audio_event_processor(
                 let rms = (samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
                 
                 let waveform_data = WaveformData {
-                    scope_id: scope_id.clone(),
+                    session_id: session_id.clone(),
                     samples: samples.clone(),
                     timestamp: timestamp_ms,
                     sample_rate,
@@ -57,35 +57,35 @@ async fn audio_event_processor(
                 };
                 
                 // Broadcast to GraphQL subscribers (waveform_subscribe)
-                ws_state.broadcast_to_graphql_waveform(&scope_id, waveform_data).await;
+                ws_state.broadcast_to_graphql_waveform(&session_id, waveform_data).await;
             }
             AudioStreamEvent::Spectrum { 
-                scope_id, 
+                session_id, 
                 frequencies, 
                 magnitudes, 
                 timestamp_ms 
             } => {
                 let spectrum_data = SpectrumData {
-                    scope_id: scope_id.clone(),
+                    session_id: session_id.clone(),
                     frequencies,
                     magnitudes: magnitudes.clone(),
                     timestamp: timestamp_ms,
                 };
                 
                 // Broadcast to GraphQL subscribers
-                ws_state.broadcast_to_graphql_spectrum(&scope_id, spectrum_data).await;
+                ws_state.broadcast_to_graphql_spectrum(&session_id, spectrum_data).await;
             }
-            AudioStreamEvent::DeviceDisconnected { scope_id, reason } => {
-                warn!("Audio device disconnected for scope {}: {}", scope_id, reason);
+            AudioStreamEvent::DeviceDisconnected { session_id, reason } => {
+                warn!("Audio device disconnected for scope {}: {}", session_id, reason);
             }
-            AudioStreamEvent::Error { scope_id, message } => {
-                error!("Audio error for scope {}: {}", scope_id, message);
+            AudioStreamEvent::Error { session_id, message } => {
+                error!("Audio error for scope {}: {}", session_id, message);
             }
-            AudioStreamEvent::CaptureStarted { scope_id, sample_rate } => {
-                info!("Capture started for scope {} at {} Hz", scope_id, sample_rate);
+            AudioStreamEvent::CaptureStarted { session_id, sample_rate } => {
+                info!("Capture started for scope {} at {} Hz", session_id, sample_rate);
             }
-            AudioStreamEvent::CaptureStopped { scope_id } => {
-                info!("Capture stopped for scope {}", scope_id);
+            AudioStreamEvent::CaptureStopped { session_id } => {
+                info!("Capture stopped for scope {}", session_id);
             }
         }
     }
@@ -104,10 +104,10 @@ async fn stats_reporter(
     loop {
         ticker.tick().await;
         
-        let active_scopes = stream_manager.active_scopes();
+        let active_sessions = stream_manager.active_sessions();
         
-        for scope_id in active_scopes {
-            if let Some(stats) = stream_manager.get_scope_stats(&scope_id) {
+        for session_id in active_sessions {
+            if let Some(stats) = stream_manager.get_session_stats(&session_id) {
                 // Calculate samples per second from captured samples and duration
                 let samples_per_second = stats.samples_captured
                     .checked_mul(1000)
@@ -115,7 +115,7 @@ async fn stats_reporter(
                     .unwrap_or(0) as u32;
                 
                 let audio_stats = AudioStats {
-                    scope_id: scope_id.clone(),
+                    session_id: session_id.clone(),
                     samples_per_second,
                     dropped_samples: stats.errors, // Use errors as proxy for dropped
                     buffer_fill_percent: 0.0, // Not tracked in StreamStats
@@ -123,7 +123,7 @@ async fn stats_reporter(
                     is_capturing: stream_manager.is_any_capturing(),
                 };
                 
-                ws_state.broadcast_to_graphql_stats(&scope_id, audio_stats).await;
+                ws_state.broadcast_to_graphql_stats(&session_id, audio_stats).await;
             }
         }
     }
@@ -161,13 +161,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     run_migrations(db.pool()).await?;
 
     // Create repositories
-    let scope_repo = Arc::new(SqliteScopeRepository::new(db.pool().clone()));
+    let scope_repo = Arc::new(SqliteSessionRepository::new(db.pool().clone()));
     let settings_repo = Arc::new(SqliteSettingsRepository::new(db.pool().clone()));
     let waveform_repo = Arc::new(SqliteWaveformRepository::new(db.pool().clone()));
     let recording_repo = Arc::new(SqliteRecordingRepository::new(db.pool().clone()));
 
     // Create services
-    let scope_service = Arc::new(ScopeService::new(scope_repo.clone()));
+    let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
     let settings_service = Arc::new(SettingsService::new(
         settings_repo.clone(),
         scope_repo.clone(),

@@ -1,70 +1,47 @@
 #![allow(dead_code)]
-//! Scope entity - Core domain entity for audio scope
+//! Session entity - Ephemeral record of a live canvas instance
 
 use chrono::{DateTime, Utc};
 
-/// Scope entity representing an audio oscilloscope instance
+/// Session entity representing an ephemeral oscilloscope canvas instance
+/// Sessions are auto-created when canvas opens and auto-saved after ~1 minute
 #[derive(Debug, Clone, PartialEq)]
-pub struct Scope {
+pub struct Session {
     pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub sample_rate: u32,
-    pub buffer_size: u32,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub user_id: Option<String>,
+    pub started_at: DateTime<Utc>,
+    pub ended_at: Option<DateTime<Utc>>,
+    pub duration_seconds: Option<i64>,
 }
 
-impl Scope {
-    /// Create a new Scope with required fields
-    pub fn new(id: String, name: String) -> Self {
-        let now = Utc::now();
+impl Session {
+    /// Create a new Session
+    pub fn new(id: String) -> Self {
         Self {
             id,
-            name,
-            description: None,
-            sample_rate: 44100,
-            buffer_size: 1024,
-            is_active: true,
-            created_at: now,
-            updated_at: now,
+            user_id: None,
+            started_at: Utc::now(),
+            ended_at: None,
+            duration_seconds: None,
         }
     }
 
-    /// Set the sample rate
-    pub fn with_sample_rate(mut self, sample_rate: u32) -> Self {
-        self.sample_rate = sample_rate;
+    /// Set the user ID
+    pub fn with_user_id(mut self, user_id: String) -> Self {
+        self.user_id = Some(user_id);
         self
     }
 
-    /// Set the buffer size
-    pub fn with_buffer_size(mut self, buffer_size: u32) -> Self {
-        self.buffer_size = buffer_size;
-        self
+    /// End the session and calculate duration
+    pub fn end(&mut self) {
+        let now = Utc::now();
+        self.ended_at = Some(now);
+        self.duration_seconds = Some((now - self.started_at).num_seconds());
     }
 
-    /// Set the description
-    pub fn with_description(mut self, description: Option<String>) -> Self {
-        self.description = description;
-        self
-    }
-
-    /// Calculate the duration of one buffer in milliseconds
-    pub fn buffer_duration_ms(&self) -> f64 {
-        (self.buffer_size as f64 / self.sample_rate as f64) * 1000.0
-    }
-
-    /// Deactivate the scope
-    pub fn deactivate(&mut self) {
-        self.is_active = false;
-        self.updated_at = Utc::now();
-    }
-
-    /// Activate the scope
-    pub fn activate(&mut self) {
-        self.is_active = true;
-        self.updated_at = Utc::now();
+    /// Check if session is still active (not ended)
+    pub fn is_active(&self) -> bool {
+        self.ended_at.is_none()
     }
 }
 
@@ -73,23 +50,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_scope() {
-        let scope = Scope::new("scope-1".to_string(), "Test Scope".to_string());
+    fn test_new_session() {
+        let session = Session::new("session-1".to_string());
 
-        assert_eq!(scope.id, "scope-1");
-        assert_eq!(scope.name, "Test Scope");
-        assert!(scope.is_active);
-        assert_eq!(scope.sample_rate, 44100);
-        assert_eq!(scope.buffer_size, 1024);
+        assert_eq!(session.id, "session-1");
+        assert!(session.user_id.is_none());
+        assert!(session.ended_at.is_none());
+        assert!(session.is_active());
     }
 
     #[test]
-    fn test_buffer_duration() {
-        let scope = Scope::new("scope-1".to_string(), "Test".to_string())
-            .with_sample_rate(44100)
-            .with_buffer_size(4410);
+    fn test_end_session() {
+        let mut session = Session::new("session-1".to_string());
+        assert!(session.is_active());
 
-        // 4410 samples / 44100 Hz = 0.1 seconds = 100 ms
-        assert!((scope.buffer_duration_ms() - 100.0).abs() < 0.01);
+        session.end();
+
+        assert!(!session.is_active());
+        assert!(session.ended_at.is_some());
+        assert!(session.duration_seconds.is_some());
     }
 }

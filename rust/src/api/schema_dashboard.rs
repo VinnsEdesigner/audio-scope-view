@@ -10,14 +10,14 @@ use crate::domain::valueobject_timerange::TimeRange;
 pub struct DashboardSummaryOutput {
     pub time_range: String,
     pub generated_at: String,
-    pub total_scopes: i32,
-    pub active_scopes: i32,
+    pub total_sessions: i32,
+    pub active_sessions: i32,
     pub total_captures: i64,
     pub total_waveforms: i64,
     pub total_samples: i64,
     pub average_peak_amplitude: f32,
     pub average_rms_amplitude: f32,
-    pub recent_scopes: Vec<RecentScopeOutput>,
+    pub recent_sessions: Vec<RecentScopeOutput>,
 }
 
 /// Recent scope output
@@ -58,15 +58,15 @@ impl DashboardQuery {
         Some(DashboardSummaryOutput {
             time_range: summary.time_range.to_string(),
             generated_at: summary.generated_at.to_rfc3339(),
-            total_scopes: summary.total_scopes as i32,
-            active_scopes: summary.active_scopes as i32,
+            total_sessions: summary.total_sessions as i32,
+            active_sessions: summary.active_sessions as i32,
             total_captures: summary.total_captures as i64,
             total_waveforms: summary.total_waveforms as i64,
             total_samples: summary.total_samples as i64,
             average_peak_amplitude: summary.average_peak_amplitude,
             average_rms_amplitude: summary.average_rms_amplitude,
-            recent_scopes: summary
-                .recent_scopes
+            recent_sessions: summary
+                .recent_sessions
                 .into_iter()
                 .map(|rs| RecentScopeOutput {
                     id: rs.id,
@@ -79,7 +79,7 @@ impl DashboardQuery {
     }
 
     /// Get recent scopes
-    async fn recent_scopes(&self, ctx: &Context<'_>, limit: Option<i32>) -> Vec<RecentScopeOutput> {
+    async fn recent_sessions(&self, ctx: &Context<'_>, limit: Option<i32>) -> Vec<RecentScopeOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
@@ -87,7 +87,7 @@ impl DashboardQuery {
 
         context
             .dashboard_service
-            .get_recent_scopes(limit)
+            .get_recent_sessions(limit)
             .await
             .map(|scopes| {
                 scopes

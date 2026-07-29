@@ -50,7 +50,7 @@ pub struct ClientConnection {
     /// Channel to send messages to client
     pub sender: mpsc::Sender<OutgoingMessage>,
     /// Subscribed waveform scope IDs
-    pub subscribed_scopes: Vec<String>,
+    pub subscribed_sessions: Vec<String>,
     /// Subscribed spectrum scope IDs
     pub subscribed_spectrum: Vec<String>,
     /// Whether compression is enabled for this client
@@ -64,19 +64,19 @@ impl ClientConnection {
         Self {
             id,
             sender,
-            subscribed_scopes: Vec::new(),
+            subscribed_sessions: Vec::new(),
             subscribed_spectrum: Vec::new(),
             compression_enabled: false,
             connected_at: chrono::Utc::now(),
         }
     }
 
-    fn is_subscribed_to_waveform(&self, scope_id: &str) -> bool {
-        self.subscribed_scopes.iter().any(|s| s == scope_id)
+    fn is_subscribed_to_waveform(&self, session_id: &str) -> bool {
+        self.subscribed_sessions.iter().any(|s| s == session_id)
     }
 
-    fn is_subscribed_to_spectrum(&self, scope_id: &str) -> bool {
-        self.subscribed_spectrum.iter().any(|s| s == scope_id)
+    fn is_subscribed_to_spectrum(&self, session_id: &str) -> bool {
+        self.subscribed_spectrum.iter().any(|s| s == session_id)
     }
 }
 
@@ -141,10 +141,10 @@ impl WsState {
     }
 
     /// Broadcast to GraphQL waveform subscribers for a specific scope
-    pub async fn broadcast_to_graphql_waveform(&self, scope_id: &str, data: crate::api::schema_subscription::WaveformData) {
+    pub async fn broadcast_to_graphql_waveform(&self, session_id: &str, data: crate::api::schema_subscription::WaveformData) {
         // Broadcast to scope-specific subscribers
         let subscribers = self.waveform_subscribers.read().await;
-        if let Some(tx) = subscribers.get(scope_id) {
+        if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data.clone());
         }
         drop(subscribers);
@@ -157,17 +157,17 @@ impl WsState {
     }
 
     /// Broadcast to GraphQL spectrum subscribers for a specific scope
-    pub async fn broadcast_to_graphql_spectrum(&self, scope_id: &str, data: crate::api::schema_subscription::SpectrumData) {
+    pub async fn broadcast_to_graphql_spectrum(&self, session_id: &str, data: crate::api::schema_subscription::SpectrumData) {
         let subscribers = self.spectrum_subscribers.read().await;
-        if let Some(tx) = subscribers.get(scope_id) {
+        if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data);
         }
     }
 
     /// Broadcast to GraphQL stats subscribers for a specific scope
-    pub async fn broadcast_to_graphql_stats(&self, scope_id: &str, data: crate::api::schema_subscription::AudioStats) {
+    pub async fn broadcast_to_graphql_stats(&self, session_id: &str, data: crate::api::schema_subscription::AudioStats) {
         let subscribers = self.stats_subscribers.read().await;
-        if let Some(tx) = subscribers.get(scope_id) {
+        if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data);
         }
     }
@@ -337,78 +337,78 @@ async fn handle_client_message(
     sender: &mpsc::Sender<OutgoingMessage>,
 ) {
     match msg {
-        WsMessage::Subscribe { scope_id } => {
-            let scope_id_clone = scope_id.clone();
+        WsMessage::Subscribe { session_id } => {
+            let session_id_clone = session_id.clone();
             // Update client subscription
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(client_id)
-                    && !client.subscribed_scopes.contains(&scope_id) {
-                        client.subscribed_scopes.push(scope_id);
+                    && !client.subscribed_sessions.contains(&session_id) {
+                        client.subscribed_sessions.push(session_id);
                     }
             }
             
             let response = OutgoingMessage::Subscribed {
-                scope_id: scope_id_clone.clone(),
+                session_id: session_id_clone.clone(),
                 stream_type: "waveform".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} subscribed to waveform: {}", client_id, scope_id_clone);
+            debug!("Client {} subscribed to waveform: {}", client_id, session_id_clone);
         }
         
-        WsMessage::Unsubscribe { scope_id } => {
-            let scope_id_clone = scope_id.clone();
+        WsMessage::Unsubscribe { session_id } => {
+            let session_id_clone = session_id.clone();
             // Update client subscription
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(client_id) {
-                    client.subscribed_scopes.retain(|s| s != &scope_id);
+                    client.subscribed_sessions.retain(|s| s != &session_id);
                 }
             }
             
             let response = OutgoingMessage::Unsubscribed {
-                scope_id: scope_id_clone.clone(),
+                session_id: session_id_clone.clone(),
                 stream_type: "waveform".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} unsubscribed from waveform: {}", client_id, scope_id_clone);
+            debug!("Client {} unsubscribed from waveform: {}", client_id, session_id_clone);
         }
         
-        WsMessage::SubscribeSpectrum { scope_id } => {
-            let scope_id_clone = scope_id.clone();
+        WsMessage::SubscribeSpectrum { session_id } => {
+            let session_id_clone = session_id.clone();
             // Update client subscription
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(client_id)
-                    && !client.subscribed_spectrum.contains(&scope_id) {
-                        client.subscribed_spectrum.push(scope_id);
+                    && !client.subscribed_spectrum.contains(&session_id) {
+                        client.subscribed_spectrum.push(session_id);
                     }
             }
             
             let response = OutgoingMessage::Subscribed {
-                scope_id: scope_id_clone.clone(),
+                session_id: session_id_clone.clone(),
                 stream_type: "spectrum".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} subscribed to spectrum: {}", client_id, scope_id_clone);
+            debug!("Client {} subscribed to spectrum: {}", client_id, session_id_clone);
         }
         
-        WsMessage::UnsubscribeSpectrum { scope_id } => {
-            let scope_id_clone = scope_id.clone();
+        WsMessage::UnsubscribeSpectrum { session_id } => {
+            let session_id_clone = session_id.clone();
             // Update client subscription
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(client_id) {
-                    client.subscribed_spectrum.retain(|s| s != &scope_id);
+                    client.subscribed_spectrum.retain(|s| s != &session_id);
                 }
             }
             
             let response = OutgoingMessage::Unsubscribed {
-                scope_id: scope_id_clone.clone(),
+                session_id: session_id_clone.clone(),
                 stream_type: "spectrum".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} unsubscribed from spectrum: {}", client_id, scope_id_clone);
+            debug!("Client {} unsubscribed from spectrum: {}", client_id, session_id_clone);
         }
         
         WsMessage::Ping => {
@@ -456,13 +456,13 @@ pub fn create_ws_router(state: Arc<WsState>) -> Router {
 /// Broadcast waveform to only subscribed clients (production-ready filtering)
 pub async fn broadcast_waveform(
     state: &Arc<WsState>,
-    scope_id: &str,
+    session_id: &str,
     samples: Vec<f32>,
     timestamp: i64,
     sample_rate: u32,
 ) {
     let config = &state.config;
-    let scope_id_owned = scope_id.to_string();
+    let session_id_owned = session_id.to_string();
     
     // Compress if enabled and sample count exceeds threshold
     let use_compression = config.compression_enabled && samples.len() * 4 > config.compression_threshold;
@@ -475,14 +475,14 @@ pub async fn broadcast_waveform(
     let clients = state.clients.read().await;
     for (client_id, client) in clients.iter() {
         // Only send to clients subscribed to this scope
-        if client.is_subscribed_to_waveform(scope_id) {
+        if client.is_subscribed_to_waveform(session_id) {
             debug!("Broadcasting waveform to subscribed client {}", client_id);
             
             let msg = match (&compressed_data, client.compression_enabled) {
                 (Some(comp), true) => {
                     // Send compressed
                     OutgoingMessage::CompressedWaveform {
-                        scope_id: scope_id_owned.clone(),
+                        session_id: session_id_owned.clone(),
                         data: comp.data.clone(),
                         sample_count: comp.sample_count,
                         original_size: comp.original_size,
@@ -493,7 +493,7 @@ pub async fn broadcast_waveform(
                 _ => {
                     // Send uncompressed
                     OutgoingMessage::Waveform {
-                        scope_id: scope_id_owned.clone(),
+                        session_id: session_id_owned.clone(),
                         samples: samples.clone(),
                         timestamp,
                         sample_rate,
@@ -508,13 +508,13 @@ pub async fn broadcast_waveform(
 /// Broadcast spectrum to only subscribed clients (production-ready filtering)
 pub async fn broadcast_spectrum(
     state: &Arc<WsState>,
-    scope_id: &str,
+    session_id: &str,
     frequencies: Vec<f32>,
     magnitudes: Vec<f32>,
     timestamp: i64,
 ) {
     let msg = OutgoingMessage::Spectrum {
-        scope_id: scope_id.to_string(),
+        session_id: session_id.to_string(),
         frequencies,
         magnitudes,
         timestamp,
@@ -523,7 +523,7 @@ pub async fn broadcast_spectrum(
     let clients = state.clients.read().await;
     for (client_id, client) in clients.iter() {
         // Only send to clients subscribed to this scope
-        if client.is_subscribed_to_spectrum(scope_id) {
+        if client.is_subscribed_to_spectrum(session_id) {
             debug!("Broadcasting spectrum to subscribed client {}", client_id);
             let _ = client.sender.send(msg.clone()).await;
         }
@@ -542,7 +542,7 @@ pub async fn broadcast_all(state: &Arc<WsState>, msg: OutgoingMessage) {
 #[allow(clippy::too_many_arguments)]
 pub async fn broadcast_analysis(
     state: &Arc<WsState>,
-    scope_id: &str,
+    session_id: &str,
     peak_amplitude: f32,
     rms_amplitude: f32,
     dominant_frequency: f32,
@@ -551,7 +551,7 @@ pub async fn broadcast_analysis(
     timestamp: i64,
 ) {
     let msg = OutgoingMessage::Analysis {
-        scope_id: scope_id.to_string(),
+        session_id: session_id.to_string(),
         peak_amplitude,
         rms_amplitude,
         dominant_frequency,
@@ -562,7 +562,7 @@ pub async fn broadcast_analysis(
 
     let clients = state.clients.read().await;
     for client in clients.values() {
-        if client.is_subscribed_to_waveform(scope_id) {
+        if client.is_subscribed_to_waveform(session_id) {
             let _ = client.sender.send(msg.clone()).await;
         }
     }

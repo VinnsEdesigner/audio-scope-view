@@ -108,7 +108,7 @@ impl ExportService {
     pub fn export_json(&self, waveform: &Waveform) -> DomainResult<Vec<u8>> {
         let export = ExportWaveformJson {
             id: &waveform.id,
-            scope_id: &waveform.scope_id,
+            session_id: &waveform.session_id,
             timestamp: waveform.timestamp.to_rfc3339(),
             duration_ms: waveform.duration_ms,
             sample_rate: self.default_sample_rate,
@@ -128,7 +128,7 @@ impl ExportService {
 #[derive(serde::Serialize)]
 struct ExportWaveformJson<'a> {
     id: &'a str,
-    scope_id: &'a str,
+    session_id: &'a str,
     timestamp: String,
     duration_ms: f64,
     sample_rate: u32,

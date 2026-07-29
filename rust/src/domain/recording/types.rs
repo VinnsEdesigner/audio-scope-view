@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 pub struct Recording {
     /// Unique identifier
     pub id: String,
-    /// Associated scope ID
-    pub scope_id: String,
+    /// Associated session ID
+    pub session_id: String,
     /// Display name
     pub name: String,
     /// Audio samples as 32-bit floats
@@ -34,7 +34,7 @@ impl Recording {
     /// Create a new recording from samples
     pub fn new(
         id: String,
-        scope_id: String,
+        session_id: String,
         name: String,
         samples: Vec<f32>,
         sample_rate: u32,
@@ -52,7 +52,7 @@ impl Recording {
 
         Self {
             id,
-            scope_id,
+            session_id,
             name,
             samples,
             timestamp: now,
@@ -95,8 +95,8 @@ impl Recording {
 pub struct RecordingSummary {
     /// Unique identifier
     pub id: String,
-    /// Associated scope ID
-    pub scope_id: String,
+    /// Associated session ID
+    pub session_id: String,
     /// Display name
     pub name: String,
     /// Capture timestamp
@@ -117,7 +117,7 @@ impl From<Recording> for RecordingSummary {
     fn from(recording: Recording) -> Self {
         Self {
             id: recording.id,
-            scope_id: recording.scope_id,
+            session_id: recording.session_id,
             name: recording.name,
             timestamp: recording.timestamp,
             duration_ms: recording.duration_ms,
@@ -160,7 +160,7 @@ pub enum TimeRange {
 /// Recording filter parameters
 #[derive(Debug, Clone, Default)]
 pub struct RecordingFilter {
-    pub scope_id: Option<String>,
+    pub session_id: Option<String>,
     pub time_range: Option<TimeRange>,
     pub is_pinned: Option<bool>,
     pub search_query: Option<String>,
@@ -168,21 +168,21 @@ pub struct RecordingFilter {
     pub end_time: Option<DateTime<Utc>>,
 }
 
-/// Scope status enum
+/// Session status enum
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ScopeStatus {
-    /// Scope is actively capturing
+    /// Session is actively capturing
     Live,
-    /// Scope is paused
+    /// Session is paused
     Paused,
-    /// Scope is offline/not available
+    /// Session is offline/not available
     #[default]
     Offline,
 }
 
-/// Scope with status for the home page
+/// Session with status for home page for the home page
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScopeWithStatus {
+pub struct SessionWithStatus {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
@@ -193,27 +193,6 @@ pub struct ScopeWithStatus {
     pub updated_at: DateTime<Utc>,
     pub recording_count: u64,
     pub last_activity_at: Option<DateTime<Utc>>,
-}
-
-impl From<crate::domain::Scope> for ScopeWithStatus {
-    fn from(scope: crate::domain::Scope) -> Self {
-        Self {
-            id: scope.id,
-            name: scope.name,
-            description: scope.description,
-            status: if scope.is_active {
-                ScopeStatus::Live
-            } else {
-                ScopeStatus::Offline
-            },
-            sample_rate: scope.sample_rate,
-            buffer_size: scope.buffer_size,
-            created_at: scope.created_at,
-            updated_at: scope.updated_at,
-            recording_count: 0,
-            last_activity_at: None,
-        }
-    }
 }
 
 /// Scope status counts for dashboard

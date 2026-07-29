@@ -1,7 +1,7 @@
 -- Create settings table
 CREATE TABLE IF NOT EXISTS settings (
     id TEXT PRIMARY KEY NOT NULL,
-    scope_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
     
     -- Display settings
     time_scale REAL NOT NULL DEFAULT 1.0,
@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS settings (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     
-    FOREIGN KEY (scope_id) REFERENCES scopes(id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
 
--- Create index on scope_id
-CREATE INDEX IF NOT EXISTS idx_settings_scope_id ON settings(scope_id);
+-- Create index on session_id
+CREATE INDEX IF NOT EXISTS idx_settings_session_id ON settings(session_id);

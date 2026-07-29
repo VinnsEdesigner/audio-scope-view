@@ -45,38 +45,38 @@ impl WaveformService {
     }
 
     /// List waveforms for a scope with pagination
-    pub async fn list_by_scope(
+    pub async fn list_by_session(
         &self,
-        scope_id: &str,
+        session_id: &str,
         limit: u32,
         offset: u32,
     ) -> AppResult<Vec<Waveform>> {
         self.repository
-            .find_by_scope(scope_id, limit, offset)
+            .find_by_session(session_id, limit, offset)
             .await
             .map_err(AppError::Domain)
     }
 
     /// Get recent waveforms for a scope
-    pub async fn get_recent(&self, scope_id: &str, limit: u32) -> AppResult<Vec<Waveform>> {
+    pub async fn get_recent(&self, session_id: &str, limit: u32) -> AppResult<Vec<Waveform>> {
         self.repository
-            .find_recent(scope_id, limit)
+            .find_recent(session_id, limit)
             .await
             .map_err(AppError::Domain)
     }
 
     /// Count waveforms for a scope
-    pub async fn count_by_scope(&self, scope_id: &str) -> AppResult<u64> {
+    pub async fn count_by_session(&self, session_id: &str) -> AppResult<u64> {
         self.repository
-            .count_by_scope(scope_id)
+            .count_by_session(session_id)
             .await
             .map_err(AppError::Domain)
     }
 
     /// Delete all waveforms for a scope
-    pub async fn delete_by_scope(&self, scope_id: &str) -> AppResult<u64> {
+    pub async fn delete_by_session(&self, session_id: &str) -> AppResult<u64> {
         self.repository
-            .delete_by_scope(scope_id)
+            .delete_by_session(session_id)
             .await
             .map_err(AppError::Domain)
     }
@@ -84,10 +84,10 @@ impl WaveformService {
     /// Get waveform statistics for a scope
     pub async fn get_statistics(
         &self,
-        scope_id: &str,
+        session_id: &str,
     ) -> AppResult<crate::domain::trait_waveform_repository::WaveformStatistics> {
         self.repository
-            .get_statistics(scope_id)
+            .get_statistics(session_id)
             .await
             .map_err(AppError::Domain)
     }

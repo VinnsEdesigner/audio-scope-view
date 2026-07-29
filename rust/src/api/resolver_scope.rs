@@ -1,17 +1,17 @@
 #![allow(dead_code)]
-//! Scope resolver - Business logic for scope operations
+//! Session resolver - Business logic for session operations
 
-use crate::domain::Scope;
+use crate::domain::Session;
 
-/// Scope resolver trait
-pub trait ScopeResolver: Send + Sync {
-    fn resolve_id<'a>(&self, scope: &'a Scope) -> &'a str {
-        &scope.id
+/// Session resolver trait
+pub trait SessionResolver: Send + Sync {
+    fn resolve_id<'a>(&self, session: &'a Session) -> &'a str {
+        &session.id
     }
-    fn resolve_name<'a>(&self, scope: &'a Scope) -> &'a str {
-        &scope.name
+    fn resolve_started_at(&self, session: &Session) -> chrono::DateTime<chrono::Utc> {
+        session.started_at
     }
-    fn resolve_is_active(&self, scope: &Scope) -> bool {
-        scope.is_active
+    fn resolve_is_active(&self, session: &Session) -> bool {
+        session.ended_at.is_none()
     }
 }

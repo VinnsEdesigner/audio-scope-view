@@ -11,7 +11,7 @@ use crate::api::websocket::handler::WsState;
 /// GraphQL output type for waveform data
 #[derive(Debug, Clone, SimpleObject)]
 pub struct WaveformData {
-    pub scope_id: String,
+    pub session_id: String,
     pub samples: Vec<f32>,
     pub timestamp: i64,
     pub sample_rate: u32,
@@ -22,7 +22,7 @@ pub struct WaveformData {
 /// GraphQL output type for spectrum data
 #[derive(Debug, Clone, SimpleObject)]
 pub struct SpectrumData {
-    pub scope_id: String,
+    pub session_id: String,
     pub frequencies: Vec<f32>,
     pub magnitudes: Vec<f32>,
     pub timestamp: i64,
@@ -31,7 +31,7 @@ pub struct SpectrumData {
 /// GraphQL output type for audio statistics
 #[derive(Debug, Clone, SimpleObject)]
 pub struct AudioStats {
-    pub scope_id: String,
+    pub session_id: String,
     pub samples_per_second: u32,
     pub dropped_samples: u32,
     pub buffer_fill_percent: f32,
@@ -48,14 +48,14 @@ impl SubscriptionRoot {
     async fn waveform_subscribe(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
     ) -> impl Stream<Item = Result<WaveformData, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
         
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
         if let Some(state) = ws_state {
             let mut subs = state.waveform_subscribers.write().await;
-            subs.insert(scope_id.clone(), tx);
+            subs.insert(session_id.clone(), tx);
         }
         
         BroadcastStream::new(rx)
@@ -66,14 +66,14 @@ impl SubscriptionRoot {
     async fn spectrum_subscribe(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
     ) -> impl Stream<Item = Result<SpectrumData, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
         
         let (tx, rx) = broadcast::channel::<SpectrumData>(100);
         if let Some(state) = ws_state {
             let mut subs = state.spectrum_subscribers.write().await;
-            subs.insert(scope_id.clone(), tx);
+            subs.insert(session_id.clone(), tx);
         }
         
         BroadcastStream::new(rx)
@@ -84,14 +84,14 @@ impl SubscriptionRoot {
     async fn stats_subscribe(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
     ) -> impl Stream<Item = Result<AudioStats, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
         
         let (tx, rx) = broadcast::channel::<AudioStats>(50);
         if let Some(state) = ws_state {
             let mut subs = state.stats_subscribers.write().await;
-            subs.insert(scope_id.clone(), tx);
+            subs.insert(session_id.clone(), tx);
         }
         
         BroadcastStream::new(rx)

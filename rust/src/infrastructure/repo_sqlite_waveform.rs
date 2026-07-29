@@ -12,7 +12,7 @@ use crate::domain::{Waveform, error_domain::DomainError};
 #[derive(FromRow)]
 struct WaveformRow {
     id: String,
-    scope_id: String,
+    session_id: String,
     samples: String, // JSON array
     sample_count: i32,
     timestamp: String,
@@ -32,7 +32,7 @@ impl TryFrom<WaveformRow> for Waveform {
 
         Ok(Waveform {
             id: row.id,
-            scope_id: row.scope_id,
+            session_id: row.session_id,
             samples,
             timestamp,
             duration_ms: row.duration_ms,
@@ -68,7 +68,7 @@ impl SqliteWaveformRepository {
 
         Ok(WaveformRow {
             id: waveform.id.clone(),
-            scope_id: waveform.scope_id.clone(),
+            session_id: waveform.session_id.clone(),
             samples: samples_json,
             sample_count: waveform.samples.len() as i32,
             timestamp: waveform.timestamp.to_rfc3339(),
@@ -84,14 +84,14 @@ impl SqliteWaveformRepository {
         sqlx::query(
             r#"
             INSERT INTO waveforms (
-                id, scope_id, samples, sample_count, timestamp, 
+                id, session_id, samples, sample_count, timestamp, 
                 duration_ms, peak_amplitude, rms_amplitude, created_at
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&row.id)
-        .bind(&row.scope_id)
+        .bind(&row.session_id)
         .bind(&row.samples)
         .bind(row.sample_count)
         .bind(&row.timestamp)
@@ -118,21 +118,21 @@ impl SqliteWaveformRepository {
         }
     }
 
-    pub async fn find_by_scope(
+    pub async fn find_by_session(
         &self,
-        scope_id: &str,
+        session_id: &str,
         limit: u32,
         offset: u32,
     ) -> Result<Vec<Waveform>, DomainError> {
         let rows: Vec<WaveformRow> = sqlx::query_as(
             r#"
             SELECT * FROM waveforms 
-            WHERE scope_id = ? 
+            WHERE session_id = ? 
             ORDER BY timestamp DESC 
             LIMIT ? OFFSET ?
             "#,
         )
-        .bind(scope_id)
+        .bind(session_id)
         .bind(limit as i32)
         .bind(offset as i32)
         .fetch_all(&self.pool)
@@ -144,24 +144,24 @@ impl SqliteWaveformRepository {
 
     pub async fn find_recent(
         &self,
-        scope_id: &str,
+        session_id: &str,
         limit: u32,
     ) -> Result<Vec<Waveform>, DomainError> {
-        self.find_by_scope(scope_id, limit, 0).await
+        self.find_by_session(session_id, limit, 0).await
     }
 
-    pub async fn count_by_scope(&self, scope_id: &str) -> Result<u64, DomainError> {
-        let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM waveforms WHERE scope_id = ?")
-            .bind(scope_id)
+    pub async fn count_by_session(&self, session_id: &str) -> Result<u64, DomainError> {
+        let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM waveforms WHERE session_id = ?")
+            .bind(session_id)
             .fetch_one(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
         Ok(row.0 as u64)
     }
 
-    pub async fn delete_by_scope(&self, scope_id: &str) -> Result<u64, DomainError> {
-        let result = sqlx::query("DELETE FROM waveforms WHERE scope_id = ?")
-            .bind(scope_id)
+    pub async fn delete_by_session(&self, session_id: &str) -> Result<u64, DomainError> {
+        let result = sqlx::query("DELETE FROM waveforms WHERE session_id = ?")
+            .bind(session_id)
             .execute(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
@@ -177,7 +177,7 @@ impl SqliteWaveformRepository {
         Ok(result.rows_affected() as u64)
     }
 
-    pub async fn get_statistics(&self, scope_id: &str) -> Result<WaveformStatistics, DomainError> {
+    pub async fn get_statistics(&self, session_id: &str) -> Result<WaveformStatistics, DomainError> {
         let row: Option<WaveformStatsRow> = sqlx::query_as(
             r#"
             SELECT 
@@ -186,10 +186,10 @@ impl SqliteWaveformRepository {
                 AVG(peak_amplitude) as avg_peak,
                 AVG(rms_amplitude) as avg_rms
             FROM waveforms 
-            WHERE scope_id = ?
+            WHERE session_id = ?
             "#,
         )
-        .bind(scope_id)
+        .bind(session_id)
         .fetch_optional(&self.pool)
         .await
         .map_err(map_sqlx_err)?;

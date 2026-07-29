@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS recordings (
     id TEXT PRIMARY KEY NOT NULL,
-    scope_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
     name TEXT NOT NULL,
     samples TEXT NOT NULL,
     sample_count INTEGER NOT NULL DEFAULT 0,
@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS recordings (
     is_pinned INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     
-    FOREIGN KEY (scope_id) REFERENCES scopes(id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
 
--- Create index for faster queries by scope
-CREATE INDEX IF NOT EXISTS idx_recordings_scope_id ON recordings(scope_id);
+-- Create index for faster queries by session
+CREATE INDEX IF NOT EXISTS idx_recordings_session_id ON recordings(session_id);
 
 -- Create index for sorting by timestamp
 CREATE INDEX IF NOT EXISTS idx_recordings_timestamp ON recordings(timestamp DESC);
@@ -27,4 +27,4 @@ CREATE INDEX IF NOT EXISTS idx_recordings_timestamp ON recordings(timestamp DESC
 CREATE INDEX IF NOT EXISTS idx_recordings_is_pinned ON recordings(is_pinned);
 
 -- Create composite index for common query patterns
-CREATE INDEX IF NOT EXISTS idx_recordings_scope_pinned ON recordings(scope_id, is_pinned, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_recordings_session_pinned ON recordings(session_id, is_pinned, timestamp DESC);

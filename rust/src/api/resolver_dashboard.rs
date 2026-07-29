@@ -5,10 +5,10 @@ use crate::domain::DashboardSummary;
 
 /// Dashboard resolver trait
 pub trait DashboardResolver: Send + Sync {
-    fn resolve_total_scopes(&self, summary: &DashboardSummary) -> u32 {
-        summary.total_scopes
+    fn resolve_total_sessions(&self, summary: &DashboardSummary) -> u32 {
+        summary.total_sessions
     }
-    fn resolve_active_scopes(&self, summary: &DashboardSummary) -> u32 {
-        summary.active_scopes
+    fn resolve_active_sessions(&self, summary: &DashboardSummary) -> u32 {
+        summary.active_sessions
     }
 }

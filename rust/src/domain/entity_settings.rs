@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-//! Settings entity - Display and audio settings for a scope
+//! Settings entity - Display and audio settings for a session
 
 use chrono::{DateTime, Utc};
 
@@ -60,11 +60,11 @@ impl TriggerEdge {
     }
 }
 
-/// Display and audio settings for a scope
+/// Display and audio settings for a session
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     pub id: String,
-    pub scope_id: String,
+    pub session_id: String,
 
     // Display settings
     pub time_scale: f64,
@@ -92,12 +92,12 @@ pub struct Settings {
 }
 
 impl Settings {
-    /// Create new default settings for a scope
-    pub fn new(id: String, scope_id: String) -> Self {
+    /// Create new default settings for a session
+    pub fn new(id: String, session_id: String) -> Self {
         let now = Utc::now();
         Self {
             id,
-            scope_id,
+            session_id,
             time_scale: 1.0,
             voltage_scale: 1.0,
             time_offset: 0.0,
@@ -156,10 +156,10 @@ mod tests {
 
     #[test]
     fn test_new_settings() {
-        let settings = Settings::new("settings-1".to_string(), "scope-1".to_string());
+        let settings = Settings::new("settings-1".to_string(), "session-1".to_string());
 
         assert_eq!(settings.id, "settings-1");
-        assert_eq!(settings.scope_id, "scope-1");
+        assert_eq!(settings.session_id, "session-1");
         assert_eq!(settings.time_scale, 1.0);
         assert_eq!(settings.voltage_scale, 1.0);
         assert!(matches!(settings.trigger_mode, TriggerMode::Auto));

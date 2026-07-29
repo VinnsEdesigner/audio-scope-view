@@ -1,33 +1,27 @@
-//! Scope repository trait
+//! Session repository trait
 
 #![allow(dead_code)]
-use crate::domain::{DomainResult, Scope};
+use crate::domain::{DomainResult, Session};
 
-/// Repository trait for Scope entities
+/// Repository trait for Session entities
 #[async_trait::async_trait]
 #[allow(async_fn_in_trait)]
-pub trait ScopeRepository: Send + Sync {
-    /// Save a scope
-    async fn save(&self, scope: &Scope) -> DomainResult<()>;
+pub trait SessionRepository: Send + Sync {
+    /// Save a session
+    async fn save_session(&self, session: &Session) -> DomainResult<()>;
 
-    /// Update a scope
-    async fn update(&self, scope: &Scope) -> DomainResult<()>;
+    /// Update a session
+    async fn update_session(&self, session: &Session) -> DomainResult<()>;
 
-    /// Find a scope by ID
-    async fn find_by_id(&self, id: &str) -> DomainResult<Option<Scope>>;
+    /// Find a session by ID
+    async fn find_by_id(&self, id: &str) -> DomainResult<Option<Session>>;
 
-    /// Find all scopes with pagination
-    async fn find_all(&self, limit: u32, offset: u32) -> DomainResult<Vec<Scope>>;
+    /// Find all sessions with pagination
+    async fn find_all_sessions(&self, limit: u32, offset: u32) -> DomainResult<Vec<Session>>;
 
-    /// Find active scopes
-    async fn find_active(&self) -> DomainResult<Vec<Scope>>;
+    /// Count total sessions
+    async fn count_sessions(&self) -> DomainResult<u32>;
 
-    /// Count total scopes
-    async fn count(&self) -> DomainResult<u32>;
-
-    /// Count active scopes
-    async fn count_active(&self) -> DomainResult<u32>;
-
-    /// Delete a scope
+    /// Delete a session
     async fn delete(&self, id: &str) -> DomainResult<bool>;
 }

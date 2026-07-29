@@ -10,7 +10,7 @@ use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainErro
 #[derive(FromRow)]
 struct SettingsRow {
     id: String,
-    scope_id: String,
+    session_id: String,
     time_scale: f64,
     voltage_scale: f64,
     time_offset: f64,
@@ -43,7 +43,7 @@ impl TryFrom<SettingsRow> for Settings {
 
         Ok(Self {
             id: row.id,
-            scope_id: row.scope_id,
+            session_id: row.session_id,
             time_scale: row.time_scale,
             voltage_scale: row.voltage_scale,
             time_offset: row.time_offset,
@@ -86,7 +86,7 @@ impl SqliteSettingsRepository {
     async fn to_row(settings: &Settings) -> SettingsRow {
         SettingsRow {
             id: settings.id.clone(),
-            scope_id: settings.scope_id.clone(),
+            session_id: settings.session_id.clone(),
             time_scale: settings.time_scale,
             voltage_scale: settings.voltage_scale,
             time_offset: settings.time_offset,
@@ -112,7 +112,7 @@ impl SqliteSettingsRepository {
         sqlx::query(
             r#"
             INSERT INTO settings (
-                id, scope_id, time_scale, voltage_scale, time_offset, voltage_offset,
+                id, session_id, time_scale, voltage_scale, time_offset, voltage_offset,
                 trigger_level, trigger_mode, trigger_edge, show_grid, show_measurements,
                 grid_divisions_x, grid_divisions_y, input_device, input_channels,
                 created_at, updated_at
@@ -121,7 +121,7 @@ impl SqliteSettingsRepository {
             "#,
         )
         .bind(&row.id)
-        .bind(&row.scope_id)
+        .bind(&row.session_id)
         .bind(row.time_scale)
         .bind(row.voltage_scale)
         .bind(row.time_offset)
@@ -190,9 +190,9 @@ impl SqliteSettingsRepository {
         }
     }
 
-    pub async fn find_by_scope_id(&self, scope_id: &str) -> DomainErrorResult<Option<Settings>> {
-        let row: Option<SettingsRow> = sqlx::query_as("SELECT * FROM settings WHERE scope_id = ?")
-            .bind(scope_id)
+    pub async fn find_by_session_id(&self, session_id: &str) -> DomainErrorResult<Option<Settings>> {
+        let row: Option<SettingsRow> = sqlx::query_as("SELECT * FROM settings WHERE session_id = ?")
+            .bind(session_id)
             .fetch_optional(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
@@ -212,9 +212,9 @@ impl SqliteSettingsRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn delete_by_scope_id(&self, scope_id: &str) -> DomainErrorResult<bool> {
-        let result = sqlx::query("DELETE FROM settings WHERE scope_id = ?")
-            .bind(scope_id)
+    pub async fn delete_by_session_id(&self, session_id: &str) -> DomainErrorResult<bool> {
+        let result = sqlx::query("DELETE FROM settings WHERE session_id = ?")
+            .bind(session_id)
             .execute(&self.pool)
             .await
             .map_err(map_sqlx_err)?;

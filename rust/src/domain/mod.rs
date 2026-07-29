@@ -39,7 +39,7 @@ pub mod recording;
 pub use entity_capture::Capture;
 #[allow(unused_imports)]
 pub use entity_dashboard_summary::{DashboardSummary, RecentScope};
-pub use entity_scope::Scope;
+pub use entity_scope::Session;
 pub use entity_settings::{Settings, TriggerEdge, TriggerMode};
 #[allow(unused_imports)]
 pub use entity_waveform::{Waveform, WaveformStreamData};
@@ -56,4 +56,4 @@ pub use measurements::{
 pub use spectrogram::{SpectrogramConfig, SpectrogramData, SpectrogramProcessor};
 
 // Recording exports
-pub use recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, ScopeWithStatus};
+pub use recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, SessionWithStatus, ScopeStatusCounts};

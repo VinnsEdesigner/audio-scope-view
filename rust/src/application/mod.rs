@@ -14,7 +14,7 @@ pub mod service_recording;
 
 pub use batch_capture::{BatchCaptureService, BatchCaptureSettings};
 pub use service_dashboard::DashboardService;
-pub use service_scope::ScopeService;
+pub use service_scope::SessionService;
 pub use service_settings::SettingsService;
 pub use simulation_service::SimulationService;
 pub use service_waveform::WaveformService;

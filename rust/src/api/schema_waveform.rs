@@ -10,7 +10,7 @@ use crate::domain::Waveform;
 #[derive(Debug, SimpleObject)]
 pub struct WaveformOutput {
     pub id: String,
-    pub scope_id: String,
+    pub session_id: String,
     pub samples: Vec<f32>,
     pub sample_count: i32,
     pub timestamp: String,
@@ -24,7 +24,7 @@ impl From<Waveform> for WaveformOutput {
         let sample_count = waveform.samples.len() as i32;
         Self {
             id: waveform.id,
-            scope_id: waveform.scope_id,
+            session_id: waveform.session_id,
             samples: waveform.samples,
             sample_count,
             timestamp: waveform.timestamp.to_rfc3339(),
@@ -39,7 +39,7 @@ impl From<Waveform> for WaveformOutput {
 #[derive(Debug, SimpleObject)]
 pub struct WaveformSummary {
     pub id: String,
-    pub scope_id: String,
+    pub session_id: String,
     pub sample_count: i32,
     pub timestamp: String,
     pub duration_ms: f64,
@@ -51,7 +51,7 @@ impl From<Waveform> for WaveformSummary {
     fn from(waveform: Waveform) -> Self {
         Self {
             id: waveform.id,
-            scope_id: waveform.scope_id,
+            session_id: waveform.session_id,
             sample_count: waveform.samples.len() as i32,
             timestamp: waveform.timestamp.to_rfc3339(),
             duration_ms: waveform.duration_ms,
@@ -73,7 +73,7 @@ pub struct WaveformStatisticsOutput {
 /// Input for creating a waveform manually (for testing)
 #[derive(Debug, async_graphql::InputObject)]
 pub struct CreateWaveformInput {
-    pub scope_id: String,
+    pub session_id: String,
     pub samples: Vec<f32>,
 }
 
@@ -101,7 +101,7 @@ impl WaveformQuery {
     async fn waveforms(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
         limit: Option<i32>,
         offset: Option<i32>,
         include_samples: Option<bool>,
@@ -115,7 +115,7 @@ impl WaveformQuery {
 
         context
             .waveform_service
-            .list_by_scope(&scope_id, limit, offset)
+            .list_by_session(&session_id, limit, offset)
             .await
             .map(|waveforms| {
                 waveforms
@@ -127,7 +127,7 @@ impl WaveformQuery {
                             // Return summary without samples for performance
                             WaveformOutput {
                                 id: w.id,
-                                scope_id: w.scope_id,
+                                session_id: w.session_id,
                                 samples: vec![], // Empty when not requested
                                 sample_count: w.samples.len() as i32,
                                 timestamp: w.timestamp.to_rfc3339(),
@@ -146,7 +146,7 @@ impl WaveformQuery {
     async fn recent_waveforms(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
         limit: Option<i32>,
     ) -> Vec<WaveformSummary> {
         let context = ctx
@@ -156,20 +156,20 @@ impl WaveformQuery {
 
         context
             .waveform_service
-            .get_recent(&scope_id, limit)
+            .get_recent(&session_id, limit)
             .await
             .map(|waveforms| waveforms.into_iter().map(WaveformSummary::from).collect())
             .unwrap_or_default()
     }
 
     /// Count waveforms for a scope
-    async fn waveform_count(&self, ctx: &Context<'_>, scope_id: String) -> i64 {
+    async fn waveform_count(&self, ctx: &Context<'_>, session_id: String) -> i64 {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
             .waveform_service
-            .count_by_scope(&scope_id)
+            .count_by_session(&session_id)
             .await
             .unwrap_or(0) as i64
     }
@@ -178,14 +178,14 @@ impl WaveformQuery {
     async fn waveform_statistics(
         &self,
         ctx: &Context<'_>,
-        scope_id: String,
+        session_id: String,
     ) -> Option<WaveformStatisticsOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
             .waveform_service
-            .get_statistics(&scope_id)
+            .get_statistics(&session_id)
             .await
             .ok()
             .map(|stats| WaveformStatisticsOutput {
@@ -216,7 +216,7 @@ impl WaveformMutation {
         // Create waveform from input
         let waveform = crate::domain::Waveform::new(
             uuid::Uuid::new_v4().to_string(),
-            input.scope_id,
+            input.session_id,
             input.samples,
             Utc::now(),
         );
@@ -230,13 +230,13 @@ impl WaveformMutation {
     }
 
     /// Delete all waveforms for a scope
-    async fn delete_waveforms(&self, ctx: &Context<'_>, scope_id: String) -> i64 {
+    async fn delete_waveforms(&self, ctx: &Context<'_>, session_id: String) -> i64 {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         context
             .waveform_service
-            .delete_by_scope(&scope_id)
+            .delete_by_session(&session_id)
             .await
             .unwrap_or(0) as i64
     }

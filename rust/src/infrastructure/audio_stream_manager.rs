@@ -23,36 +23,36 @@ use crate::infrastructure::audio_capture_pulse::PulseAudioCapture;
 pub enum AudioStreamEvent {
     /// New waveform data available
     Waveform {
-        scope_id: String,
+        session_id: String,
         samples: Vec<f32>,
         timestamp_ms: i64,
         sample_rate: u32,
     },
     /// New spectrum data available
     Spectrum {
-        scope_id: String,
+        session_id: String,
         frequencies: Vec<f32>,
         magnitudes: Vec<f32>,
         timestamp_ms: i64,
     },
     /// Audio device disconnected
     DeviceDisconnected {
-        scope_id: String,
+        session_id: String,
         reason: String,
     },
     /// Error occurred
     Error {
-        scope_id: String,
+        session_id: String,
         message: String,
     },
     /// Capture started
     CaptureStarted {
-        scope_id: String,
+        session_id: String,
         sample_rate: u32,
     },
     /// Capture stopped
     CaptureStopped {
-        scope_id: String,
+        session_id: String,
     },
 }
 
@@ -60,7 +60,7 @@ pub enum AudioStreamEvent {
 #[derive(Debug, Clone)]
 pub struct StreamConfig {
     /// Scope ID this stream is for
-    pub scope_id: String,
+    pub session_id: String,
     /// Sample rate (0 = use default)
     pub sample_rate: u32,
     /// Buffer size in samples
@@ -78,7 +78,7 @@ pub struct StreamConfig {
 impl Default for StreamConfig {
     fn default() -> Self {
         Self {
-            scope_id: "default".to_string(),
+            session_id: "default".to_string(),
             sample_rate: DEFAULT_SAMPLE_RATE,
             buffer_size: DEFAULT_BUFFER_SIZE as usize,
             enable_spectrum: true,
@@ -120,15 +120,15 @@ impl StreamStats {
     }
 }
 
-/// Per-scope audio stream state
-struct ScopeStream {
+/// Per-session audio stream state
+struct SessionStream {
     config: StreamConfig,
     stats: StreamStats,
     running: AtomicBool,
     capture_start: Option<Instant>,
 }
 
-impl ScopeStream {
+impl SessionStream {
     fn new(config: StreamConfig) -> Self {
         Self {
             config,
@@ -146,8 +146,8 @@ pub struct AudioStreamManager {
     capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
     #[cfg(not(feature = "real-audio"))]
     capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
-    /// Per-scope stream configurations
-    scopes: RwLock<HashMap<String, ScopeStream>>,
+    /// Per-session stream configurations
+    scopes: RwLock<HashMap<String, SessionStream>>,
     /// FFT processor for spectrum analysis
     fft: RwLock<FftProcessor>,
     /// Event sender for broadcasting to clients
@@ -305,48 +305,48 @@ impl AudioStreamManager {
         *self.event_sender.write().unwrap() = Some(sender);
     }
 
-    /// Register a scope stream configuration
+    /// Register a session stream configuration
     pub fn register_scope(&self, config: StreamConfig) -> crate::domain::DomainResult<()> {
         let mut scopes = self.scopes.write().unwrap();
-        if scopes.contains_key(&config.scope_id) {
+        if scopes.contains_key(&config.session_id) {
             return Err(crate::domain::DomainError::invalid_operation(
-                format!("Scope '{}' already registered", config.scope_id)
+                format!("Scope '{}' already registered", config.session_id)
             ));
         }
-        scopes.insert(config.scope_id.clone(), ScopeStream::new(config));
+        scopes.insert(config.session_id.clone(), SessionStream::new(config));
         Ok(())
     }
 
-    /// Unregister a scope
-    pub fn unregister_scope(&self, scope_id: &str) -> bool {
+    /// Unregister a session
+    pub fn unregister_scope(&self, session_id: &str) -> bool {
         let mut scopes = self.scopes.write().unwrap();
-        scopes.remove(scope_id).is_some()
+        scopes.remove(session_id).is_some()
     }
 
-    /// Get scope configuration
-    pub fn get_scope_config(&self, scope_id: &str) -> Option<StreamConfig> {
+    /// Get session configuration
+    pub fn get_session_config(&self, session_id: &str) -> Option<StreamConfig> {
         let scopes = self.scopes.read().unwrap();
-        scopes.get(scope_id).map(|s| s.config.clone())
+        scopes.get(session_id).map(|s| s.config.clone())
     }
 
-    /// Get scope statistics
-    pub fn get_scope_stats(&self, scope_id: &str) -> Option<StreamStats> {
+    /// Get session statistics
+    pub fn get_session_stats(&self, session_id: &str) -> Option<StreamStats> {
         let scopes = self.scopes.read().unwrap();
-        scopes.get(scope_id).map(|s| s.stats.clone())
+        scopes.get(session_id).map(|s| s.stats.clone())
     }
 
-    /// Start capture for a specific scope
-    pub async fn start_capture(&self, scope_id: &str) -> crate::domain::DomainResult<()> {
-        // Get or create scope config
+    /// Start capture for a specific session
+    pub async fn start_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
+        // Get or create session config
         let needs_register = {
             let scopes = self.scopes.read().unwrap();
-            !scopes.contains_key(scope_id)
+            !scopes.contains_key(session_id)
         };
 
         if needs_register {
             // Auto-register with default config
             let config = StreamConfig {
-                scope_id: scope_id.to_string(),
+                session_id: session_id.to_string(),
                 ..Default::default()
             };
             self.register_scope(config)?;
@@ -360,35 +360,35 @@ impl AudioStreamManager {
             }
         drop(capture_guard);
 
-        // Update scope state
+        // Update session state
         let mut scopes = self.scopes.write().unwrap();
-        if let Some(scope) = scopes.get_mut(scope_id) {
-            scope.running.store(true, Ordering::SeqCst);
-            scope.capture_start = Some(Instant::now());
+        if let Some(session) = scopes.get_mut(session_id) {
+            session.running.store(true, Ordering::SeqCst);
+            session.capture_start = Some(Instant::now());
         }
         drop(scopes);
 
         // Send event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
             let _ = sender.send(AudioStreamEvent::CaptureStarted {
-                scope_id: scope_id.to_string(),
+                session_id: session_id.to_string(),
                 sample_rate: DEFAULT_SAMPLE_RATE,
             }).await;
         }
 
-        info!("Started capture for scope: {}", scope_id);
+        info!("Started capture for scope: {}", session_id);
         Ok(())
     }
 
-    /// Stop capture for a specific scope
-    pub async fn stop_capture(&self, scope_id: &str) -> crate::domain::DomainResult<()> {
+    /// Stop capture for a specific session
+    pub async fn stop_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
         let mut scopes = self.scopes.write().unwrap();
-        if let Some(scope) = scopes.get_mut(scope_id) {
-            scope.running.store(false, Ordering::SeqCst);
+        if let Some(session) = scopes.get_mut(session_id) {
+            session.running.store(false, Ordering::SeqCst);
         }
         drop(scopes);
 
-        // Check if any scopes are still running
+        // Check if any sessions are still running
         let any_running = {
             let scopes = self.scopes.read().unwrap();
             scopes.values().any(|s| s.running.load(Ordering::SeqCst))
@@ -406,15 +406,15 @@ impl AudioStreamManager {
         // Send event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
             let _ = sender.send(AudioStreamEvent::CaptureStopped {
-                scope_id: scope_id.to_string(),
+                session_id: session_id.to_string(),
             }).await;
         }
 
-        info!("Stopped capture for scope: {}", scope_id);
+        info!("Stopped capture for scope: {}", session_id);
         Ok(())
     }
 
-    /// Read samples and process for all active scopes
+    /// Read samples and process for all active sessions
     pub async fn read_and_process(&self) -> crate::domain::DomainResult<usize> {
         let mut buffer = vec![0.0f32; 4096];
         
@@ -446,19 +446,19 @@ impl AudioStreamManager {
         let scopes = self.scopes.read().unwrap();
         let mut processed = 0;
 
-        for (scope_id, scope) in scopes.iter() {
-            if !scope.running.load(Ordering::SeqCst) {
+        for (session_id, session) in scopes.iter() {
+            if !session.running.load(Ordering::SeqCst) {
                 continue;
             }
 
             // Update stats
-            let mut scope_stats = scope.stats.clone();
-            scope_stats.record_samples(buffer.len());
-            scope_stats.record_buffer();
+            let mut session_stats = session.stats.clone();
+            session_stats.record_samples(buffer.len());
+            session_stats.record_buffer();
             
             // Calculate capture duration
-            if let Some(start) = scope.capture_start {
-                scope_stats.capture_duration_ms = start.elapsed().as_millis() as u64;
+            if let Some(start) = session.capture_start {
+                session_stats.capture_duration_ms = start.elapsed().as_millis() as u64;
             }
 
             // Send waveform event
@@ -466,30 +466,30 @@ impl AudioStreamManager {
                 let timestamp_ms = chrono::Utc::now().timestamp_millis();
                 
                 let event = AudioStreamEvent::Waveform {
-                    scope_id: scope_id.clone(),
+                    session_id: session_id.clone(),
                     samples: buffer.clone(),
                     timestamp_ms,
                     sample_rate,
                 };
                 
                 if sender.send(event).await.is_err() {
-                    warn!("Failed to send waveform event for scope {}", scope_id);
+                    warn!("Failed to send waveform event for scope {}", session_id);
                 }
                 processed += 1;
             }
 
             // Compute and send spectrum if enabled
-            if scope.config.enable_spectrum && buffer.len() >= scope.config.fft_size {
+            if session.config.enable_spectrum && buffer.len() >= session.config.fft_size {
                 let mut fft = self.fft.write().unwrap();
                 let spectrum = fft.compute_spectrum(
-                    &buffer[..scope.config.fft_size],
+                    &buffer[..session.config.fft_size],
                     sample_rate as f32,
-                    scope.config.fft_window,
+                    session.config.fft_window,
                 );
 
                 if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
                     let event = AudioStreamEvent::Spectrum {
-                        scope_id: scope_id.clone(),
+                        session_id: session_id.clone(),
                         frequencies: spectrum.frequencies,
                         magnitudes: spectrum.magnitudes_db,
                         timestamp_ms: chrono::Utc::now().timestamp_millis(),
@@ -509,7 +509,7 @@ impl AudioStreamManager {
     }
 
     /// Get list of active scope IDs
-    pub fn active_scopes(&self) -> Vec<String> {
+    pub fn active_sessions(&self) -> Vec<String> {
         let scopes = self.scopes.read().unwrap();
         scopes
             .iter()
@@ -549,7 +549,7 @@ impl AudioStreamManager {
         // Send shutdown event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
             let _ = sender.send(AudioStreamEvent::Error {
-                scope_id: "system".to_string(),
+                session_id: "system".to_string(),
                 message: "Stream manager shutting down".to_string(),
             }).await;
         }
@@ -567,10 +567,10 @@ impl Default for AudioStreamManager {
 impl std::fmt::Debug for AudioStreamManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let backend = *self.backend_type.read().unwrap();
-        let active = self.active_scopes();
+        let active = self.active_sessions();
         f.debug_struct("AudioStreamManager")
             .field("backend", &backend)
-            .field("active_scopes", &active)
+            .field("active_sessions", &active)
             .field("is_capturing", &self.is_any_capturing())
             .finish()
     }
@@ -584,31 +584,31 @@ mod tests {
     async fn test_manager_creation() {
         let manager = AudioStreamManager::new();
         assert!(!manager.is_any_capturing());
-        assert!(manager.active_scopes().is_empty());
+        assert!(manager.active_sessions().is_empty());
     }
 
     #[tokio::test]
-    async fn test_scope_registration() {
+    async fn test_session_registration() {
         let manager = AudioStreamManager::new();
         
         let config = StreamConfig {
-            scope_id: "test-scope".to_string(),
+            session_id: "test-scope".to_string(),
             ..Default::default()
         };
         
         manager.register_scope(config.clone()).unwrap();
-        assert!(manager.get_scope_config("test-scope").is_some());
+        assert!(manager.get_session_config("test-scope").is_some());
         
         // Duplicate registration should fail
         assert!(manager.register_scope(config).is_err());
     }
 
     #[tokio::test]
-    async fn test_scope_unregistration() {
+    async fn test_session_unregistration() {
         let manager = AudioStreamManager::new();
         
         let config = StreamConfig {
-            scope_id: "test-scope".to_string(),
+            session_id: "test-scope".to_string(),
             ..Default::default()
         };
         
@@ -624,7 +624,7 @@ mod tests {
         
         // Register and start
         let config = StreamConfig {
-            scope_id: "test-scope".to_string(),
+            session_id: "test-scope".to_string(),
             ..Default::default()
         };
         manager.register_scope(config).unwrap();

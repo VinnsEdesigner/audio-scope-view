@@ -6,7 +6,7 @@ use crate::application::service_waveform::WaveformService;
 
 #[derive(Debug, Clone)]
 pub struct BatchCaptureSettings {
-    pub scope_id: String,
+    pub session_id: String,
     pub count: u32,
     pub interval_ms: u64,
     pub sample_rate: u32,
@@ -70,11 +70,11 @@ impl BatchCaptureService {
         index: u32,
     ) -> DomainResult<Waveform> {
         let samples = vec![0.0f32; settings.samples_per_capture];
-        let id = format!("{}_{}", settings.scope_id, index);
+        let id = format!("{}_{}", settings.session_id, index);
         
         let waveform = Waveform::with_duration(
             id,
-            settings.scope_id.clone(),
+            settings.session_id.clone(),
             samples,
             chrono::Utc::now(),
             settings.sample_rate as f64,

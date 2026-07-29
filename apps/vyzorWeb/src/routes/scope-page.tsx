@@ -11,7 +11,7 @@ import {
 } from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
-import type { Recording } from "@/hooks/use-scope-dialogs";
+import type { Recording } from "@/hooks";
 
 export function ScopePage(): React.ReactElement {
   const { id: scopeId } = useParams<{ id: string }>();

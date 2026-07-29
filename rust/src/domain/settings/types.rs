@@ -77,7 +77,7 @@ pub struct Settings {
     /// Unique identifier
     pub id: String,
     /// Associated scope ID
-    pub scope_id: String,
+    pub session_id: String,
     /// Time scale in ms/div
     pub time_scale: f64,
     /// Voltage scale in V/div
@@ -112,11 +112,11 @@ pub struct Settings {
 
 impl Settings {
     /// Create new settings for a scope
-    pub fn new(id: String, scope_id: String) -> Self {
+    pub fn new(id: String, session_id: String) -> Self {
         let now = Utc::now();
         Self {
             id,
-            scope_id,
+            session_id,
             time_scale: 1.0,
             voltage_scale: 1.0,
             time_offset: 0.0,

@@ -11,7 +11,7 @@ pub struct Waveform {
     /// Unique identifier
     pub id: String,
     /// Associated scope ID
-    pub scope_id: String,
+    pub session_id: String,
     /// Audio samples as 32-bit floats
     pub samples: Vec<f32>,
     /// Capture timestamp
@@ -26,7 +26,7 @@ pub struct Waveform {
 
 impl Waveform {
     /// Create a new waveform from samples
-    pub fn new(id: String, scope_id: String, samples: Vec<f32>, sample_rate: u32) -> Self {
+    pub fn new(id: String, session_id: String, samples: Vec<f32>, sample_rate: u32) -> Self {
         let now = Utc::now();
         let duration_ms = (samples.len() as f64 / sample_rate as f64) * 1000.0;
         
@@ -41,7 +41,7 @@ impl Waveform {
 
         Self {
             id,
-            scope_id,
+            session_id,
             samples,
             timestamp: now,
             duration_ms,
@@ -80,7 +80,7 @@ pub struct WaveformStatistics {
 /// Waveform filter parameters
 #[derive(Debug, Clone)]
 pub struct WaveformFilter {
-    pub scope_id: Option<String>,
+    pub session_id: Option<String>,
     pub start_time: Option<DateTime<Utc>>,
     pub end_time: Option<DateTime<Utc>>,
     pub min_amplitude: Option<f32>,
@@ -90,7 +90,7 @@ pub struct WaveformFilter {
 impl Default for WaveformFilter {
     fn default() -> Self {
         Self {
-            scope_id: None,
+            session_id: None,
             start_time: None,
             end_time: None,
             min_amplitude: None,

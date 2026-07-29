@@ -10,7 +10,7 @@ use super::measurements::{self, WaveformAnalysis};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Waveform {
     pub id: String,
-    pub scope_id: String,
+    pub session_id: String,
     pub samples: Vec<f32>,
     pub timestamp: DateTime<Utc>,
     pub duration_ms: f64,
@@ -20,14 +20,14 @@ pub struct Waveform {
 
 impl Waveform {
     /// Create a new Waveform
-    pub fn new(id: String, scope_id: String, samples: Vec<f32>, timestamp: DateTime<Utc>) -> Self {
+    pub fn new(id: String, session_id: String, samples: Vec<f32>, timestamp: DateTime<Utc>) -> Self {
         let peak_amplitude = Self::calculate_peak(&samples);
         let rms_amplitude = Self::calculate_rms(&samples);
         let duration_ms = samples.len() as f64 / 44.1; // Assuming 44100 Hz sample rate
 
         Self {
             id,
-            scope_id,
+            session_id,
             samples,
             timestamp,
             duration_ms,
@@ -39,7 +39,7 @@ impl Waveform {
     /// Create a waveform with explicit duration
     pub fn with_duration(
         id: String,
-        scope_id: String,
+        session_id: String,
         samples: Vec<f32>,
         timestamp: DateTime<Utc>,
         sample_rate: f64,
@@ -50,7 +50,7 @@ impl Waveform {
 
         Self {
             id,
-            scope_id,
+            session_id,
             samples,
             timestamp,
             duration_ms,
@@ -134,7 +134,7 @@ impl Waveform {
 /// Waveform data for real-time streaming (without persistence)
 #[derive(Debug, Clone, PartialEq)]
 pub struct WaveformStreamData {
-    pub scope_id: String,
+    pub session_id: String,
     pub samples: Vec<f32>,
     pub timestamp: DateTime<Utc>,
     pub sample_rate: u32,
@@ -142,9 +142,9 @@ pub struct WaveformStreamData {
 
 impl WaveformStreamData {
     /// Create new streaming waveform data
-    pub fn new(scope_id: String, samples: Vec<f32>, sample_rate: u32) -> Self {
+    pub fn new(session_id: String, samples: Vec<f32>, sample_rate: u32) -> Self {
         Self {
-            scope_id,
+            session_id,
             samples,
             timestamp: Utc::now(),
             sample_rate,
@@ -160,7 +160,7 @@ impl WaveformStreamData {
     pub fn into_waveform(self, id: String) -> Waveform {
         Waveform::with_duration(
             id,
-            self.scope_id,
+            self.session_id,
             self.samples,
             self.timestamp,
             self.sample_rate as f64,

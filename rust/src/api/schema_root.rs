@@ -12,7 +12,7 @@ use super::{
         ExportQueryRoot, SimulationMutationRoot, SimulationQueryRoot
     },
     schema_recording::{RecordingMutation, RecordingQuery},
-    schema_scope::{ScopeMutation, ScopeQuery},
+    schema_scope::{SessionMutation, SessionQuery},
     schema_settings::{SettingsMutation, SettingsQuery},
     schema_subscription::SubscriptionRoot,
     schema_waveform::{WaveformMutation, WaveformQuery},
@@ -21,7 +21,7 @@ use super::{
 /// Combined query type
 #[derive(MergedObject, Default)]
 pub struct Query(
-    ScopeQuery, 
+    SessionQuery, 
     SettingsQuery, 
     DashboardQuery, 
     WaveformQuery, 
@@ -36,7 +36,7 @@ pub struct Query(
 /// Combined mutation type
 #[derive(MergedObject, Default)]
 pub struct Mutation(
-    ScopeMutation, 
+    SessionMutation, 
     SettingsMutation, 
     WaveformMutation, 
     RecordingMutation,

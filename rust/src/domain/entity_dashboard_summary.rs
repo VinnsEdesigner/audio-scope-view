@@ -11,8 +11,8 @@ pub struct DashboardSummary {
     pub generated_at: DateTime<Utc>,
 
     // Scope statistics
-    pub total_scopes: u32,
-    pub active_scopes: u32,
+    pub total_sessions: u32,
+    pub active_sessions: u32,
     pub total_captures: u64,
 
     // Waveform statistics
@@ -22,7 +22,7 @@ pub struct DashboardSummary {
     pub average_rms_amplitude: f32,
 
     // Recent activity
-    pub recent_scopes: Vec<RecentScope>,
+    pub recent_sessions: Vec<RecentScope>,
 }
 
 /// Recent scope info for dashboard
@@ -40,21 +40,21 @@ impl DashboardSummary {
         Self {
             time_range,
             generated_at: Utc::now(),
-            total_scopes: 0,
-            active_scopes: 0,
+            total_sessions: 0,
+            active_sessions: 0,
             total_captures: 0,
             total_waveforms: 0,
             total_samples: 0,
             average_peak_amplitude: 0.0,
             average_rms_amplitude: 0.0,
-            recent_scopes: Vec::new(),
+            recent_sessions: Vec::new(),
         }
     }
 
     /// Set scope statistics
     pub fn with_scope_stats(mut self, total: u32, active: u32) -> Self {
-        self.total_scopes = total;
-        self.active_scopes = active;
+        self.total_sessions = total;
+        self.active_sessions = active;
         self
     }
 
@@ -80,14 +80,14 @@ impl DashboardSummary {
     }
 
     /// Set recent scopes
-    pub fn with_recent_scopes(mut self, scopes: Vec<RecentScope>) -> Self {
-        self.recent_scopes = scopes;
+    pub fn with_recent_sessions(mut self, scopes: Vec<RecentScope>) -> Self {
+        self.recent_sessions = scopes;
         self
     }
 
     /// Check if there's any data
     pub fn has_data(&self) -> bool {
-        self.total_scopes > 0 || self.total_waveforms > 0
+        self.total_sessions > 0 || self.total_waveforms > 0
     }
 }
 
