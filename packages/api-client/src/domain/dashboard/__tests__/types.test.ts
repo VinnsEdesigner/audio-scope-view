@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { DashboardSummary, RecentScope, TimeRange } from "../types";
+import type { DashboardSummary, RecentSession, TimeRange } from "../types";
 
 describe("dashboard types", () => {
   describe("DashboardSummary", () => {
@@ -7,91 +7,87 @@ describe("dashboard types", () => {
       const summary: DashboardSummary = {
         timeRange: "last_24_hours",
         generatedAt: new Date("2024-01-01T12:00:00Z"),
-        totalScopes: 10,
-        activeScopes: 5,
+        totalSessions: 10,
+        activeSessions: 5,
         totalCaptures: 100,
         totalWaveforms: 200,
         totalSamples: 204_800,
         averagePeakAmplitude: 0.75,
         averageRmsAmplitude: 0.53,
-        recentScopes: [],
+        recentSessions: [],
       };
 
       expect(summary.timeRange).toMatch(/^(last_hour|last_24_hours|last_7_days|last_30_days)$/);
       expect(summary.generatedAt).toBeInstanceOf(Date);
-      expect(typeof summary.totalScopes).toBe("number");
-      expect(typeof summary.activeScopes).toBe("number");
+      expect(typeof summary.totalSessions).toBe("number");
+      expect(typeof summary.activeSessions).toBe("number");
       expect(typeof summary.totalCaptures).toBe("number");
       expect(typeof summary.totalWaveforms).toBe("number");
       expect(typeof summary.totalSamples).toBe("number");
       expect(typeof summary.averagePeakAmplitude).toBe("number");
       expect(typeof summary.averageRmsAmplitude).toBe("number");
-      expect(Array.isArray(summary.recentScopes)).toBe(true);
+      expect(Array.isArray(summary.recentSessions)).toBe(true);
     });
 
-    it("should allow empty recent scopes", () => {
+    it("should allow empty recent sessions", () => {
       const summary: DashboardSummary = {
         timeRange: "last_hour",
         generatedAt: new Date(),
-        totalScopes: 0,
-        activeScopes: 0,
+        totalSessions: 0,
+        activeSessions: 0,
         totalCaptures: 0,
         totalWaveforms: 0,
         totalSamples: 0,
         averagePeakAmplitude: 0,
         averageRmsAmplitude: 0,
-        recentScopes: [],
+        recentSessions: [],
       };
 
-      expect(summary.recentScopes).toEqual([]);
+      expect(summary.recentSessions).toEqual([]);
     });
 
-    it("should include multiple recent scopes", () => {
+    it("should include multiple recent sessions", () => {
       const summary: DashboardSummary = {
         timeRange: "last_7_days",
         generatedAt: new Date(),
-        totalScopes: 5,
-        activeScopes: 3,
+        totalSessions: 5,
+        activeSessions: 3,
         totalCaptures: 50,
         totalWaveforms: 100,
         totalSamples: 102_400,
         averagePeakAmplitude: 0.82,
         averageRmsAmplitude: 0.58,
-        recentScopes: [
+        recentSessions: [
           {
-            id: "scope-1",
-            name: "Scope One",
-            lastActivity: new Date("2024-01-01T10:00:00Z"),
-            waveformCount: 30,
+            id: "session-1",
+            startedAt: new Date("2024-01-01T10:00:00Z"),
+            recordingCount: 30,
           },
           {
-            id: "scope-2",
-            name: "Scope Two",
-            lastActivity: new Date("2024-01-01T08:00:00Z"),
-            waveformCount: 20,
+            id: "session-2",
+            startedAt: new Date("2024-01-01T08:00:00Z"),
+            recordingCount: 20,
           },
         ],
       };
 
-      expect(summary.recentScopes).toHaveLength(2);
-      expect(summary.recentScopes[0].id).toBe("scope-1");
-      expect(summary.recentScopes[1].id).toBe("scope-2");
+      expect(summary.recentSessions).toHaveLength(2);
+      expect(summary.recentSessions[0].id).toBe("session-1");
+      expect(summary.recentSessions[1].id).toBe("session-2");
     });
   });
 
-  describe("RecentScope", () => {
+  describe("RecentSession", () => {
     it("should have correct camelCase fields", () => {
-      const recentScope: RecentScope = {
-        id: "scope-recent-1",
-        name: "Recently Active",
-        lastActivity: new Date("2024-01-01T11:30:00Z"),
-        waveformCount: 15,
+      const recentSession: RecentSession = {
+        id: "session-recent-1",
+        startedAt: new Date("2024-01-01T11:30:00Z"),
+        recordingCount: 15,
       };
 
-      expect(typeof recentScope.id).toBe("string");
-      expect(typeof recentScope.name).toBe("string");
-      expect(recentScope.lastActivity).toBeInstanceOf(Date);
-      expect(typeof recentScope.waveformCount).toBe("number");
+      expect(typeof recentSession.id).toBe("string");
+      expect(recentSession.startedAt).toBeInstanceOf(Date);
+      expect(typeof recentSession.recordingCount).toBe("number");
     });
   });
 

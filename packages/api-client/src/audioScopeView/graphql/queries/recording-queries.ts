@@ -3,8 +3,8 @@ import { gql } from "@apollo/client";
 export const RECORDING_FIELDS = gql`
   fragment RecordingFields on RecordingOutput {
     id
-    scope_id
-    scope_name
+    session_id
+    session_name
     name
     samples
     timestamp
@@ -21,8 +21,8 @@ export const RECORDING_FIELDS = gql`
 export const RECORDING_SUMMARY_FIELDS = gql`
   fragment RecordingSummaryFields on RecordingSummary {
     id
-    scope_id
-    scope_name
+    session_id
+    session_name
     name
     timestamp
     duration_ms
@@ -35,14 +35,14 @@ export const GET_RECORDINGS = gql`
   ${RECORDING_SUMMARY_FIELDS}
   query GetRecordings(
     $timeRange: String
-    $scopeId: String
+    $sessionId: String
     $limit: Int
     $offset: Int
     $pinnedOnly: Boolean
   ) {
     recordings(
       timeRange: $timeRange
-      scopeId: $scopeId
+      sessionId: $sessionId
       limit: $limit
       offset: $offset
       pinnedOnly: $pinnedOnly
@@ -87,27 +87,23 @@ export const GET_RECENT_RECORDINGS = gql`
   }
 `;
 
-export const SCOPE_WITH_STATUS_FIELDS = gql`
-  fragment ScopeWithStatusFields on ScopeWithStatusOutput {
+export const SESSION_WITH_STATUS_FIELDS = gql`
+  fragment SessionWithStatusFields on SessionWithStatusOutput {
     id
-    name
-    description
+    started_at
+    ended_at
     status
-    sample_rate
-    buffer_size
-    created_at
-    updated_at
-    last_activity_at
+    duration_seconds
     recording_count
   }
 `;
 
-export const GET_SCOPES_WITH_STATUS = gql`
-  ${SCOPE_WITH_STATUS_FIELDS}
-  query GetScopesWithStatus($limit: Int, $offset: Int) {
-    scopesWithStatus(limit: $limit, offset: $offset) {
-      scopes {
-        ...ScopeWithStatusFields
+export const GET_SESSIONS_WITH_STATUS = gql`
+  ${SESSION_WITH_STATUS_FIELDS}
+  query GetSessionsWithStatus($limit: Int, $offset: Int) {
+    sessionsWithStatus(limit: $limit, offset: $offset) {
+      sessions {
+        ...SessionWithStatusFields
       }
       total
       hasMore
@@ -115,18 +111,18 @@ export const GET_SCOPES_WITH_STATUS = gql`
   }
 `;
 
-export const GET_ACTIVE_SCOPES_WITH_STATUS = gql`
-  ${SCOPE_WITH_STATUS_FIELDS}
-  query GetActiveScopesWithStatus {
-    activeScopesWithStatus {
-      ...ScopeWithStatusFields
+export const GET_ACTIVE_SESSIONS_WITH_STATUS = gql`
+  ${SESSION_WITH_STATUS_FIELDS}
+  query GetActiveSessionsWithStatus {
+    activeSessionsWithStatus {
+      ...SessionWithStatusFields
     }
   }
 `;
 
-export const GET_SCOPE_STATUS_COUNTS = gql`
-  query GetScopeStatusCounts {
-    scopeStatusCounts {
+export const GET_SESSION_STATUS_COUNTS = gql`
+  query GetSessionStatusCounts {
+    sessionStatusCounts {
       live_count
       paused_count
       offline_count

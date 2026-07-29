@@ -3,7 +3,7 @@ import type { Settings, SettingsServer, UpdateSettingsInput } from "./types";
 export function settingsFromRaw(serverSettings: SettingsServer): Settings {
   return {
     id: serverSettings.id,
-    scopeId: serverSettings.scope_id,
+    sessionId: serverSettings.session_id,
     timeScale: serverSettings.time_scale,
     voltageScale: serverSettings.voltage_scale,
     timeOffset: serverSettings.time_offset,

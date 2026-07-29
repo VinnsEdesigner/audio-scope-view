@@ -1,28 +1,26 @@
 import { describe, it, expect } from "vitest";
 import {
-  recentScopeFromRaw,
+  recentSessionFromRaw,
   dashboardSummaryFromRaw,
   formatRelativeTime,
   timeRangeToString,
 } from "../transforms";
-import type { RecentScopeServer, DashboardSummaryServer, TimeRange } from "../types";
+import type { RecentSessionServer, DashboardSummaryServer, TimeRange } from "../types";
 
 describe("dashboard transforms", () => {
-  describe("recentScopeFromRaw", () => {
-    it("should transform server RecentScopeServer to RecentScope domain type", () => {
-      const serverScope: RecentScopeServer = {
-        id: "scope-1",
-        name: "Recent Scope",
-        last_activity: "2024-01-15T10:30:00Z",
-        waveform_count: 25,
+  describe("recentSessionFromRaw", () => {
+    it("should transform server RecentSessionServer to RecentSession domain type", () => {
+      const serverSession: RecentSessionServer = {
+        id: "session-1",
+        started_at: "2024-01-15T10:30:00Z",
+        recording_count: 25,
       };
 
-      const recentScope = recentScopeFromRaw(serverScope);
+      const recentSession = recentSessionFromRaw(serverSession);
 
-      expect(recentScope.id).toBe("scope-1");
-      expect(recentScope.name).toBe("Recent Scope");
-      expect(recentScope.lastActivity).toBeInstanceOf(Date);
-      expect(recentScope.waveformCount).toBe(25);
+      expect(recentSession.id).toBe("session-1");
+      expect(recentSession.startedAt).toBeInstanceOf(Date);
+      expect(recentSession.recordingCount).toBe(25);
     });
   });
 
@@ -31,25 +29,23 @@ describe("dashboard transforms", () => {
       const serverSummary: DashboardSummaryServer = {
         time_range: "last_24_hours",
         generated_at: "2024-01-15T12:00:00Z",
-        total_scopes: 10,
-        active_scopes: 5,
+        total_sessions: 10,
+        active_sessions: 5,
         total_captures: 100,
         total_waveforms: 200,
         total_samples: 204_800,
         average_peak_amplitude: 0.75,
         average_rms_amplitude: 0.53,
-        recent_scopes: [
+        recent_sessions: [
           {
-            id: "scope-1",
-            name: "Recent 1",
-            last_activity: "2024-01-15T08:00:00Z",
-            waveform_count: 10,
+            id: "session-1",
+            started_at: "2024-01-15T08:00:00Z",
+            recording_count: 10,
           },
           {
-            id: "scope-2",
-            name: "Recent 2",
-            last_activity: "2024-01-15T06:00:00Z",
-            waveform_count: 8,
+            id: "session-2",
+            started_at: "2024-01-15T06:00:00Z",
+            recording_count: 8,
           },
         ],
       };
@@ -58,36 +54,36 @@ describe("dashboard transforms", () => {
 
       expect(summary.timeRange).toBe("last_24_hours");
       expect(summary.generatedAt).toBeInstanceOf(Date);
-      expect(summary.totalScopes).toBe(10);
-      expect(summary.activeScopes).toBe(5);
+      expect(summary.totalSessions).toBe(10);
+      expect(summary.activeSessions).toBe(5);
       expect(summary.totalCaptures).toBe(100);
       expect(summary.totalWaveforms).toBe(200);
       expect(summary.totalSamples).toBe(204_800);
       expect(summary.averagePeakAmplitude).toBe(0.75);
       expect(summary.averageRmsAmplitude).toBe(0.53);
-      expect(summary.recentScopes).toHaveLength(2);
-      expect(summary.recentScopes[0].id).toBe("scope-1");
-      expect(summary.recentScopes[1].id).toBe("scope-2");
+      expect(summary.recentSessions).toHaveLength(2);
+      expect(summary.recentSessions[0].id).toBe("session-1");
+      expect(summary.recentSessions[1].id).toBe("session-2");
     });
 
-    it("should handle empty recent scopes", () => {
+    it("should handle empty recent sessions", () => {
       const serverSummary: DashboardSummaryServer = {
         time_range: "last_hour",
         generated_at: "2024-01-15T12:00:00Z",
-        total_scopes: 0,
-        active_scopes: 0,
+        total_sessions: 0,
+        active_sessions: 0,
         total_captures: 0,
         total_waveforms: 0,
         total_samples: 0,
         average_peak_amplitude: 0,
         average_rms_amplitude: 0,
-        recent_scopes: [],
+        recent_sessions: [],
       };
 
       const summary = dashboardSummaryFromRaw(serverSummary);
 
-      expect(summary.recentScopes).toEqual([]);
-      expect(summary.totalScopes).toBe(0);
+      expect(summary.recentSessions).toEqual([]);
+      expect(summary.totalSessions).toBe(0);
     });
   });
 

@@ -10,7 +10,7 @@ import type {
 export function waveformFromRaw(serverWaveform: WaveformServer): Waveform {
   return {
     id: serverWaveform.id,
-    scopeId: serverWaveform.scope_id,
+    sessionId: serverWaveform.session_id,
     samples: serverWaveform.samples,
     sampleCount: serverWaveform.sample_count,
     timestamp: new Date(serverWaveform.timestamp),
@@ -27,7 +27,7 @@ export function waveformsFromRaw(serverWaveforms: WaveformServer[]): Waveform[] 
 export function waveformSummaryFromRaw(serverSummary: WaveformSummaryServer): WaveformSummary {
   return {
     id: serverSummary.id,
-    scopeId: serverSummary.scope_id,
+    sessionId: serverSummary.session_id,
     sampleCount: serverSummary.sample_count,
     timestamp: new Date(serverSummary.timestamp),
     durationMs: serverSummary.duration_ms,

@@ -7,7 +7,7 @@ describe("settings transforms", () => {
     it("should transform server SettingsServer to Settings domain type", () => {
       const serverSettings: SettingsServer = {
         id: "settings-1",
-        scope_id: "scope-1",
+        session_id: "session-1",
         time_scale: 1,
         voltage_scale: 1,
         time_offset: 0,
@@ -29,7 +29,7 @@ describe("settings transforms", () => {
       const settings = settingsFromRaw(serverSettings);
 
       expect(settings.id).toBe("settings-1");
-      expect(settings.scopeId).toBe("scope-1");
+      expect(settings.sessionId).toBe("session-1");
       expect(settings.timeScale).toBe(1);
       expect(settings.voltageScale).toBe(1);
       expect(settings.triggerLevel).toBe(0);
@@ -49,7 +49,7 @@ describe("settings transforms", () => {
     it("should handle undefined input_device", () => {
       const serverSettings: SettingsServer = {
         id: "settings-2",
-        scope_id: "scope-2",
+        session_id: "session-2",
         time_scale: 0.5,
         voltage_scale: 0.5,
         time_offset: 0.1,

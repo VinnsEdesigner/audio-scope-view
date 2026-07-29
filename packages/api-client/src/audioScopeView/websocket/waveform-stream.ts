@@ -3,7 +3,7 @@ import { config } from "../../config";
 export interface WaveformStreamMessage {
   type: "waveform";
   data: {
-    scopeId: string;
+    sessionId: string;
     samples: number[];
     timestamp: number;
     durationMs: number;
@@ -11,7 +11,7 @@ export interface WaveformStreamMessage {
 }
 
 export interface WaveformStreamOptions {
-  scopeId: string;
+  sessionId: string;
   onWaveform: (data: WaveformStreamMessage["data"]) => void;
   onError?: (error: Error) => void;
   onConnectionChange?: (connected: boolean) => void;
@@ -71,7 +71,7 @@ export class WaveformStreamClient {
           if (message.type === "next" && message.payload?.data?.waveformStream) {
             const waveformData = message.payload.data.waveformStream;
             this.options.onWaveform({
-              scopeId: waveformData.scopeId ?? this.options.scopeId,
+              sessionId: waveformData.sessionId ?? this.options.sessionId,
               samples: waveformData.samples ?? [],
               timestamp: waveformData.timestamp ?? Date.now(),
               durationMs: waveformData.durationMs ?? 0,
@@ -99,17 +99,17 @@ export class WaveformStreamClient {
   private sendSubscription(): void {
     const subscription = {
       type: "subscribe",
-      id: `waveform-${this.options.scopeId}`,
+      id: `waveform-${this.options.sessionId}`,
       payload: {
-        query: `subscription OnWaveformStream($scopeId: String!) {
- waveformStream(scopeId: $scopeId) {
- scopeId
+        query: `subscription OnWaveformStream($sessionId: String!) {
+ waveformStream(sessionId: $sessionId) {
+ sessionId
  samples
  timestamp
  durationMs
  }
  }`,
-        variables: { scopeId: this.options.scopeId },
+        variables: { sessionId: this.options.sessionId },
       },
     };
     this.ws?.send(JSON.stringify(subscription));
@@ -134,7 +134,7 @@ export class WaveformStreamClient {
     if (this.ws) {
       const unsubscribe = {
         type: "complete",
-        id: `waveform-${this.options.scopeId}`,
+        id: `waveform-${this.options.sessionId}`,
       };
       this.ws.send(JSON.stringify(unsubscribe));
       this.ws.close();

@@ -3,7 +3,7 @@ import { gql } from "@apollo/client";
 export const WAVEFORM_FIELDS = gql`
   fragment WaveformFields on WaveformOutput {
     id
-    scope_id
+    session_id
     samples
     sample_count
     timestamp
@@ -16,7 +16,7 @@ export const WAVEFORM_FIELDS = gql`
 export const WAVEFORM_SUMMARY_FIELDS = gql`
   fragment WaveformSummaryFields on WaveformSummary {
     id
-    scope_id
+    session_id
     sample_count
     timestamp
     duration_ms
@@ -36,8 +36,8 @@ export const GET_WAVEFORM = gql`
 
 export const GET_WAVEFORMS = gql`
   ${WAVEFORM_FIELDS}
-  query GetWaveforms($scopeId: String!, $limit: Int, $offset: Int, $includeSamples: Boolean) {
-    waveforms(scopeId: $scopeId, limit: $limit, offset: $offset, includeSamples: $includeSamples) {
+  query GetWaveforms($sessionId: String!, $limit: Int, $offset: Int, $includeSamples: Boolean) {
+    waveforms(sessionId: $sessionId, limit: $limit, offset: $offset, includeSamples: $includeSamples) {
       ...WaveformFields
     }
   }
@@ -45,22 +45,22 @@ export const GET_WAVEFORMS = gql`
 
 export const GET_RECENT_WAVEFORMS = gql`
   ${WAVEFORM_SUMMARY_FIELDS}
-  query GetRecentWaveforms($scopeId: String!, $limit: Int) {
-    recentWaveforms(scopeId: $scopeId, limit: $limit) {
+  query GetRecentWaveforms($sessionId: String!, $limit: Int) {
+    recentWaveforms(sessionId: $sessionId, limit: $limit) {
       ...WaveformSummaryFields
     }
   }
 `;
 
 export const GET_WAVEFORM_COUNT = gql`
-  query GetWaveformCount($scopeId: String!) {
-    waveformCount(scopeId: $scopeId)
+  query GetWaveformCount($sessionId: String!) {
+    waveformCount(sessionId: $sessionId)
   }
 `;
 
 export const GET_WAVEFORM_STATISTICS = gql`
-  query GetWaveformStatistics($scopeId: String!) {
-    waveformStatistics(scopeId: $scopeId) {
+  query GetWaveformStatistics($sessionId: String!) {
+    waveformStatistics(sessionId: $sessionId) {
       total_count
       total_samples
       average_peak

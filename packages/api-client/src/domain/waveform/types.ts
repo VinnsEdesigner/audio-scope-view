@@ -1,6 +1,6 @@
 export interface Waveform {
   id: string;
-  scopeId: string;
+  sessionId: string;
   samples: number[];
   sampleCount: number;
   timestamp: Date;
@@ -11,7 +11,7 @@ export interface Waveform {
 
 export interface WaveformSummary {
   id: string;
-  scopeId: string;
+  sessionId: string;
   sampleCount: number;
   timestamp: Date;
   durationMs: number;
@@ -27,13 +27,13 @@ export interface WaveformStatistics {
 }
 
 export interface CreateWaveformInput {
-  scopeId: string;
+  sessionId: string;
   samples: number[];
 }
 
 export interface WaveformServer {
   id: string;
-  scope_id: string;
+  session_id: string;
   samples: number[];
   sample_count: number;
   timestamp: string;
@@ -44,7 +44,7 @@ export interface WaveformServer {
 
 export interface WaveformSummaryServer {
   id: string;
-  scope_id: string;
+  session_id: string;
   sample_count: number;
   timestamp: string;
   duration_ms: number;

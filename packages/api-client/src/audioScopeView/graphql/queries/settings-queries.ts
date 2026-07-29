@@ -3,7 +3,7 @@ import { gql } from "@apollo/client";
 export const SETTINGS_FIELDS = gql`
   fragment SettingsFields on SettingsOutput {
     id
-    scope_id
+    session_id
     time_scale
     voltage_scale
     time_offset
@@ -22,8 +22,8 @@ export const SETTINGS_FIELDS = gql`
 
 export const GET_SETTINGS = gql`
   ${SETTINGS_FIELDS}
-  query GetSettings($scopeId: String!) {
-    settings(scopeId: $scopeId) {
+  query GetSettings($sessionId: String!) {
+    settings(sessionId: $sessionId) {
       ...SettingsFields
     }
   }

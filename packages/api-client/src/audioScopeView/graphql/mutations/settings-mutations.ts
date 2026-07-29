@@ -3,8 +3,8 @@ import { SETTINGS_FIELDS } from "../queries/settings-queries";
 
 export const CREATE_SETTINGS = gql`
   ${SETTINGS_FIELDS}
-  mutation CreateSettings($scopeId: String!) {
-    createSettings(scopeId: $scopeId) {
+  mutation CreateSettings($sessionId: String!) {
+    createSettings(sessionId: $sessionId) {
       ...SettingsFields
     }
   }
@@ -13,7 +13,7 @@ export const CREATE_SETTINGS = gql`
 export const UPDATE_SETTINGS = gql`
   ${SETTINGS_FIELDS}
   mutation UpdateSettings(
-    $scopeId: String!
+    $sessionId: String!
     $timeScale: Float
     $voltageScale: Float
     $triggerLevel: Float
@@ -24,7 +24,7 @@ export const UPDATE_SETTINGS = gql`
     $inputDevice: String
   ) {
     updateSettings(
-      scopeId: $scopeId
+      sessionId: $sessionId
       timeScale: $timeScale
       voltageScale: $voltageScale
       triggerLevel: $triggerLevel
@@ -40,7 +40,7 @@ export const UPDATE_SETTINGS = gql`
 `;
 
 export const DELETE_SETTINGS = gql`
-  mutation DeleteSettings($scopeId: String!) {
-    deleteSettings(scopeId: $scopeId)
+  mutation DeleteSettings($sessionId: String!) {
+    deleteSettings(sessionId: $sessionId)
   }
 `;

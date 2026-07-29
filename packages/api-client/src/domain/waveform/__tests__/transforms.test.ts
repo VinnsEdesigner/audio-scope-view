@@ -14,7 +14,7 @@ describe("waveform transforms", () => {
     it("should transform server WaveformServer to Waveform domain type", () => {
       const serverWaveform: WaveformServer = {
         id: "waveform-1",
-        scope_id: "scope-1",
+        session_id: "session-1",
         samples: [0.1, 0.2, 0.3, 0.4, 0.5],
         sample_count: 5,
         timestamp: "2024-01-01T12:00:00Z",
@@ -26,7 +26,7 @@ describe("waveform transforms", () => {
       const waveform = waveformFromRaw(serverWaveform);
 
       expect(waveform.id).toBe("waveform-1");
-      expect(waveform.scopeId).toBe("scope-1");
+      expect(waveform.sessionId).toBe("session-1");
       expect(waveform.samples).toEqual([0.1, 0.2, 0.3, 0.4, 0.5]);
       expect(waveform.sampleCount).toBe(5);
       expect(waveform.timestamp).toBeInstanceOf(Date);
@@ -38,7 +38,7 @@ describe("waveform transforms", () => {
     it("should handle empty samples array", () => {
       const serverWaveform: WaveformServer = {
         id: "waveform-empty",
-        scope_id: "scope-1",
+        session_id: "session-1",
         samples: [],
         sample_count: 0,
         timestamp: "2024-01-01T12:00:00Z",
@@ -58,7 +58,7 @@ describe("waveform transforms", () => {
     it("should transform server WaveformSummary to domain type", () => {
       const serverSummary: WaveformSummaryServer = {
         id: "summary-1",
-        scope_id: "scope-1",
+        session_id: "session-1",
         sample_count: 4096,
         timestamp: "2024-02-20T15:00:00Z",
         duration_ms: 200,
@@ -69,7 +69,7 @@ describe("waveform transforms", () => {
       const summary = waveformSummaryFromRaw(serverSummary);
 
       expect(summary.id).toBe("summary-1");
-      expect(summary.scopeId).toBe("scope-1");
+      expect(summary.sessionId).toBe("session-1");
       expect(summary.sampleCount).toBe(4096);
       expect(summary.timestamp).toBeInstanceOf(Date);
       expect(summary.durationMs).toBe(200);

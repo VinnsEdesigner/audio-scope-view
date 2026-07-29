@@ -6,7 +6,7 @@ describe("settings types", () => {
     it("should have correct camelCase fields", () => {
       const settings: Settings = {
         id: "settings-1",
-        scopeId: "scope-1",
+        sessionId: "session-1",
         timeScale: 1,
         voltageScale: 1,
         timeOffset: 0,
@@ -26,7 +26,7 @@ describe("settings types", () => {
       };
 
       expect(settings.id).toBeDefined();
-      expect(settings.scopeId).toBeDefined();
+      expect(settings.sessionId).toBeDefined();
       expect(typeof settings.timeScale).toBe("number");
       expect(typeof settings.voltageScale).toBe("number");
       expect(typeof settings.timeOffset).toBe("number");
@@ -46,7 +46,7 @@ describe("settings types", () => {
     it("should allow undefined inputDevice", () => {
       const settings: Settings = {
         id: "settings-2",
-        scopeId: "scope-2",
+        sessionId: "session-2",
         timeScale: 0.5,
         voltageScale: 0.5,
         timeOffset: 0.1,

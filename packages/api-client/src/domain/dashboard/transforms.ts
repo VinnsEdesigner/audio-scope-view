@@ -1,17 +1,16 @@
 import type {
   DashboardSummary,
   DashboardSummaryServer,
-  RecentScope,
-  RecentScopeServer,
+  RecentSession,
+  RecentSessionServer,
   TimeRange,
 } from "./types";
 
-export function recentScopeFromRaw(serverScope: RecentScopeServer): RecentScope {
+export function recentSessionFromRaw(serverSession: RecentSessionServer): RecentSession {
   return {
-    id: serverScope.id,
-    name: serverScope.name,
-    lastActivity: new Date(serverScope.last_activity),
-    waveformCount: serverScope.waveform_count,
+    id: serverSession.id,
+    startedAt: new Date(serverSession.started_at),
+    recordingCount: serverSession.recording_count,
   };
 }
 
@@ -19,14 +18,14 @@ export function dashboardSummaryFromRaw(serverSummary: DashboardSummaryServer): 
   return {
     timeRange: serverSummary.time_range as TimeRange,
     generatedAt: new Date(serverSummary.generated_at),
-    totalScopes: serverSummary.total_scopes,
-    activeScopes: serverSummary.active_scopes,
+    totalSessions: serverSummary.total_sessions,
+    activeSessions: serverSummary.active_sessions,
     totalCaptures: serverSummary.total_captures,
     totalWaveforms: serverSummary.total_waveforms,
     totalSamples: serverSummary.total_samples,
     averagePeakAmplitude: serverSummary.average_peak_amplitude,
     averageRmsAmplitude: serverSummary.average_rms_amplitude,
-    recentScopes: serverSummary.recent_scopes.map((s) => recentScopeFromRaw(s)),
+    recentSessions: serverSummary.recent_sessions.map((s) => recentSessionFromRaw(s)),
   };
 }
 

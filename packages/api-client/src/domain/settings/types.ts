@@ -1,6 +1,6 @@
 export interface Settings {
   id: string;
-  scopeId: string;
+  sessionId: string;
   timeScale: number;
   voltageScale: number;
   timeOffset: number;
@@ -35,7 +35,7 @@ export interface UpdateSettingsInput {
 
 export interface SettingsServer {
   id: string;
-  scope_id: string;
+  session_id: string;
   time_scale: number;
   voltage_scale: number;
   time_offset: number;

@@ -4,7 +4,7 @@ export const CREATE_WAVEFORM = gql`
   mutation CreateWaveform($input: CreateWaveformInput!) {
     createWaveform(input: $input) {
       id
-      scope_id
+      session_id
       sample_count
       timestamp
       duration_ms
@@ -15,7 +15,7 @@ export const CREATE_WAVEFORM = gql`
 `;
 
 export const DELETE_WAVEFORMS = gql`
-  mutation DeleteWaveforms($scopeId: String!) {
-    deleteWaveforms(scopeId: $scopeId)
+  mutation DeleteWaveforms($sessionId: String!) {
+    deleteWaveforms(sessionId: $sessionId)
   }
 `;

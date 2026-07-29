@@ -27,8 +27,8 @@ export const DELETE_RECORDING = gql`
 
 export const START_RECORDING = gql`
   ${RECORDING_FIELDS}
-  mutation StartRecording($scopeId: String!, $name: String) {
-    startRecording(scopeId: $scopeId, name: $name) {
+  mutation StartRecording($sessionId: String!, $name: String) {
+    startRecording(sessionId: $sessionId, name: $name) {
       ...RecordingFields
     }
   }

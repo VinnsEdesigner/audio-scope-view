@@ -3,11 +3,11 @@ import * as queries from "../queries";
 import * as mutations from "../mutations";
 
 describe("Apollo queries", () => {
-  it("should export scope queries", () => {
-    expect(queries.GET_SCOPES).toBeDefined();
-    expect(queries.GET_SCOPES_BY_ID).toBeDefined();
-    expect(queries.GET_ACTIVE_SCOPES).toBeDefined();
-    expect(queries.GET_SCOPE_COUNT).toBeDefined();
+  it("should export session queries", () => {
+    expect(queries.GET_SESSIONS).toBeDefined();
+    expect(queries.GET_SESSION_BY_ID).toBeDefined();
+    expect(queries.GET_ACTIVE_SESSIONS).toBeDefined();
+    expect(queries.GET_SESSION_COUNT).toBeDefined();
   });
 
   it("should export waveform queries", () => {
@@ -23,21 +23,21 @@ describe("Apollo queries", () => {
 
   it("should export dashboard queries", () => {
     expect(queries.GET_DASHBOARD_SUMMARY).toBeDefined();
-    expect(queries.GET_RECENT_SCOPES).toBeDefined();
+    expect(queries.GET_RECENT_SESSIONS).toBeDefined();
   });
 
   it("should export valid GraphQL document objects", () => {
-    expect(queries.GET_SCOPES.kind).toBe("Document");
+    expect(queries.GET_SESSIONS.kind).toBe("Document");
     expect(queries.GET_WAVEFORMS.kind).toBe("Document");
     expect(queries.GET_DASHBOARD_SUMMARY.kind).toBe("Document");
   });
 });
 
 describe("Apollo mutations", () => {
-  it("should export scope mutations", () => {
-    expect(mutations.CREATE_SCOPE).toBeDefined();
-    expect(mutations.UPDATE_SCOPE).toBeDefined();
-    expect(mutations.DELETE_SCOPE).toBeDefined();
+  it("should export session mutations", () => {
+    expect(mutations.START_SESSION).toBeDefined();
+    expect(mutations.END_SESSION).toBeDefined();
+    expect(mutations.DELETE_SESSION).toBeDefined();
     expect(mutations.CAPTURE_WAVEFORM).toBeDefined();
   });
 
@@ -53,7 +53,7 @@ describe("Apollo mutations", () => {
   });
 
   it("should export valid GraphQL document objects", () => {
-    expect(mutations.CREATE_SCOPE.kind).toBe("Document");
+    expect(mutations.START_SESSION.kind).toBe("Document");
     expect(mutations.CREATE_WAVEFORM.kind).toBe("Document");
     expect(mutations.UPDATE_SETTINGS.kind).toBe("Document");
   });

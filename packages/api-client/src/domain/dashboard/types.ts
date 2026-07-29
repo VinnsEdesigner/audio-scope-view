@@ -1,41 +1,39 @@
-export interface RecentScope {
+export interface RecentSession {
   id: string;
-  name: string;
-  lastActivity: Date;
-  waveformCount: number;
+  startedAt: Date;
+  recordingCount: number;
 }
 
 export interface DashboardSummary {
   timeRange: TimeRange;
   generatedAt: Date;
-  totalScopes: number;
-  activeScopes: number;
+  totalSessions: number;
+  activeSessions: number;
   totalCaptures: number;
   totalWaveforms: number;
   totalSamples: number;
   averagePeakAmplitude: number;
   averageRmsAmplitude: number;
-  recentScopes: RecentScope[];
+  recentSessions: RecentSession[];
 }
 
 export type TimeRange = "last_hour" | "last_24_hours" | "last_7_days" | "last_30_days";
 
-export interface RecentScopeServer {
+export interface RecentSessionServer {
   id: string;
-  name: string;
-  last_activity: string;
-  waveform_count: number;
+  started_at: string;
+  recording_count: number;
 }
 
 export interface DashboardSummaryServer {
   time_range: string;
   generated_at: string;
-  total_scopes: number;
-  active_scopes: number;
+  total_sessions: number;
+  active_sessions: number;
   total_captures: number;
   total_waveforms: number;
   total_samples: number;
   average_peak_amplitude: number;
   average_rms_amplitude: number;
-  recent_scopes: RecentScopeServer[];
+  recent_sessions: RecentSessionServer[];
 }
