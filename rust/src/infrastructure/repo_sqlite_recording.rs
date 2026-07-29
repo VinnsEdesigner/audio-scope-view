@@ -138,59 +138,65 @@ impl SqliteRecordingRepository {
         limit: u32,
         offset: u32,
     ) -> Result<(Vec<RecordingSummary>, u64, bool), DomainError> {
-        let mut query = String::from("SELECT * FROM recordings WHERE 1=1");
-        let mut count_query = String::from("SELECT COUNT(*) FROM recordings WHERE 1=1");
-        let mut params: Vec<String> = vec![];
+        // Build query dynamically
+        let (where_clause, params): (String, Vec<String>) = if let Some(f) = filter {
+            let mut clauses = vec![];
+            let mut params = vec![];
 
-        if let Some(f) = filter {
             if let Some(ref session_id) = f.session_id {
-                query.push_str(" AND session_id = ?");
-                count_query.push_str(" AND session_id = ?");
+                clauses.push("session_id = ?".to_string());
                 params.push(session_id.clone());
             }
             if let Some(pinned) = f.is_pinned {
-                query.push_str(" AND is_pinned = ?");
-                count_query.push_str(" AND is_pinned = ?");
+                clauses.push("is_pinned = ?".to_string());
                 params.push(if pinned { "1" } else { "0" }.to_string());
             }
             if let Some(ref search) = f.search_query {
-                query.push_str(" AND name LIKE ?");
-                count_query.push_str(" AND name LIKE ?");
+                clauses.push("name LIKE ?".to_string());
                 params.push(format!("%{}%", search));
             }
             if let Some(time_range) = f.time_range {
                 let (start, _) = get_time_range_bounds(time_range);
                 if let Some(start) = start {
-                    query.push_str(" AND timestamp >= ?");
-                    count_query.push_str(" AND timestamp >= ?");
+                    clauses.push("timestamp >= ?".to_string());
                     params.push(start.to_rfc3339());
                 }
             }
-        }
 
-        query.push_str(" ORDER BY is_pinned DESC, timestamp DESC LIMIT ? OFFSET ?");
+            let where_str = if clauses.is_empty() {
+                String::new()
+            } else {
+                format!(" WHERE {}", clauses.join(" AND "))
+            };
+            (where_str, params)
+        } else {
+            (String::new(), vec![])
+        };
 
-        // Build and execute count query
-        let mut count_builder = sqlx::QueryBuilder::new(&count_query);
+        // Count query
+        let count_sql = format!("SELECT COUNT(*) FROM recordings{}", where_clause);
+        let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql);
         for param in &params {
-            count_builder.push_bind(param);
+            count_query = count_query.bind(param);
         }
-        let (total,): (i64,) = count_builder
-            .build_query_as()
+        let total = count_query
             .fetch_one(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
 
-        // Build and execute main query
-        let mut builder = sqlx::QueryBuilder::new(&query);
+        // Main query
+        let main_sql = format!(
+            "SELECT * FROM recordings{} ORDER BY is_pinned DESC, timestamp DESC LIMIT ? OFFSET ?",
+            where_clause
+        );
+        let mut main_query = sqlx::query_as::<_, RecordingRow>(&main_sql);
         for param in &params {
-            builder.push_bind(param);
+            main_query = main_query.bind(param);
         }
-        builder.push_bind(limit as i32);
-        builder.push_bind(offset as i32);
+        main_query = main_query.bind(limit as i32);
+        main_query = main_query.bind(offset as i32);
 
-        let rows: Vec<RecordingRow> = builder
-            .build_query_as()
+        let rows: Vec<RecordingRow> = main_query
             .fetch_all(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
