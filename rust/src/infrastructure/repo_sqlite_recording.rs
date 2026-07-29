@@ -308,37 +308,44 @@ impl SqliteRecordingRepository {
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> Result<RecordingStats, DomainError> {
-        let mut query = String::from(
+        // Build query dynamically
+        let mut where_clause = String::new();
+        let (start_time, _) = if let Some(range) = time_range {
+            let bounds = get_time_range_bounds(range);
+            if let Some(start) = bounds.0 {
+                where_clause.push_str(" AND timestamp >= ?");
+            }
+            bounds
+        } else {
+            (None, None)
+        };
+
+        if session_id.is_some() {
+            where_clause.push_str(" AND session_id = ?");
+        }
+
+        let sql = format!(
             r#"
             SELECT 
                 COUNT(*) as total_recordings,
                 COALESCE(SUM(size_bytes), 0) as total_size_bytes,
                 COALESCE(SUM(duration_ms), 0) as total_duration_ms,
                 COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count
-            FROM recordings WHERE 1=1
+            FROM recordings WHERE 1=1{}
             "#,
+            where_clause
         );
-        let mut params: Vec<String> = vec![];
 
+        let mut query = sqlx::query_as::<_, RecordingStatsRow>(&sql);
+        
         if let Some(sid) = session_id {
-            query.push_str(" AND session_id = ?");
-            params.push(sid.to_string());
+            query = query.bind(sid);
         }
-        if let Some(range) = time_range {
-            let (start, _) = get_time_range_bounds(range);
-            if let Some(start) = start {
-                query.push_str(" AND timestamp >= ?");
-                params.push(start.to_rfc3339());
-            }
+        if let Some(start) = start_time {
+            query = query.bind(start.to_rfc3339());
         }
 
-        let mut builder = sqlx::QueryBuilder::new(&query);
-        for param in &params {
-            builder.push_bind(param);
-        }
-
-        let row: Option<RecordingStatsRow> = builder
-            .build_query_as()
+        let row: Option<RecordingStatsRow> = query
             .fetch_optional(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
@@ -349,7 +356,7 @@ impl SqliteRecordingRepository {
                 total_recordings: r.total_recordings as u64,
                 total_size_bytes: r.total_size_bytes as u64,
                 total_duration_ms: r.total_duration_ms,
-                average_size_bytes: if count > 0.0 { r.total_size_bytes / count } else { 0.0 },
+                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
                 average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
                 pinned_count: r.pinned_count as u64,
             }
@@ -360,29 +367,19 @@ impl SqliteRecordingRepository {
         &self,
         session_id: Option<&str>,
     ) -> Result<RecordingStats, DomainError> {
-        let mut query = String::from(
-            r#"
-            SELECT 
-                COUNT(*) as total_recordings,
-                COALESCE(SUM(size_bytes), 0) as total_size_bytes,
-                COALESCE(SUM(duration_ms), 0) as total_duration_ms
-            FROM recordings WHERE 1=1
-            "#,
-        );
-        let mut params: Vec<String> = vec![];
+        let sql = if session_id.is_some() {
+            "SELECT COUNT(*) as total_recordings, COALESCE(SUM(size_bytes), 0) as total_size_bytes, COALESCE(SUM(duration_ms), 0) as total_duration_ms, COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count FROM recordings WHERE session_id = ?"
+        } else {
+            "SELECT COUNT(*) as total_recordings, COALESCE(SUM(size_bytes), 0) as total_size_bytes, COALESCE(SUM(duration_ms), 0) as total_duration_ms, COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count FROM recordings"
+        };
 
+        let mut query = sqlx::query_as::<_, RecordingStatsRow>(sql);
+        
         if let Some(sid) = session_id {
-            query.push_str(" AND session_id = ?");
-            params.push(sid.to_string());
+            query = query.bind(sid);
         }
 
-        let mut builder = sqlx::QueryBuilder::new(&query);
-        for param in &params {
-            builder.push_bind(param);
-        }
-
-        let row: Option<RecordingStatsRow> = builder
-            .build_query_as()
+        let row: Option<RecordingStatsRow> = query
             .fetch_optional(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
@@ -393,7 +390,7 @@ impl SqliteRecordingRepository {
                 total_recordings: r.total_recordings as u64,
                 total_size_bytes: r.total_size_bytes as u64,
                 total_duration_ms: r.total_duration_ms,
-                average_size_bytes: if count > 0.0 { r.total_size_bytes / count } else { 0.0 },
+                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
                 average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
                 pinned_count: r.pinned_count as u64,
             }
@@ -404,7 +401,7 @@ impl SqliteRecordingRepository {
 #[derive(Debug, FromRow)]
 struct RecordingStatsRow {
     total_recordings: i64,
-    total_size_bytes: f64,
+    total_size_bytes: i64,
     total_duration_ms: f64,
     pinned_count: i64,
 }
