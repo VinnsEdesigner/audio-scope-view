@@ -1,47 +1,21 @@
 # Audio Scope View
 
-A browser-based audio oscilloscope and spectrum analyzer. Capture audio from your microphone, visualize waveforms and frequency spectrums in real-time, and save recordings for later playback.
+A web-based oscilloscope that captures audio and displays waveforms and frequency spectrums in real-time. Save sessions, play back recordings, export data.
 
-## What it does
+## The project
 
-- **Live scope view** — Shows audio waveforms as they come in from your microphone
-- **Spectrum analyzer** — FFT-based frequency display 
-- **Recording** — Save audio sessions to the database and play them back later
-- **Export** — Export waveform data and scope screenshots
+- **vyzorWeb** — React frontend for the oscilloscope UI (canvas-based waveform rendering, dialogs, playback)
+- **api-client** — TypeScript package with GraphQL queries/mutations and WebSocket handling
+- **Rust server** — Handles GraphQL API, audio capture, DSP (FFT), and SQLite storage
 
-## Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, Vite, TailwindCSS, TanStack Router |
-| State | Zustand |
-| Backend | Rust (Axum, GraphQL Yoga, SQLite) |
-| Audio | Web Audio API (browser mic capture) |
-
-## Project structure
-
-```
-audio-scope-view/
-├── apps/
-│   ├── vyzorWeb/          # Main web app
-│   └── vyzorMobile/       # Mobile app (not actively developed)
-├── packages/
-│   ├── api-client/        # GraphQL client for the Rust server
-│   └── ui/                # Shared UI components
-├── rust/                  # Rust server (GraphQL + WebSocket)
-│   ├── src/api/          # GraphQL schema, WebSocket handlers
-│   ├── src/application/  # Business logic services
-│   └── src/domain/       # Domain models and types
-├── mocks/                # Mock data and UI prototypes
-└── docs/                 # Architecture docs
-```
+The Rust server can run with mock audio (for testing without hardware) or real audio capture via cpal (ALSA/PulseAudio on Linux).
 
 ## Quick start
 
 ### Prerequisites
 
 - Node.js 18+
-- Rust 1.75+
+- Rust 1.97+
 - pnpm (`npm i -g pnpm`)
 
 ### Install dependencies
@@ -63,13 +37,13 @@ pnpm build
 
 ```bash
 cd rust
-export BOOTSTRAP_KEY="your-16-char-key-here"
+export BOOTSTRAP_KEY="CHANGE_THIS_TO_A_SECURE_KEY_IN_PRODUCTION"
 cargo run --release
 ```
 
-The Rust server starts on `http://127.0.0.1:8080` and provides:
-- GraphQL endpoint at `/graphql`
-- WebSocket subscriptions for real-time audio streaming
+Server starts on `http://127.0.0.1:8080` with:
+- GraphQL API at `/graphql`
+- WebSocket subscriptions for real-time audio
 - Health check at `/health`
 
 ### Run the frontend
@@ -78,18 +52,45 @@ The Rust server starts on `http://127.0.0.1:8080` and provides:
 node simple-server.cjs
 ```
 
-This serves the built web app on `http://localhost:3003` and proxies GraphQL requests to the Rust server.
+Serves the web app at `http://localhost:3003`, proxies GraphQL to the Rust server.
 
-Or for development with hot reload:
+For development with hot reload:
 
 ```bash
 cd apps/vyzorWeb
 pnpm dev
 ```
 
-## Configuration
+## Project layout
 
-### Rust server (`rust/config.toml`)
+```
+audio-scope-view/
+├── apps/
+│   └── vyzorWeb/              # React app
+│       └── src/
+│           ├── components/     # UI components (scope, dialogs, layout)
+│           ├── hooks/          # Audio, sessions, recordings, export
+│           ├── routes/         # Pages (home, scope-page, settings)
+│           └── store/          # Zustand stores
+├── packages/
+│   └── api-client/            # GraphQL client
+│       └── src/
+│           ├── audioScopeView/ # Generated GraphQL types
+│           └── domain/         # Session, recording, waveform types
+├── rust/
+│   └── src/
+│       ├── api/              # GraphQL schema + resolvers
+│       ├── application/      # Business logic services
+│       ├── domain/           # Entities, FFT, measurements, triggers
+│       ├── infrastructure/   # SQLite repos, audio capture impls
+│       └── shared/           # Config, errors, constants
+├── mocks/                    # UI mockups and mock server
+└── scripts/                  # Build and utility scripts
+```
+
+## Config
+
+`rust/config.toml`:
 
 ```toml
 [server]
@@ -100,50 +101,31 @@ port = 8080
 url = "sqlite:./data/audio_scope_view.db?mode=rwc"
 
 [audio]
-backend = "mock"  # Options: "mock", "alsa", "pulse"
+backend = "mock"  # "mock", "alsa", or "pulse"
 
 [security]
 require_auth = true
 bootstrap_key = "your-secure-key"
 ```
 
-### Environment variables
-
-- `BOOTSTRAP_KEY` — Required for server startup. Must be at least 16 characters.
+Environment variable `BOOTSTRAP_KEY` must be at least 16 characters.
 
 ## Key concepts
 
-### Sessions vs Recordings
+**Sessions** are live capture sessions tied to an audio device. **Recordings** are saved waveform chunks you can play back later.
 
-A **session** is a live capture session tied to an audio device. A **recording** is a saved chunk of waveform data that can be played back independently.
+The web app has a **test mode** toggle that uses a mock audio generator instead of your microphone — handy when no mic is around.
 
-### Test mode
+## Stuff that doesn't work yet
 
-The web app has a "test mode" toggle that switches from real microphone input to a mock audio generator. Useful when you don't have a mic connected or want consistent demo data.
+- Mobile app (vyzorMobile) is incomplete
+- Phone browsers apply processing to mic audio (AGC, noise cancellation) which ruins accuracy — use a USB audio interface if you need real measurements
 
-### GraphQL API
-
-The Rust server exposes a GraphQL API for:
-- Creating/managing sessions
-- Saving and loading recordings
-- Querying waveform data
-- API key authentication
-
-## Known quirks
-
-- Phone browser audio capture has processing applied (AGC, noise cancellation) that affects accuracy. Use a USB audio interface for real measurements.
-- The C++ DSP layer mentioned in the architecture docs hasn't been implemented yet — DSP currently runs in the Rust server.
-- The mobile app is a work in progress.
-
-## Scripts
+## Common commands
 
 ```bash
-pnpm build          # Build all packages
-pnpm dev           # Run web app in dev mode
-pnpm lint          # Lint all packages
-pnpm lint --fix    # Auto-fix lint issues
+pnpm build        # Build everything
+pnpm dev          # Dev server for web app
+pnpm lint         # Lint all packages
+pnpm lint --fix   # Auto-fix lint issues
 ```
-
-## License
-
-Private project.
