@@ -4,7 +4,7 @@ A web-based oscilloscope that captures audio and displays waveforms and frequenc
 
 ## The project
 
-- **vyzorWeb** — React frontend for the oscilloscope UI (canvas-based waveform rendering, dialogs, playback)
+- **vyzorWeb** — React frontend for the oscilloscope UI (canvas-based waveform rendering, live and , playback)
 - **api-client** — TypeScript package with GraphQL queries/mutations and WebSocket handling
 - **Rust server** — Handles GraphQL API, audio capture, DSP (FFT), and SQLite storage
 
@@ -18,13 +18,7 @@ The Rust server can run with mock audio (for testing without hardware) or real a
 - Rust 1.97+
 - pnpm (`npm i -g pnpm`)
 
-### Install dependencies
 
-```bash
-export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-export COREPACK_ENABLE_AUTOINSTALL=0
-export PNPM_TELEMETRY=0
-pnpm install
 ```
 
 ### Build
@@ -37,7 +31,7 @@ pnpm build
 
 ```bash
 cd rust
-export BOOTSTRAP_KEY="CHANGE_THIS_TO_A_SECURE_KEY_IN_PRODUCTION"
+export BOOTSTRAP_KEY=""
 cargo run --release
 ```
 
@@ -108,7 +102,7 @@ require_auth = true
 bootstrap_key = "your-secure-key"
 ```
 
-Environment variable `BOOTSTRAP_KEY` must be at least 16 characters.
+Environment variable `BOOTSTRAP_KEY`" ".
 
 ## Key concepts
 
@@ -126,6 +120,5 @@ The web app has a **test mode** toggle that uses a mock audio generator instead 
 ```bash
 pnpm build        # Build everything
 pnpm dev          # Dev server for web app
-pnpm lint         # Lint all packages
-pnpm lint --fix   # Auto-fix lint issues
+
 ```
