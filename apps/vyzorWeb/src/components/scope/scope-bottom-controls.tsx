@@ -201,13 +201,6 @@ export function ScopeBottomControls({
       {isPlayback && (
         <div className="px-3 py-2 border-b border-border-subtle">
           <div className="flex items-center gap-3">
-            <button
-              onClick={effectiveIsPlaying ? handlePause : handlePlay}
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-foreground text-bg-primary hover:opacity-90 transition-colors"
-            >
-              {effectiveIsPlaying ? <Pause size={14} /> : <Play size={14} fill="currentColor" />}
-            </button>
-
             <div className="flex-1 relative">
               <div className="relative h-2 bg-bg-primary rounded-full">
                 <div
@@ -272,15 +265,6 @@ export function ScopeBottomControls({
               >
                 <Repeat size={12} />
                 Loop
-              </button>
-
-              {/* Stop button */}
-              <button
-                onClick={handleStop}
-                className="flex items-center justify-center w-7 h-7 rounded bg-bg-elevated text-foreground hover:bg-bg-hover transition-colors"
-                title="Stop"
-              >
-                <Square size={12} fill="currentColor" />
               </button>
             </div>
           </div>

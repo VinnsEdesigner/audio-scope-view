@@ -33,6 +33,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "create_sessions",
         sql: include_str!("../../migrations/005_create_sessions.sql"),
     },
+    Migration {
+        version: 5,
+        name: "create_api_keys",
+        sql: include_str!("../../migrations/006_create_api_keys.sql"),
+    },
 ];
 
 /// Run all pending migrations

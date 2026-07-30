@@ -47,7 +47,7 @@ export const GET_RECORDINGS = gql`
 export const GET_RECORDINGS_BY_ID = gql`
   ${RECORDING_FIELDS}
   query GetRecordingsById($id: String!) {
-    recordings(id: $id) {
+    recording(id: $id) {
       ...RecordingFields
     }
   }

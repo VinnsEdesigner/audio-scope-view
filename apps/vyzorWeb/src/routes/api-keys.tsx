@@ -208,9 +208,6 @@ export function ApiKeys() {
                       <span className="text-sm font-medium text-foreground truncate">
                         {apiKey.name}
                       </span>
-                      <span className="text-xs font-mono text-text-tertiary break-all">
-                        #{apiKey.id}
-                      </span>
                     </div>
 
                     <div className="hidden md:flex items-center text-sm text-text-secondary">

@@ -27,6 +27,7 @@ use infrastructure::{
     database_migrations::run_migrations, repo_sqlite_session::SqliteSessionRepository,
     repo_sqlite_settings::SqliteSettingsRepository, repo_sqlite_waveform::SqliteWaveformRepository,
     repo_sqlite_recording::SqliteRecordingRepository,
+    repo_sqlite_api_key::SqliteApiKeyRepository,
     AudioStreamEvent, AudioStreamManager,
 };
 
@@ -165,6 +166,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings_repo = Arc::new(SqliteSettingsRepository::new(db.pool().clone()));
     let waveform_repo = Arc::new(SqliteWaveformRepository::new(db.pool().clone()));
     let recording_repo = Arc::new(SqliteRecordingRepository::new(db.pool().clone()));
+    let api_key_repo = Arc::new(SqliteApiKeyRepository::new(db.pool().clone()));
 
     // Create services
     let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
@@ -221,8 +223,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         stats_reporter(audio_manager_clone, ws_state_stats, 1).await;
     });
 
-    // Create API key store for user-managed keys
-    let key_store = Arc::new(ApiKeyStore::new());
+    // Create API key store for user-managed keys with database persistence
+    let key_store = Arc::new(ApiKeyStore::with_repository(api_key_repo.clone()));
+    key_store.load_from_database().await;
 
     // Create application state
     let state = Arc::new(AppState::new(

@@ -7,6 +7,8 @@ use std::time::{Duration, Instant, SystemTime};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use crate::infrastructure::SqliteApiKeyRepository;
+
 #[derive(Debug, Clone)]
 pub struct ApiKey {
     pub id: String,
@@ -59,6 +61,7 @@ pub struct ApiKeyStore {
     keys: Arc<RwLock<HashMap<String, ApiKey>>>,
     key_ids: Arc<RwLock<HashMap<String, String>>>,
     rate_limits: Arc<RwLock<HashMap<String, Vec<Instant>>>>,
+    repository: Option<Arc<SqliteApiKeyRepository>>,
 }
 
 impl ApiKeyStore {
@@ -67,6 +70,41 @@ impl ApiKeyStore {
             keys: Arc::new(RwLock::new(HashMap::new())),
             key_ids: Arc::new(RwLock::new(HashMap::new())),
             rate_limits: Arc::new(RwLock::new(HashMap::new())),
+            repository: None,
+        }
+    }
+
+    pub fn with_repository(repo: Arc<SqliteApiKeyRepository>) -> Self {
+        Self {
+            keys: Arc::new(RwLock::new(HashMap::new())),
+            key_ids: Arc::new(RwLock::new(HashMap::new())),
+            rate_limits: Arc::new(RwLock::new(HashMap::new())),
+            repository: Some(repo),
+        }
+    }
+
+    /// Load all keys from the database
+    pub async fn load_from_database(&self) {
+        if let Some(repo) = &self.repository {
+            match repo.list_all().await {
+                Ok(keys) => {
+                    let count = keys.len();
+                    for api_key in keys {
+                        let key_hash = hash_key(&api_key.key);
+                        let key_hash_for_ids = key_hash.clone();
+                        
+                        let mut keys_guard = self.keys.write().await;
+                        let mut key_ids_guard = self.key_ids.write().await;
+                        
+                        keys_guard.insert(key_hash, api_key.clone());
+                        key_ids_guard.insert(api_key.id.clone(), key_hash_for_ids);
+                    }
+                    tracing::info!("Loaded {} API keys from database", count);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to load API keys from database: {}", e);
+                }
+            }
         }
     }
 
@@ -78,8 +116,15 @@ impl ApiKeyStore {
         let mut keys = self.keys.write().await;
         let mut key_ids = self.key_ids.write().await;
         
-        keys.insert(key_hash, api_key.clone());
+        keys.insert(key_hash.clone(), api_key.clone());
         key_ids.insert(api_key.id.clone(), key_hash_for_ids);
+        
+        // Persist to database
+        if let Some(repo) = &self.repository
+            && let Err(e) = repo.save(&api_key).await
+        {
+            tracing::error!("Failed to persist API key: {}", e);
+        }
         
         api_key
     }
@@ -92,8 +137,15 @@ impl ApiKeyStore {
         let mut keys = self.keys.write().await;
         let mut key_ids = self.key_ids.write().await;
         
-        keys.insert(key_hash, api_key.clone());
+        keys.insert(key_hash.clone(), api_key.clone());
         key_ids.insert(api_key.id.clone(), key_hash_for_ids);
+        
+        // Persist to database
+        if let Some(repo) = &self.repository
+            && let Err(e) = repo.save(&api_key).await
+        {
+            tracing::error!("Failed to persist API key: {}", e);
+        }
         
         api_key
     }
@@ -104,6 +156,14 @@ impl ApiKeyStore {
         
         if let Some(key_hash) = key_ids.remove(key_id) {
             keys.remove(&key_hash);
+            
+            // Delete from database
+            if let Some(repo) = &self.repository
+                && let Err(e) = repo.delete(key_id).await
+            {
+                tracing::error!("Failed to delete API key from database: {}", e);
+            }
+            
             true
         } else {
             false
@@ -132,6 +192,12 @@ impl ApiKeyStore {
             && api_key.is_valid()
         {
             api_key.mark_used();
+            
+            // Update last_used_at in database
+            if let Some(repo) = &self.repository {
+                let _ = repo.update_last_used(&api_key.id).await;
+            }
+            
             return Some(api_key.clone());
         }
         None
@@ -180,6 +246,14 @@ impl ApiKeyStore {
         if let Some(key_hash) = key_ids.get(key_id)
             && let Some(key) = keys.get_mut(key_hash) {
                 key.rate_limit_per_minute = rate_limit;
+                
+                // Update in database
+                if let Some(repo) = &self.repository
+                    && let Err(e) = repo.update(key).await
+                {
+                    tracing::error!("Failed to update API key in database: {}", e);
+                }
+                
                 return true;
             }
         false
@@ -192,6 +266,14 @@ impl ApiKeyStore {
         if let Some(key_hash) = key_ids.get(key_id)
             && let Some(key) = keys.get_mut(key_hash) {
                 key.name = name.to_string();
+                
+                // Update in database
+                if let Some(repo) = &self.repository
+                    && let Err(e) = repo.update(key).await
+                {
+                    tracing::error!("Failed to update API key in database: {}", e);
+                }
+                
                 return true;
             }
         false
@@ -204,6 +286,14 @@ impl ApiKeyStore {
         if let Some(key_hash) = key_ids.get(key_id)
             && let Some(key) = keys.get_mut(key_hash) {
                 key.expires_at = Some(key.created_at + expiry);
+                
+                // Update in database
+                if let Some(repo) = &self.repository
+                    && let Err(e) = repo.update(key).await
+                {
+                    tracing::error!("Failed to update API key in database: {}", e);
+                }
+                
                 return true;
             }
         false
@@ -216,6 +306,14 @@ impl ApiKeyStore {
         if let Some(key_hash) = key_ids.get(key_id)
             && let Some(key) = keys.get_mut(key_hash) {
                 key.expires_at = None;
+                
+                // Update in database
+                if let Some(repo) = &self.repository
+                    && let Err(e) = repo.update(key).await
+                {
+                    tracing::error!("Failed to update API key in database: {}", e);
+                }
+                
                 return true;
             }
         false
@@ -238,7 +336,7 @@ pub struct ApiKeyInfo {
     pub rate_limit_per_minute: u32,
 }
 
-fn hash_key(key: &str) -> String {
+pub fn hash_key(key: &str) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
     

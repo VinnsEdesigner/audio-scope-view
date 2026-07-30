@@ -130,7 +130,7 @@ export function useRecording(recordingId: string | undefined) {
         variables: { id: recordingId },
         fetchPolicy: "cache-first",
       });
-      return transformRecording(result.data.recordings);
+      return transformRecording(result.data.recording);
     },
     enabled: !!recordingId,
     staleTime: 30 * 1000,

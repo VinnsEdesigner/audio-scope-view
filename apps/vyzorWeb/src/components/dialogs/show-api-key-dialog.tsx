@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { Copy, Check, AlertTriangle } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utilities";
 
@@ -49,14 +49,14 @@ export function ShowApiKeyDialog({
             {createdKey.name} has been created
           </h3>
           <p className="text-[13px] text-text-secondary leading-relaxed">
-            Copy your API key now. You won't be able to see it again.
+            Use this key to authenticate API requests.
           </p>
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-6">
         <label className="block text-[12px] font-semibold uppercase tracking-wider text-text-tertiary mb-2">
-          Your API Key
+          API Key
         </label>
         <div className="flex items-center gap-3 bg-bg-primary border border-border-subtle rounded-md p-3.5">
           <code className="flex-1 text-sm font-mono text-foreground break-all">
@@ -74,18 +74,6 @@ export function ShowApiKeyDialog({
           >
             {copied ? <Check size={18} /> : <Copy size={18} />}
           </button>
-        </div>
-      </div>
-
-      <div className="flex gap-3 bg-bg-elevated border border-border-default rounded-md p-3.5 mb-5">
-        <AlertTriangle className="w-5 h-5 text-text-tertiary flex-shrink-0 mt-0.5" />
-        <div>
-          <div className="text-[13px] font-semibold text-foreground mb-1">
-            Save your API key securely
-          </div>
-          <div className="text-[12px] text-text-secondary leading-relaxed">
-            This is the only time you'll see this key. Copy it now and store it securely.
-          </div>
         </div>
       </div>
 
