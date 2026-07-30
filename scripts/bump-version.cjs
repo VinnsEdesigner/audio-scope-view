@@ -20,6 +20,7 @@ const packages = [
 ];
 
 const cargoToml = 'rust/Cargo.toml';
+const apiClientConfig = 'packages/api-client/src/config.ts';
 
 function updatePackageJson(filePath, version) {
   const fullPath = path.join(ROOT, filePath);
@@ -33,6 +34,14 @@ function updateCargoToml(filePath, version) {
   const fullPath = path.join(ROOT, filePath);
   let content = fs.readFileSync(fullPath, 'utf8');
   content = content.replace(/^version = "[\d.]+"$/m, `version = "${version}"`);
+  fs.writeFileSync(fullPath, content);
+  console.log(`Updated ${filePath} -> ${version}`);
+}
+
+function updateApiClientConfig(filePath, version) {
+  const fullPath = path.join(ROOT, filePath);
+  let content = fs.readFileSync(fullPath, 'utf8');
+  content = content.replace(/^export const APP_VERSION = "[\d.]+";$/m, `export const APP_VERSION = "${version}";`);
   fs.writeFileSync(fullPath, content);
   console.log(`Updated ${filePath} -> ${version}`);
 }
@@ -59,5 +68,8 @@ for (const pkg of packages) {
 
 // Update Cargo.toml
 updateCargoToml(cargoToml, version);
+
+// Update api-client config.ts
+updateApiClientConfig(apiClientConfig, version);
 
 console.log('\nDone. Remember to commit and tag your release.');
