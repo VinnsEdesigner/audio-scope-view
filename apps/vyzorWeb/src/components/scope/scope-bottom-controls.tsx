@@ -99,6 +99,7 @@ export function ScopeBottomControls({
   onLoopToggle,
 }: ScopeBottomControlsProperties) {
   const store = useUIStore();
+  const { showMeasurements } = store;
   const audioAnalyzer = useAudioAnalyzer();
 
   const isPlayback = mode === "playback";
@@ -249,20 +250,24 @@ export function ScopeBottomControls({
       {/* Header with readouts and toggle */}
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex gap-4 text-[11px]">
-          <div className="flex gap-1">
-            <span className="uppercase text-foreground/80">Vpp</span>
-            <span className="font-mono text-foreground">{effectiveVpp.toFixed(3)}</span>
-          </div>
-          <div className="flex gap-1">
-            <span className="uppercase text-foreground/80">Freq</span>
-            <span className="font-mono text-foreground">
-              {effectiveFrequency > 0 ? `${effectiveFrequency.toFixed(1)} Hz` : "— Hz"}
-            </span>
-          </div>
-          <div className="flex gap-1">
-            <span className="uppercase text-foreground/80">Win</span>
-            <span className="font-mono text-foreground">{effectiveWindowMs.toFixed(2)} ms</span>
-          </div>
+          {showMeasurements && (
+            <>
+              <div className="flex gap-1">
+                <span className="uppercase text-foreground/80">Vpp</span>
+                <span className="font-mono text-foreground">{effectiveVpp.toFixed(3)}</span>
+              </div>
+              <div className="flex gap-1">
+                <span className="uppercase text-foreground/80">Freq</span>
+                <span className="font-mono text-foreground">
+                  {effectiveFrequency > 0 ? `${effectiveFrequency.toFixed(1)} Hz` : "— Hz"}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                <span className="uppercase text-foreground/80">Win</span>
+                <span className="font-mono text-foreground">{effectiveWindowMs.toFixed(2)} ms</span>
+              </div>
+            </>
+          )}
         </div>
 
         <button

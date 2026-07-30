@@ -17,6 +17,8 @@ export interface UseMockAudioAnalyzerOptions {
   waveformType?: WaveformType;
   waveformPoints?: number;
   noiseLevel?: number;
+  smoothingTimeConstant?: number;
+  fftSize?: number;
 }
 
 export interface AudioAnalyzerState {
@@ -50,6 +52,8 @@ const DEFAULT_AMPLITUDE = 0.5;
 const DEFAULT_SAMPLE_RATE = 48_000;
 const DEFAULT_WAVEFORM_POINTS = 64;
 const DEFAULT_NOISE_LEVEL = 0.02;
+const DEFAULT_SMOOTHING = 0.3;
+const DEFAULT_FFT_SIZE = 4096;
 
 export function useMockAudioAnalyzer(
   options: UseMockAudioAnalyzerOptions = {},
@@ -61,6 +65,8 @@ export function useMockAudioAnalyzer(
     waveformType = "sine",
     waveformPoints = DEFAULT_WAVEFORM_POINTS,
     noiseLevel = DEFAULT_NOISE_LEVEL,
+    smoothingTimeConstant = DEFAULT_SMOOTHING,
+    fftSize = DEFAULT_FFT_SIZE,
   } = options;
 
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
@@ -157,8 +163,8 @@ export function useMockAudioAnalyzer(
 
       const audioContext = new AudioContext({ sampleRate });
       const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 4096;
-      analyser.smoothingTimeConstant = 0.3;
+      analyser.fftSize = fftSize;
+      analyser.smoothingTimeConstant = smoothingTimeConstant;
 
       // Create oscillator for the base waveform
       const oscillator = audioContext.createOscillator();

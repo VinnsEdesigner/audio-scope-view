@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface MediaDevice {
   deviceId: string;
@@ -63,42 +64,53 @@ const initialState: AudioState = {
   audioContext: undefined,
 };
 
-export const useAudioStore = create<AudioStore>((set) => ({
-  ...initialState,
+export const useAudioStore = create<AudioStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
-  setCapturing: (isCapturing) => set({ isCapturing }),
-  setStream: (stream) => set({ stream }),
-  setError: (error) => set({ error }),
-  setProcessedAudio: (processedAudio) => set({ processedAudio }),
-  setAudioContext: (audioContext) => set({ audioContext }),
+      setCapturing: (isCapturing) => set({ isCapturing }),
+      setStream: (stream) => set({ stream }),
+      setError: (error) => set({ error }),
+      setProcessedAudio: (processedAudio) => set({ processedAudio }),
+      setAudioContext: (audioContext) => set({ audioContext }),
 
-  setDevices: (devices) => set({ devices }),
-  setSelectedDeviceId: (selectedDeviceId) =>
-    set((state) => {
-      const shouldAutoSelect = selectedDeviceId === undefined && state.devices.length > 0;
-      return {
-        selectedDeviceId: shouldAutoSelect ? state.devices[0].deviceId : selectedDeviceId,
-      };
+      setDevices: (devices) => set({ devices }),
+      setSelectedDeviceId: (selectedDeviceId) =>
+        set((state) => {
+          const shouldAutoSelect = selectedDeviceId === undefined && state.devices.length > 0;
+          return {
+            selectedDeviceId: shouldAutoSelect ? state.devices[0].deviceId : selectedDeviceId,
+          };
+        }),
+      setPermissionState: (permissionState) => set({ permissionState }),
+
+      setSampleRate: (sampleRate) => set({ sampleRate }),
+      setBufferSize: (bufferSize) => set({ bufferSize }),
+
+      resetCapture: () =>
+        set({
+          isCapturing: false,
+          stream: undefined,
+          error: undefined,
+          processedAudio: undefined,
+          audioContext: undefined,
+        }),
+
+      resetDevices: () =>
+        set({
+          devices: [],
+          selectedDeviceId: undefined,
+        }),
+
+      resetAll: () => set(initialState),
     }),
-  setPermissionState: (permissionState) => set({ permissionState }),
-
-  setSampleRate: (sampleRate) => set({ sampleRate }),
-  setBufferSize: (bufferSize) => set({ bufferSize }),
-
-  resetCapture: () =>
-    set({
-      isCapturing: false,
-      stream: undefined,
-      error: undefined,
-      processedAudio: undefined,
-      audioContext: undefined,
-    }),
-
-  resetDevices: () =>
-    set({
-      devices: [],
-      selectedDeviceId: undefined,
-    }),
-
-  resetAll: () => set(initialState),
-}));
+    {
+      name: "vyzor-audio-store",
+      partialize: (state) => ({
+        sampleRate: state.sampleRate,
+        bufferSize: state.bufferSize,
+      }),
+    },
+  ),
+);

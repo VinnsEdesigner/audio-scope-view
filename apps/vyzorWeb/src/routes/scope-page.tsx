@@ -22,16 +22,33 @@ export function ScopePage(): React.ReactElement {
   const isPlaybackMode = Boolean(recordingId);
 
   // Set scope mode in store
-  const { setSessionMode, testMode, toggleTestMode } = useUIStore();
+  const { setSessionMode, testMode, toggleTestMode, smoothWaveform } = useUIStore();
 
   React.useEffect(() => {
     setSessionMode(isPlaybackMode ? "playback" : "live");
     return () => setSessionMode("live");
   }, [isPlaybackMode, setSessionMode]);
 
+  // Smoothing values for waveform
+  const SMOOTHING = {
+    smooth: 0.8,
+    normal: 0.3,
+  };
+  const smoothingTimeConstant = smoothWaveform ? SMOOTHING.smooth : SMOOTHING.normal;
+
+  // Audio settings
+  const { sampleRate, bufferSize } = useAudioSettings();
+
   // Both analyzers - we use one based on testMode
-  const realAnalyzer = useAudioAnalyzer();
-  const mockAnalyzer = useMockAudioAnalyzer();
+  const realAnalyzer = useAudioAnalyzer({
+    smoothingTimeConstant,
+    fftSize: bufferSize,
+  });
+  const mockAnalyzer = useMockAudioAnalyzer({
+    sampleRate,
+    smoothingTimeConstant,
+    fftSize: bufferSize,
+  });
   const audioAnalyzer = testMode ? mockAnalyzer : realAnalyzer;
 
   // PLAYBACK mode hooks
@@ -157,9 +174,6 @@ export function ScopePage(): React.ReactElement {
 
   const isCapturing = !isPlaybackMode && audioAnalyzer.isCapturing;
   const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
-
-  // Audio settings
-  const { sampleRate } = useAudioSettings();
 
   // Scope info
   const scopeName = "Oscilloscope";
