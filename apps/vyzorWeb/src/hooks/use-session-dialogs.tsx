@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useRenameRecording, useDeleteRecording } from "./use-recordings";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
+import { renameDialogInputRef } from "@/components/dialogs/rename-dialog";
 import {
   DisplaySettingsDialog,
   TriggerSettingsDialog,
@@ -88,9 +89,12 @@ export function useSessionDialogs({
   }, []);
 
   const handleRenameConfirm = React.useCallback(async () => {
-    if (recording && renameValue.trim()) {
-      await renameRecording.mutateAsync({ id: recording.id, name: renameValue.trim() });
+    const idToRename = recording?.id;
+    // Get value from global ref (for browser automation) or React state
+    const nameToSet = renameDialogInputRef.current?.value.trim() || renameValue.trim();
+    if (idToRename && nameToSet) {
       setRenameDialogOpen(false);
+      await renameRecording.mutateAsync({ id: idToRename, name: nameToSet });
     }
   }, [recording, renameValue, renameRecording]);
 

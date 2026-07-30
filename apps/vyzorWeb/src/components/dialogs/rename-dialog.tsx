@@ -9,6 +9,9 @@ interface RenameDialogProperties {
   isLoading?: boolean;
 }
 
+// Global ref to store the current input value for browser automation
+export const renameDialogInputRef = { current: null as HTMLInputElement | null };
+
 export function RenameDialog({
   isOpen: _isOpen,
   value,
@@ -17,21 +20,36 @@ export function RenameDialog({
   onCancel,
   isLoading,
 }: RenameDialogProperties) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Keep the global ref in sync
+  React.useEffect(() => {
+    renameDialogInputRef.current = inputRef.current;
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") onConfirm();
+    if (e.key === "Escape") onCancel();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} onKeyDown={undefined} />
       <div className="relative bg-[#27272a] border border-white/10 rounded-lg shadow-xl w-full max-w-sm p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Rename Recording</h2>
         <input
+          ref={inputRef}
           type="text"
-          value={value}
-          onChange={(event_) => onChange(event_.target.value)}
-          className="w-full px-3 py-2 bg-[#18181b] border border-white/10 rounded-md text-white placeholder:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-accent"
+          defaultValue={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          data-rename-input
+          className="w-full px-3 py-2 bg-[#18181b] border border-white/10 rounded-md text-white placeholder:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#52525b]"
           autoFocus
-          onKeyDown={(event_) => {
-            if (event_.key === "Enter") onConfirm();
-            if (event_.key === "Escape") onCancel();
-          }}
         />
         <div className="flex justify-end gap-2 mt-4">
           <button
@@ -44,7 +62,7 @@ export function RenameDialog({
           <button
             onClick={onConfirm}
             disabled={isLoading || !value.trim()}
-            className="px-4 py-2 text-sm font-medium bg-white text-[#09090b] rounded-md hover:bg-white/90 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium bg-[#3f3f46] text-white rounded-md hover:bg-[#52525b] transition-colors disabled:opacity-50"
           >
             {isLoading ? "Renaming..." : "Rename"}
           </button>

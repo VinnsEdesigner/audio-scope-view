@@ -85,28 +85,11 @@ export function ScopeTopBar({
           // PLAYBACK mode controls
           <>
             <button
-              onClick={handlePlay}
-              disabled={isPlaying}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[15px] font-medium transition-colors ${
-                isPlaying
-                  ? "bg-[#3f3f46] text-white/50 cursor-not-allowed"
-                  : "bg-[#3f3f46] text-white hover:bg-[#52525b]"
-              }`}
+              onClick={isPlaying ? handlePause : handlePlay}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[15px] font-medium bg-[#3f3f46] text-white hover:bg-[#52525b] transition-colors"
             >
-              <Play size={18} fill="currentColor" />
-              Play
-            </button>
-            <button
-              onClick={handlePause}
-              disabled={!isPlaying}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[15px] font-medium transition-colors ${
-                isPlaying
-                  ? "bg-[#3f3f46] text-white hover:bg-[#52525b]"
-                  : "bg-transparent text-white/50 cursor-not-allowed"
-              }`}
-            >
-              <Pause size={18} />
-              Pause
+              {isPlaying ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
+              {isPlaying ? "Paused" : "Play"}
             </button>
             <button
               onClick={handleStop}
