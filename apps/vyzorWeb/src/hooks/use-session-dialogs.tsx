@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useRenameRecording, useDeleteRecording } from "./use-recordings";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
-import { renameDialogInputRef } from "@/components/dialogs/rename-dialog";
+import { renameDialogInputReference } from "@/components/dialogs/rename-dialog";
+import { useToast } from "@/hooks";
 import {
   DisplaySettingsDialog,
   TriggerSettingsDialog,
@@ -34,6 +35,7 @@ export function useSessionDialogs({
   canvasRef,
 }: UseSessionDialogsOptions) {
   const isPlayback = mode === "playback";
+  const { showToast } = useToast();
 
   // Dialog open states
   const [displaySettingsOpen, setDisplaySettingsOpen] = React.useState(false);
@@ -90,20 +92,47 @@ export function useSessionDialogs({
 
   const handleRenameConfirm = React.useCallback(async () => {
     const idToRename = recording?.id;
+    const previousName = recording?.name;
     // Get value from global ref (for browser automation) or React state
-    const nameToSet = renameDialogInputRef.current?.value.trim() || renameValue.trim();
+    const nameToSet = renameDialogInputReference.current?.value.trim() || renameValue.trim();
     if (idToRename && nameToSet) {
-      setRenameDialogOpen(false);
-      await renameRecording.mutateAsync({ id: idToRename, name: nameToSet });
+      try {
+        setRenameDialogOpen(false);
+        await renameRecording.mutateAsync({ id: idToRename, name: nameToSet });
+        showToast({
+          message:
+            previousName === nameToSet
+              ? "Recording name unchanged"
+              : `Recording renamed to "${nameToSet}"`,
+          type: "success",
+        });
+      } catch (error) {
+        showToast({
+          message: `Failed to rename recording: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
     }
-  }, [recording, renameValue, renameRecording]);
+  }, [recording, renameValue, renameRecording, showToast]);
 
   const handleDeleteConfirm = React.useCallback(async () => {
+    const recordingName = recording?.name;
     if (recording) {
-      await deleteRecording.mutateAsync(recording.id);
-      setDeleteDialogOpen(false);
+      try {
+        await deleteRecording.mutateAsync(recording.id);
+        setDeleteDialogOpen(false);
+        showToast({
+          message: `Recording "${recordingName}" deleted`,
+          type: "success",
+        });
+      } catch (error) {
+        showToast({
+          message: `Failed to delete recording: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
     }
-  }, [recording, deleteRecording]);
+  }, [recording, deleteRecording, showToast]);
 
   // Close handlers for dialogs
   const handleCloseDisplaySettings = React.useCallback(() => setDisplaySettingsOpen(false), []);

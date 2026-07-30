@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Camera, FileText, X } from "lucide-react";
 import { useExport } from "@/hooks/use-export";
+import { useToast } from "@/hooks";
 import type { SessionMode } from "@/store";
 
 interface ExportDialogProperties {
@@ -17,19 +18,38 @@ export function ExportDialog({
   mode = "live",
 }: ExportDialogProperties) {
   const { exportCSV, exportSnapshotPNG, hasData, sampleCount } = useExport();
+  const { showToast } = useToast();
   const isPlayback = mode === "playback";
 
   const handleExportSnapshot = () => {
     const result = exportSnapshotPNG(canvasRef.current);
     if (result.success) {
+      showToast({
+        message: result.filename ? `Snapshot saved as "${result.filename}"` : "Snapshot exported",
+        type: "success",
+      });
       onClose();
+    } else {
+      showToast({
+        message: result.error || "Failed to export snapshot",
+        type: "error",
+      });
     }
   };
 
   const handleExportCSV = () => {
     const result = exportCSV();
     if (result.success) {
+      showToast({
+        message: result.filename ? `CSV saved as "${result.filename}"` : "CSV exported",
+        type: "success",
+      });
       onClose();
+    } else {
+      showToast({
+        message: result.error || "Failed to export CSV",
+        type: "error",
+      });
     }
   };
 

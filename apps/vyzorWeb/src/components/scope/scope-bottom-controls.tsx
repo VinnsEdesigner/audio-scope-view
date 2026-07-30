@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDown, Play, Pause, Square, Repeat } from "lucide-react";
+import { ChevronDown, Repeat } from "lucide-react";
 import { useUIStore } from "@/store";
 import { useAudioAnalyzer } from "@/hooks";
 import type { SessionMode } from "@/store";
@@ -89,10 +89,10 @@ export function ScopeBottomControls({
   duration,
   currentTime,
   onSeek,
-  isPlaying: controlledIsPlaying,
-  onPlay,
-  onPause,
-  onStop,
+  isPlaying: _controlledIsPlaying,
+  onPlay: _onPlay,
+  onPause: _onPause,
+  onStop: _onStop,
   playbackSpeed: controlledPlaybackSpeed,
   onSpeedChange,
   loopPlayback = false,
@@ -113,41 +113,16 @@ export function ScopeBottomControls({
     windowMs ?? (effectiveSampleRate > 0 ? (effectiveTimebase / effectiveSampleRate) * 1000 : 0);
 
   // Playback state from store
-  const effectiveIsPlaying = controlledIsPlaying ?? store.isPlaying;
   const effectivePlaybackSpeed = controlledPlaybackSpeed ?? store.playbackSpeed;
   const effectiveCurrentTime = currentTime ?? store.currentPlaybackTime;
   const effectiveDuration = duration ?? store.playbackDuration;
 
   // Handlers for playback controls
-  const handlePlay = () => {
-    if (onPlay) {
-      onPlay();
-    } else {
-      store.play();
-    }
-  };
-
-  const handlePause = () => {
-    if (onPause) {
-      onPause();
-    } else {
-      store.pause();
-    }
-  };
-
   const handleSpeedChange = (speed: number) => {
     if (onSpeedChange) {
       onSpeedChange(speed);
     } else {
       store.setPlaybackSpeed(speed);
-    }
-  };
-
-  const handleStop = () => {
-    if (onStop) {
-      onStop();
-    } else {
-      store.stop();
     }
   };
 

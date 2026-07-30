@@ -41,7 +41,13 @@ export function AnchoredDialog({
 
   // Apply position and pointer directly to DOM elements
   React.useEffect(() => {
-    if (!isOpen || !anchorRect || !dialogReference.current) return;
+    if (!isOpen || !dialogReference.current) return;
+
+    // If no anchorRect provided, use default centered position
+    if (!anchorRect) {
+      setIsPositioned(true);
+      return;
+    }
 
     const dialog = dialogReference.current;
     const pointer = pointerReference.current;

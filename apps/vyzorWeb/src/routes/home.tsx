@@ -188,7 +188,7 @@ export function Home(): React.ReactElement {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-3xl font-semibold text-foreground">Overview</h2>
-              <p className="text-lg text-text-tertiary mt-0.5">
+              <p className="text-lg text-gray-200 mt-0.5">
                 Summary of your recordings, storage usage, and active sessions
               </p>
             </div>
@@ -199,17 +199,13 @@ export function Home(): React.ReactElement {
               <div className="text-3xl font-bold font-mono text-gray-800">
                 {statsLoading ? "-" : (stats?.totalRecordings ?? 0)}
               </div>
-              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
-                Recordings
-              </div>
+              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Recordings</div>
             </div>
             <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
               <div className="text-3xl font-bold font-mono text-gray-800">
                 {statsLoading ? "-" : formatBytes(stats?.totalSizeBytes ?? 0)}
               </div>
-              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
-                Storage
-              </div>
+              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Storage</div>
             </div>
             <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
               <div className="text-3xl font-bold font-mono text-gray-800">
@@ -458,7 +454,7 @@ export function Home(): React.ReactElement {
                     <p className="text-sm">No active sessions</p>
                   </div>
                 ) : (
-                                      sessions.map((session) => (
+                  sessions.map((session) => (
                     <div
                       key={session.id}
                       className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"

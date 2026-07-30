@@ -10,7 +10,7 @@ interface RenameDialogProperties {
 }
 
 // Global ref to store the current input value for browser automation
-export const renameDialogInputRef = { current: null as HTMLInputElement | null };
+export const renameDialogInputReference = { current: undefined as HTMLInputElement | undefined };
 
 export function RenameDialog({
   isOpen: _isOpen,
@@ -20,20 +20,20 @@ export function RenameDialog({
   onCancel,
   isLoading,
 }: RenameDialogProperties) {
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputReference = React.useRef<HTMLInputElement>(null);
 
   // Keep the global ref in sync
   React.useEffect(() => {
-    renameDialogInputRef.current = inputRef.current;
+    renameDialogInputReference.current = inputReference.current;
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(event.target.value);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") onConfirm();
-    if (e.key === "Escape") onCancel();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") onConfirm();
+    if (event.key === "Escape") onCancel();
   };
 
   return (
@@ -42,9 +42,9 @@ export function RenameDialog({
       <div className="relative bg-[#27272a] border border-white/10 rounded-lg shadow-xl w-full max-w-sm p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Rename Recording</h2>
         <input
-          ref={inputRef}
+          ref={inputReference}
           type="text"
-          defaultValue={value}
+          value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           data-rename-input
