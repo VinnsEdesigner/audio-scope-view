@@ -41,6 +41,7 @@ export function ScopePage(): React.ReactElement {
 
   // Both analyzers - we use one based on testMode
   const realAnalyzer = useAudioAnalyzer({
+    desiredSampleRate: sampleRate,
     smoothingTimeConstant,
     fftSize: bufferSize,
   });

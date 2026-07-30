@@ -241,7 +241,7 @@ export function Settings(): React.ReactElement {
               </div>
             </SettingsRow>
 
-            <SettingsRow label="Sample Rate" description="Sample rate for test mode waveform generation">
+            <SettingsRow label="Sample Rate" description="Audio sampling frequency (48kHz recommended)">
               <div className="relative w-full sm:w-auto sm:min-w-[180px]">
                 <select
                   className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"

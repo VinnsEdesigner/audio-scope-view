@@ -12,6 +12,7 @@ export type RecordingState = "idle" | "recording" | "paused";
 
 export interface UseAudioAnalyzerOptions {
   deviceId?: string;
+  desiredSampleRate?: number;
   fftSize?: number;
   smoothingTimeConstant?: number;
   waveformPoints?: number;
@@ -49,6 +50,7 @@ const DEFAULT_SAMPLE_INTERVAL = 16;
 export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudioAnalyzerReturn {
   const {
     deviceId,
+    desiredSampleRate,
     fftSize = DEFAULT_FFT_SIZE,
     smoothingTimeConstant = DEFAULT_SMOOTHING,
     waveformPoints = DEFAULT_WAVEFORM_POINTS,
@@ -104,16 +106,28 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
       setError(undefined);
       cleanup();
 
+      const audioConstraints: MediaTrackConstraints = {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: { exact: false },
+        noiseSuppression: { exact: false },
+        autoGainControl: { exact: false },
+      };
+
+      // Add sampleRate constraint if specified (browser may not honor all values)
+      if (desiredSampleRate) {
+        audioConstraints.sampleRate = { exact: desiredSampleRate };
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: deviceId ? { exact: deviceId } : undefined,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
+        audio: audioConstraints,
       });
 
-      const audioContext = new AudioContext();
+      // Create AudioContext with desired sample rate if specified
+      const audioContextOptions: AudioContextOptions = {};
+      if (desiredSampleRate) {
+        audioContextOptions.sampleRate = desiredSampleRate;
+      }
+      const audioContext = new AudioContext(audioContextOptions);
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
 
@@ -182,6 +196,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
     }
   }, [
     deviceId,
+    desiredSampleRate,
     fftSize,
     smoothingTimeConstant,
     waveformPoints,
