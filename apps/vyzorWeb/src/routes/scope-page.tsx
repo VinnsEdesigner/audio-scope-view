@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import {
   useAudioAnalyzer,
+  useAudioSettings,
   useMockAudioAnalyzer,
   useRecording,
   useSessionDialogs,
@@ -157,9 +158,11 @@ export function ScopePage(): React.ReactElement {
   const isCapturing = !isPlaybackMode && audioAnalyzer.isCapturing;
   const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
 
+  // Audio settings
+  const { sampleRate } = useAudioSettings();
+
   // Scope info
   const scopeName = "Oscilloscope";
-  const sampleRate = 48_000;
   const recordingName = recordingData?.name;
 
   // Loading state
