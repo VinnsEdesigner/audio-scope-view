@@ -44,7 +44,7 @@ cargo run --release
 Server starts on `http://127.0.0.1:8080` with:
 - GraphQL API at `/graphql`
 - WebSocket subscriptions for real-time audio
-- Health check at `/health`
+- Health check at `/graphql/health`
 
 ### Run the frontend
 
@@ -70,7 +70,7 @@ audio-scope-view/
 │       └── src/
 │           ├── components/     # UI components (scope, dialogs, layout)
 │           ├── hooks/          # Audio, sessions, recordings, export
-│           ├── routes/         # Pages (home, scope-page, settings)
+│           ├── routes/         # Pages (home, oscilloscope, settings)
 │           └── store/          # Zustand stores
 ├── packages/
 │   └── api-client/            # GraphQL client
