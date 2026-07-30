@@ -52,9 +52,32 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
   return useQuery<RecordingListResult>({
     queryKey: ["recordings", { timeRange, sessionId, limit, offset, pinnedOnly }],
     queryFn: async () => {
+      // Map frontend timeRange to backend filter format
+      const timeRangeFilter =
+        timeRange === "last_hour"
+          ? "today"
+          : timeRange === "last_24_hours"
+            ? "today"
+            : timeRange === "last_7_days"
+              ? "last_week"
+              : timeRange === "last_30_days"
+                ? "last_month"
+                : undefined;
+
+      // Build filter - undefined fields will be stripped by GraphQL
+      const filter = {
+        time_range: timeRangeFilter,
+        session_id: sessionId,
+        is_pinned: pinnedOnly ? true : undefined,
+      };
+
       const result = await graphqlClient.query({
         query: GET_RECORDINGS,
-        variables: { timeRange, sessionId, limit, offset, pinnedOnly },
+        variables: {
+          filter,
+          limit,
+          offset,
+        },
         fetchPolicy: "cache-first",
       });
       return transformRecordingListResult(result.data.recordings);
@@ -72,7 +95,10 @@ export function useRecentRecordings(limit = 5) {
         variables: { limit },
         fetchPolicy: "cache-first",
       });
-      return result.data.recentRecordings.recordings.map((rec: RecordingSummaryServer) =>
+      if (!result.data?.recentRecordings) {
+        return [];
+      }
+      return result.data.recentRecordings.map((rec: RecordingSummaryServer) =>
         transformRecordingSummary(rec),
       );
     },
@@ -166,7 +192,7 @@ export function usePinRecordings() {
     mutationFn: async ({ ids, isPinned }: { ids: string[]; isPinned: boolean }) => {
       const result = await graphqlClient.mutate({
         mutation: PIN_RECORDINGS,
-        variables: { ids, isPinned },
+        variables: { ids, pinned: isPinned },
       });
       return result.data.pinRecordings;
     },

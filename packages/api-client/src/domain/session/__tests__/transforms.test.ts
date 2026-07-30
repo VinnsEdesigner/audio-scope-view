@@ -7,28 +7,26 @@ describe("session transforms", () => {
     it("should transform server SessionServer to Session domain type", () => {
       const serverSession: SessionServer = {
         id: "session-1",
-        started_at: "2024-01-01T00:00:00Z",
-        ended_at: null,
-        duration_seconds: null,
-        recording_count: 0,
+        startedAt: "2024-01-01T00:00:00Z",
+        recordingCount: 0,
       };
 
       const session = sessionFromRaw(serverSession);
 
       expect(session.id).toBe("session-1");
       expect(session.startedAt).toBeInstanceOf(Date);
-      expect(session.endedAt).toBeNull();
-      expect(session.durationSeconds).toBeNull();
+      expect(session.endedAt).toBeUndefined();
+      expect(session.durationSeconds).toBeUndefined();
       expect(session.recordingCount).toBe(0);
     });
 
     it("should handle ended session with duration", () => {
       const serverSession: SessionServer = {
         id: "session-2",
-        started_at: "2024-01-01T00:00:00Z",
-        ended_at: "2024-01-01T01:00:00Z",
-        duration_seconds: 3600,
-        recording_count: 5,
+        startedAt: "2024-01-01T00:00:00Z",
+        endedAt: "2024-01-01T01:00:00Z",
+        durationSeconds: 3600,
+        recordingCount: 5,
       };
 
       const session = sessionFromRaw(serverSession);
@@ -41,10 +39,10 @@ describe("session transforms", () => {
     it("should correctly parse ISO date strings", () => {
       const serverSession: SessionServer = {
         id: "session-3",
-        started_at: "2024-03-10T12:00:00.000Z",
-        ended_at: "2024-03-10T13:00:00.000Z",
-        duration_seconds: 3600,
-        recording_count: 3,
+        startedAt: "2024-03-10T12:00:00.000Z",
+        endedAt: "2024-03-10T13:00:00.000Z",
+        durationSeconds: 3600,
+        recordingCount: 3,
       };
 
       const session = sessionFromRaw(serverSession);
@@ -59,17 +57,15 @@ describe("session transforms", () => {
       const serverSessions: SessionServer[] = [
         {
           id: "session-1",
-          started_at: "2024-01-01T00:00:00Z",
-          ended_at: null,
-          duration_seconds: null,
-          recording_count: 0,
+          startedAt: "2024-01-01T00:00:00Z",
+          recordingCount: 0,
         },
         {
           id: "session-2",
-          started_at: "2024-01-02T00:00:00Z",
-          ended_at: "2024-01-02T01:00:00Z",
-          duration_seconds: 3600,
-          recording_count: 3,
+          startedAt: "2024-01-02T00:00:00Z",
+          endedAt: "2024-01-02T01:00:00Z",
+          durationSeconds: 3600,
+          recordingCount: 3,
         },
       ];
 

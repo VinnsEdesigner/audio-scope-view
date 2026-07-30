@@ -14,13 +14,13 @@ describe("waveform transforms", () => {
     it("should transform server WaveformServer to Waveform domain type", () => {
       const serverWaveform: WaveformServer = {
         id: "waveform-1",
-        session_id: "session-1",
+        sessionId: "session-1",
         samples: [0.1, 0.2, 0.3, 0.4, 0.5],
-        sample_count: 5,
+        sampleCount: 5,
         timestamp: "2024-01-01T12:00:00Z",
-        duration_ms: 100,
-        peak_amplitude: 0.9,
-        rms_amplitude: 0.63,
+        durationMs: 100,
+        peakAmplitude: 0.9,
+        rmsAmplitude: 0.63,
       };
 
       const waveform = waveformFromRaw(serverWaveform);
@@ -38,13 +38,13 @@ describe("waveform transforms", () => {
     it("should handle empty samples array", () => {
       const serverWaveform: WaveformServer = {
         id: "waveform-empty",
-        session_id: "session-1",
+        sessionId: "session-1",
         samples: [],
-        sample_count: 0,
+        sampleCount: 0,
         timestamp: "2024-01-01T12:00:00Z",
-        duration_ms: 0,
-        peak_amplitude: 0,
-        rms_amplitude: 0,
+        durationMs: 0,
+        peakAmplitude: 0,
+        rmsAmplitude: 0,
       };
 
       const waveform = waveformFromRaw(serverWaveform);
@@ -58,12 +58,12 @@ describe("waveform transforms", () => {
     it("should transform server WaveformSummary to domain type", () => {
       const serverSummary: WaveformSummaryServer = {
         id: "summary-1",
-        session_id: "session-1",
-        sample_count: 4096,
+        sessionId: "session-1",
+        sampleCount: 4096,
         timestamp: "2024-02-20T15:00:00Z",
-        duration_ms: 200,
-        peak_amplitude: 0.88,
-        rms_amplitude: 0.62,
+        durationMs: 200,
+        peakAmplitude: 0.88,
+        rmsAmplitude: 0.62,
       };
 
       const summary = waveformSummaryFromRaw(serverSummary);
@@ -81,10 +81,10 @@ describe("waveform transforms", () => {
   describe("waveformStatisticsFromRaw", () => {
     it("should transform server statistics to domain type", () => {
       const serverStats: WaveformStatisticsServer = {
-        total_count: 50,
-        total_samples: 204_800,
-        average_peak: 0.75,
-        average_rms: 0.53,
+        totalCount: 50,
+        totalSamples: 204_800,
+        averagePeak: 0.75,
+        averageRms: 0.53,
       };
 
       const stats = waveformStatisticsFromRaw(serverStats);

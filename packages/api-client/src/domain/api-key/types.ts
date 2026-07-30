@@ -37,11 +37,11 @@ export interface UpdateApiKeyInput {
 export interface ApiKeyInfoServer {
   id: string;
   name: string;
-  created_at: string;
-  expires_at: string | null;
-  last_used_at: string | null;
-  rate_limit_per_minute: number;
-  is_valid: boolean;
+  createdAt: number;
+  expiresAt: number | null;
+  lastUsedAt: number | null;
+  rateLimitPerMinute: number;
+  isValid: boolean;
 }
 
 export interface ApiKeyCreatedServer {
@@ -52,8 +52,8 @@ export interface ApiKeyCreatedServer {
 
 export interface ApiKeyVerifyResultServer {
   valid: boolean;
-  key_id: string | null;
+  keyId: string | null;
   name: string | null;
-  rate_limit_per_minute: number | null;
-  expires_at: string | null;
+  rateLimitPerMinute: number | null;
+  expiresAt: number | null;
 }

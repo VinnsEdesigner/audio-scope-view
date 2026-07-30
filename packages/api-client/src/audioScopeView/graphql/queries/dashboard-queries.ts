@@ -1,26 +1,27 @@
 import { gql } from "@apollo/client";
 
 export const RECENT_SESSION_FIELDS = gql`
-  fragment RecentSessionFields on RecentSessionOutput {
+  fragment RecentSessionFields on RecentScopeOutput {
     id
-    started_at
-    recording_count
+    name
+    lastActivity
+    waveformCount
   }
 `;
 
 export const DASHBOARD_SUMMARY_FIELDS = gql`
   ${RECENT_SESSION_FIELDS}
   fragment DashboardSummaryFields on DashboardSummaryOutput {
-    time_range
-    generated_at
-    total_sessions
-    active_sessions
-    total_captures
-    total_waveforms
-    total_samples
-    average_peak_amplitude
-    average_rms_amplitude
-    recent_sessions {
+    timeRange
+    generatedAt
+    totalSessions
+    activeSessions
+    totalCaptures
+    totalWaveforms
+    totalSamples
+    averagePeakAmplitude
+    averageRmsAmplitude
+    recentSessions {
       ...RecentSessionFields
     }
   }

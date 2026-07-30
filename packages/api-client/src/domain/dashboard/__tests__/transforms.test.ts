@@ -12,40 +12,44 @@ describe("dashboard transforms", () => {
     it("should transform server RecentSessionServer to RecentSession domain type", () => {
       const serverSession: RecentSessionServer = {
         id: "session-1",
-        started_at: "2024-01-15T10:30:00Z",
-        recording_count: 25,
+        name: "Session session-1",
+        lastActivity: "2024-01-15T10:30:00Z",
+        waveformCount: 25,
       };
 
       const recentSession = recentSessionFromRaw(serverSession);
 
       expect(recentSession.id).toBe("session-1");
-      expect(recentSession.startedAt).toBeInstanceOf(Date);
-      expect(recentSession.recordingCount).toBe(25);
+      expect(recentSession.name).toBe("Session session-1");
+      expect(recentSession.lastActivity).toBeInstanceOf(Date);
+      expect(recentSession.waveformCount).toBe(25);
     });
   });
 
   describe("dashboardSummaryFromRaw", () => {
     it("should transform server DashboardSummaryServer to domain type", () => {
       const serverSummary: DashboardSummaryServer = {
-        time_range: "last_24_hours",
-        generated_at: "2024-01-15T12:00:00Z",
-        total_sessions: 10,
-        active_sessions: 5,
-        total_captures: 100,
-        total_waveforms: 200,
-        total_samples: 204_800,
-        average_peak_amplitude: 0.75,
-        average_rms_amplitude: 0.53,
-        recent_sessions: [
+        timeRange: "last_24_hours",
+        generatedAt: "2024-01-15T12:00:00Z",
+        totalSessions: 10,
+        activeSessions: 5,
+        totalCaptures: 100,
+        totalWaveforms: 200,
+        totalSamples: 204_800,
+        averagePeakAmplitude: 0.75,
+        averageRmsAmplitude: 0.53,
+        recentSessions: [
           {
             id: "session-1",
-            started_at: "2024-01-15T08:00:00Z",
-            recording_count: 10,
+            name: "Session session-1",
+            lastActivity: "2024-01-15T08:00:00Z",
+            waveformCount: 10,
           },
           {
             id: "session-2",
-            started_at: "2024-01-15T06:00:00Z",
-            recording_count: 8,
+            name: "Session session-2",
+            lastActivity: "2024-01-15T06:00:00Z",
+            waveformCount: 8,
           },
         ],
       };
@@ -68,16 +72,16 @@ describe("dashboard transforms", () => {
 
     it("should handle empty recent sessions", () => {
       const serverSummary: DashboardSummaryServer = {
-        time_range: "last_hour",
-        generated_at: "2024-01-15T12:00:00Z",
-        total_sessions: 0,
-        active_sessions: 0,
-        total_captures: 0,
-        total_waveforms: 0,
-        total_samples: 0,
-        average_peak_amplitude: 0,
-        average_rms_amplitude: 0,
-        recent_sessions: [],
+        timeRange: "last_hour",
+        generatedAt: "2024-01-15T12:00:00Z",
+        totalSessions: 0,
+        activeSessions: 0,
+        totalCaptures: 0,
+        totalWaveforms: 0,
+        totalSamples: 0,
+        averagePeakAmplitude: 0,
+        averageRmsAmplitude: 0,
+        recentSessions: [],
       };
 
       const summary = dashboardSummaryFromRaw(serverSummary);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Pencil, Trash2, Key, RefreshCw } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2, Key, RefreshCw, MoreVertical, Gauge } from "lucide-react";
 import { useToast } from "@/hooks";
 import { useApiKeys, type ApiKey } from "@/hooks/use-api-keys";
 import {
@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utilities";
 
 function formatDate(timestamp: number | null | undefined): string {
-  if (!timestamp) return "Never";
+  if (!timestamp || !Number.isFinite(timestamp)) return "Never";
   return new Date(timestamp * 1000).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -53,6 +53,14 @@ export function ApiKeys() {
   const [createdKey, setCreatedKey] = useState<
     { id: string; key: string; name: string } | undefined
   >();
+  const [openMenuId, setOpenMenuId] = useState<string | undefined>();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClick = () => setOpenMenuId(undefined);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
 
   // Handle errors with toast notifications
   useEffect(() => {
@@ -169,8 +177,8 @@ export function ApiKeys() {
             </button>
           </ApiKeysCard>
         ) : (
-          <ApiKeysCard className="overflow-hidden">
-            <div className="hidden md:grid grid-cols-[1fr_140px_120px_100px_80px_100px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle">
+          <ApiKeysCard className="overflow-visible">
+            <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
               <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
                 Name
               </span>
@@ -181,14 +189,9 @@ export function ApiKeys() {
                 Expires
               </span>
               <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Rate Limit
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
                 Status
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary text-right">
-                Actions
-              </span>
+              <span className="sr-only">Actions</span>
             </div>
 
             <div className="divide-y divide-border-subtle">
@@ -199,14 +202,14 @@ export function ApiKeys() {
                 return (
                   <div
                     key={apiKey.id}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_100px_80px_100px] gap-4 px-6 py-5 hover:bg-bg-hover transition-colors"
+                    className="grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-5 hover:bg-bg-hover transition-colors overflow-visible"
                   >
                     <div className="flex flex-col gap-1 min-w-0">
                       <span className="text-sm font-medium text-foreground truncate">
                         {apiKey.name}
                       </span>
-                      <span className="text-xs font-mono text-text-tertiary">
-                        #{apiKey.id.slice(0, 8)}
+                      <span className="text-xs font-mono text-text-tertiary break-all">
+                        #{apiKey.id}
                       </span>
                     </div>
 
@@ -229,26 +232,11 @@ export function ApiKeys() {
                       </span>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-1.5 text-sm font-mono text-text-secondary">
-                      <span className="w-3.5 h-3.5">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="w-full h-full"
-                        >
-                          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-                        </svg>
-                      </span>
-                      {apiKey.rateLimitPerMinute}/min
-                    </div>
-
-                    <div className="hidden md:flex items-center">
+                    <div className="hidden md:flex items-center justify-end">
                       <span
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                          status === "active" && "bg-success/10 text-success",
+                          status === "active" && "bg-text-tertiary/10 text-text-tertiary",
                           status === "expired" && "bg-destructive/10 text-destructive",
                           status === "revoked" && "bg-text-tertiary/10 text-text-tertiary",
                         )}
@@ -257,28 +245,66 @@ export function ApiKeys() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleCopy(apiKey.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-elevated transition-all"
-                        title="Copy ID"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEditClick(apiKey)}
-                        className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-elevated transition-all"
-                        title="Edit"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(apiKey)}
-                        className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-destructive hover:bg-destructive/10 transition-all"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex items-center justify-end overflow-visible">
+                      <div className="relative">
+                        <button
+                          onClick={(event_) => {
+                            event_.stopPropagation();
+                            setOpenMenuId(openMenuId === apiKey.id ? undefined : apiKey.id);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-elevated transition-all"
+                          title="More options"
+                        >
+                          <MoreVertical size={16} className="text-text-secondary" />
+                        </button>
+                        {openMenuId === apiKey.id && (
+                          <div className="absolute right-0 top-full mt-1 w-56 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50 overflow-visible">
+                            <button
+                              onClick={(event_) => {
+                                event_.stopPropagation();
+                                handleCopy(apiKey.id);
+                                setOpenMenuId(undefined);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                            >
+                              <Copy size={14} />
+                              Copy ID
+                            </button>
+                            <button
+                              onClick={(event_) => {
+                                event_.stopPropagation();
+                                handleEditClick(apiKey);
+                                setOpenMenuId(undefined);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                            >
+                              <Pencil size={14} />
+                              Edit
+                            </button>
+                            <button
+                              onClick={(event_) => {
+                                event_.stopPropagation();
+                                handleDeleteClick(apiKey);
+                                setOpenMenuId(undefined);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </button>
+                            <div className="border-t border-border-subtle my-1" />
+                            <div className="px-3 py-2">
+                              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                <Gauge size={14} className="text-text-tertiary" />
+                                <span className="font-mono">{apiKey.rateLimitPerMinute}/min</span>
+                              </div>
+                              <p className="text-xs text-text-tertiary mt-1">
+                                Rate limit per minute
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

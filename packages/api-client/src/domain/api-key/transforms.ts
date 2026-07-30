@@ -13,11 +13,11 @@ export function transformApiKey(server: ApiKeyInfoServer): ApiKey {
   return {
     id: server.id,
     name: server.name,
-    createdAt: Number.parseInt(server.created_at, 10),
-    expiresAt: server.expires_at ? Number.parseInt(server.expires_at, 10) : undefined,
-    lastUsedAt: server.last_used_at ? Number.parseInt(server.last_used_at, 10) : undefined,
-    rateLimitPerMinute: server.rate_limit_per_minute,
-    isValid: server.is_valid,
+    createdAt: server.createdAt,
+    expiresAt: server.expiresAt ?? undefined,
+    lastUsedAt: server.lastUsedAt ?? undefined,
+    rateLimitPerMinute: server.rateLimitPerMinute,
+    isValid: server.isValid,
   };
 }
 
@@ -32,10 +32,10 @@ export function transformCreatedApiKey(server: ApiKeyCreatedServer): CreatedApiK
 export function transformApiKeyVerifyResult(server: ApiKeyVerifyResultServer): ApiKeyVerifyResult {
   return {
     valid: server.valid,
-    keyId: server.key_id ?? undefined,
+    keyId: server.keyId ?? undefined,
     name: server.name ?? undefined,
-    rateLimitPerMinute: server.rate_limit_per_minute ?? undefined,
-    expiresAt: server.expires_at ? Number.parseInt(server.expires_at, 10) : undefined,
+    rateLimitPerMinute: server.rateLimitPerMinute ?? undefined,
+    expiresAt: server.expiresAt ?? undefined,
   };
 }
 
@@ -45,11 +45,11 @@ export function transformCreateApiKeyInput(input: CreateApiKeyInput): Record<str
   };
 
   if (input.expiresInHours !== undefined) {
-    result.expires_in_hours = input.expiresInHours;
+    result.expiresInHours = input.expiresInHours;
   }
 
   if (input.rateLimitPerMinute !== undefined) {
-    result.rate_limit_per_minute = input.rateLimitPerMinute;
+    result.rateLimitPerMinute = input.rateLimitPerMinute;
   }
 
   return result;
@@ -59,9 +59,8 @@ export function transformUpdateApiKeyInput(input: UpdateApiKeyInput): Record<str
   const result: Record<string, unknown> = {};
 
   if (input.name !== undefined) result.name = input.name;
-  if (input.rateLimitPerMinute !== undefined)
-    result.rate_limit_per_minute = input.rateLimitPerMinute;
-  if (input.expiresInHours !== undefined) result.expires_in_hours = input.expiresInHours;
+  if (input.rateLimitPerMinute !== undefined) result.rateLimitPerMinute = input.rateLimitPerMinute;
+  if (input.expiresInHours !== undefined) result.expiresInHours = input.expiresInHours;
 
   return result;
 }

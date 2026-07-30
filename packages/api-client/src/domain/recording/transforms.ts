@@ -16,31 +16,31 @@ import type {
 export function transformRecording(server: RecordingServer): Recording {
   return {
     id: server.id,
-    sessionId: server.session_id,
-    sessionName: server.session_name,
+    sessionId: server.sessionId,
+    sessionName: server.sessionName,
     name: server.name,
     samples: server.samples,
     timestamp: new Date(server.timestamp),
-    durationMs: server.duration_ms,
-    sampleCount: server.sample_count,
-    sizeBytes: server.size_bytes,
-    peakAmplitude: server.peak_amplitude,
-    rmsAmplitude: server.rms_amplitude,
-    isPinned: server.is_pinned,
-    isRecording: server.is_recording,
+    durationMs: server.durationMs,
+    sampleCount: server.sampleCount,
+    sizeBytes: server.sizeBytes,
+    peakAmplitude: server.peakAmplitude,
+    rmsAmplitude: server.rmsAmplitude,
+    isPinned: server.isPinned,
+    isRecording: server.isRecording,
   };
 }
 
 export function transformRecordingSummary(server: RecordingSummaryServer): RecordingSummary {
   return {
     id: server.id,
-    sessionId: server.session_id,
-    sessionName: server.session_name,
+    sessionId: server.sessionId,
+    sessionName: server.sessionName,
     name: server.name,
     timestamp: new Date(server.timestamp),
-    durationMs: server.duration_ms,
-    sizeBytes: server.size_bytes,
-    isPinned: server.is_pinned,
+    durationMs: server.durationMs,
+    sizeBytes: server.sizeBytes,
+    isPinned: server.isPinned,
   };
 }
 
@@ -50,27 +50,28 @@ export function transformRecordingListResult(
   return {
     recordings: server.recordings.map((s) => transformRecordingSummary(s)),
     total: server.total,
-    hasMore: server.has_more,
+    hasMore: server.hasMore,
   };
 }
 
 export function transformRecordingStats(server: RecordingStatsServer): RecordingStats {
   return {
-    totalRecordings: server.total_recordings,
-    totalSizeBytes: server.total_size_bytes,
-    totalDurationMs: server.total_duration_ms,
-    pinnedCount: server.pinned_count,
+    totalRecordings: server.totalRecordings,
+    totalSizeBytes: server.totalSizeBytes,
+    totalDurationMs: server.totalDurationMs,
+    pinnedCount: server.pinnedCount,
   };
 }
 
 export function transformSessionWithStatus(server: SessionWithStatusServer): SessionWithStatus {
   return {
     id: server.id,
-    startedAt: new Date(server.started_at),
-    endedAt: server.ended_at ? new Date(server.ended_at) : null,
+    name: server.name,
+    startedAt: new Date(server.createdAt),
+    endedAt: undefined,
     status: server.status as "live" | "paused" | "offline",
-    durationSeconds: server.duration_seconds,
-    recordingCount: server.recording_count,
+    durationSeconds: undefined,
+    recordingCount: server.recordingCount,
   };
 }
 
@@ -78,15 +79,15 @@ export function transformSessionListResult(server: SessionListResultServer): Ses
   return {
     sessions: server.sessions.map((s) => transformSessionWithStatus(s)),
     total: server.total,
-    hasMore: server.has_more,
+    hasMore: server.hasMore,
   };
 }
 
 export function transformRecordingToServer(recording: Partial<Recording>): Record<string, unknown> {
   return {
     ...(recording.id && { id: recording.id }),
-    ...(recording.sessionId && { session_id: recording.sessionId }),
+    ...(recording.sessionId && { sessionId: recording.sessionId }),
     ...(recording.name && { name: recording.name }),
-    ...(recording.isPinned !== undefined && { is_pinned: recording.isPinned }),
+    ...(recording.isPinned !== undefined && { isPinned: recording.isPinned }),
   };
 }

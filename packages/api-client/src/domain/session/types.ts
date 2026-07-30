@@ -1,8 +1,8 @@
 export interface Session {
   id: string;
   startedAt: Date;
-  endedAt: Date | null;
-  durationSeconds: number | null;
+  endedAt?: Date;
+  durationSeconds?: number;
   recordingCount: number;
 }
 
@@ -15,8 +15,8 @@ export interface CaptureSettingsInput {
 
 export interface SessionServer {
   id: string;
-  started_at: string;
-  ended_at: string | null;
-  duration_seconds: number | null;
-  recording_count: number;
+  startedAt: string;
+  endedAt?: string;
+  durationSeconds?: number;
+  recordingCount: number;
 }

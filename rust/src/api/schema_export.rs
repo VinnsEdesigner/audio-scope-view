@@ -255,6 +255,18 @@ pub struct ApiKeyInfo {
     pub is_valid: bool,
 }
 
+/// Convert SystemTime to Unix epoch seconds
+fn system_time_to_epoch_secs(time: std::time::SystemTime) -> i64 {
+    time.duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+/// Convert Option<SystemTime> to Option<i64> (Unix epoch seconds)
+fn opt_system_time_to_epoch_secs(time: Option<std::time::SystemTime>) -> Option<i64> {
+    time.map(system_time_to_epoch_secs)
+}
+
 #[derive(Debug, Clone, SimpleObject)]
 pub struct ApiKeyCreated {
     pub id: String,
@@ -298,11 +310,11 @@ impl ApiKeyQueryRoot {
         Ok(keys.into_iter().map(|k| ApiKeyInfo {
             id: k.id,
             name: k.name,
-            created_at: k.created_at.elapsed().as_secs() as i64,
-            expires_at: k.expires_at.map(|e| e.elapsed().as_secs() as i64),
-            last_used_at: k.last_used_at.map(|l| l.elapsed().as_secs() as i64),
+            created_at: system_time_to_epoch_secs(k.created_at),
+            expires_at: opt_system_time_to_epoch_secs(k.expires_at),
+            last_used_at: opt_system_time_to_epoch_secs(k.last_used_at),
             rate_limit_per_minute: k.rate_limit_per_minute,
-            is_valid: k.expires_at.is_none_or(|exp| exp > std::time::Instant::now()),
+            is_valid: k.expires_at.is_none_or(|exp| exp > std::time::SystemTime::now()),
         }).collect())
     }
 
@@ -311,13 +323,13 @@ impl ApiKeyQueryRoot {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         
         if let Some(k) = key_store.get_key_info(&id).await {
-            let is_valid = k.expires_at.is_none_or(|exp| exp > std::time::Instant::now());
+            let is_valid = k.expires_at.is_none_or(|exp| exp > std::time::SystemTime::now());
             Ok(Some(ApiKeyInfo {
                 id: k.id,
                 name: k.name,
-                created_at: k.created_at.elapsed().as_secs() as i64,
-                expires_at: k.expires_at.map(|e| e.elapsed().as_secs() as i64),
-                last_used_at: k.last_used_at.map(|l| l.elapsed().as_secs() as i64),
+                created_at: system_time_to_epoch_secs(k.created_at),
+                expires_at: opt_system_time_to_epoch_secs(k.expires_at),
+                last_used_at: opt_system_time_to_epoch_secs(k.last_used_at),
                 rate_limit_per_minute: k.rate_limit_per_minute,
                 is_valid,
             }))
@@ -349,7 +361,7 @@ impl ApiKeyQueryRoot {
                 key_id: Some(api_key.id),
                 name: Some(api_key.name),
                 rate_limit_per_minute: Some(api_key.rate_limit_per_minute),
-                expires_at: api_key.expires_at.map(|e| e.elapsed().as_secs() as i64),
+                expires_at: opt_system_time_to_epoch_secs(api_key.expires_at),
             });
         }
         

@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { RECORDING_FIELDS, RECORDING_SUMMARY_FIELDS } from "../queries/recording-queries";
+import { RECORDING_FIELDS } from "../queries/recording-queries";
 
 export const RENAME_RECORDING = gql`
   ${RECORDING_FIELDS}
@@ -68,12 +68,7 @@ export const DELETE_RECORDINGS = gql`
 `;
 
 export const PIN_RECORDINGS = gql`
-  ${RECORDING_SUMMARY_FIELDS}
-  mutation PinRecordings($ids: [String!]!, $isPinned: Boolean!) {
-    pinRecordings(ids: $ids, isPinned: $isPinned) {
-      recordings {
-        ...RecordingSummaryFields
-      }
-    }
+  mutation PinRecordings($ids: [String!]!, $pinned: Boolean!) {
+    pinRecordings(ids: $ids, pinned: $pinned)
   }
 `;

@@ -3,10 +3,10 @@ import type { Session, SessionServer } from "./types";
 export function sessionFromRaw(serverSession: SessionServer): Session {
   return {
     id: serverSession.id,
-    startedAt: new Date(serverSession.started_at),
-    endedAt: serverSession.ended_at ? new Date(serverSession.ended_at) : null,
-    durationSeconds: serverSession.duration_seconds,
-    recordingCount: serverSession.recording_count,
+    startedAt: new Date(serverSession.startedAt),
+    endedAt: serverSession.endedAt ? new Date(serverSession.endedAt) : undefined,
+    durationSeconds: serverSession.durationSeconds,
+    recordingCount: serverSession.recordingCount,
   };
 }
 

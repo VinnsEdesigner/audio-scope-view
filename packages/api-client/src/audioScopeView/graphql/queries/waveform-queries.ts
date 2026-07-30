@@ -3,25 +3,25 @@ import { gql } from "@apollo/client";
 export const WAVEFORM_FIELDS = gql`
   fragment WaveformFields on WaveformOutput {
     id
-    session_id
+    sessionId
     samples
-    sample_count
+    sampleCount
     timestamp
-    duration_ms
-    peak_amplitude
-    rms_amplitude
+    durationMs
+    peakAmplitude
+    rmsAmplitude
   }
 `;
 
 export const WAVEFORM_SUMMARY_FIELDS = gql`
   fragment WaveformSummaryFields on WaveformSummary {
     id
-    session_id
-    sample_count
+    sessionId
+    sampleCount
     timestamp
-    duration_ms
-    peak_amplitude
-    rms_amplitude
+    durationMs
+    peakAmplitude
+    rmsAmplitude
   }
 `;
 
@@ -37,7 +37,12 @@ export const GET_WAVEFORM = gql`
 export const GET_WAVEFORMS = gql`
   ${WAVEFORM_FIELDS}
   query GetWaveforms($sessionId: String!, $limit: Int, $offset: Int, $includeSamples: Boolean) {
-    waveforms(sessionId: $sessionId, limit: $limit, offset: $offset, includeSamples: $includeSamples) {
+    waveforms(
+      sessionId: $sessionId
+      limit: $limit
+      offset: $offset
+      includeSamples: $includeSamples
+    ) {
       ...WaveformFields
     }
   }
@@ -61,10 +66,10 @@ export const GET_WAVEFORM_COUNT = gql`
 export const GET_WAVEFORM_STATISTICS = gql`
   query GetWaveformStatistics($sessionId: String!) {
     waveformStatistics(sessionId: $sessionId) {
-      total_count
-      total_samples
-      average_peak
-      average_rms
+      totalCount
+      totalSamples
+      averagePeak
+      averageRms
     }
   }
 `;

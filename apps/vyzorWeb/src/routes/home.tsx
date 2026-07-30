@@ -155,18 +155,13 @@ export function Home(): React.ReactElement {
   return (
     <div className="min-h-full bg-bg-primary">
       {}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-border-subtle bg-bg-secondary">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center bg-bg-elevated rounded-lg">
-            <Radio size={20} className="text-text-secondary" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-semibold text-foreground tracking-tight">Home</h1>
-            <p className="text-lg text-text-tertiary">
-              Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
-              recorded traces, and detailed signal measurements
-            </p>
-          </div>
+      <header className="flex items-center justify-between px-8 py-4 border-b border-border-subtle bg-black">
+        <div className="ml-10">
+          <h1 className="text-4xl font-semibold text-white tracking-tight">Home</h1>
+          <p className="text-lg text-gray-400">
+            Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
+            recorded traces, and detailed signal measurements
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -187,9 +182,9 @@ export function Home(): React.ReactElement {
       </header>
 
       {}
-      <main className="p-6 lg:p-8 flex flex-col gap-6">
+      <main className="p-6 lg:p-8 flex flex-col gap-6 bg-black">
         {}
-        <div className="bg-bg-secondary border border-border-subtle rounded-xl p-5">
+        <div className="bg-yellow-800 rounded-xl p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-3xl font-semibold text-foreground">Overview</h2>
@@ -200,27 +195,27 @@ export function Home(): React.ReactElement {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-4 bg-bg-elevated rounded-lg">
-              <div className="text-3xl font-bold font-mono text-foreground">
+            <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+              <div className="text-3xl font-bold font-mono text-gray-800">
                 {statsLoading ? "-" : (stats?.totalRecordings ?? 0)}
               </div>
-              <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
+              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
                 Recordings
               </div>
             </div>
-            <div className="text-center p-4 bg-bg-elevated rounded-lg">
-              <div className="text-3xl font-bold font-mono text-foreground">
+            <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+              <div className="text-3xl font-bold font-mono text-gray-800">
                 {statsLoading ? "-" : formatBytes(stats?.totalSizeBytes ?? 0)}
               </div>
-              <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
+              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
                 Storage
               </div>
             </div>
-            <div className="text-center p-4 bg-bg-elevated rounded-lg">
-              <div className="text-3xl font-bold font-mono text-foreground">
+            <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+              <div className="text-3xl font-bold font-mono text-gray-800">
                 {statsLoading ? "-" : counts.liveCount}
               </div>
-              <div className="text-sm text-text-tertiary uppercase tracking-wider mt-1">
+              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
                 Live Sessions
               </div>
             </div>
@@ -271,7 +266,7 @@ export function Home(): React.ReactElement {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
-                      Session {session.id.slice(0, 8)}
+                      Session {session.id}
                     </div>
                     <div className="text-xs text-text-tertiary mt-0.5">
                       {session.recordingCount} recordings
@@ -395,7 +390,7 @@ export function Home(): React.ReactElement {
                                 {recording.name}
                               </div>
                               {recording.isPinned && (
-                                <Pin size={12} className="text-accent flex-shrink-0" />
+                                <Pin size={12} className="text-text-tertiary flex-shrink-0" />
                               )}
                             </div>
                             <div className="text-xs text-text-tertiary mt-0.5">
@@ -412,7 +407,7 @@ export function Home(): React.ReactElement {
                             _event.stopPropagation();
                             setOpenMenuId(openMenuId === recording.id ? undefined : recording.id);
                           }}
-                          className="w-8 h-8 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-bg-active transition-all"
+                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-active transition-all"
                         >
                           <MoreVertical size={16} className="text-text-secondary" />
                         </button>
@@ -463,7 +458,7 @@ export function Home(): React.ReactElement {
                     <p className="text-sm">No active sessions</p>
                   </div>
                 ) : (
-                  sessions.map((session) => (
+                                      sessions.map((session) => (
                     <div
                       key={session.id}
                       className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"
@@ -472,25 +467,27 @@ export function Home(): React.ReactElement {
                         <Radio size={16} className="text-text-secondary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-medium text-foreground truncate">
-                            Session {session.id.slice(0, 8)}
-                          </div>
-                          <span
-                            className={`px-1.5 py-0.5 text-[10px] font-medium uppercase rounded ${
-                              session.status === "live"
-                                ? "bg-success/10 text-success"
-                                : session.status === "paused"
-                                  ? "bg-text-tertiary/10 text-text-tertiary"
-                                  : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
-                            {session.status}
-                          </span>
+                        <div className="text-sm font-medium text-foreground truncate">
+                          Session {session.id}
                         </div>
                         <div className="text-xs text-text-tertiary mt-0.5">
                           {session.recordingCount} recordings • Started{" "}
                           {formatTimestampRelative(session.startedAt)}
+                          {session.status === "live" && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-text-tertiary/10 text-text-tertiary rounded">
+                              live
+                            </span>
+                          )}
+                          {session.status === "paused" && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-text-tertiary/10 text-text-tertiary rounded">
+                              paused
+                            </span>
+                          )}
+                          {session.status === "offline" && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-destructive/10 text-destructive rounded">
+                              offline
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

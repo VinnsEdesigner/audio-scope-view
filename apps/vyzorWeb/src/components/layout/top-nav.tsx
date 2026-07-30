@@ -10,7 +10,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/", icon: <Home size={18} /> },
-  { label: "Scopes", href: "/scopes", icon: <Monitor size={18} /> },
+  { label: "Oscilloscope", href: "/oscilloscope", icon: <Monitor size={18} /> },
   { label: "API Keys", href: "/api-keys", icon: <Key size={18} /> },
   { label: "Settings", href: "/settings", icon: <Settings size={18} /> },
 ];

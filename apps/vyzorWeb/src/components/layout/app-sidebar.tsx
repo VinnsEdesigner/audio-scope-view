@@ -55,7 +55,7 @@ const SectionLabel = styled(Text, {
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: LayoutDashboard, end: true },
-  { to: "/scope", label: "Scopes", icon: Monitor, end: false },
+  { to: "/oscilloscope", label: "Oscilloscope", icon: Monitor, end: false },
   { to: "/api-keys", label: "API Keys", icon: KeyRound, end: false },
   { to: "/settings", label: "Settings", icon: SettingsIcon, end: false },
 ] as const;

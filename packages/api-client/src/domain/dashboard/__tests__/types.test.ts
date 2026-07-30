@@ -60,13 +60,15 @@ describe("dashboard types", () => {
         recentSessions: [
           {
             id: "session-1",
-            startedAt: new Date("2024-01-01T10:00:00Z"),
-            recordingCount: 30,
+            name: "Session session-1",
+            lastActivity: new Date("2024-01-01T10:00:00Z"),
+            waveformCount: 30,
           },
           {
             id: "session-2",
-            startedAt: new Date("2024-01-01T08:00:00Z"),
-            recordingCount: 20,
+            name: "Session session-2",
+            lastActivity: new Date("2024-01-01T08:00:00Z"),
+            waveformCount: 20,
           },
         ],
       };
@@ -81,13 +83,15 @@ describe("dashboard types", () => {
     it("should have correct camelCase fields", () => {
       const recentSession: RecentSession = {
         id: "session-recent-1",
-        startedAt: new Date("2024-01-01T11:30:00Z"),
-        recordingCount: 15,
+        name: "Session session-recent-1",
+        lastActivity: new Date("2024-01-01T11:30:00Z"),
+        waveformCount: 15,
       };
 
       expect(typeof recentSession.id).toBe("string");
-      expect(recentSession.startedAt).toBeInstanceOf(Date);
-      expect(typeof recentSession.recordingCount).toBe("number");
+      expect(recentSession.name).toBe("Session session-recent-1");
+      expect(recentSession.lastActivity).toBeInstanceOf(Date);
+      expect(typeof recentSession.waveformCount).toBe("number");
     });
   });
 

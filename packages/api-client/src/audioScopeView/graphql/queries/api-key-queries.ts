@@ -4,11 +4,11 @@ export const API_KEY_INFO_FIELDS = gql`
   fragment ApiKeyInfoFields on ApiKeyInfo {
     id
     name
-    createdAt: created_at
-    expiresAt: expires_at
-    lastUsedAt: last_used_at
-    rateLimitPerMinute: rate_limit_per_minute
-    isValid: is_valid
+    createdAt
+    expiresAt
+    lastUsedAt
+    rateLimitPerMinute
+    isValid
   }
 `;
 
@@ -23,10 +23,10 @@ export const API_KEY_CREATED_FIELDS = gql`
 export const API_KEY_VERIFY_RESULT_FIELDS = gql`
   fragment ApiKeyVerifyResultFields on ApiKeyVerifyResult {
     valid
-    keyId: key_id
+    keyId
     name
-    rateLimitPerMinute: rate_limit_per_minute
-    expiresAt: expires_at
+    rateLimitPerMinute
+    expiresAt
   }
 `;
 

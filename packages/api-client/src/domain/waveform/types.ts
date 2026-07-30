@@ -33,28 +33,28 @@ export interface CreateWaveformInput {
 
 export interface WaveformServer {
   id: string;
-  session_id: string;
+  sessionId: string;
   samples: number[];
-  sample_count: number;
+  sampleCount: number;
   timestamp: string;
-  duration_ms: number;
-  peak_amplitude: number;
-  rms_amplitude: number;
+  durationMs: number;
+  peakAmplitude: number;
+  rmsAmplitude: number;
 }
 
 export interface WaveformSummaryServer {
   id: string;
-  session_id: string;
-  sample_count: number;
+  sessionId: string;
+  sampleCount: number;
   timestamp: string;
-  duration_ms: number;
-  peak_amplitude: number;
-  rms_amplitude: number;
+  durationMs: number;
+  peakAmplitude: number;
+  rmsAmplitude: number;
 }
 
 export interface WaveformStatisticsServer {
-  total_count: number;
-  total_samples: number;
-  average_peak: number;
-  average_rms: number;
+  totalCount: number;
+  totalSamples: number;
+  averagePeak: number;
+  averageRms: number;
 }

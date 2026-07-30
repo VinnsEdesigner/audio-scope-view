@@ -4,12 +4,12 @@ export const CREATE_WAVEFORM = gql`
   mutation CreateWaveform($input: CreateWaveformInput!) {
     createWaveform(input: $input) {
       id
-      session_id
-      sample_count
+      sessionId
+      sampleCount
       timestamp
-      duration_ms
-      peak_amplitude
-      rms_amplitude
+      durationMs
+      peakAmplitude
+      rmsAmplitude
     }
   }
 `;

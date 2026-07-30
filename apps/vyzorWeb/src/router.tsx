@@ -25,10 +25,6 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/scopes",
-        element: <Home />,
-      },
-      {
         path: "/oscilloscope",
         element: <ScopePage />,
       },
@@ -52,7 +48,6 @@ export const routeTree = {
   path: "/",
   children: [
     { path: "/", element: "Home" },
-    { path: "/scopes", element: "Scopes" },
     { path: "/oscilloscope", element: "Oscilloscope" },
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },

@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -12,10 +12,10 @@ pub struct ApiKey {
     pub id: String,
     pub key: String,
     pub name: String,
-    pub created_at: Instant,
-    pub expires_at: Option<Instant>,
+    pub created_at: SystemTime,
+    pub expires_at: Option<SystemTime>,
     pub rate_limit_per_minute: u32,
-    pub last_used_at: Option<Instant>,
+    pub last_used_at: Option<SystemTime>,
 }
 
 impl ApiKey {
@@ -24,7 +24,7 @@ impl ApiKey {
             id: Uuid::new_v4().to_string(),
             key: Uuid::new_v4().to_string().replace("-", ""),
             name,
-            created_at: Instant::now(),
+            created_at: SystemTime::now(),
             expires_at: None,
             rate_limit_per_minute: 60,
             last_used_at: None,
@@ -43,7 +43,7 @@ impl ApiKey {
 
     pub fn is_valid(&self) -> bool {
         if let Some(expires) = self.expires_at
-            && Instant::now() >= expires
+            && SystemTime::now() >= expires
         {
             return false;
         }
@@ -51,7 +51,7 @@ impl ApiKey {
     }
 
     pub fn mark_used(&mut self) {
-        self.last_used_at = Some(Instant::now());
+        self.last_used_at = Some(SystemTime::now());
     }
 }
 
@@ -232,9 +232,9 @@ impl Default for ApiKeyStore {
 pub struct ApiKeyInfo {
     pub id: String,
     pub name: String,
-    pub created_at: Instant,
-    pub expires_at: Option<Instant>,
-    pub last_used_at: Option<Instant>,
+    pub created_at: SystemTime,
+    pub expires_at: Option<SystemTime>,
+    pub last_used_at: Option<SystemTime>,
     pub rate_limit_per_minute: u32,
 }
 

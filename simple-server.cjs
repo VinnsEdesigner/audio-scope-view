@@ -4,6 +4,8 @@ const path = require('path');
 
 const WEB_DIR = path.join(__dirname, 'apps/vyzorWeb/dist/client');
 const API_DIR = path.join(__dirname, 'packages/api-client/dist');
+const GRAPHQL_SERVER = 'http://127.0.0.1:8080';
+const BOOTSTRAP_KEY = process.env.BOOTSTRAP_KEY || 'CHANGE_THIS_TO_A_SECURE_KEY_IN_PRODUCTION';
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -25,6 +27,33 @@ const server = http.createServer((req, res) => {
   console.log(`[REQUEST] ${req.method} ${url}`);
   
   let urlPath = url.split('?')[0];
+  
+  // Proxy GraphQL requests to Rust server
+  if (urlPath.startsWith('/graphql')) {
+    console.log(`  -> Proxying to GraphQL server: ${GRAPHQL_SERVER}${urlPath}`);
+    const proxyReq = http.request(
+      `${GRAPHQL_SERVER}${urlPath}`,
+      {
+        method: req.method,
+        headers: {
+          ...req.headers,
+          'Host': '127.0.0.1:8080',
+          'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
+        },
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
+      }
+    );
+    proxyReq.on('error', (err) => {
+      console.log(`  -> Proxy error: ${err.message}`);
+      res.writeHead(502);
+      res.end('Bad Gateway');
+    });
+    req.pipe(proxyReq);
+    return;
+  }
   
   // API client requests
   if (urlPath.startsWith('/api-client/')) {

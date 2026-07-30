@@ -50,10 +50,11 @@ export type SessionStatus = "live" | "paused" | "offline";
 
 export interface SessionWithStatus {
   id: string;
+  name: string;
   startedAt: Date;
-  endedAt: Date | null;
+  endedAt?: Date;
   status: SessionStatus;
-  durationSeconds: number | null;
+  durationSeconds?: number;
   recordingCount: number;
 }
 
@@ -82,55 +83,54 @@ export type TimeRange = "last_hour" | "last_24_hours" | "last_7_days" | "last_30
 
 export interface RecordingServer {
   id: string;
-  session_id: string;
-  session_name: string;
+  sessionId: string;
+  sessionName: string;
   name: string;
   samples: number[];
   timestamp: string;
-  duration_ms: number;
-  sample_count: number;
-  size_bytes: number;
-  peak_amplitude: number;
-  rms_amplitude: number;
-  is_pinned: boolean;
-  is_recording: boolean;
+  durationMs: number;
+  sampleCount: number;
+  sizeBytes: number;
+  peakAmplitude: number;
+  rmsAmplitude: number;
+  isPinned: boolean;
+  isRecording: boolean;
 }
 
 export interface RecordingSummaryServer {
   id: string;
-  session_id: string;
-  session_name: string;
+  sessionId: string;
+  sessionName: string;
   name: string;
   timestamp: string;
-  duration_ms: number;
-  size_bytes: number;
-  is_pinned: boolean;
+  durationMs: number;
+  sizeBytes: number;
+  isPinned: boolean;
 }
 
 export interface RecordingListResultServer {
   recordings: RecordingSummaryServer[];
   total: number;
-  has_more: boolean;
+  hasMore: boolean;
 }
 
 export interface RecordingStatsServer {
-  total_recordings: number;
-  total_size_bytes: number;
-  total_duration_ms: number;
-  pinned_count: number;
+  totalRecordings: number;
+  totalSizeBytes: number;
+  totalDurationMs: number;
+  pinnedCount: number;
 }
 
 export interface SessionWithStatusServer {
   id: string;
-  started_at: string;
-  ended_at: string | null;
+  name: string;
+  createdAt: string;
   status: string;
-  duration_seconds: number | null;
-  recording_count: number;
+  recordingCount: number;
 }
 
 export interface SessionListResultServer {
   sessions: SessionWithStatusServer[];
   total: number;
-  has_more: boolean;
+  hasMore: boolean;
 }

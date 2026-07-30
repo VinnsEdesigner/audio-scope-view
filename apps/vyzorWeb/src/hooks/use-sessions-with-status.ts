@@ -69,9 +69,9 @@ export function useSessionStatusCounts() {
         fetchPolicy: "cache-first",
       });
       return {
-        liveCount: result.data.sessionStatusCounts.live_count,
-        pausedCount: result.data.sessionStatusCounts.paused_count,
-        offlineCount: result.data.sessionStatusCounts.offline_count,
+        liveCount: result.data.sessionStatusCounts.liveCount,
+        pausedCount: result.data.sessionStatusCounts.pausedCount,
+        offlineCount: result.data.sessionStatusCounts.offlineCount,
         total: result.data.sessionStatusCounts.total,
       };
     },

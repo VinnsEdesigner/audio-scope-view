@@ -7,15 +7,13 @@ describe("session types", () => {
       const session: Session = {
         id: "session-1",
         startedAt: new Date("2024-01-01T00:00:00Z"),
-        endedAt: null,
-        durationSeconds: null,
         recordingCount: 0,
       };
 
       expect(typeof session.id).toBe("string");
       expect(session.startedAt).toBeInstanceOf(Date);
-      expect(session.endedAt).toBeNull();
-      expect(session.durationSeconds).toBeNull();
+      expect(session.endedAt).toBeUndefined();
+      expect(session.durationSeconds).toBeUndefined();
       expect(session.recordingCount).toBe(0);
     });
 

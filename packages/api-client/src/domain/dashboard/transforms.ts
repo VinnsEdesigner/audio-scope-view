@@ -9,23 +9,24 @@ import type {
 export function recentSessionFromRaw(serverSession: RecentSessionServer): RecentSession {
   return {
     id: serverSession.id,
-    startedAt: new Date(serverSession.started_at),
-    recordingCount: serverSession.recording_count,
+    name: serverSession.name,
+    lastActivity: new Date(serverSession.lastActivity),
+    waveformCount: serverSession.waveformCount,
   };
 }
 
 export function dashboardSummaryFromRaw(serverSummary: DashboardSummaryServer): DashboardSummary {
   return {
-    timeRange: serverSummary.time_range as TimeRange,
-    generatedAt: new Date(serverSummary.generated_at),
-    totalSessions: serverSummary.total_sessions,
-    activeSessions: serverSummary.active_sessions,
-    totalCaptures: serverSummary.total_captures,
-    totalWaveforms: serverSummary.total_waveforms,
-    totalSamples: serverSummary.total_samples,
-    averagePeakAmplitude: serverSummary.average_peak_amplitude,
-    averageRmsAmplitude: serverSummary.average_rms_amplitude,
-    recentSessions: serverSummary.recent_sessions.map((s) => recentSessionFromRaw(s)),
+    timeRange: serverSummary.timeRange as TimeRange,
+    generatedAt: new Date(serverSummary.generatedAt),
+    totalSessions: serverSummary.totalSessions,
+    activeSessions: serverSummary.activeSessions,
+    totalCaptures: serverSummary.totalCaptures,
+    totalWaveforms: serverSummary.totalWaveforms,
+    totalSamples: serverSummary.totalSamples,
+    averagePeakAmplitude: serverSummary.averagePeakAmplitude,
+    averageRmsAmplitude: serverSummary.averageRmsAmplitude,
+    recentSessions: serverSummary.recentSessions.map((s) => recentSessionFromRaw(s)),
   };
 }
 

@@ -10,13 +10,13 @@ import type {
 export function waveformFromRaw(serverWaveform: WaveformServer): Waveform {
   return {
     id: serverWaveform.id,
-    sessionId: serverWaveform.session_id,
+    sessionId: serverWaveform.sessionId,
     samples: serverWaveform.samples,
-    sampleCount: serverWaveform.sample_count,
+    sampleCount: serverWaveform.sampleCount,
     timestamp: new Date(serverWaveform.timestamp),
-    durationMs: serverWaveform.duration_ms,
-    peakAmplitude: serverWaveform.peak_amplitude,
-    rmsAmplitude: serverWaveform.rms_amplitude,
+    durationMs: serverWaveform.durationMs,
+    peakAmplitude: serverWaveform.peakAmplitude,
+    rmsAmplitude: serverWaveform.rmsAmplitude,
   };
 }
 
@@ -27,12 +27,12 @@ export function waveformsFromRaw(serverWaveforms: WaveformServer[]): Waveform[] 
 export function waveformSummaryFromRaw(serverSummary: WaveformSummaryServer): WaveformSummary {
   return {
     id: serverSummary.id,
-    sessionId: serverSummary.session_id,
-    sampleCount: serverSummary.sample_count,
+    sessionId: serverSummary.sessionId,
+    sampleCount: serverSummary.sampleCount,
     timestamp: new Date(serverSummary.timestamp),
-    durationMs: serverSummary.duration_ms,
-    peakAmplitude: serverSummary.peak_amplitude,
-    rmsAmplitude: serverSummary.rms_amplitude,
+    durationMs: serverSummary.durationMs,
+    peakAmplitude: serverSummary.peakAmplitude,
+    rmsAmplitude: serverSummary.rmsAmplitude,
   };
 }
 
@@ -40,10 +40,10 @@ export function waveformStatisticsFromRaw(
   serverStats: WaveformStatisticsServer,
 ): WaveformStatistics {
   return {
-    totalCount: serverStats.total_count,
-    totalSamples: serverStats.total_samples,
-    averagePeak: serverStats.average_peak,
-    averageRms: serverStats.average_rms,
+    totalCount: serverStats.totalCount,
+    totalSamples: serverStats.totalSamples,
+    averagePeak: serverStats.averagePeak,
+    averageRms: serverStats.averageRms,
   };
 }
 

@@ -36,13 +36,13 @@ export const CAPTURE_WAVEFORM = gql`
   mutation CaptureWaveform($sessionId: String!, $settings: CaptureSettingsInput) {
     capture(sessionId: $sessionId, settings: $settings) {
       id
-      session_id
+      sessionId
       samples
-      sample_count
+      sampleCount
       timestamp
-      duration_ms
-      peak_amplitude
-      rms_amplitude
+      durationMs
+      peakAmplitude
+      rmsAmplitude
     }
   }
 `;

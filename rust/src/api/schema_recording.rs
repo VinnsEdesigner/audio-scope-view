@@ -105,7 +105,7 @@ impl From<RecordingStats> for RecordingStatsOutput {
     }
 }
 
-/// Scope with status output for home page
+/// Session with status output for home page
 #[derive(Debug, SimpleObject)]
 pub struct SessionWithStatusOutput {
     pub id: String,
@@ -142,9 +142,9 @@ impl From<SessionWithStatus> for SessionWithStatusOutput {
     }
 }
 
-/// Scope status counts output
+/// Session status counts output
 #[derive(Debug, SimpleObject)]
-pub struct ScopeStatusCountsOutput {
+pub struct SessionStatusCountsOutput {
     pub live_count: i64,
     pub paused_count: i64,
     pub offline_count: i64,
@@ -159,7 +159,7 @@ pub struct RecordingListResultOutput {
     pub has_more: bool,
 }
 
-/// Scope list result output
+/// Session list result output
 #[derive(Debug, SimpleObject)]
 pub struct SessionListResultOutput {
     pub sessions: Vec<SessionWithStatusOutput>,
@@ -306,8 +306,8 @@ impl RecordingQuery {
             })
     }
 
-    /// Get scopes with status
-    async fn scopes_with_status(
+    /// Get sessions with status
+    async fn sessions_with_status(
         &self,
         ctx: &Context<'_>,
         limit: Option<i32>,
@@ -333,8 +333,8 @@ impl RecordingQuery {
             })
     }
 
-    /// Get active scopes with status
-    async fn active_scopes_with_status(
+    /// Get active sessions with status
+    async fn active_sessions_with_status(
         &self,
         ctx: &Context<'_>,
     ) -> Vec<SessionWithStatusOutput> {
@@ -349,12 +349,12 @@ impl RecordingQuery {
             .collect()
     }
 
-    /// Get scope status counts
-    async fn scope_status_counts(&self, ctx: &Context<'_>) -> ScopeStatusCountsOutput {
+    /// Get session status counts
+    async fn session_status_counts(&self, ctx: &Context<'_>) -> SessionStatusCountsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let counts = context.recording_service.get_session_status_counts().await;
         let total = counts.live + counts.paused + counts.offline;
-        ScopeStatusCountsOutput {
+        SessionStatusCountsOutput {
             live_count: counts.live as i64,
             paused_count: counts.paused as i64,
             offline_count: counts.offline as i64,
