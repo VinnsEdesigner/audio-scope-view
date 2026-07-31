@@ -270,7 +270,7 @@ export function ScopePage(): React.ReactElement {
   // Loading skeleton - matches actual layout structure
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-bg-primary text-foreground overflow-hidden">
+      <div className="flex w-full h-screen bg-bg-primary text-foreground overflow-hidden">
         {/* Left Sidebar: 5 nav items with icon + label placeholders */}
         <div className="w-[72px] bg-bg-secondary border-r border-border-subtle flex flex-col pt-16 pb-3 px-2 gap-1">
           {[1, 2, 3, 4, 5].map((index) => (
@@ -342,7 +342,7 @@ export function ScopePage(): React.ReactElement {
   // Error screen
   if (error) {
     return (
-      <div className="flex h-screen bg-[#09090b] text-white">
+      <div className="flex w-full h-screen bg-bg-primary text-foreground">
         <div className="flex-1 flex flex-col">
           {/* Minimal top bar for error */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
@@ -380,7 +380,7 @@ export function ScopePage(): React.ReactElement {
 
   // Main scope page UI (matches the mock exactly)
   return (
-    <div className="flex h-screen bg-bg-primary text-foreground overflow-hidden">
+    <div className="flex w-full h-screen bg-bg-primary text-foreground overflow-hidden">
       {/* Left Sidebar */}
       <ScopeSidebar
         onOpenDisplaySettings={handleOpenDisplaySettings}
