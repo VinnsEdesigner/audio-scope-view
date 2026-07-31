@@ -46,7 +46,7 @@ function AppShell() {
   }, []);
 
   return (
-    <div className="flex flex-1 h-screen bg-gray-100">
+    <div className="flex flex-1 h-screen bg-bg-primary">
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <Spinner size={80} />
@@ -54,7 +54,7 @@ function AppShell() {
       ) : (
         <>
           <TopNav />
-          <div className="flex flex-1 overflow-hidden bg-gray-100">
+          <div className="flex flex-1 overflow-hidden bg-bg-primary">
             <Outlet />
           </div>
         </>

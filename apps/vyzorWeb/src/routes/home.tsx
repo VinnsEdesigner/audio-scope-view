@@ -156,7 +156,7 @@ export function Home(): React.ReactElement {
   const isLoading = statsLoading || recordingsLoading;
 
   return (
-    <div className="min-h-full bg-bg-primary">
+    <div className="w-full min-h-screen bg-bg-primary">
       {}
       <header className="flex items-center justify-between px-8 py-4 border-b border-border-subtle bg-black">
         <div className="ml-10">
