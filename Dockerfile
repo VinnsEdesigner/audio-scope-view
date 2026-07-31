@@ -3,16 +3,15 @@
 # ============================================
 
 # Build stage for frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY ./.npmrc ./.nvmrc ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -20,18 +19,18 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build frontend
-RUN pnpm build
+# Build frontend and api-client (clean tsbuildinfo to force rebuild)
+RUN pnpm build && rm -f packages/api-client/tsconfig.tsbuildinfo && pnpm --filter @audio-scope-view/api-client build
 
 # ============================================
 # Build stage for Rust backend
 # ============================================
-FROM rust:1.75-alpine AS backend-builder
+FROM rust:1.75 AS backend-builder
 
 WORKDIR /app
 
 # Install build dependencies for Rust
-RUN apk add --no-cache musl-dev openssl-dev pkgconfig
+RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
 
 # Copy Rust source
 COPY rust/ ./rust/
@@ -43,12 +42,15 @@ RUN cargo build --release --locked
 # ============================================
 # Production stage
 # ============================================
-FROM node:20-alpine AS production
+FROM debian:bookworm-slim AS production
 
 WORKDIR /app
 
-# Install Rust runtime and OpenSSL
-RUN apk add --no-cache openssl
+# Install Node.js and OpenSSL
+RUN apt-get update && apt-get install -y curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy frontend build
 COPY --from=frontend-builder /app/apps/vyzorWeb/dist ./apps/vyzorWeb/dist
@@ -77,13 +79,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
 # Start both services
-CMD sh -c '\
-    echo "Starting Rust backend..." && \
-    BOOTSTRAP_KEY="${BOOTSTRAP_KEY}" /usr/local/bin/audio-scope-view &
-    RUST_PID=$! && \
-    sleep 2 && \
-    echo "Starting Node.js frontend..." && \
-    node /app/simple-server.cjs &
-    NODE_PID=$! && \
-    trap "kill $RUST_PID $NODE_PID 2>/dev/null" EXIT && \
-    wait'
+CMD sh -c 'echo "Starting Rust backend..." && BOOTSTRAP_KEY="${BOOTSTRAP_KEY}" /usr/local/bin/audio-scope-view & RUST_PID=$! && sleep 2 && echo "Starting Node.js frontend..." && node /app/simple-server.cjs & NODE_PID=$! && trap "kill $RUST_PID $NODE_PID 2>/dev/null" EXIT && wait'
