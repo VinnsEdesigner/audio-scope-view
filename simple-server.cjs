@@ -28,6 +28,13 @@ const server = http.createServer((req, res) => {
   
   let urlPath = url.split('?')[0];
   
+  // Health check endpoint
+  if (urlPath === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Yes am alive');
+    return;
+  }
+
   // Proxy GraphQL requests to Rust server
   if (urlPath.startsWith('/graphql')) {
     console.log(`  -> Proxying to GraphQL server: ${GRAPHQL_SERVER}${urlPath}`);

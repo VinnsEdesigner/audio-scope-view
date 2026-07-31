@@ -25,6 +25,7 @@ import {
 } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
 import { useToast } from "@/hooks";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Home(): React.ReactElement {
   const navigate = useNavigate();
@@ -152,32 +153,52 @@ export function Home(): React.ReactElement {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  const isLoading = statsLoading || recordingsLoading;
+
   return (
     <div className="min-h-full bg-bg-primary">
       {}
       <header className="flex items-center justify-between px-8 py-4 border-b border-border-subtle bg-black">
         <div className="ml-10">
-          <h1 className="text-4xl font-semibold text-white tracking-tight">Home</h1>
-          <p className="text-lg text-gray-400">
-            Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
-            recorded traces, and detailed signal measurements
-          </p>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-10 w-32 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </>
+          ) : (
+            <>
+              <h1 className="text-4xl font-semibold text-white tracking-tight">Home</h1>
+              <p className="text-lg text-gray-400">
+                Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
+                recorded traces, and detailed signal measurements
+              </p>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsMicDialogOpen(true)}
-            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-            title="Test Microphone"
-          >
-            <Mic size={18} className="text-text-secondary" />
-          </button>
-          <button
-            onClick={() => navigate("/settings")}
-            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-            title="Settings"
-          >
-            <SettingsIcon size={18} className="text-text-secondary" />
-          </button>
+          {isLoading ? (
+            <>
+              <Skeleton className="w-10 h-10 rounded-lg" />
+              <Skeleton className="w-10 h-10 rounded-lg" />
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setIsMicDialogOpen(true)}
+                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+                title="Test Microphone"
+              >
+                <Mic size={18} className="text-text-secondary" />
+              </button>
+              <button
+                onClick={() => navigate("/settings")}
+                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+                title="Settings"
+              >
+                <SettingsIcon size={18} className="text-text-secondary" />
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -195,26 +216,47 @@ export function Home(): React.ReactElement {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
-              <div className="text-3xl font-bold font-mono text-gray-800">
-                {statsLoading ? "-" : (stats?.totalRecordings ?? 0)}
-              </div>
-              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Recordings</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
-              <div className="text-3xl font-bold font-mono text-gray-800">
-                {statsLoading ? "-" : formatBytes(stats?.totalSizeBytes ?? 0)}
-              </div>
-              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Storage</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
-              <div className="text-3xl font-bold font-mono text-gray-800">
-                {statsLoading ? "-" : counts.liveCount}
-              </div>
-              <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
-                Live Sessions
-              </div>
-            </div>
+            {isLoading ? (
+              <>
+                <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+                  <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-20 mx-auto" />
+                </div>
+                <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+                  <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-20 mx-auto" />
+                </div>
+                <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+                  <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-20 mx-auto" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+                  <div className="text-3xl font-bold font-mono text-gray-800">
+                    {stats?.totalRecordings ?? 0}
+                  </div>
+                  <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
+                    Recordings
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+                  <div className="text-3xl font-bold font-mono text-gray-800">
+                    {formatBytes(stats?.totalSizeBytes ?? 0)}
+                  </div>
+                  <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Storage</div>
+                </div>
+                <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
+                  <div className="text-3xl font-bold font-mono text-gray-800">
+                    {counts.liveCount}
+                  </div>
+                  <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
+                    Live Sessions
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -347,7 +389,21 @@ export function Home(): React.ReactElement {
             {activeTab === "recordings" ? (
               <div className="space-y-2">
                 {recordingsLoading ? (
-                  <div className="text-center py-8 text-text-tertiary">Loading recordings...</div>
+                  <>
+                    {[1, 2, 3, 4].map((index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"
+                      >
+                        <Skeleton className="w-9 h-9 rounded-lg" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="w-8 h-8 rounded-md" />
+                      </div>
+                    ))}
+                  </>
                 ) : filteredRecordings.length === 0 ? (
                   <div className="text-center py-8 text-text-tertiary">
                     <FileAudio size={24} className="mx-auto mb-2 opacity-50" />
@@ -448,7 +504,22 @@ export function Home(): React.ReactElement {
               </div>
             ) : (
               <div className="space-y-2">
-                {sessions.length === 0 ? (
+                {isLoading ? (
+                  <>
+                    {[1, 2, 3].map((index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"
+                      >
+                        <Skeleton className="w-9 h-9 rounded-lg" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : sessions.length === 0 ? (
                   <div className="text-center py-8 text-text-tertiary">
                     <Radio size={24} className="mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No active sessions</p>

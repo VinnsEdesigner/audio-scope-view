@@ -8,7 +8,7 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     body::Body,
     response::Html,
-    Json, Router,
+    Router,
     extract::State,
     response::IntoResponse,
     routing::{get, post},
@@ -47,13 +47,6 @@ pub struct AppState {
     pub recording_service: Arc<RecordingService>,
     pub bootstrap_key_hash: [u8; 32],  // SHA256 hash of the bootstrap key (used for verification)
     pub key_store: Arc<ApiKeyStore>,    // User-created API keys
-}
-
-/// Health check response
-#[derive(serde::Serialize)]
-struct HealthResponse {
-    status: String,
-    version: String,
 }
 
 /// Middleware to extract Authorization header and add to request extensions
@@ -222,10 +215,7 @@ async fn graphql_handler(
 async fn health_handler() -> impl IntoResponse {
     info!("REQUEST: GET /health");
     info!("RESPONSE: 200 OK");
-    Json(HealthResponse {
-        status: "healthy".to_string(),
-        version: env!("CARGO_PKG_VERSION").to_string(),
-    })
+    (http::StatusCode::OK, "Yes am alive")
 }
 
 /// GraphQL playground handler
@@ -254,7 +244,6 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let graphql_router = Router::new()
         .route(GRAPHQL_PATH, post(graphql_handler))
         .route(GRAPHQL_PLAYGROUND_PATH, get(playground_handler))
-        .route(HEALTH_PATH, get(health_handler))
         .layer(auth_middleware)  // Apply auth extraction middleware
         .with_state(state.clone());
 
@@ -263,6 +252,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route_service("/ws", graphql_subscription);
 
     Router::new()
+        .route(HEALTH_PATH, get(health_handler))
         .nest("/graphql", graphql_router)
         .merge(graphql_ws_router)
         .layer(cors)

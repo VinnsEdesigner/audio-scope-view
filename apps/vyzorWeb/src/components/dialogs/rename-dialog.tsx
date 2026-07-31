@@ -1,4 +1,5 @@
 import * as React from "react";
+import { renameDialogInputReference } from "./rename-dialog-constants";
 
 interface RenameDialogProperties {
   isOpen: boolean;
@@ -8,9 +9,6 @@ interface RenameDialogProperties {
   onCancel: () => void;
   isLoading?: boolean;
 }
-
-// Global ref to store the current input value for browser automation
-export const renameDialogInputReference = { current: undefined as HTMLInputElement | undefined };
 
 export function RenameDialog({
   isOpen: _isOpen,

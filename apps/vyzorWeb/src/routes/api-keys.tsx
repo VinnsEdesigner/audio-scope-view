@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Pencil, Trash2, Key, RefreshCw, MoreVertical, Gauge } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2, Key, MoreVertical, Gauge } from "lucide-react";
 import { useToast } from "@/hooks";
 import { useApiKeys, type ApiKey } from "@/hooks/use-api-keys";
 import {
@@ -9,6 +9,7 @@ import {
   EditApiKeyDialog,
 } from "@/components/dialogs";
 import { cn } from "@/lib/utilities";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatDate(timestamp: number | null | undefined): string {
   if (!timestamp || !Number.isFinite(timestamp)) return "Never";
@@ -156,9 +157,47 @@ export function ApiKeys() {
         </header>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-text-tertiary animate-spin" />
-          </div>
+          <ApiKeysCard className="overflow-visible">
+            <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                Name
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                Created
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                Expires
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                Status
+              </span>
+              <span className="sr-only">Actions</span>
+            </div>
+            <div className="divide-y divide-border-subtle">
+              {[1, 2, 3, 4].map((index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-5"
+                >
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="hidden md:flex items-center">
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="hidden md:flex items-center">
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="hidden md:flex items-center justify-end">
+                    <Skeleton className="h-5 w-14 rounded" />
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <Skeleton className="w-8 h-8 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ApiKeysCard>
         ) : !apiKeys || apiKeys.length === 0 ? (
           <ApiKeysCard className="p-12 text-center">
             <div className="w-20 h-20 bg-bg-elevated border border-border-subtle rounded-lg flex items-center justify-center mx-auto mb-6">

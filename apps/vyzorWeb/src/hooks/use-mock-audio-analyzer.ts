@@ -267,6 +267,8 @@ export function useMockAudioAnalyzer(
   }, [
     cleanup,
     createNoiseSource,
+    fftSize,
+    smoothingTimeConstant,
     frequency,
     amplitude,
     sampleRate,

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useRenameRecording, useDeleteRecording } from "./use-recordings";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
-import { renameDialogInputReference } from "@/components/dialogs/rename-dialog";
+import { renameDialogInputReference } from "@/components/dialogs/rename-dialog-constants";
 import { useToast } from "@/hooks";
 import {
   DisplaySettingsDialog,

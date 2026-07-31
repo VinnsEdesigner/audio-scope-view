@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   useAudioAnalyzer,
   useAudioSettings,
@@ -11,6 +11,8 @@ import {
 } from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
+import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
 
 export function ScopePage(): React.ReactElement {
@@ -265,27 +267,71 @@ export function ScopePage(): React.ReactElement {
     }
   };
 
-  // Loading screen
+  // Loading skeleton - matches actual layout structure
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-[#09090b] text-white">
-        <div className="flex-1 flex flex-col">
-          {/* Minimal top bar for loading */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
-            <button
-              onClick={handleBack}
-              className="p-2 rounded-md hover:bg-white/10 transition-colors"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
+      <div className="flex h-screen bg-bg-primary text-foreground overflow-hidden">
+        {/* Left Sidebar: 5 nav items with icon + label placeholders */}
+        <div className="w-[72px] bg-bg-secondary border-r border-border-subtle flex flex-col pt-16 pb-3 px-2 gap-1">
+          {[1, 2, 3, 4, 5].map((index) => (
+            <div key={index} className="flex flex-col items-center gap-1 py-2.5 px-1.5">
+              <Skeleton className="w-6 h-6 rounded" />
+              <Skeleton className="w-8 h-2 rounded" />
+            </div>
+          ))}
+          <div className="flex-1" />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Top Bar: Back button, scope name, recording name, sample rate, test mode toggle */}
+          <div className="flex items-center gap-4 px-4 py-3 border-b border-border-subtle">
+            <Skeleton className="w-9 h-9 rounded-md" />
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-5 w-48" />
+            <div className="flex-1" />
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="w-20 h-8 rounded-md" />
           </div>
 
-          {/* Loading spinner */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 size={32} className="animate-spin text-[#a1a1aa]" />
-              <p className="text-sm text-[#a1a1aa]">Loading recording...</p>
+          {/* Canvas Area: Dark background with centered spinner */}
+          <div className="flex-1 relative bg-[#111820] min-h-0">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Spinner size={48} />
+            </div>
+          </div>
+
+          {/* Bottom Controls: 4 measurement values + playback controls */}
+          <div className="border-t border-border-subtle bg-bg-secondary">
+            {/* 4 measurement value placeholders */}
+            <div className="flex items-center justify-around px-4 py-3 border-b border-border-subtle">
+              <div className="flex flex-col items-center">
+                <Skeleton className="h-4 w-8 mb-1" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+              <div className="flex flex-col items-center">
+                <Skeleton className="h-4 w-8 mb-1" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+              <div className="flex flex-col items-center">
+                <Skeleton className="h-4 w-8 mb-1" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+              <div className="flex flex-col items-center">
+                <Skeleton className="h-4 w-8 mb-1" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+            </div>
+            {/* Playback controls: play/pause/stop buttons, seek bar, speed selector, loop toggle */}
+            <div className="flex items-center gap-4 px-4 py-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-2 w-full rounded-full" />
+              </div>
+              <Skeleton className="w-16 h-8 rounded-md" />
+              <Skeleton className="w-8 h-8 rounded-md" />
             </div>
           </div>
         </div>

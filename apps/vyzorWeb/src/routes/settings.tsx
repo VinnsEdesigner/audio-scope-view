@@ -1,3 +1,4 @@
+import * as React from "react";
 import {
   Sun,
   Moon,
@@ -14,17 +15,106 @@ import { useToast } from "@/hooks";
 import type { WaveformColor } from "@/store/ui-store";
 import { APP_VERSION } from "@audio-scope-view/api-client";
 import { cn } from "@/lib/utilities";
+import { Spinner } from "@/components/ui/spinner";
 
-const WAVEFORM_COLORS: { value: WaveformColor; color: string }[] = [
+// ============================================
+// Constants
+// ============================================
+
+const WAVEFORM_COLORS: readonly { readonly value: WaveformColor; readonly color: string }[] = [
   { value: "cyan", color: "#06b6d4" },
   { value: "blue", color: "#3b82f6" },
   { value: "purple", color: "#8b5cf6" },
   { value: "green", color: "#22c55e" },
   { value: "orange", color: "#f97316" },
   { value: "red", color: "#ef4444" },
-];
+] as const;
 
-function getPermissionStatus(permissionState: string): { text: string; className: string } {
+const THEME_OPTIONS = [
+  { value: "light", icon: Sun, label: "Light" },
+  { value: "dark", icon: Moon, label: "Dark" },
+  { value: "system", icon: Monitor, label: "System" },
+] as const;
+
+const SAMPLE_RATE_OPTIONS = [
+  { value: 44_100, label: "44.1 kHz" },
+  { value: 48_000, label: "48 kHz" },
+  { value: 96_000, label: "96 kHz" },
+] as const;
+
+const BUFFER_SIZE_OPTIONS = [
+  { value: 256, label: "256 samples" },
+  { value: 512, label: "512 samples" },
+  { value: 1024, label: "1024 samples" },
+] as const;
+
+// ============================================
+// Types
+// ============================================
+
+type Theme = "light" | "dark" | "system";
+
+interface SectionProperties {
+  readonly icon: React.ReactNode;
+  readonly title: string;
+  readonly description: string;
+  readonly children: React.ReactNode;
+}
+
+interface SettingsCardProperties {
+  readonly children: React.ReactNode;
+}
+
+interface SettingsRowProperties {
+  readonly label: string;
+  readonly description?: string;
+  readonly children: React.ReactNode;
+  readonly border?: boolean;
+}
+
+interface ThemeSelectorProperties {
+  readonly theme: Theme;
+  readonly onThemeChange: (theme: Theme) => void;
+  readonly onSuccess: (message: string) => void;
+}
+
+interface ColorPickerProperties {
+  readonly selectedColor: WaveformColor;
+  readonly onColorChange: (color: WaveformColor) => void;
+  readonly onSuccess: (message: string) => void;
+}
+
+interface SelectDropdownProperties {
+  readonly value: string | number | null;
+  readonly options: readonly { readonly value: number | string; readonly label: string }[];
+  readonly placeholder?: string;
+  readonly onChange: (value: string | number) => void;
+  readonly onSuccess?: (message: string) => void;
+  readonly formatMessage?: (value: string | number) => string;
+}
+
+interface ToggleSwitchProperties {
+  readonly checked: boolean;
+  readonly onChange: (checked: boolean) => void;
+  readonly onSuccess: (message: string) => void;
+  readonly enabledLabel: string;
+  readonly disabledLabel: string;
+}
+
+interface WaveformPreviewProperties {
+  readonly isLoading: boolean;
+  readonly showGrid: boolean;
+  readonly waveformColor: WaveformColor;
+}
+
+// ============================================
+// Utility Functions
+// ============================================
+
+function getPermissionStatus(permissionState: string): {
+  readonly text: string;
+  readonly className: string;
+} {
   switch (permissionState) {
     case "granted": {
       return { text: "Microphone access granted", className: "bg-success" };
@@ -38,14 +128,16 @@ function getPermissionStatus(permissionState: string): { text: string; className
   }
 }
 
-interface SectionProperties {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}
+// ============================================
+// Components
+// ============================================
 
-function Section({ icon, title, description, children }: SectionProperties) {
+const Section = React.memo(function Section({
+  icon,
+  title,
+  description,
+  children,
+}: SectionProperties) {
   return (
     <section className="mb-10 animate-[fadeInUp_0.4s_ease_forwards]">
       <div className="flex items-center gap-3 mb-4">
@@ -60,28 +152,22 @@ function Section({ icon, title, description, children }: SectionProperties) {
       {children}
     </section>
   );
-}
+});
 
-interface SettingsCardProperties {
-  children: React.ReactNode;
-}
-
-function SettingsCard({ children }: SettingsCardProperties) {
+const SettingsCard = React.memo(function SettingsCard({ children }: SettingsCardProperties) {
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-secondary overflow-hidden">
       {children}
     </div>
   );
-}
+});
 
-interface SettingsRowProperties {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-  border?: boolean;
-}
-
-function SettingsRow({ label, description, children, border = true }: SettingsRowProperties) {
+const SettingsRow = React.memo(function SettingsRow({
+  label,
+  description,
+  children,
+  border = true,
+}: SettingsRowProperties) {
   return (
     <div
       className={cn(
@@ -98,9 +184,217 @@ function SettingsRow({ label, description, children, border = true }: SettingsRo
       <div className="ml-6 flex-shrink-0">{children}</div>
     </div>
   );
-}
+});
+
+const ThemeSelector = React.memo(function ThemeSelector({
+  theme,
+  onThemeChange,
+  onSuccess,
+}: ThemeSelectorProperties) {
+  const handleThemeChange = React.useCallback(
+    (selectedTheme: Theme) => {
+      onThemeChange(selectedTheme);
+      const label = THEME_OPTIONS.find((t) => t.value === selectedTheme)?.label ?? selectedTheme;
+      onSuccess(`Theme changed to ${label}`);
+    },
+    [onThemeChange, onSuccess],
+  );
+
+  return (
+    <div className="flex gap-1 p-1 rounded-md bg-background border border-border-subtle">
+      {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (
+        <button
+          key={value}
+          onClick={() => handleThemeChange(value)}
+          className={cn(
+            "flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-sm text-xs font-medium transition-all",
+            theme === value
+              ? "bg-bg-elevated text-foreground shadow-sm"
+              : "text-text-secondary hover:text-foreground",
+          )}
+        >
+          <Icon size={14} />
+          <span className="hidden xs:inline">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+});
+
+const ColorPicker = React.memo(function ColorPicker({
+  selectedColor,
+  onColorChange,
+  onSuccess,
+}: ColorPickerProperties) {
+  const handleColorChange = React.useCallback(
+    (color: WaveformColor) => {
+      onColorChange(color);
+      onSuccess(`Waveform color changed to ${color}`);
+    },
+    [onColorChange, onSuccess],
+  );
+
+  return (
+    <div className="flex gap-2">
+      {WAVEFORM_COLORS.map(({ value, color }) => (
+        <button
+          key={value}
+          onClick={() => handleColorChange(value)}
+          className={cn(
+            "w-8 h-8 rounded-full transition-all relative flex-shrink-0",
+            selectedColor === value && "ring-2 ring-white ring-offset-2 ring-offset-background",
+          )}
+          style={{ backgroundColor: color }}
+          title={value.charAt(0).toUpperCase() + value.slice(1)}
+          aria-label={`Select ${value} color`}
+        />
+      ))}
+    </div>
+  );
+});
+
+const SelectDropdown = React.memo(function SelectDropdown({
+  value,
+  options,
+  placeholder = "Select option",
+  onChange,
+  onSuccess,
+  formatMessage,
+}: SelectDropdownProperties) {
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const newValue = event.target.value;
+      const numericValue = Number(newValue);
+      const finalValue = Number.isNaN(numericValue) ? newValue : numericValue;
+
+      onChange(finalValue);
+
+      if (onSuccess) {
+        const message = formatMessage
+          ? formatMessage(finalValue)
+          : (options.find((o) => o.value === finalValue)?.label ?? String(finalValue));
+        onSuccess(message);
+      }
+    },
+    [onChange, onSuccess, formatMessage, options],
+  );
+
+  return (
+    <div className="relative w-full sm:w-auto sm:min-w-[180px]">
+      <select
+        className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
+        value={value ?? ""}
+        onChange={handleChange}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+    </div>
+  );
+});
+
+const ToggleSwitch = React.memo(function ToggleSwitch({
+  checked,
+  onChange,
+  onSuccess,
+  enabledLabel,
+  disabledLabel,
+}: ToggleSwitchProperties) {
+  const handleToggle = React.useCallback(() => {
+    const newValue = !checked;
+    onChange(newValue);
+    onSuccess(`${newValue ? enabledLabel : disabledLabel}`);
+  }, [checked, onChange, onSuccess, enabledLabel, disabledLabel]);
+
+  return (
+    <button
+      onClick={handleToggle}
+      className={cn(
+        "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
+        checked ? "bg-accent border-accent" : "bg-background border border-border",
+      )}
+      role="switch"
+      aria-checked={checked}
+    >
+      <span
+        className={cn(
+          "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+          checked && "translate-x-5",
+        )}
+      />
+    </button>
+  );
+});
+
+const WaveformPreview = React.memo(function WaveformPreview({
+  isLoading,
+  showGrid,
+  waveformColor,
+}: WaveformPreviewProperties) {
+  const gridBackgroundStyle = React.useMemo(
+    () => ({
+      backgroundImage:
+        "linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px), linear-gradient(var(--color-border-subtle) 1px, transparent 1px)",
+      backgroundSize: "40px 40px",
+    }),
+    [],
+  );
+
+  const waveformGradientStyle = React.useMemo(() => {
+    const color = WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color ?? "#06b6d4";
+    return {
+      background: `linear-gradient(90deg, transparent 0%, ${color} 10%, ${color} 15%, transparent 20%, transparent 25%, ${color} 30%, ${color} 35%, transparent 40%, transparent 100%)`,
+    };
+  }, [waveformColor]);
+
+  if (isLoading) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Spinner size={32} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {showGrid && <div className="absolute inset-0 opacity-50" style={gridBackgroundStyle} />}
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full h-0.5 opacity-80" style={waveformGradientStyle} />
+      </div>
+    </>
+  );
+});
+
+const PermissionStatus = React.memo(function PermissionStatus({
+  permissionState,
+}: {
+  readonly permissionState: string;
+}) {
+  const permission = React.useMemo(() => getPermissionStatus(permissionState), [permissionState]);
+
+  return (
+    <div className="px-4 sm:px-6 py-4 bg-bg-elevated border-t border-border-subtle">
+      <div className="flex items-center gap-3">
+        <span className={cn("w-2 h-2 rounded-full", permission.className)} />
+        <span className="text-sm text-text-secondary">{permission.text}</span>
+      </div>
+    </div>
+  );
+});
+
+// ============================================
+// Main Settings Page
+// ============================================
 
 export function Settings(): React.ReactElement {
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  // Store state
   const {
     theme,
     setTheme,
@@ -114,28 +408,77 @@ export function Settings(): React.ReactElement {
     setWaveformColor,
   } = useUIStore();
 
+  // Device and audio settings
   const { devices, selectedDeviceId, setSelectedDeviceId, permissionState } = useMediaDevices();
   const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
   const { addToast } = useToast();
-  const permission = getPermissionStatus(permissionState);
 
-  const sampleRateOptions = [
-    { value: 44_100, label: "44.1 kHz" },
-    { value: 48_000, label: "48 kHz" },
-    { value: 96_000, label: "96 kHz" },
-  ];
+  // Loading effect
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const bufferSizeOptions = [
-    { value: 256, label: "256 samples" },
-    { value: 512, label: "512 samples" },
-    { value: 1024, label: "1024 samples" },
-  ];
+  // Toast callback
+  const showSuccessToast = React.useCallback(
+    (message: string) => {
+      addToast("success", message);
+    },
+    [addToast],
+  );
+
+  // Device change handler
+  const handleDeviceChange = React.useCallback(
+    (value: string | number) => {
+      setSelectedDeviceId(String(value));
+      const device = devices?.find((d) => d.deviceId === String(value));
+      addToast("success", `Input device changed to ${device?.label || "new device"}`);
+    },
+    [devices, setSelectedDeviceId, addToast],
+  );
+
+  // Theme handlers
+  const handleThemeChange = React.useCallback(
+    (newTheme: Theme) => {
+      setTheme(newTheme);
+    },
+    [setTheme],
+  );
+
+  // Color handlers
+  const handleColorChange = React.useCallback(
+    (color: WaveformColor) => {
+      setWaveformColor(color);
+    },
+    [setWaveformColor],
+  );
+
+  // Toggle handlers
+  const handleGridToggle = React.useCallback(
+    (checked: boolean) => {
+      setShowGrid(checked);
+    },
+    [setShowGrid],
+  );
+
+  const handleMeasurementsToggle = React.useCallback(
+    (checked: boolean) => {
+      setShowMeasurements(checked);
+    },
+    [setShowMeasurements],
+  );
+
+  const handleSmoothWaveformToggle = React.useCallback(
+    (checked: boolean) => {
+      setSmoothWaveform(checked);
+    },
+    [setSmoothWaveform],
+  );
 
   return (
     <div className="w-full min-h-screen">
-      {}
       <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
-        {}
+        {/* Header */}
         <header className="mb-8 lg:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Settings
@@ -145,7 +488,7 @@ export function Settings(): React.ReactElement {
           </p>
         </header>
 
-        {}
+        {/* Appearance Section */}
         <Section
           icon={<Palette size={20} />}
           title="Appearance"
@@ -153,30 +496,11 @@ export function Settings(): React.ReactElement {
         >
           <SettingsCard>
             <SettingsRow label="Theme" description="Choose your preferred color scheme">
-              <div className="flex gap-1 p-1 rounded-md bg-background border border-border-subtle">
-                {[
-                  { value: "light", icon: Sun, label: "Light" },
-                  { value: "dark", icon: Moon, label: "Dark" },
-                  { value: "system", icon: Monitor, label: "System" },
-                ].map(({ value, icon: Icon, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => {
-                      setTheme(value as "light" | "dark" | "system");
-                      addToast("success", `Theme changed to ${label}`);
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-sm text-xs font-medium transition-all",
-                      theme === value
-                        ? "bg-bg-elevated text-foreground shadow-sm"
-                        : "text-text-secondary hover:text-foreground",
-                    )}
-                  >
-                    <Icon size={14} />
-                    <span className="hidden xs:inline">{label}</span>
-                  </button>
-                ))}
-              </div>
+              <ThemeSelector
+                theme={theme}
+                onThemeChange={handleThemeChange}
+                onSuccess={showSuccessToast}
+              />
             </SettingsRow>
 
             <SettingsRow
@@ -184,29 +508,16 @@ export function Settings(): React.ReactElement {
               description="Choose trace color for waveform display"
               border={false}
             >
-              <div className="flex gap-2">
-                {WAVEFORM_COLORS.map(({ value, color }) => (
-                  <button
-                    key={value}
-                    onClick={() => {
-                      setWaveformColor(value);
-                      addToast("success", `Waveform color changed to ${value}`);
-                    }}
-                    className={cn(
-                      "w-8 h-8 rounded-full transition-all relative flex-shrink-0",
-                      waveformColor === value &&
-                        "ring-2 ring-white ring-offset-2 ring-offset-background",
-                    )}
-                    style={{ backgroundColor: color }}
-                    title={value.charAt(0).toUpperCase() + value.slice(1)}
-                  />
-                ))}
-              </div>
+              <ColorPicker
+                selectedColor={waveformColor}
+                onColorChange={handleColorChange}
+                onSuccess={showSuccessToast}
+              />
             </SettingsRow>
           </SettingsCard>
         </Section>
 
-        {}
+        {/* Audio Section */}
         <Section
           icon={<Mic size={20} />}
           title="Audio"
@@ -217,88 +528,47 @@ export function Settings(): React.ReactElement {
               label="Input Device"
               description="Select the microphone or audio input device"
             >
-              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
-                <select
-                  className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={selectedDeviceId ?? ""}
-                  onChange={(_event) => {
-                    setSelectedDeviceId(_event.target.value);
-                    const device = devices?.find((d) => d.deviceId === _event.target.value);
-                    addToast("success", `Input device changed to ${device?.label || "new device"}`);
-                  }}
-                >
-                  {devices && devices.length > 0 ? (
-                    devices.map((device) => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">No devices found</option>
-                  )}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-              </div>
+              <SelectDropdown
+                value={selectedDeviceId ?? ""}
+                options={
+                  devices?.map((device) => ({
+                    value: device.deviceId,
+                    label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
+                  })) ?? []
+                }
+                placeholder={devices && devices.length > 0 ? "Select device" : "No devices found"}
+                onChange={handleDeviceChange}
+              />
             </SettingsRow>
 
-            <SettingsRow label="Sample Rate" description="Audio sampling frequency. Not all rates are supported by all browsers and hardware (48kHz recommended)">
-              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
-                <select
-                  className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={sampleRate || ""}
-                  onChange={(_event) => {
-                    setSampleRate(Number(_event.target.value));
-                    addToast(
-                      "success",
-                      `Sample rate changed to ${sampleRateOptions.find((o) => o.value === Number(_event.target.value))?.label}`,
-                    );
-                  }}
-                >
-                  <option value="">Select sample rate</option>
-                  {sampleRateOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-              </div>
+            <SettingsRow
+              label="Sample Rate"
+              description="Audio sampling frequency. Not all rates are supported by all browsers and hardware (48kHz recommended)"
+            >
+              <SelectDropdown
+                value={sampleRate}
+                options={SAMPLE_RATE_OPTIONS}
+                placeholder="Select sample rate"
+                onChange={setSampleRate}
+                onSuccess={showSuccessToast}
+              />
             </SettingsRow>
 
             <SettingsRow label="Buffer Size" description="Audio buffer for capture">
-              <div className="relative w-full sm:w-auto sm:min-w-[180px]">
-                <select
-                  className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={bufferSize || ""}
-                  onChange={(_event) => {
-                    setBufferSize(Number(_event.target.value));
-                    addToast(
-                      "success",
-                      `Buffer size changed to ${bufferSizeOptions.find((o) => o.value === Number(_event.target.value))?.label}`,
-                    );
-                  }}
-                >
-                  <option value="">Select buffer size</option>
-                  {bufferSizeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-              </div>
+              <SelectDropdown
+                value={bufferSize}
+                options={BUFFER_SIZE_OPTIONS}
+                placeholder="Select buffer size"
+                onChange={setBufferSize}
+                onSuccess={showSuccessToast}
+              />
             </SettingsRow>
 
-            <div className="px-4 sm:px-6 py-4 bg-bg-elevated border-t border-border-subtle">
-              <div className="flex items-center gap-3">
-                <span className={cn("w-2 h-2 rounded-full", permission.className)} />
-                <span className="text-sm text-text-secondary">{permission.text}</span>
-              </div>
-            </div>
+            <PermissionStatus permissionState={permissionState} />
           </SettingsCard>
         </Section>
 
-        {}
+        {/* Display Section */}
         <Section
           icon={<MonitorCheck size={20} />}
           title="Display"
@@ -306,52 +576,26 @@ export function Settings(): React.ReactElement {
         >
           <SettingsCard>
             <SettingsRow label="Show Grid" description="Display grid overlay on waveform">
-              <button
-                onClick={() => {
-                  setShowGrid(!showGrid);
-                  addToast("success", `Grid ${showGrid ? "disabled" : "enabled"}`);
-                }}
-                className={cn(
-                  "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
-                  showGrid ? "bg-accent border-accent" : "bg-background border border-border",
-                )}
-                role="switch"
-                aria-checked={showGrid}
-              >
-                <span
-                  className={cn(
-                    "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    showGrid && "translate-x-5",
-                  )}
-                />
-              </button>
+              <ToggleSwitch
+                checked={showGrid}
+                onChange={handleGridToggle}
+                onSuccess={showSuccessToast}
+                enabledLabel="Grid enabled"
+                disabledLabel="Grid disabled"
+              />
             </SettingsRow>
 
             <SettingsRow
               label="Show Measurements"
               description="Display amplitude and frequency measurements"
             >
-              <button
-                onClick={() => {
-                  setShowMeasurements(!showMeasurements);
-                  addToast("success", `Measurements ${showMeasurements ? "disabled" : "enabled"}`);
-                }}
-                className={cn(
-                  "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
-                  showMeasurements
-                    ? "bg-accent border-accent"
-                    : "bg-background border border-border",
-                )}
-                role="switch"
-                aria-checked={showMeasurements}
-              >
-                <span
-                  className={cn(
-                    "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    showMeasurements && "translate-x-5",
-                  )}
-                />
-              </button>
+              <ToggleSwitch
+                checked={showMeasurements}
+                onChange={handleMeasurementsToggle}
+                onSuccess={showSuccessToast}
+                enabledLabel="Measurements enabled"
+                disabledLabel="Measurements disabled"
+              />
             </SettingsRow>
 
             <SettingsRow
@@ -359,30 +603,18 @@ export function Settings(): React.ReactElement {
               description="Apply smoothing filter to waveform display"
               border={false}
             >
-              <button
-                onClick={() => {
-                  setSmoothWaveform(!smoothWaveform);
-                  addToast("success", `Smooth waveform ${smoothWaveform ? "disabled" : "enabled"}`);
-                }}
-                className={cn(
-                  "relative w-12 h-7 rounded-full transition-all cursor-pointer flex-shrink-0",
-                  smoothWaveform ? "bg-accent border-accent" : "bg-background border border-border",
-                )}
-                role="switch"
-                aria-checked={smoothWaveform}
-              >
-                <span
-                  className={cn(
-                    "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    smoothWaveform && "translate-x-5",
-                  )}
-                />
-              </button>
+              <ToggleSwitch
+                checked={smoothWaveform}
+                onChange={handleSmoothWaveformToggle}
+                onSuccess={showSuccessToast}
+                enabledLabel="Smooth waveform enabled"
+                disabledLabel="Smooth waveform disabled"
+              />
             </SettingsRow>
           </SettingsCard>
         </Section>
 
-        {}
+        {/* Preview Section */}
         <Section
           icon={<Eye size={20} />}
           title="Preview"
@@ -391,30 +623,17 @@ export function Settings(): React.ReactElement {
           <SettingsCard>
             <div className="p-4 sm:p-6">
               <div className="h-20 bg-background border border-border-subtle rounded-md relative overflow-hidden">
-                {showGrid && (
-                  <div
-                    className="absolute inset-0 opacity-50"
-                    style={{
-                      backgroundImage:
-                        "linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px), linear-gradient(var(--color-border-subtle) 1px, transparent 1px)",
-                      backgroundSize: "40px 40px",
-                    }}
-                  />
-                )}
-                <div className="absolute inset-0 flex items-center">
-                  <div
-                    className="w-full h-0.5 opacity-80"
-                    style={{
-                      background: `linear-gradient(90deg, transparent 0%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 10%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 15%, transparent 20%, transparent 25%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 30%, ${WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color} 35%, transparent 40%, transparent 100%)`,
-                    }}
-                  />
-                </div>
+                <WaveformPreview
+                  isLoading={isLoading}
+                  showGrid={showGrid}
+                  waveformColor={waveformColor}
+                />
               </div>
             </div>
           </SettingsCard>
         </Section>
 
-        {}
+        {/* About Section */}
         <Section icon={<Info size={20} />} title="About" description="Application information">
           <SettingsCard>
             <SettingsRow label="Version" border={false}>

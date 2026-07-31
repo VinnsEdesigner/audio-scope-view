@@ -3,12 +3,13 @@ import { ApolloProvider } from "@apollo/client";
 import { Outlet } from "react-router-dom";
 import { useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
-import { TamaguiProvider, Theme, YStack } from "tamagui";
-import { useEffect } from "react";
+import { TamaguiProvider, Theme } from "tamagui";
+import { useEffect, useState } from "react";
 import { TopNav } from "./components/layout/top-nav";
 import { ToastProvider } from "./components/ui/toast";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
+import { Spinner } from "./components/ui/spinner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,15 +37,29 @@ const seoData = {
 };
 
 function AppShell() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Hide spinner after initial render
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <YStack flex={1} height="100vh" backgroundColor="$gray1">
-      {}
-      <TopNav />
-      {}
-      <YStack flex={1} overflow="hidden" backgroundColor="$gray1">
-        <Outlet />
-      </YStack>
-    </YStack>
+    <div className="flex flex-1 h-screen bg-gray-100">
+      {isLoading ? (
+        <div className="flex flex-1 items-center justify-center">
+          <Spinner size={80} />
+        </div>
+      ) : (
+        <>
+          <TopNav />
+          <div className="flex flex-1 overflow-hidden bg-gray-100">
+            <Outlet />
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
