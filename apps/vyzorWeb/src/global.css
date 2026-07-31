@@ -58,19 +58,19 @@
 
 /* Light theme */
 [data-theme="light"] {
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f5f5f7;
-  --color-bg-elevated: #eaeaec;
-  --color-bg-hover: #dedee0;
-  --color-bg-active: #d5d5d7;
+  --color-bg-primary: #ffffff !important;
+  --color-bg-secondary: #f5f5f7 !important;
+  --color-bg-elevated: #eaeaec !important;
+  --color-bg-hover: #dedee0 !important;
+  --color-bg-active: #d5d5d7 !important;
 
-  --color-foreground: #1a1a1d;
-  --color-text-secondary: #6e6e73;
-  --color-text-tertiary: #a1a1a6;
+  --color-foreground: #1a1a1d !important;
+  --color-text-secondary: #6e6e73 !important;
+  --color-text-tertiary: #a1a1a6 !important;
 
-  --color-border-subtle: rgba(0, 0, 0, 0.06);
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-border-hover: rgba(0, 0, 0, 0.15);
+  --color-border-subtle: rgba(0, 0, 0, 0.06) !important;
+  --color-border: rgba(0, 0, 0, 0.1) !important;
+  --color-border-hover: rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Base styles */

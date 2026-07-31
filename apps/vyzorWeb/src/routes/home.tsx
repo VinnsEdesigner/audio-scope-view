@@ -281,7 +281,7 @@ export function Home(): React.ReactElement {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 w-full">
             {displaySessions.length === 0 ? (
               <div className="text-center py-8 text-text-tertiary">
                 <Radio size={24} className="mx-auto mb-2 opacity-50" />
