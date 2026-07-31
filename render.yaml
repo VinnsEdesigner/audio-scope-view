@@ -1,0 +1,57 @@
+# ============================================
+# Audio Scope View - Render Deployment Config
+# ============================================
+# 
+# Render Auto-Deploy setup:
+# 1. Push this render.yaml to your GitHub repository
+# 2. Go to Render.com and create a new "Web Service"
+# 3. Connect your GitHub repo
+# 4. Render will auto-detect this file and configure deployment
+# 5. Set environment variables:
+#    - BOOTSTRAP_KEY: Generate with `openssl rand -base64 32`
+#
+# ============================================
+
+services:
+  # Main Web Service (serves frontend + proxies to API)
+  - type: web
+    name: audio-scope-view
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: BOOTSTRAP_KEY
+        generateValue: true
+      - key: RUST_BACKTRACE
+        value: "1"
+      - key: NITRO_PRESET
+        value: node-server
+
+# ============================================
+# Alternative: Blueprints (for multiple services)
+# Uncomment below if deploying as separate services
+# ============================================
+
+# databases:
+#   - name: audio-scope-view-db
+#     plan: free
+#     databaseName: audio_scope_view
+#     ipAllowList: []
+
+# Background Worker (optional - for audio processing)
+# services:
+#   - type: worker
+#     name: audio-scope-view-worker
+#     runtime: docker
+#     dockerfilePath: ./Dockerfile.worker
+#     region: oregon
+#     plan: free
+#     envVars:
+#       - key: BOOTSTRAP_KEY
+#         sync: false

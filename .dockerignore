@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs (will be rebuilt in container)
+apps/vyzorWeb/dist
+packages/api-client/dist
+rust/target
+
+# Development files
+.git
+.github
+.docs
+.mocks
+.lovable
+AGENTS
+scripts
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment (use env vars in production)
+.env
+.env.*
+!.env.example
+
+# Test files
+*.test.ts
+*.spec.ts
+coverage
+
+# Misc
+*.tgz
+.turbo
+.cache
