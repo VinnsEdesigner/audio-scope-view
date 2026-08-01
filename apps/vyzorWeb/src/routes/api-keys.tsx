@@ -139,12 +139,12 @@ export function ApiKeys() {
   return (
     <div className="w-full min-h-screen">
       <div className="w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12 xl:px-16">
-        <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pl-12 mb-10">
+        <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pl-12 mb-6 sm:mb-10">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
               API Keys
             </h1>
-            <p className="mt-1 text-sm text-text-tertiary">
+            <p className="mt-1 text-xs sm:text-sm text-text-tertiary">
               Manage your API keys for external access to audio scopes
             </p>
           </div>
@@ -178,9 +178,15 @@ export function ApiKeys() {
               {[1, 2, 3, 4].map((index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-5"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5"
                 >
-                  <div className="flex flex-col gap-1 min-w-0">
+                  {/* Mobile skeleton */}
+                  <div className="flex items-center justify-between gap-2 md:hidden">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="w-8 h-8 rounded-md" />
+                  </div>
+                  {/* Desktop skeleton */}
+                  <div className="hidden md:flex flex-col gap-1 min-w-0">
                     <Skeleton className="h-4 w-32" />
                   </div>
                   <div className="hidden md:flex items-center">
@@ -192,7 +198,7 @@ export function ApiKeys() {
                   <div className="hidden md:flex items-center justify-end">
                     <Skeleton className="h-5 w-14 rounded" />
                   </div>
-                  <div className="flex items-center justify-end">
+                  <div className="hidden md:flex items-center justify-end">
                     <Skeleton className="w-8 h-8 rounded-md" />
                   </div>
                 </div>
@@ -218,6 +224,7 @@ export function ApiKeys() {
           </ApiKeysCard>
         ) : (
           <ApiKeysCard className="overflow-visible">
+            {/* Desktop header - hidden on mobile */}
             <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
               <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
                 Name
@@ -242,9 +249,76 @@ export function ApiKeys() {
                 return (
                   <div
                     key={apiKey.id}
-                    className="grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-5 hover:bg-bg-hover transition-colors overflow-visible"
+                    className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5 hover:bg-bg-hover transition-colors overflow-visible"
                   >
-                    <div className="flex flex-col gap-1 min-w-0">
+                    {/* Mobile: Name and Actions in flex row */}
+                    <div className="flex items-center justify-between gap-2 md:hidden">
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {apiKey.name}
+                      </span>
+                      <div className="relative flex-shrink-0">
+                        <button
+                          onClick={(event_) => {
+                            event_.stopPropagation();
+                            setOpenMenuId(openMenuId === apiKey.id ? undefined : apiKey.id);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-elevated transition-all"
+                          title="More options"
+                        >
+                          <MoreVertical size={16} className="text-text-secondary" />
+                        </button>
+                        {openMenuId === apiKey.id && (
+                          <div className="absolute right-0 top-full mt-1 w-56 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50 overflow-visible">
+                            <button
+                              onClick={(event_) => {
+                                event_.stopPropagation();
+                                handleCopy(apiKey.id);
+                                setOpenMenuId(undefined);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                            >
+                              <Copy size={14} />
+                              Copy ID
+                            </button>
+                            <button
+                              onClick={(event_) => {
+                                event_.stopPropagation();
+                                handleEditClick(apiKey);
+                                setOpenMenuId(undefined);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                            >
+                              <Pencil size={14} />
+                              Edit
+                            </button>
+                            <button
+                              onClick={(event_) => {
+                                event_.stopPropagation();
+                                handleDeleteClick(apiKey);
+                                setOpenMenuId(undefined);
+                              }}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </button>
+                            <div className="border-t border-border-subtle my-1" />
+                            <div className="px-3 py-2">
+                              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                <Gauge size={14} className="text-text-tertiary" />
+                                <span className="font-mono">{apiKey.rateLimitPerMinute}/min</span>
+                              </div>
+                              <p className="text-xs text-text-tertiary mt-1">
+                                Rate limit per minute
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Desktop: Full grid layout */}
+                    <div className="hidden md:flex flex-col gap-1 min-w-0">
                       <span className="text-sm font-medium text-foreground truncate">
                         {apiKey.name}
                       </span>
@@ -282,7 +356,7 @@ export function ApiKeys() {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-end overflow-visible">
+                    <div className="hidden md:flex items-center justify-end overflow-visible">
                       <div className="relative">
                         <button
                           onClick={(event_) => {

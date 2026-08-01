@@ -359,14 +359,14 @@ export function Settings(): React.ReactElement {
   );
 
   return (
-    <div className="w-full min-h-screen">
+    <div className="w-full h-full overflow-y-auto">
       <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
         {/* Header */}
-        <header className="pl-12 mb-8 lg:mb-12">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+        <header className="pl-0 md:pl-12 mb-6 md:mb-8 lg:mb-12">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
             Settings
           </h1>
-          <p className="mt-1 text-sm text-text-secondary">
+          <p className="mt-1 text-xs sm:text-sm text-text-secondary">
             Configure your audio scope preferences and appearance
           </p>
         </header>

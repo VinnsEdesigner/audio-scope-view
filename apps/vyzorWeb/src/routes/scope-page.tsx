@@ -381,16 +381,18 @@ export function ScopePage(): React.ReactElement {
   // Main scope page UI (matches the mock exactly)
   return (
     <div className="flex w-full h-screen bg-bg-primary text-foreground overflow-hidden">
-      {/* Left Sidebar */}
-      <ScopeSidebar
-        onOpenDisplaySettings={handleOpenDisplaySettings}
-        onOpenTriggerSettings={handleOpenTriggerSettings}
-        onOpenMeasurements={handleOpenMeasurements}
-        onOpenExport={handleOpenExport}
-        onOpenRecordingInfo={handleOpenRecordingInfo}
-        onRename={handleRename}
-        onDelete={handleDelete}
-      />
+      {/* Left Sidebar - hidden on mobile */}
+      <div className="hidden md:block">
+        <ScopeSidebar
+          onOpenDisplaySettings={handleOpenDisplaySettings}
+          onOpenTriggerSettings={handleOpenTriggerSettings}
+          onOpenMeasurements={handleOpenMeasurements}
+          onOpenExport={handleOpenExport}
+          onOpenRecordingInfo={handleOpenRecordingInfo}
+          onRename={handleRename}
+          onDelete={handleDelete}
+        />
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -429,6 +431,24 @@ export function ScopePage(): React.ReactElement {
             audioAnalyzer.stopCapture();
             showToast({ message: "Capture stopped", type: "info" });
           }}
+          mobileMenuItems={
+            isPlaybackMode
+              ? [
+                  { id: "display", label: "Display", onClick: handleOpenDisplaySettings },
+                  { id: "measure", label: "Measure", onClick: handleOpenMeasurements },
+                  { id: "info", label: "Info", onClick: handleOpenRecordingInfo },
+                  { id: "export", label: "Export", onClick: handleOpenExport },
+                  { id: "rename", label: "Rename", onClick: handleRename },
+                  { id: "delete", label: "Delete", onClick: handleDelete },
+                ]
+              : [
+                  { id: "display", label: "Display", onClick: handleOpenDisplaySettings },
+                  { id: "trigger", label: "Trigger", onClick: handleOpenTriggerSettings },
+                  { id: "measure", label: "Measure", onClick: handleOpenMeasurements },
+                  { id: "cal", label: "Cal", onClick: () => {} },
+                  { id: "export", label: "Export", onClick: handleOpenExport },
+                ]
+          }
         />
 
         {/* Canvas Area */}

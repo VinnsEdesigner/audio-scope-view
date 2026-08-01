@@ -1,8 +1,14 @@
 import * as React from "react";
-import { Sun, Play, Pause, Square } from "lucide-react";
+import { Sun, Play, Pause, Square, MoreVertical } from "lucide-react";
 import { TestModeIcon } from "@/components/icons/test-mode-icon";
 import { useAudioAnalyzer } from "@/hooks";
 import type { SessionMode } from "@/store";
+
+interface MobileMenuItem {
+  id: string;
+  label: string;
+  onClick: () => void;
+}
 
 interface ScopeTopBarProperties {
   mode?: SessionMode;
@@ -19,6 +25,7 @@ interface ScopeTopBarProperties {
   onPauseCapture?: () => void;
   onResumeCapture?: () => void;
   onStopCapture?: () => void;
+  mobileMenuItems?: MobileMenuItem[];
 }
 
 export function ScopeTopBar({
@@ -36,8 +43,10 @@ export function ScopeTopBar({
   onPauseCapture,
   onResumeCapture,
   onStopCapture,
+  mobileMenuItems = [],
 }: ScopeTopBarProperties) {
   const { sampleRate: liveSampleRate, recordingState } = useAudioAnalyzer();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const isCapturing = recordingState === "recording";
   const isPaused = recordingState === "paused";
@@ -78,10 +87,10 @@ export function ScopeTopBar({
     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2 pl-14 border-b border-border-subtle md:pl-0">
       <div className="flex items-center gap-2">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-foreground">
             {isPlayback ? recordingName || "Recording" : scopeName || "Scope"}
           </h1>
-          <p className="text-lg text-foreground/70">
+          <p className="text-sm sm:text-base md:text-lg text-foreground/70">
             {effectiveSampleRate.toLocaleString()} Hz · {isPlayback ? "playback" : "local trace"}
           </p>
         </div>
@@ -161,6 +170,38 @@ export function ScopeTopBar({
       >
         <TestModeIcon size={16} />
       </button>
+
+      {/* Mobile Menu Button - visible only on mobile */}
+      {mobileMenuItems.length > 0 && (
+        <div className="relative md:hidden">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="ml-2 p-2 rounded-md bg-bg-elevated text-text-secondary hover:text-foreground transition-colors"
+            title="Menu"
+          >
+            <MoreVertical size={18} />
+          </button>
+          {mobileMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMobileMenuOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 z-20 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg py-1 min-w-[140px]">
+                {mobileMenuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      item.onClick();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
