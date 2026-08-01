@@ -26,6 +26,118 @@ const WAVEFORM_COLORS: Record<WaveformColor, string> = {
   red: "#ef4444",
 };
 
+interface WaveformCanvasProperties {
+  waveformData: number[];
+  waveformColor: WaveformColor;
+  glow: boolean;
+  autoScale: boolean;
+  invert: boolean;
+}
+
+function WaveformCanvas({
+  waveformData,
+  waveformColor,
+  glow,
+  autoScale,
+  invert,
+}: WaveformCanvasProperties): React.ReactElement {
+  const canvasReference = React.useRef<HTMLCanvasElement>(null);
+  const containerReference = React.useRef<HTMLDivElement>(null);
+
+  // Draw waveform on canvas
+  React.useEffect(() => {
+    const canvas = canvasReference.current;
+    const container = containerReference.current;
+    if (!canvas || !container) return;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    // Get container dimensions
+    const rect = container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    // Set canvas size with device pixel ratio for sharp rendering
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    context.scale(dpr, dpr);
+
+    // Clear canvas
+    context.clearRect(0, 0, width, height);
+
+    // Draw waveform if we have data
+    if (waveformData.length > 0) {
+      const color = WAVEFORM_COLORS[waveformColor] || WAVEFORM_COLORS.cyan;
+      const centerY = height / 2;
+
+      // Calculate scale for autoScale
+      let scale = 1;
+      if (autoScale) {
+        const maxValue = Math.max(...waveformData.map((v) => Math.abs(v)), 0.01);
+        scale = (centerY * 0.8) / maxValue;
+      }
+
+      context.save();
+
+      // Apply glow effect
+      if (glow) {
+        context.shadowColor = color;
+        context.shadowBlur = 8;
+      }
+
+      // Apply invert
+      if (invert) {
+        context.scale(1, -1);
+        context.translate(0, -height);
+      }
+
+      context.beginPath();
+      context.strokeStyle = color;
+      context.lineWidth = 1.5;
+      context.lineJoin = "round";
+      context.lineCap = "round";
+
+      for (let index = 0; index < waveformData.length; index++) {
+        const x = (index / (waveformData.length - 1)) * width;
+        const y = centerY + waveformData[index] * scale;
+
+        if (index === 0) {
+          context.moveTo(x, y);
+        } else {
+          context.lineTo(x, y);
+        }
+      }
+
+      context.stroke();
+      context.restore();
+    }
+  }, [waveformData, waveformColor, glow, autoScale, invert]);
+
+  // Handle container resize
+  React.useEffect(() => {
+    const container = containerReference.current;
+    const canvas = canvasReference.current;
+    if (!container || !canvas) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      const rect = container.getBoundingClientRect();
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerReference} className="absolute inset-0">
+      <canvas ref={canvasReference} className="w-full h-full" />
+    </div>
+  );
+}
+
 interface DialogMicRecordingProperties {
   isOpen: boolean;
   onClose: () => void;
@@ -254,45 +366,14 @@ export function DialogMicRecording({
                 <Play size={32} className="text-warning" />
               </div>
             )}
-            {waveformData.length > 0 && (() => {
-              const maxVal = Math.max(...waveformData.map(Math.abs), 0.01);
-              const scale = autoScale ? (10 * 0.8) / maxVal : 1;
-              const color = WAVEFORM_COLORS[waveformColor] || WAVEFORM_COLORS.cyan;
-              
-              const generatePath = () =>
-                `M ${waveformData.map((v, index) => {
-                  const x = index * (64 / waveformData.length);
-                  const y = invert ? 10 + v * 8 * scale : 10 - v * 8 * scale;
-                  return `${x},${y}`;
-                }).join(" L ")}`;
-              
-              return (
-                <svg
-                  className="absolute inset-2 w-full h-full"
-                  viewBox="0 0 64 20"
-                  preserveAspectRatio="none"
-                  style={{ filter: glow ? `drop-shadow(0 0 3px ${color})` : 'none' }}
-                >
-                  {glow && (
-                    <path
-                      d={generatePath()}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth="1"
-                      strokeLinecap="round"
-                      opacity="0.5"
-                    />
-                  )}
-                  <path
-                    d={generatePath()}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="0.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              );
-            })()}
+            {}
+            <WaveformCanvas
+              waveformData={waveformData}
+              waveformColor={waveformColor}
+              glow={glow}
+              autoScale={autoScale}
+              invert={invert}
+            />
           </div>
         </div>
 
