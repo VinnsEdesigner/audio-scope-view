@@ -44,7 +44,7 @@ export function DialogMicRecording({
     useMediaDevices();
   const startRecordingMutation = useStartRecording();
 
-  const { waveformColor, showGrid, smoothWaveform } = useUIStore();
+  const { waveformColor, showGrid, smoothWaveform, glow, autoScale, invert } = useUIStore();
 
   const {
     recordingState,
@@ -239,10 +239,10 @@ export function DialogMicRecording({
                 className="absolute inset-0"
                 style={{
                   backgroundImage: `
- linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
- linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)
+ linear-gradient(rgba(120, 160, 170, 0.15) 1px, transparent 1px),
+ linear-gradient(90deg, rgba(120, 160, 170, 0.15) 1px, transparent 1px)
  `,
-                  backgroundSize: "20px 20px",
+                  backgroundSize: "10% 12.5%",
                 }}
               />
             )}
@@ -254,22 +254,45 @@ export function DialogMicRecording({
                 <Play size={32} className="text-warning" />
               </div>
             )}
-            {}
-            {waveformData.length > 0 && (
-              <svg
-                className="absolute inset-2 w-full h-full"
-                viewBox="0 0 64 20"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d={`M ${waveformData.map((v, index) => `${index * (64 / waveformData.length)},${10 - v * 8}`).join(" L ")}`}
-                  fill="none"
-                  stroke={WAVEFORM_COLORS[waveformColor] || WAVEFORM_COLORS.cyan}
-                  strokeWidth="0.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
+            {waveformData.length > 0 && (() => {
+              const maxVal = Math.max(...waveformData.map(Math.abs), 0.01);
+              const scale = autoScale ? (10 * 0.8) / maxVal : 1;
+              const color = WAVEFORM_COLORS[waveformColor] || WAVEFORM_COLORS.cyan;
+              
+              const generatePath = () =>
+                `M ${waveformData.map((v, index) => {
+                  const x = index * (64 / waveformData.length);
+                  const y = invert ? 10 + v * 8 * scale : 10 - v * 8 * scale;
+                  return `${x},${y}`;
+                }).join(" L ")}`;
+              
+              return (
+                <svg
+                  className="absolute inset-2 w-full h-full"
+                  viewBox="0 0 64 20"
+                  preserveAspectRatio="none"
+                  style={{ filter: glow ? `drop-shadow(0 0 3px ${color})` : 'none' }}
+                >
+                  {glow && (
+                    <path
+                      d={generatePath()}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="1"
+                      strokeLinecap="round"
+                      opacity="0.5"
+                    />
+                  )}
+                  <path
+                    d={generatePath()}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="0.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              );
+            })()}
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "@audio-scope-view/tailwind",
-  "version": "0.0.0",
+  "version": "v0.1.0-beta",
   "private": true,
   "exports": {
     ".": "./src/index.ts",

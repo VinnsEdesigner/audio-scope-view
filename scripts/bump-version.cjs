@@ -33,7 +33,7 @@ function updatePackageJson(filePath, version) {
 function updateCargoToml(filePath, version) {
   const fullPath = path.join(ROOT, filePath);
   let content = fs.readFileSync(fullPath, 'utf8');
-  content = content.replace(/^version = "[\d.]+"$/m, `version = "${version}"`);
+  content = content.replace(/^version = "v?\d+\.\d+\.\d+(-[\w.]+)?"$/m, `version = "${version}"`);
   fs.writeFileSync(fullPath, content);
   console.log(`Updated ${filePath} -> ${version}`);
 }
@@ -41,7 +41,7 @@ function updateCargoToml(filePath, version) {
 function updateApiClientConfig(filePath, version) {
   const fullPath = path.join(ROOT, filePath);
   let content = fs.readFileSync(fullPath, 'utf8');
-  content = content.replace(/^export const APP_VERSION = "[\d.]+";$/m, `export const APP_VERSION = "${version}";`);
+  content = content.replace(/^export const APP_VERSION = "v?\d+\.\d+\.\d+(-[\w.]+)?";$/m, `export const APP_VERSION = "${version}";`);
   fs.writeFileSync(fullPath, content);
   console.log(`Updated ${filePath} -> ${version}`);
 }
@@ -54,8 +54,8 @@ if (!version) {
   process.exit(1);
 }
 
-if (!/^\d+\.\d+\.\d+$/.test(version)) {
-  console.error('Version must be in semver format: X.Y.Z');
+if (!/^v?\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) {
+  console.error('Version must be in semver format: v0.1.0-beta or 0.1.0');
   process.exit(1);
 }
 

@@ -7,7 +7,7 @@ function getEnvironment(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = "v0.1.0-beta";
 
 export const APP_NAME = "Audio Scope View";
 

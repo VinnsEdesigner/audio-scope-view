@@ -1,6 +1,6 @@
 {
   "name": "@audio-scope-view/ui",
-  "version": "0.1.0",
+  "version": "v0.1.0-beta",
   "private": true,
   "type": "module",
   "main": "./index.ts",
