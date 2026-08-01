@@ -40,7 +40,7 @@ function AppShell() {
     <div className="flex flex-1 h-screen bg-bg-primary">
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
-          <Spinner size={80} />
+          <Spinner className="w-12 h-12 md:w-20 md:h-20" size={48} />
         </div>
       ) : (
         <>

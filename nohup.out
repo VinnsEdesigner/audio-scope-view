@@ -1,0 +1,60 @@
+Serving web from: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client
+Serving API client from: /workspace/project/audio-scope-view/packages/api-client/dist
+
+
+Server running on http://localhost:3003
+[REQUEST] GET /health
+[REQUEST] GET /
+  -> SPA routing, serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/index.html
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/index.html (text/html)
+[REQUEST] GET /assets/main-CeMGrlbN.css
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/main-CeMGrlbN.css
+[REQUEST] GET /assets/main-Cr1tW3O7.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/main-Cr1tW3O7.js
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/main-CeMGrlbN.css (text/css)
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/main-Cr1tW3O7.js (application/javascript)
+[REQUEST] GET /favicon.ico
+  -> File request: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/favicon.ico
+  -> File not found: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/favicon.ico
+  -> Trying fallback: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/index.html
+  -> Serving fallback index.html
+[REQUEST] GET /assets/home-CbnixlHV.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/home-CbnixlHV.js
+[REQUEST] GET /assets/play-D4OmsdW_.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/play-D4OmsdW_.js
+[REQUEST] GET /assets/skeleton-BWTTHFQT.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/skeleton-BWTTHFQT.js
+[REQUEST] GET /assets/use-toast-Bs-IU9EU.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/use-toast-Bs-IU9EU.js
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/home-CbnixlHV.js (application/javascript)
+[REQUEST] GET /assets/dialog-k8-5kNNT.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/dialog-k8-5kNNT.js
+[REQUEST] GET /assets/select-dialog-CTSc2gs8.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/select-dialog-CTSc2gs8.js
+[REQUEST] GET /assets/utilities-DaT-yT0k.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/utilities-DaT-yT0k.js
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/use-toast-Bs-IU9EU.js (application/javascript)
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/play-D4OmsdW_.js (application/javascript)
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/skeleton-BWTTHFQT.js (application/javascript)
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/dialog-k8-5kNNT.js (application/javascript)
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/select-dialog-CTSc2gs8.js (application/javascript)
+[REQUEST] GET /assets/chevron-down-CvVxFVjZ.js
+  -> Asset request (normalized): /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/chevron-down-CvVxFVjZ.js
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/utilities-DaT-yT0k.js (application/javascript)
+  -> Serving: /workspace/project/audio-scope-view/apps/vyzorWeb/dist/client/assets/chevron-down-CvVxFVjZ.js (application/javascript)
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql
+[REQUEST] POST /graphql
+  -> Proxying to GraphQL server: http://127.0.0.1:8080/graphql

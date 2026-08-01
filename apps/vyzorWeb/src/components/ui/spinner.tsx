@@ -13,7 +13,7 @@ export function Spinner({ size = 16, className = "" }: SpinnerProperties): React
       role="status"
       aria-label="Loading"
       className={`relative inline-flex items-center justify-center ${className}`}
-      style={{ width: size, height: size }}
+      style={className ? undefined : { width: size, height: size }}
     >
       <style>{`
         @keyframes block-spin {
