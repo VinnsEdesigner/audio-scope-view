@@ -3,6 +3,7 @@ import { AlertCircle } from "lucide-react";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks";
 import { useCreateApiKey } from "@/hooks/use-api-keys";
+import type { CreateApiKeyInput } from "@/hooks/use-api-keys";
 
 interface CreateApiKeyDialogProperties {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface CreateApiKeyDialogProperties {
 
 export function CreateApiKeyDialog({ isOpen, onClose, onCreated }: CreateApiKeyDialogProperties) {
   const { showToast } = useToast();
-  const createApiKey = useCreateApiKey();
+  const [createApiKey, { loading }] = useCreateApiKey();
 
   const [name, setName] = useState("");
   const [rateLimit, setRateLimit] = useState(60);
@@ -20,22 +21,27 @@ export function CreateApiKeyDialog({ isOpen, onClose, onCreated }: CreateApiKeyD
   const [error, setError] = useState<string | undefined>();
 
   const handleCreate = async () => {
+    if (!name.trim()) return;
+
     setError(undefined);
+    const input: CreateApiKeyInput = {
+      name: name.trim(),
+      rateLimitPerMinute: rateLimit,
+      expiresInHours: expiry,
+    };
+
     try {
-      const result = await createApiKey.mutateAsync({
-        name,
-        rateLimitPerMinute: rateLimit,
-        expiresInHours: expiry,
-      });
-      onCreated(result);
+      const result = await createApiKey({ variables: { input } });
+      onCreated(result.data!.createApiKey);
       showToast({
-        message: `API key "${result.name}" created successfully`,
+        message: `API key "${result.data!.createApiKey.name}" created successfully`,
         type: "success",
       });
-      // Reset form
+      // Reset form and close
       setName("");
       setRateLimit(60);
       setExpiry(undefined);
+      onClose();
     } catch (error_) {
       const message = error_ instanceof Error ? error_.message : "Failed to create API key";
       setError(message);
@@ -122,10 +128,10 @@ export function CreateApiKeyDialog({ isOpen, onClose, onCreated }: CreateApiKeyD
         </button>
         <button
           onClick={handleCreate}
-          disabled={!name.trim() || createApiKey.isPending}
+          disabled={!name.trim() || loading}
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
         >
-          {createApiKey.isPending ? "Creating..." : "Create API Key"}
+          {loading ? "Creating..." : "Create API Key"}
         </button>
       </DialogFooter>
     </Dialog>

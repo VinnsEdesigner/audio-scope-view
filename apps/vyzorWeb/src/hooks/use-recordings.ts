@@ -1,5 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
+import { useQuery, useMutation } from "@apollo/client";
 import {
   GET_RECORDINGS,
   GET_RECORDINGS_BY_ID,
@@ -17,20 +16,7 @@ import {
   PAUSE_RECORDING,
   RESUME_RECORDING,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations/recording-mutations";
-import {
-  transformRecording,
-  transformRecordingSummary,
-  transformRecordingListResult,
-  transformRecordingStats,
-} from "@audio-scope-view/api-client/domain/recording/transforms";
-import type {
-  Recording,
-  RecordingSummary,
-  RecordingListResult,
-  RecordingStats,
-  RecordingSummaryServer,
-  TimeRange,
-} from "@audio-scope-view/api-client/domain/recording";
+import type { TimeRange } from "@audio-scope-view/api-client/domain/recording";
 
 export interface UseRecordingsOptions {
   timeRange?: TimeRange;
@@ -49,238 +35,107 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
     pinnedOnly = false,
   } = options;
 
-  return useQuery<RecordingListResult>({
-    queryKey: ["recordings", { timeRange, sessionId, limit, offset, pinnedOnly }],
-    queryFn: async () => {
-      // Map frontend timeRange to backend filter format
-      const timeRangeFilter =
-        timeRange === "last_hour"
-          ? "today"
-          : timeRange === "last_24_hours"
-            ? "today"
-            : timeRange === "last_7_days"
-              ? "last_week"
-              : timeRange === "last_30_days"
-                ? "last_month"
-                : undefined;
+  // Map frontend timeRange to backend filter format
+  const timeRangeFilter =
+    timeRange === "last_hour"
+      ? "today"
+      : timeRange === "last_24_hours"
+        ? "today"
+        : timeRange === "last_7_days"
+          ? "last_week"
+          : timeRange === "last_30_days"
+            ? "last_month"
+            : undefined;
 
-      // Build filter - undefined fields will be stripped by GraphQL
-      const filter = {
-        time_range: timeRangeFilter,
-        session_id: sessionId,
-        is_pinned: pinnedOnly ? true : undefined,
-      };
+  // Build filter - undefined fields will be stripped by GraphQL
+  const filter = {
+    time_range: timeRangeFilter,
+    session_id: sessionId,
+    is_pinned: pinnedOnly ? true : undefined,
+  };
 
-      const result = await graphqlClient.query({
-        query: GET_RECORDINGS,
-        variables: {
-          filter,
-          limit,
-          offset,
-        },
-        fetchPolicy: "cache-first",
-      });
-      return transformRecordingListResult(result.data.recordings);
+  return useQuery(GET_RECORDINGS, {
+    variables: {
+      filter,
+      limit,
+      offset,
     },
-    staleTime: 30 * 1000,
+    fetchPolicy: "cache-and-network",
   });
 }
 
 export function useRecentRecordings(limit = 5) {
-  return useQuery<RecordingSummary[]>({
-    queryKey: ["recordings", "recent", limit],
-    queryFn: async () => {
-      const result = await graphqlClient.query({
-        query: GET_RECENT_RECORDINGS,
-        variables: { limit },
-        fetchPolicy: "cache-first",
-      });
-      if (!result.data?.recentRecordings) {
-        return [];
-      }
-      return result.data.recentRecordings.map((rec: RecordingSummaryServer) =>
-        transformRecordingSummary(rec),
-      );
-    },
-    staleTime: 30 * 1000,
+  return useQuery(GET_RECENT_RECORDINGS, {
+    variables: { limit },
+    fetchPolicy: "cache-and-network",
   });
 }
 
 export function useRecordingStats(timeRange?: TimeRange) {
-  return useQuery<RecordingStats>({
-    queryKey: ["recordingStats", timeRange],
-    queryFn: async () => {
-      const result = await graphqlClient.query({
-        query: GET_RECORDING_STATS,
-        variables: { timeRange },
-        fetchPolicy: "cache-first",
-      });
-      return transformRecordingStats(result.data.recordingStats);
-    },
-    staleTime: 30 * 1000,
+  return useQuery(GET_RECORDING_STATS, {
+    variables: { timeRange },
+    fetchPolicy: "cache-and-network",
   });
 }
 
 export function useRecording(recordingId: string | undefined) {
-  return useQuery({
-    queryKey: ["recordings", recordingId],
-    queryFn: async (): Promise<Recording> => {
-      const result = await graphqlClient.query({
-        query: GET_RECORDINGS_BY_ID,
-        variables: { id: recordingId },
-        fetchPolicy: "cache-first",
-      });
-      return transformRecording(result.data.recording);
-    },
-    enabled: !!recordingId,
-    staleTime: 30 * 1000,
+  return useQuery(GET_RECORDINGS_BY_ID, {
+    variables: { id: recordingId },
+    skip: !recordingId,
+    fetchPolicy: "cache-and-network",
   });
 }
 
 export function useRenameRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const result = await graphqlClient.mutate({
-        mutation: RENAME_RECORDING,
-        variables: { id, name },
-      });
-      return result.data.renameRecording;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-    },
+  return useMutation(RENAME_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }
 
 export function usePinRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, isPinned }: { id: string; isPinned: boolean }) => {
-      const result = await graphqlClient.mutate({
-        mutation: PIN_RECORDING,
-        variables: { id, isPinned },
-      });
-      return result.data.pinRecording;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-    },
+  return useMutation(PIN_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }
 
 export function useDeleteRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      await graphqlClient.mutate({
-        mutation: DELETE_RECORDING,
-        variables: { id },
-      });
-      return id;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-      queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
-    },
+  return useMutation(DELETE_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
   });
 }
 
 export function usePinRecordings() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ ids, isPinned }: { ids: string[]; isPinned: boolean }) => {
-      const result = await graphqlClient.mutate({
-        mutation: PIN_RECORDINGS,
-        variables: { ids, pinned: isPinned },
-      });
-      return result.data.pinRecordings;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-    },
+  return useMutation(PIN_RECORDINGS, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }
 
 export function useDeleteRecordings() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (ids: string[]) => {
-      await graphqlClient.mutate({
-        mutation: DELETE_RECORDINGS,
-        variables: { ids },
-      });
-      return ids;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-      queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
-    },
+  return useMutation(DELETE_RECORDINGS, {
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
   });
 }
 
 export function useStartRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ sessionId, name }: { sessionId: string; name?: string }) => {
-      const result = await graphqlClient.mutate({
-        mutation: START_RECORDING,
-        variables: { sessionId, name },
-      });
-      return result.data.startRecording;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-      queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
-    },
+  return useMutation(START_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
   });
 }
 
 export function useStopRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const result = await graphqlClient.mutate({
-        mutation: STOP_RECORDING,
-        variables: { id },
-      });
-      return result.data.stopRecording;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-      queryClient.invalidateQueries({ queryKey: ["recordingStats"] });
-    },
+  return useMutation(STOP_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
   });
 }
 
 export function usePauseRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const result = await graphqlClient.mutate({
-        mutation: PAUSE_RECORDING,
-        variables: { id },
-      });
-      return result.data.pauseRecording;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-    },
+  return useMutation(PAUSE_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }
 
 export function useResumeRecording() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const result = await graphqlClient.mutate({
-        mutation: RESUME_RECORDING,
-        variables: { id },
-      });
-      return result.data.resumeRecording;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recordings"] });
-    },
+  return useMutation(RESUME_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }

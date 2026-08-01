@@ -74,15 +74,15 @@ export function SelectDialog({
     };
   }, [isOpen]);
 
-  const dialogRef = React.useRef<HTMLDivElement>(null);
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const dialogReference = React.useRef<HTMLDivElement>(null);
+  const triggerReference = React.useRef<HTMLButtonElement>(null);
 
   // Position dialog next to the trigger button
   React.useEffect(() => {
-    if (!isOpen || !dialogRef.current || !triggerRef.current) return;
+    if (!isOpen || !dialogReference.current || !triggerReference.current) return;
 
-    const dialog = dialogRef.current;
-    const trigger = triggerRef.current;
+    const dialog = dialogReference.current;
+    const trigger = triggerReference.current;
 
     const positionDialog = () => {
       const triggerRect = trigger.getBoundingClientRect();
@@ -112,7 +112,7 @@ export function SelectDialog({
     <>
       <button
         type="button"
-        ref={triggerRef}
+        ref={triggerReference}
         onClick={handleTriggerClick}
         disabled={disabled}
         className={cn(
@@ -127,12 +127,9 @@ export function SelectDialog({
       {isOpen && (
         <>
           {/* Invisible backdrop to capture clicks outside dialog */}
+          <div className="fixed inset-0 z-50" onClick={handleOverlayClick} />
           <div
-            className="fixed inset-0 z-50"
-            onClick={handleOverlayClick}
-          />
-          <div
-            ref={dialogRef}
+            ref={dialogReference}
             className="fixed z-[60] w-full max-w-md bg-bg-secondary border border-border-subtle rounded-lg shadow-lg overflow-hidden"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">

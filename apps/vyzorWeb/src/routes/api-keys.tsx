@@ -42,7 +42,8 @@ function ApiKeysCard({
 }
 
 export function ApiKeys() {
-  const { data: apiKeys, isLoading, error } = useApiKeys();
+  const { data, loading: isLoading, error } = useApiKeys();
+  const apiKeys = data?.apiKeys;
   const { showToast } = useToast();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

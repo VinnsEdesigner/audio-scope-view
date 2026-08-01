@@ -51,27 +51,28 @@ export function DeleteApiKeyDialog({ isOpen, onClose, apiKey }: DeleteApiKeyDial
   const { showToast } = useToast();
   const deleteApiKey = useDeleteApiKey();
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | undefined>();
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!apiKey) return;
-    setDeletingId(apiKey.id);
-    try {
-      await deleteApiKey.mutateAsync(apiKey.id);
-      onClose();
-      showToast({
-        message: `API key "${apiKey.name}" deleted successfully`,
-        type: "success",
-      });
-    } catch (error) {
-      showToast({
-        message: `Failed to delete API key: ${error instanceof Error ? error.message : "Unknown error"}`,
-        type: "error",
-      });
-    } finally {
-      setDeletingId(undefined);
-      setDeleteConfirmed(false);
-    }
+    deleteApiKey.mutate(
+      { id: apiKey.id },
+      {
+        onSuccess: () => {
+          onClose();
+          showToast({
+            message: `API key "${apiKey.name}" deleted successfully`,
+            type: "success",
+          });
+          setDeleteConfirmed(false);
+        },
+        onError: (error) => {
+          showToast({
+            message: `Failed to delete API key: ${error.message || "Unknown error"}`,
+            type: "error",
+          });
+        },
+      },
+    );
   };
 
   return (
@@ -115,15 +116,15 @@ export function DeleteApiKeyDialog({ isOpen, onClose, apiKey }: DeleteApiKeyDial
         </button>
         <button
           onClick={handleDelete}
-          disabled={!deleteConfirmed || deletingId === apiKey?.id}
+          disabled={!deleteConfirmed || deleteApiKey.isPending}
           className={cn(
             "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer h-9 px-4 py-2",
-            !deleteConfirmed || deletingId === apiKey?.id
+            !deleteConfirmed || deleteApiKey.isPending
               ? "bg-transparent text-text-secondary border border-border"
               : "bg-transparent text-destructive border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive",
           )}
         >
-          {deletingId === apiKey?.id ? "Deleting..." : "Delete API Key"}
+          {deleteApiKey.isPending ? "Deleting..." : "Delete API Key"}
         </button>
       </DialogFooter>
     </Dialog>

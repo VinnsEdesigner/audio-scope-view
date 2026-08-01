@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@apollo/client";
 import { useWaveformStore } from "../store";
-import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import { CREATE_WAVEFORM } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
 import type { WaveformMessage } from "../store";
 
@@ -97,28 +96,8 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
   };
 }
 
-export interface UseSubmitWaveformOptions {
-  sessionId: string | undefined;
-}
-
-export function useSubmitWaveform(options: UseSubmitWaveformOptions) {
-  const { sessionId } = options;
-
-  return useMutation({
-    mutationFn: async (input: { samples: number[]; sampleRate: number; timestampMs: number }) => {
-      if (!sessionId) throw new Error("Session ID is required");
-
-      const result = await graphqlClient.mutate({
-        mutation: CREATE_WAVEFORM,
-        variables: {
-          input: {
-            sessionId,
-            samples: input.samples,
-          },
-        },
-      });
-
-      return result.data.createWaveform;
-    },
+export function useSubmitWaveform() {
+  return useMutation(CREATE_WAVEFORM, {
+    refetchQueries: [{ query: CREATE_WAVEFORM }],
   });
 }

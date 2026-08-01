@@ -51,7 +51,6 @@ export default defineConfig(({ command, mode }) => {
               "react-dom/client",
               "react-router-dom",
               "react-router-dom/server",
-              "@tanstack/react-query",
               "node:http",
               "node:path",
               "node:fs",

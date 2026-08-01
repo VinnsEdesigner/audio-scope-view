@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApolloProvider } from "@apollo/client";
 import { Outlet } from "react-router-dom";
 import { useUIStore } from "./hooks";
@@ -7,18 +6,10 @@ import { TamaguiProvider, Theme } from "tamagui";
 import { useEffect, useState } from "react";
 import { TopNav } from "./components/layout/top-nav";
 import { ToastProvider } from "./components/ui/toast";
+import { NavigationLoader } from "./components/ui/navigation-loader";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { Spinner } from "./components/ui/spinner";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      retry: 1,
-    },
-  },
-});
 
 const seoData = {
   "@context": "https://schema.org",
@@ -54,7 +45,7 @@ function AppShell() {
       ) : (
         <>
           <TopNav />
-          <div className="flex flex-1 overflow-hidden bg-bg-primary">
+          <div className="flex flex-col flex-1 overflow-hidden bg-bg-primary min-h-0">
             <Outlet />
           </div>
         </>
@@ -97,15 +88,14 @@ export function Root() {
   return (
     <ApolloProvider client={apolloClient}>
       <TamaguiProvider config={tamaguiConfig}>
+        <NavigationLoader />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
         />
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            <ThemedApp />
-          </ToastProvider>
-        </QueryClientProvider>
+        <ToastProvider>
+          <ThemedApp />
+        </ToastProvider>
       </TamaguiProvider>
     </ApolloProvider>
   );

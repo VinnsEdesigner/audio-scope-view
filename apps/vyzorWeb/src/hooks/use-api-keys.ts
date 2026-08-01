@@ -1,5 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
+import { useQuery, useMutation } from "@apollo/client";
 import {
   GET_API_KEYS,
   GET_API_KEY,
@@ -10,21 +9,7 @@ import {
   UPDATE_API_KEY,
   DELETE_API_KEY,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
-import {
-  transformApiKey,
-  transformCreatedApiKey,
-  transformApiKeyVerifyResult,
-  transformCreateApiKeyInput,
-  transformUpdateApiKeyInput,
-} from "@audio-scope-view/api-client/domain/api-key/transforms";
-import type {
-  ApiKey,
-  CreatedApiKey,
-  ApiKeyVerifyResult,
-  CreateApiKeyInput,
-  UpdateApiKeyInput,
-  ApiKeyInfoServer,
-} from "@audio-scope-view/api-client/domain/api-key";
+import type { ApolloCache } from "@apollo/client/cache";
 
 // Re-export types for use by components (keeps domain types in one place)
 export type {
@@ -34,98 +19,118 @@ export type {
   UpdateApiKeyInput,
 } from "@audio-scope-view/api-client/domain/api-key";
 
-export function useApiKeys() {
-  return useQuery<ApiKey[]>({
-    queryKey: ["apiKeys"],
-    queryFn: async () => {
-      const result = await graphqlClient.query({
-        query: GET_API_KEYS,
-        fetchPolicy: "cache-first",
-      });
+// Helper to get the apiKeys from cache
+function getApiKeysFromCache(cache: ApolloCache<unknown>): ApiKey[] | undefined {
+  try {
+    const data = cache.readQuery<{ apiKeys: ApiKey[] }>({ query: GET_API_KEYS });
+    return data?.apiKeys ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
 
-      return result.data.apiKeys.map((key: ApiKeyInfoServer) => transformApiKey(key));
-    },
-    staleTime: 60 * 1000,
+// Helper to write apiKeys to cache
+function writeApiKeysToCache(cache: ApolloCache<unknown>, apiKeys: ApiKey[]): void {
+  cache.writeQuery({
+    query: GET_API_KEYS,
+    data: { apiKeys },
+  });
+}
+
+export function useApiKeys() {
+  return useQuery(GET_API_KEYS, {
+    fetchPolicy: "cache-and-network",
   });
 }
 
 export function useApiKey(id: string | undefined) {
-  return useQuery<ApiKey | undefined>({
-    queryKey: ["apiKey", id],
-    queryFn: async () => {
-      if (!id) return;
-      const result = await graphqlClient.query({
-        query: GET_API_KEY,
-        variables: { id },
-        fetchPolicy: "cache-first",
-      });
-      if (!result.data.apiKey) return;
-      return transformApiKey(result.data.apiKey);
-    },
-    enabled: Boolean(id),
-    staleTime: 60 * 1000,
+  return useQuery(GET_API_KEY, {
+    variables: { id },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
   });
 }
 
 export function useVerifyApiKey() {
-  return useMutation({
-    mutationFn: async (key: string): Promise<ApiKeyVerifyResult> => {
-      const result = await graphqlClient.query({
-        query: VERIFY_API_KEY,
-        variables: { key },
-        fetchPolicy: "network-only",
-      });
-      return transformApiKeyVerifyResult(result.data.verifyApiKey);
+  return useMutation(VERIFY_API_KEY, {
+    onCompleted: () => {
+      // No cache update needed for verification
     },
   });
 }
 
 export function useCreateApiKey() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateApiKeyInput): Promise<CreatedApiKey> => {
-      const graphqlInput = transformCreateApiKeyInput(input);
-      const result = await graphqlClient.mutate({
-        mutation: CREATE_API_KEY,
-        variables: { input: graphqlInput },
-      });
-      return transformCreatedApiKey(result.data.createApiKey);
+  return useMutation(CREATE_API_KEY, {
+    // Immediately update the cache with the new API key
+    update: (cache, { data }) => {
+      if (!data?.createApiKey) return;
+
+      // Get existing keys from cache
+      const existingKeys = getApiKeysFromCache(cache);
+
+      // Create the new API key object from the mutation result
+      const newApiKey: ApiKey = {
+        id: data.createApiKey.id,
+        name: data.createApiKey.name,
+        createdAt: Math.floor(Date.now() / 1000), // Server would set this, but approximate for immediate display
+        expiresAt: undefined,
+        lastUsedAt: undefined,
+        rateLimitPerMinute: 60, // Default rate limit
+        isValid: true,
+      };
+
+      // Prepend the new key to the list
+      const updatedKeys = existingKeys === undefined ? [newApiKey] : [newApiKey, ...existingKeys];
+      writeApiKeysToCache(cache, updatedKeys);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
-    },
+    // Fallback refetch if cache read fails
+    refetchQueries: [{ query: GET_API_KEYS }],
   });
 }
 
 export function useUpdateApiKey() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, ...input }: UpdateApiKeyInput & { id: string }): Promise<boolean> => {
-      const graphqlInput = transformUpdateApiKeyInput(input);
-      const result = await graphqlClient.mutate({
-        mutation: UPDATE_API_KEY,
-        variables: { id, input: graphqlInput },
-      });
-      return result.data.updateApiKey;
+  return useMutation(UPDATE_API_KEY, {
+    // Immediately update the cache with the modified API key
+    update: (cache, { data, variables }) => {
+      if (!data?.updateApiKey || !variables?.id) return;
+
+      // Get existing keys from cache
+      const existingKeys = getApiKeysFromCache(cache);
+      if (!existingKeys) return;
+
+      // Find and update the key
+      const updatedKeys = existingKeys.map((key) =>
+        key.id === variables.id
+          ? {
+              ...key,
+              name: variables.input?.name ?? key.name,
+              rateLimitPerMinute: variables.input?.rateLimitPerMinute ?? key.rateLimitPerMinute,
+            }
+          : key,
+      );
+
+      writeApiKeysToCache(cache, updatedKeys);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
-    },
+    // Fallback refetch if cache read fails
+    refetchQueries: [{ query: GET_API_KEYS }],
   });
 }
 
 export function useDeleteApiKey() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string): Promise<boolean> => {
-      const result = await graphqlClient.mutate({
-        mutation: DELETE_API_KEY,
-        variables: { id },
-      });
-      return result.data.deleteApiKey;
+  return useMutation(DELETE_API_KEY, {
+    // Immediately remove the deleted API key from cache
+    update: (cache, { data, variables }) => {
+      if (!data?.deleteApiKey || !variables?.id) return;
+
+      // Get existing keys from cache
+      const existingKeys = getApiKeysFromCache(cache);
+      if (!existingKeys) return;
+
+      // Filter out the deleted key
+      const updatedKeys = existingKeys.filter((key) => key.id !== variables.id);
+      writeApiKeysToCache(cache, updatedKeys);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
-    },
+    // Fallback refetch if cache read fails
+    refetchQueries: [{ query: GET_API_KEYS }],
   });
 }
