@@ -74,14 +74,49 @@ export function SelectDialog({
     };
   }, [isOpen]);
 
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+  // Position dialog next to the trigger button
+  React.useEffect(() => {
+    if (!isOpen || !dialogRef.current || !triggerRef.current) return;
+
+    const dialog = dialogRef.current;
+    const trigger = triggerRef.current;
+
+    const positionDialog = () => {
+      const triggerRect = trigger.getBoundingClientRect();
+
+      // Position below the trigger button, aligned to the left edge
+      const left = triggerRect.left;
+      let top = triggerRect.bottom + 4; // 4px gap below trigger
+
+      // Get dialog height after content renders
+      const dialogRect = dialog.getBoundingClientRect();
+
+      // Keep dialog within viewport
+      if (top + dialogRect.height > window.innerHeight - 16) {
+        top = triggerRect.top - dialogRect.height - 4; // Show above if not enough space below
+      }
+      if (top < 16) top = 16;
+
+      dialog.style.left = `${left}px`;
+      dialog.style.top = `${top}px`;
+    };
+
+    // Use requestAnimationFrame to ensure dialog content is rendered first
+    requestAnimationFrame(positionDialog);
+  }, [isOpen]);
+
   return (
     <>
       <button
         type="button"
+        ref={triggerRef}
         onClick={handleTriggerClick}
         disabled={disabled}
         className={cn(
-          "w-full sm:w-auto sm:min-w-[180px] flex items-center justify-between gap-3 bg-background border border-border-subtle rounded-md px-4 py-2.5 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-accent transition-colors",
+          "w-full sm:w-auto sm:min-w-[180px] flex items-center justify-between gap-3 bg-background border border-border-subtle rounded-md px-4 py-2.5 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors",
           disabled && "opacity-50 cursor-not-allowed",
         )}
       >
@@ -90,12 +125,16 @@ export function SelectDialog({
       </button>
 
       {isOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={handleOverlayClick}
-        >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div className="relative z-10 w-full max-w-md mx-4 bg-bg-secondary border border-border-subtle rounded-lg shadow-lg overflow-hidden">
+        <>
+          {/* Invisible backdrop to capture clicks outside dialog */}
+          <div
+            className="fixed inset-0 z-50"
+            onClick={handleOverlayClick}
+          />
+          <div
+            ref={dialogRef}
+            className="fixed z-[60] w-full max-w-md bg-bg-secondary border border-border-subtle rounded-lg shadow-lg overflow-hidden"
+          >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
               <h3 className="text-base font-semibold text-foreground">
                 {triggerLabel ?? "Select Option"}
@@ -127,14 +166,14 @@ export function SelectDialog({
                       )}
                     >
                       <span>{option.label}</span>
-                      {isSelected && <Check size={16} className="text-primary" />}
+                      {isSelected && <Check size={16} className="text-rose-500" />}
                     </button>
                   );
                 })
               )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );
