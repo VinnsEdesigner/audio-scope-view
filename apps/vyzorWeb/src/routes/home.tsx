@@ -156,19 +156,19 @@ export function Home(): React.ReactElement {
   const isLoading = statsLoading || recordingsLoading;
 
   return (
-    <div className="w-full min-h-screen bg-bg-primary">
+    <div className="w-full min-h-screen bg-bg-primary overflow-y-auto">
       {}
-      <header className="flex items-center justify-between px-8 py-4 pl-16 border-b border-border-subtle bg-black">
-        <div className="ml-10">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 md:px-8 md:py-4 pl-0 md:pl-16 border-b border-border-subtle bg-black gap-3">
+        <div className="ml-0 md:ml-10">
           {isLoading ? (
             <>
-              <Skeleton className="h-10 w-32 mb-2" />
-              <Skeleton className="h-5 w-96" />
+              <Skeleton className="h-8 w-24 mb-2 md:h-10 md:w-32" />
+              <Skeleton className="h-4 w-48 md:h-5 md:w-96" />
             </>
           ) : (
             <>
-              <h1 className="text-4xl font-semibold text-white tracking-tight">Home</h1>
-              <p className="text-lg text-gray-400">
+              <h1 className="text-2xl md:text-4xl font-semibold text-white tracking-tight">Home</h1>
+              <p className="text-sm md:text-lg text-gray-400">
                 Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
                 recorded traces, and detailed signal measurements
               </p>
@@ -203,19 +203,19 @@ export function Home(): React.ReactElement {
       </header>
 
       {}
-      <main className="p-6 lg:p-8 flex flex-col gap-6 bg-black">
+      <main className="p-4 md:p-6 lg:p-8 flex flex-col gap-4 md:gap-6 bg-black">
         {}
-        <div className="bg-yellow-800 rounded-xl p-5">
+        <div className="bg-yellow-800 rounded-xl p-4 md:p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-3xl font-semibold text-foreground">Overview</h2>
-              <p className="text-lg text-gray-200 mt-0.5">
+              <h2 className="text-xl md:text-3xl font-semibold text-foreground">Overview</h2>
+              <p className="text-sm md:text-lg text-gray-200 mt-0.5">
                 Summary of your recordings, storage usage, and active sessions
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {isLoading ? (
               <>
                 <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
@@ -234,7 +234,7 @@ export function Home(): React.ReactElement {
             ) : (
               <>
                 <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
-                  <div className="text-3xl font-bold font-mono text-gray-800">
+                  <div className="text-2xl md:text-3xl font-bold font-mono text-gray-800">
                     {stats?.totalRecordings ?? 0}
                   </div>
                   <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
@@ -242,13 +242,13 @@ export function Home(): React.ReactElement {
                   </div>
                 </div>
                 <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
-                  <div className="text-3xl font-bold font-mono text-gray-800">
+                  <div className="text-2xl md:text-3xl font-bold font-mono text-gray-800">
                     {formatBytes(stats?.totalSizeBytes ?? 0)}
                   </div>
                   <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Storage</div>
                 </div>
                 <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
-                  <div className="text-3xl font-bold font-mono text-gray-800">
+                  <div className="text-2xl md:text-3xl font-bold font-mono text-gray-800">
                     {counts.liveCount}
                   </div>
                   <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
@@ -261,11 +261,11 @@ export function Home(): React.ReactElement {
         </div>
 
         {}
-        <div className="bg-bg-secondary border border-border-subtle rounded-xl p-5">
-          <div className="flex items-start justify-between mb-4">
+        <div className="bg-bg-secondary border border-border-subtle rounded-xl p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
             <div>
-              <h2 className="text-3xl font-semibold text-foreground">Sessions</h2>
-              <p className="text-lg text-text-tertiary mt-0.5">
+              <h2 className="text-xl md:text-3xl font-semibold text-foreground">Sessions</h2>
+              <p className="text-sm md:text-lg text-text-tertiary mt-0.5">
                 Your active recording sessions and their current state
               </p>
             </div>
@@ -335,11 +335,11 @@ export function Home(): React.ReactElement {
 
         {}
         <div className="bg-bg-secondary border border-border-subtle rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-border-subtle">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-border-subtle gap-3">
             <div className="flex gap-1 p-1 bg-bg-elevated rounded-lg">
               <button
                 onClick={() => setActiveTab("recordings")}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                   activeTab === "recordings"
                     ? "bg-bg-active text-foreground"
                     : "text-text-secondary hover:text-foreground"
@@ -349,7 +349,7 @@ export function Home(): React.ReactElement {
               </button>
               <button
                 onClick={() => setActiveTab("sessions")}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                   activeTab === "sessions"
                     ? "bg-bg-active text-foreground"
                     : "text-text-secondary hover:text-foreground"
@@ -360,12 +360,12 @@ export function Home(): React.ReactElement {
             </div>
 
             {activeTab === "recordings" && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {(["all", "today", "week", "month"] as const).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setTimeFilter(filter)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                       timeFilter === filter
                         ? "bg-bg-active text-foreground"
                         : "text-text-tertiary hover:text-text-secondary"
