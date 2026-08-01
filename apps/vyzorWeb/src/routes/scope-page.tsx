@@ -406,6 +406,29 @@ export function ScopePage(): React.ReactElement {
           onStop={handleStop}
           testMode={testMode}
           onToggleTestMode={toggleTestMode}
+          onProbe={async () => {
+            try {
+              await audioAnalyzer.startCapture();
+              showToast({ message: "Probe started - capturing audio", type: "success" });
+            } catch {
+              showToast({
+                message: "Failed to start probe - check microphone permissions",
+                type: "error",
+              });
+            }
+          }}
+          onPauseCapture={() => {
+            audioAnalyzer.pauseCapture();
+            showToast({ message: "Capture paused", type: "info" });
+          }}
+          onResumeCapture={() => {
+            audioAnalyzer.resumeCapture();
+            showToast({ message: "Capture resumed", type: "success" });
+          }}
+          onStopCapture={() => {
+            audioAnalyzer.stopCapture();
+            showToast({ message: "Capture stopped", type: "info" });
+          }}
         />
 
         {/* Canvas Area */}

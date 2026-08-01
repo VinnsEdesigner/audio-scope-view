@@ -74,6 +74,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
   const animationFrameReference = useRef<number | undefined>(undefined);
   const durationIntervalReference = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const collectedSamplesReference = useRef<Float32Array>(new Float32Array());
+  const recordingStateReference = useRef<RecordingState>("idle");
 
   const isCapturing = recordingState !== "idle";
 
@@ -147,6 +148,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
         setDuration((d) => d + 100);
       }, 100);
 
+      recordingStateReference.current = "recording";
       setRecordingState("recording");
 
       const bufferLength = analyser.frequencyBinCount;
@@ -156,7 +158,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
         if (
           !analyserReference.current ||
           !audioContextReference.current ||
-          recordingState !== "recording"
+          recordingStateReference.current === "idle"
         ) {
           return;
         }
@@ -177,13 +179,16 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
         const waveform = downsampleWaveform(normalizedData, waveformPoints);
         setWaveformData(waveform);
 
-        const collected = collectSamples(dataArray, sampleCollectionInterval);
-        const currentSamples = collectedSamplesReference.current;
-        collectedSamplesReference.current = new Float32Array(
-          currentSamples.length + collected.length,
-        );
-        collectedSamplesReference.current.set(currentSamples);
-        collectedSamplesReference.current.set(collected, currentSamples.length);
+        // Only collect samples when actively recording, not when paused or previewing
+        if (recordingStateReference.current === "recording") {
+          const collected = collectSamples(dataArray, sampleCollectionInterval);
+          const currentSamples = collectedSamplesReference.current;
+          collectedSamplesReference.current = new Float32Array(
+            currentSamples.length + collected.length,
+          );
+          collectedSamplesReference.current.set(currentSamples);
+          collectedSamplesReference.current.set(collected, currentSamples.length);
+        }
 
         animationFrameReference.current = requestAnimationFrame(updateVisualization);
       };
@@ -202,7 +207,6 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
     waveformPoints,
     sampleCollectionInterval,
     cleanup,
-    recordingState,
   ]);
 
   const pauseCapture = useCallback(() => {
@@ -210,6 +214,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
       clearInterval(durationIntervalReference.current);
       durationIntervalReference.current = undefined;
     }
+    recordingStateReference.current = "paused";
     setRecordingState("paused");
   }, []);
 
@@ -217,12 +222,14 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
     durationIntervalReference.current = setInterval(() => {
       setDuration((d) => d + 100);
     }, 100);
+    recordingStateReference.current = "recording";
     setRecordingState("recording");
   }, []);
 
   const stopCapture = useCallback(() => {
     setSamples(collectedSamplesReference.current);
     cleanup();
+    recordingStateReference.current = "idle";
     setRecordingState("idle");
   }, [cleanup]);
 
@@ -230,6 +237,7 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
     collectedSamplesReference.current = new Float32Array();
     setSamples(new Float32Array());
     cleanup();
+    recordingStateReference.current = "idle";
     setRecordingState("idle");
     setVolumeLevel(0);
     setPeakLevel(0);

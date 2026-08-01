@@ -15,6 +15,10 @@ interface ScopeTopBarProperties {
   onStop?: () => void;
   testMode?: boolean;
   onToggleTestMode?: () => void;
+  onProbe?: () => Promise<void>;
+  onPauseCapture?: () => void;
+  onResumeCapture?: () => void;
+  onStopCapture?: () => void;
 }
 
 export function ScopeTopBar({
@@ -28,29 +32,34 @@ export function ScopeTopBar({
   onStop,
   testMode = false,
   onToggleTestMode,
+  onProbe,
+  onPauseCapture,
+  onResumeCapture,
+  onStopCapture,
 }: ScopeTopBarProperties) {
-  const {
-    sampleRate: liveSampleRate,
-    isCapturing,
-    pauseCapture,
-    resumeCapture,
-    startCapture,
-    recordingState,
-  } = useAudioAnalyzer();
+  const { sampleRate: liveSampleRate, recordingState } = useAudioAnalyzer();
+
+  const isCapturing = recordingState === "recording";
+  const isPaused = recordingState === "paused";
+  const isIdle = recordingState === "idle";
 
   const isPlayback = mode === "playback";
   const effectiveSampleRate = sampleRate ?? liveSampleRate;
 
   const handleFreeze = () => {
-    if (recordingState === "recording") {
-      pauseCapture();
-    } else if (recordingState === "paused") {
-      resumeCapture();
+    if (isCapturing) {
+      onPauseCapture?.();
+    } else if (isPaused) {
+      onResumeCapture?.();
     }
   };
 
-  const handleProbe = () => {
-    startCapture();
+  const handleProbe = async () => {
+    if (isIdle) {
+      await onProbe?.();
+    } else {
+      onStopCapture?.();
+    }
   };
 
   const handlePlay = () => {
@@ -104,24 +113,37 @@ export function ScopeTopBar({
           <>
             <button
               onClick={handleFreeze}
-              disabled={recordingState === "idle"}
+              disabled={isIdle}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[15px] font-medium bg-[#3f3f46] text-white hover:bg-[#52525b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Sun size={18} />
-              Freeze
+              {isPaused ? <Play size={18} fill="currentColor" /> : <Sun size={18} />}
+              {isPaused ? "Resume" : "Freeze"}
             </button>
 
             <button
               onClick={handleProbe}
-              disabled={isCapturing}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[15px] font-medium transition-colors ${
-                isCapturing
-                  ? "bg-[#3f3f46] text-white/50 cursor-not-allowed"
+                isIdle
+                  ? "bg-[#3f3f46] text-white hover:bg-[#52525b]"
                   : "bg-[#3f3f46] text-white hover:bg-[#52525b]"
               }`}
             >
-              <Play size={18} fill="currentColor" />
-              Probe
+              {isCapturing ? (
+                <>
+                  <Square size={18} fill="currentColor" />
+                  Stop
+                </>
+              ) : isPaused ? (
+                <>
+                  <Square size={18} fill="currentColor" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play size={18} fill="currentColor" />
+                  Probe
+                </>
+              )}
             </button>
           </>
         )}

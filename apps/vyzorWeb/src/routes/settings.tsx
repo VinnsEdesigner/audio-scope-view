@@ -1,21 +1,11 @@
 import * as React from "react";
-import {
-  Sun,
-  Moon,
-  Monitor,
-  Palette,
-  Mic,
-  MonitorCheck,
-  Eye,
-  Info,
-  ChevronDown,
-} from "lucide-react";
+import { Sun, Moon, Monitor, Palette, Mic, MonitorCheck, Info } from "lucide-react";
+import { SelectDialog } from "@/components/dialogs/select-dialog";
 import { useUIStore, useMediaDevices, useAudioSettings } from "@/hooks";
 import { useToast } from "@/hooks";
 import type { WaveformColor } from "@/store/ui-store";
 import { APP_VERSION } from "@audio-scope-view/api-client";
 import { cn } from "@/lib/utilities";
-import { Spinner } from "@/components/ui/spinner";
 
 // ============================================
 // Constants
@@ -84,27 +74,12 @@ interface ColorPickerProperties {
   readonly onSuccess: (message: string) => void;
 }
 
-interface SelectDropdownProperties {
-  readonly value: string | number | null;
-  readonly options: readonly { readonly value: number | string; readonly label: string }[];
-  readonly placeholder?: string;
-  readonly onChange: (value: string | number) => void;
-  readonly onSuccess?: (message: string) => void;
-  readonly formatMessage?: (value: string | number) => string;
-}
-
 interface ToggleSwitchProperties {
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
   readonly onSuccess: (message: string) => void;
   readonly enabledLabel: string;
   readonly disabledLabel: string;
-}
-
-interface WaveformPreviewProperties {
-  readonly isLoading: boolean;
-  readonly showGrid: boolean;
-  readonly waveformColor: WaveformColor;
 }
 
 // ============================================
@@ -253,51 +228,6 @@ const ColorPicker = React.memo(function ColorPicker({
   );
 });
 
-const SelectDropdown = React.memo(function SelectDropdown({
-  value,
-  options,
-  placeholder = "Select option",
-  onChange,
-  onSuccess,
-  formatMessage,
-}: SelectDropdownProperties) {
-  const handleChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const newValue = event.target.value;
-      const numericValue = Number(newValue);
-      const finalValue = Number.isNaN(numericValue) ? newValue : numericValue;
-
-      onChange(finalValue);
-
-      if (onSuccess) {
-        const message = formatMessage
-          ? formatMessage(finalValue)
-          : (options.find((o) => o.value === finalValue)?.label ?? String(finalValue));
-        onSuccess(message);
-      }
-    },
-    [onChange, onSuccess, formatMessage, options],
-  );
-
-  return (
-    <div className="relative w-full sm:w-auto sm:min-w-[180px]">
-      <select
-        className="w-full appearance-none bg-background border border-border rounded-md px-4 py-2.5 pr-10 text-sm font-medium text-foreground cursor-pointer hover:border-border-hover focus:outline-none focus:ring-2 focus:ring-primary"
-        value={value ?? ""}
-        onChange={handleChange}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-    </div>
-  );
-});
-
 const ToggleSwitch = React.memo(function ToggleSwitch({
   checked,
   onChange,
@@ -331,45 +261,6 @@ const ToggleSwitch = React.memo(function ToggleSwitch({
   );
 });
 
-const WaveformPreview = React.memo(function WaveformPreview({
-  isLoading,
-  showGrid,
-  waveformColor,
-}: WaveformPreviewProperties) {
-  const gridBackgroundStyle = React.useMemo(
-    () => ({
-      backgroundImage:
-        "linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px), linear-gradient(var(--color-border-subtle) 1px, transparent 1px)",
-      backgroundSize: "40px 40px",
-    }),
-    [],
-  );
-
-  const waveformGradientStyle = React.useMemo(() => {
-    const color = WAVEFORM_COLORS.find((c) => c.value === waveformColor)?.color ?? "#06b6d4";
-    return {
-      background: `linear-gradient(90deg, transparent 0%, ${color} 10%, ${color} 15%, transparent 20%, transparent 25%, ${color} 30%, ${color} 35%, transparent 40%, transparent 100%)`,
-    };
-  }, [waveformColor]);
-
-  if (isLoading) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Spinner size={32} />
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {showGrid && <div className="absolute inset-0 opacity-50" style={gridBackgroundStyle} />}
-      <div className="absolute inset-0 flex items-center">
-        <div className="w-full h-0.5 opacity-80" style={waveformGradientStyle} />
-      </div>
-    </>
-  );
-});
-
 const PermissionStatus = React.memo(function PermissionStatus({
   permissionState,
 }: {
@@ -392,8 +283,6 @@ const PermissionStatus = React.memo(function PermissionStatus({
 // ============================================
 
 export function Settings(): React.ReactElement {
-  const [isLoading, setIsLoading] = React.useState(true);
-
   // Store state
   const {
     theme,
@@ -412,12 +301,6 @@ export function Settings(): React.ReactElement {
   const { devices, selectedDeviceId, setSelectedDeviceId, permissionState } = useMediaDevices();
   const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
   const { addToast } = useToast();
-
-  // Loading effect
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Toast callback
   const showSuccessToast = React.useCallback(
@@ -528,7 +411,7 @@ export function Settings(): React.ReactElement {
               label="Input Device"
               description="Select the microphone or audio input device"
             >
-              <SelectDropdown
+              <SelectDialog
                 value={selectedDeviceId ?? ""}
                 options={
                   devices?.map((device) => ({
@@ -538,6 +421,7 @@ export function Settings(): React.ReactElement {
                 }
                 placeholder={devices && devices.length > 0 ? "Select device" : "No devices found"}
                 onChange={handleDeviceChange}
+                triggerLabel="Input Device"
               />
             </SettingsRow>
 
@@ -545,22 +429,24 @@ export function Settings(): React.ReactElement {
               label="Sample Rate"
               description="Audio sampling frequency. Not all rates are supported by all browsers and hardware (48kHz recommended)"
             >
-              <SelectDropdown
+              <SelectDialog
                 value={sampleRate}
                 options={SAMPLE_RATE_OPTIONS}
                 placeholder="Select sample rate"
-                onChange={setSampleRate}
+                onChange={(value) => setSampleRate(Number(value))}
                 onSuccess={showSuccessToast}
+                triggerLabel="Sample Rate"
               />
             </SettingsRow>
 
             <SettingsRow label="Buffer Size" description="Audio buffer for capture">
-              <SelectDropdown
+              <SelectDialog
                 value={bufferSize}
                 options={BUFFER_SIZE_OPTIONS}
                 placeholder="Select buffer size"
-                onChange={setBufferSize}
+                onChange={(value) => setBufferSize(Number(value))}
                 onSuccess={showSuccessToast}
+                triggerLabel="Buffer Size"
               />
             </SettingsRow>
 
@@ -611,25 +497,6 @@ export function Settings(): React.ReactElement {
                 disabledLabel="Smooth waveform disabled"
               />
             </SettingsRow>
-          </SettingsCard>
-        </Section>
-
-        {/* Preview Section */}
-        <Section
-          icon={<Eye size={20} />}
-          title="Preview"
-          description="See your current display settings in action"
-        >
-          <SettingsCard>
-            <div className="p-4 sm:p-6">
-              <div className="h-20 bg-background border border-border-subtle rounded-md relative overflow-hidden">
-                <WaveformPreview
-                  isLoading={isLoading}
-                  showGrid={showGrid}
-                  waveformColor={waveformColor}
-                />
-              </div>
-            </div>
           </SettingsCard>
         </Section>
 

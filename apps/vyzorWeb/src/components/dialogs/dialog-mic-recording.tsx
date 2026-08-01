@@ -1,15 +1,7 @@
 import * as React from "react";
 import { Dialog, DialogFooter } from "../ui/dialog";
-import {
-  Mic,
-  Pause,
-  Play,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
-  ChevronDown,
-  Save,
-} from "lucide-react";
+import { SelectDialog } from "./select-dialog";
+import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
@@ -207,25 +199,17 @@ export function DialogMicRecording({
         {}
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">Input Device</label>
-          <div className="relative">
-            <select
-              value={selectedDeviceId || ""}
-              onChange={(event_) => setSelectedDeviceId(event_.target.value || undefined)}
-              disabled={recordingState !== "idle"}
-              className="w-full px-4 py-2.5 pr-10 bg-bg-primary border border-border rounded-lg text-sm text-foreground appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {inputDevices.length === 0 ? (
-                <option value="">No devices found</option>
-              ) : (
-                inputDevices.map((device) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
-                  </option>
-                ))
-              )}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-          </div>
+          <SelectDialog
+            value={selectedDeviceId ?? ""}
+            options={inputDevices.map((device) => ({
+              value: device.deviceId,
+              label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
+            }))}
+            placeholder={inputDevices.length > 0 ? "Select device" : "No devices found"}
+            onChange={(value) => setSelectedDeviceId(String(value) || undefined)}
+            triggerLabel="Input Device"
+            disabled={recordingState !== "idle"}
+          />
         </div>
 
         {}
@@ -267,7 +251,7 @@ export function DialogMicRecording({
             {}
             {recordingState === "paused" && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <Pause size={32} className="text-warning" />
+                <Play size={32} className="text-warning" />
               </div>
             )}
             {}
