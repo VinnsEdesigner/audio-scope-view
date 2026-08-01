@@ -32,13 +32,13 @@ export function ScopeCanvas({
   const effectiveCanvasReference = forwardedRef ?? internalCanvasReference;
 
   // Store waveform data in ref for RAF loop access
-  const waveformDataRef = React.useRef(waveformData);
+  const waveformDataReference = React.useRef(waveformData);
   React.useEffect(() => {
-    waveformDataRef.current = waveformData;
+    waveformDataReference.current = waveformData;
   }, [waveformData]);
 
   // Store settings in refs to avoid effect re-runs
-  const settingsRef = React.useRef({
+  const settingsReference = React.useRef({
     glow,
     autoScale,
     invert,
@@ -46,7 +46,7 @@ export function ScopeCanvas({
     verticalGain,
   });
   React.useEffect(() => {
-    settingsRef.current = { glow, autoScale, invert, waveformColor, verticalGain };
+    settingsReference.current = { glow, autoScale, invert, waveformColor, verticalGain };
   }, [glow, autoScale, invert, waveformColor, verticalGain]);
 
   const isFrozen = isPaused;
@@ -86,8 +86,8 @@ export function ScopeCanvas({
       context.fillStyle = "#111820";
       context.fillRect(0, 0, width, height);
 
-      const waveformData = waveformDataRef.current;
-      const { glow, autoScale, invert, waveformColor, verticalGain } = settingsRef.current;
+      const waveformData = waveformDataReference.current;
+      const { glow, autoScale, invert, waveformColor, verticalGain } = settingsReference.current;
       const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
 
       // Draw waveform if we have data

@@ -45,15 +45,15 @@ function WaveformCanvas({
   const containerReference = React.useRef<HTMLDivElement>(null);
 
   // Store waveform data in ref for RAF loop access
-  const waveformDataRef = React.useRef(waveformData);
+  const waveformDataReference = React.useRef(waveformData);
   React.useEffect(() => {
-    waveformDataRef.current = waveformData;
+    waveformDataReference.current = waveformData;
   }, [waveformData]);
 
   // Store settings in refs to avoid effect re-runs
-  const settingsRef = React.useRef({ waveformColor, glow, autoScale, invert });
+  const settingsReference = React.useRef({ waveformColor, glow, autoScale, invert });
   React.useEffect(() => {
-    settingsRef.current = { waveformColor, glow, autoScale, invert };
+    settingsReference.current = { waveformColor, glow, autoScale, invert };
   }, [waveformColor, glow, autoScale, invert]);
 
   // RAF loop for continuous 60fps drawing
@@ -90,8 +90,8 @@ function WaveformCanvas({
       // Clear canvas
       context.clearRect(0, 0, width, height);
 
-      const waveformData = waveformDataRef.current;
-      const { waveformColor, glow, autoScale, invert } = settingsRef.current;
+      const waveformData = waveformDataReference.current;
+      const { waveformColor, glow, autoScale, invert } = settingsReference.current;
       const color = WAVEFORM_COLORS[waveformColor] || WAVEFORM_COLORS.cyan;
 
       // Draw waveform if we have data
