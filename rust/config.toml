@@ -1,4 +1,5 @@
 # Audio Scope View Configuration
+# All values can be overridden via environment variables
 
 [server]
 host = "127.0.0.1"
@@ -19,9 +20,10 @@ backend = "mock"
 # Require API key authentication for GraphQL endpoints
 require_auth = true
 # Bootstrap key for initial setup (should be changed in production)
-# Can also be set via BOOTSTRAP_KEY environment variable
-# IMPORTANT: Change this in production! Use a secure random 32+ character key.
-bootstrap_key = "agJEtZLKL26KiHHdhDjPuFCFnPzNWje/Yi+qiq7LCTI="
+# IMPORTANT: Must be set via BOOTSTRAP_KEY environment variable!
+# The BOOTSTRAP_KEY env var takes precedence over this value.
+# Generate a secure random key: openssl rand -base64 32
+bootstrap_key = ""
 
 [logging]
 level = "info"

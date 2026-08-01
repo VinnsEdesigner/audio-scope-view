@@ -5,7 +5,7 @@ const path = require('path');
 const WEB_DIR = path.join(__dirname, 'apps/vyzorWeb/dist/client');
 const API_DIR = path.join(__dirname, 'packages/api-client/dist');
 const GRAPHQL_SERVER = 'http://127.0.0.1:8080';
-const BOOTSTRAP_KEY = process.env.BOOTSTRAP_KEY || 'CHANGE_THIS_TO_A_SECURE_KEY_IN_PRODUCTION';
+const BOOTSTRAP_KEY = process.env.BOOTSTRAP_KEY;
 
 const mimeTypes = {
   '.html': 'text/html',

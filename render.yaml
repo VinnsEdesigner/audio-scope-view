@@ -1,19 +1,4 @@
-# ============================================
-# Audio Scope View - Render Deployment Config
-# ============================================
-# 
-# Render Auto-Deploy setup:
-# 1. Push this render.yaml to your GitHub repository
-# 2. Go to Render.com and create a new "Web Service"
-# 3. Connect your GitHub repo
-# 4. Render will auto-detect this file and configure deployment
-# 5. Set environment variables:
-#    - BOOTSTRAP_KEY: Generate with `openssl rand -base64 32`
-#
-# ============================================
-
 services:
-  # Main Web Service (serves frontend + proxies to API)
   - type: web
     name: audio-scope-view
     runtime: docker
@@ -26,32 +11,26 @@ services:
         value: production
       - key: PORT
         value: 3000
-      - key: BOOTSTRAP_KEY
-        generateValue: true
       - key: RUST_BACKTRACE
         value: "1"
-      - key: NITRO_PRESET
-        value: node-server
-
-# ============================================
-# Alternative: Blueprints (for multiple services)
-# Uncomment below if deploying as separate services
-# ============================================
-
-# databases:
-#   - name: audio-scope-view-db
-#     plan: free
-#     databaseName: audio_scope_view
-#     ipAllowList: []
-
-# Background Worker (optional - for audio processing)
-# services:
-#   - type: worker
-#     name: audio-scope-view-worker
-#     runtime: docker
-#     dockerfilePath: ./Dockerfile.worker
-#     region: oregon
-#     plan: free
-#     envVars:
-#       - key: BOOTSTRAP_KEY
-#         sync: false
+      # Bootstrap key - should be set via Render dashboard or environment
+      - key: BOOTSTRAP_KEY
+        generateValue: true
+      - key: APP__SECURITY__BOOTSTRAP_KEY
+        fromService:
+          type: web
+          envVarKey: BOOTSTRAP_KEY
+      # Database URL - Render managed PostgreSQL/SQLite
+      - key: APP__DATABASE__URL
+        value: "sqlite:/data/audio_scope_view.db?mode=rwc"
+      - key: APP__SERVER__HOST
+        value: "127.0.0.1"
+      - key: APP__SERVER__PORT
+        value: "8080"
+      # Frontend build-time vars
+      - key: VITE_GRAPHQL_ENDPOINT
+        value: "/graphql"
+      - key: VITE_WEBSOCKET_ENDPOINT
+        value: "ws://localhost:8080/graphql"
+      - key: VITE_CLIENT_URL
+        value: "https://your-app.onrender.com"

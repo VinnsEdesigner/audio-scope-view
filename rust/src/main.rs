@@ -132,15 +132,6 @@ async fn stats_reporter(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // BOOTSTRAP_KEY check MUST be first - server cannot start without it
-    let bootstrap_key = std::env::var("BOOTSTRAP_KEY")
-        .expect("BOOTSTRAP_KEY environment variable is required. Exiting.");
-    
-    if bootstrap_key.len() < 16 {
-        eprintln!("BOOTSTRAP_KEY must be at least 16 characters. Exiting.");
-        std::process::exit(1);
-    }
-
     // Initialize logging
     tracing_subscriber::registry()
         .with(
@@ -154,6 +145,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load configuration
     let config = AppConfig::load().unwrap_or_default();
+
+    // BOOTSTRAP_KEY check MUST be first - server cannot start without it
+    // Priority: BOOTSTRAP_KEY env var > APP__SECURITY__BOOTSTRAP_KEY config
+    let bootstrap_key = std::env::var("BOOTSTRAP_KEY")
+        .ok()
+        .filter(|k| !k.is_empty())
+        .unwrap_or_else(|| config.security.bootstrap_key.clone());
+
+    if bootstrap_key.is_empty() {
+        eprintln!("BOOTSTRAP_KEY environment variable is required. Exiting.");
+        std::process::exit(1);
+    }
+
+    if bootstrap_key.len() < 16 {
+        eprintln!("BOOTSTRAP_KEY must be at least 16 characters. Exiting.");
+        std::process::exit(1);
+    }
 
     // Initialize database
     let db = DatabaseConnection::new(&config.database.url).await?;

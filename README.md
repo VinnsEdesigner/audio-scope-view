@@ -2,6 +2,15 @@
 
 A web-based oscilloscope that captures audio and displays waveforms and frequency spectrums in real-time. Save sessions, play back recordings, export data.
 
+## Docker
+
+Pre-built image available on GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/vinnsedesigner/audio-scope-view:latest
+docker run -p 3000:3000 -p 8080:8080 ghcr.io/vinnsedesigner/audio-scope-view:latest
+```
+
 ## The project
 
 - **vyzorWeb** — React frontend for the oscilloscope UI (canvas-based waveform rendering, live and , playback)

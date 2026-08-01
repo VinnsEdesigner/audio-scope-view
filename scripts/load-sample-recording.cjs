@@ -8,8 +8,14 @@ const { randomUUID } = require('crypto');
 
 // Node 18+ has native fetch
 const API_URL = process.env.API_URL || 'http://localhost:8080/graphql';
-const API_KEY = process.env.BOOTSTRAP_KEY || 'test-bootstrap-key-for-dev';
+const API_KEY = process.env.BOOTSTRAP_KEY;
 const SESSION_ID = process.env.SESSION_ID || 'd1628fbc-66aa-48ad-a41a-c17f04e310fe';
+
+if (!API_KEY) {
+  console.error('Error: BOOTSTRAP_KEY environment variable is required');
+  console.error('Set it with: export BOOTSTRAP_KEY=your-secure-key');
+  process.exit(1);
+}
 
 // Generate a sine wave with some noise for realistic audio
 function generateAudioSamples(sampleCount, sampleRate = 44100, frequency = 440) {
