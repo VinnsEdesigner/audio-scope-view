@@ -1,6 +1,6 @@
 [package]
 name = "audio-scope-view"
-version = "v0.1.0-beta"
+version = "0.1.0-beta"
 edition = "2024"
 rust-version = "1.97"
 authors = ["VinnsEdesigner"]

@@ -139,7 +139,7 @@ export function ApiKeys() {
   return (
     <div className="w-full min-h-screen">
       <div className="w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12 xl:px-16">
-        <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-10">
+        <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pl-12 mb-10">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               API Keys

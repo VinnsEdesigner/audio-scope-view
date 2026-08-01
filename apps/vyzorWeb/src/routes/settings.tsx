@@ -362,7 +362,7 @@ export function Settings(): React.ReactElement {
     <div className="w-full min-h-screen">
       <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
         {/* Header */}
-        <header className="mb-8 lg:mb-12">
+        <header className="pl-12 mb-8 lg:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Settings
           </h1>

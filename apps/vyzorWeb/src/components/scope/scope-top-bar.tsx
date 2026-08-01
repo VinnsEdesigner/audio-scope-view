@@ -75,7 +75,7 @@ export function ScopeTopBar({
   };
 
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2 border-b border-border-subtle">
+    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2 pl-14 border-b border-border-subtle md:pl-0">
       <div className="flex items-center gap-2">
         <div>
           <h1 className="text-3xl font-semibold text-foreground">

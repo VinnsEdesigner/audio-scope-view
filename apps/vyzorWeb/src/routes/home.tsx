@@ -158,7 +158,7 @@ export function Home(): React.ReactElement {
   return (
     <div className="w-full min-h-screen bg-bg-primary">
       {}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-border-subtle bg-black">
+      <header className="flex items-center justify-between px-8 py-4 pl-16 border-b border-border-subtle bg-black">
         <div className="ml-10">
           {isLoading ? (
             <>
