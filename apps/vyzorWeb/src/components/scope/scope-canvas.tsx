@@ -31,86 +31,123 @@ export function ScopeCanvas({
   // Use forwarded ref if provided, otherwise use internal ref
   const effectiveCanvasReference = forwardedRef ?? internalCanvasReference;
 
-  const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
+  // Store waveform data in ref for RAF loop access
+  const waveformDataRef = React.useRef(waveformData);
+  React.useEffect(() => {
+    waveformDataRef.current = waveformData;
+  }, [waveformData]);
+
+  // Store settings in refs to avoid effect re-runs
+  const settingsRef = React.useRef({
+    glow,
+    autoScale,
+    invert,
+    waveformColor,
+    verticalGain,
+  });
+  React.useEffect(() => {
+    settingsRef.current = { glow, autoScale, invert, waveformColor, verticalGain };
+  }, [glow, autoScale, invert, waveformColor, verticalGain]);
+
   const isFrozen = isPaused;
 
-  // Draw waveform
+  // RAF loop for continuous 60fps drawing
   React.useEffect(() => {
     const canvas = effectiveCanvasReference.current;
-    if (!canvas) return;
+    const container = containerReference.current;
+    if (!canvas || !container) return;
 
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
+    let animationFrameId: number;
 
-    // Set canvas size accounting for device pixel ratio
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    context.scale(dpr, dpr);
-
-    // Clear canvas
-    context.fillStyle = "#111820";
-    context.fillRect(0, 0, rect.width, rect.height);
-
-    // Draw waveform if we have data
-    if (waveformData.length > 0) {
-      context.save();
-
-      // Apply glow effect
-      if (glow) {
-        context.shadowColor = waveformColorValue;
-        context.shadowBlur = 8;
-      }
-
-      // Apply invert
-      if (invert) {
-        context.scale(1, -1);
-        context.translate(0, -rect.height);
-      }
-
-      context.beginPath();
-      context.strokeStyle = waveformColorValue;
-      context.lineWidth = 2;
-      context.lineJoin = "round";
-      context.lineCap = "round";
-
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
-      const centerY = height / 2;
 
-      // Auto-scale: fit waveform to canvas
-      let scale = verticalGain;
-      if (autoScale) {
-        const maxValue = Math.max(...waveformData.map((v: number) => Math.abs(v)), 0.01);
-        scale = ((height / 2) * 0.8 * verticalGain) / maxValue;
+      // Skip if canvas has no size
+      if (width === 0 || height === 0) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
       }
 
-      // Draw waveform
-      for (let index = 0; index < waveformData.length; index++) {
-        const x = (index / (waveformData.length - 1)) * width;
-        const y = centerY + waveformData[index] * scale;
+      const dpr = window.devicePixelRatio || 1;
 
-        if (index === 0) {
-          context.moveTo(x, y);
-        } else {
-          context.lineTo(x, y);
+      // Set canvas size accounting for device pixel ratio
+      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        context.scale(dpr, dpr);
+      }
+
+      // Clear canvas
+      context.fillStyle = "#111820";
+      context.fillRect(0, 0, width, height);
+
+      const waveformData = waveformDataRef.current;
+      const { glow, autoScale, invert, waveformColor, verticalGain } = settingsRef.current;
+      const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
+
+      // Draw waveform if we have data
+      if (waveformData.length > 0) {
+        context.save();
+
+        // Apply glow effect
+        if (glow) {
+          context.shadowColor = waveformColorValue;
+          context.shadowBlur = 8;
         }
+
+        // Apply invert
+        if (invert) {
+          context.scale(1, -1);
+          context.translate(0, -height);
+        }
+
+        context.beginPath();
+        context.strokeStyle = waveformColorValue;
+        context.lineWidth = 2;
+        context.lineJoin = "round";
+        context.lineCap = "round";
+
+        const centerY = height / 2;
+
+        // Auto-scale: fit waveform to canvas
+        let scale = verticalGain;
+        if (autoScale) {
+          const maxValue = Math.max(...waveformData.map((v: number) => Math.abs(v)), 0.01);
+          scale = ((height / 2) * 0.8 * verticalGain) / maxValue;
+        }
+
+        // Draw waveform
+        for (let index = 0; index < waveformData.length; index++) {
+          const x = (index / (waveformData.length - 1)) * width;
+          const y = centerY + waveformData[index] * scale;
+
+          if (index === 0) {
+            context.moveTo(x, y);
+          } else {
+            context.lineTo(x, y);
+          }
+        }
+
+        context.stroke();
+        context.restore();
       }
 
-      context.stroke();
-      context.restore();
-    }
-  }, [
-    waveformData,
-    glow,
-    autoScale,
-    invert,
-    waveformColorValue,
-    verticalGain,
-    effectiveCanvasReference,
-  ]);
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [effectiveCanvasReference]);
 
   // Resize observer
   React.useEffect(() => {
