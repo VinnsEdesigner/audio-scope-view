@@ -1,52 +1,19 @@
-# Docker Compose for Development/Debug with Hot Reload
-# Uses the root .env file for all configuration
-version: "3.8"
-
 services:
-  # Frontend development server with hot reload
-  frontend:
+  app:
     build:
       context: .
       dockerfile: Dockerfile.debug
       target: development
     ports:
       - "3000:3000"
-      - "5173:5173"
+      - "8080:8080"
     env_file:
       - .env
-    environment:
-      - NODE_ENV=development
     volumes:
-      - ./apps/vyzorWeb:/app/apps/vyzorWeb
-      - ./packages:/app/packages
-      - ./packages/api-client:/app/packages/api-client
-    command: pnpm --filter @audio-scope-view/vyzor-web dev
+      - ./data:/app/data
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 10s
-
-  # Rust backend development server
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.debug
-    ports:
-      - "8080:8080"
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=development
-      - APP__SERVER__HOST=0.0.0.0
-    volumes:
-      - ./rust:/app/rust
-      - ./data:/app/data
-    command: cd /app/rust && cargo run
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 30s

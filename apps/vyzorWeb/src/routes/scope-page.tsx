@@ -67,7 +67,9 @@ export function ScopePage(): React.ReactElement {
         id: recordingData.id,
         name: recordingData.name,
         duration: recordingData.durationMs,
-        createdAt: recordingData.timestamp.toISOString(),
+        createdAt: recordingData.timestamp
+          ? new Date(recordingData.timestamp).toISOString()
+          : new Date().toISOString(),
         size: recordingData.sizeBytes,
       }
     : undefined;

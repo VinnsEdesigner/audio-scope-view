@@ -25,14 +25,14 @@ RUN apt-get update && apt-get install -y curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=frontend-builder /app/apps/vyzorWeb/dist ./apps/vyzorWeb/dist
 COPY --from=frontend-builder /app/packages/api-client/dist ./packages/api-client/dist
-COPY --from=frontend-builder /app/mocks/mocks-server.cjs ./simple-server.cjs
 COPY --from=backend-builder /app/rust/target/release/audio-scope-view /usr/local/bin/
 RUN mkdir -p /app/data
 COPY rust/config.toml /app/config.toml
+COPY simple-server.cjs /app/simple-server.cjs
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV RUST_BACKTRACE=1
 EXPOSE 3000 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:3000/health || exit 1
 CMD sh -c 'echo "Starting Rust backend..." && BOOTSTRAP_KEY="${BOOTSTRAP_KEY}" /usr/local/bin/audio-scope-view & RUST_PID=$! && sleep 2 && echo "Starting Node.js frontend..." && node /app/simple-server.cjs & NODE_PID=$! && trap "kill $RUST_PID $NODE_PID 2>/dev/null" EXIT && wait'
