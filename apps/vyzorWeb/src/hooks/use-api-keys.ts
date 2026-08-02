@@ -31,9 +31,15 @@ function getApiKeysFromCache(cache: ApolloCache<unknown>): ApiKey[] | undefined 
 
 // Helper to write apiKeys to cache
 function writeApiKeysToCache(cache: ApolloCache<unknown>, apiKeys: ApiKey[]): void {
+  // Ensure all apiKeys have __typename for Apollo Client cache identification
+  const apiKeysWithTypename = apiKeys.map((key) => ({
+    __typename: "ApiKeyInfo",
+    ...key,
+  }));
+  
   cache.writeQuery({
     query: GET_API_KEYS,
-    data: { apiKeys },
+    data: { apiKeys: apiKeysWithTypename },
   });
 }
 
@@ -69,7 +75,9 @@ export function useCreateApiKey() {
       const existingKeys = getApiKeysFromCache(cache);
 
       // Create the new API key object from the mutation result
-      const newApiKey: ApiKey = {
+      // Include __typename for Apollo Client cache identification
+      const newApiKey = {
+        __typename: "ApiKeyInfo",
         id: data.createApiKey.id,
         name: data.createApiKey.name,
         createdAt: Math.floor(Date.now() / 1000), // Server would set this, but approximate for immediate display
