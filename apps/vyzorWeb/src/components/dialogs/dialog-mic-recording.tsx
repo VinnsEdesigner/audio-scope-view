@@ -216,7 +216,7 @@ export function DialogMicRecording({
 
   const [recordingName, setRecordingName] = React.useState("");
 
-  const inputDevices = devices.filter((d) => d.kind === "audioinput");
+  const inputDevices = Array.isArray(devices) ? devices.filter((d) => d.kind === "audioinput") : [];
 
   const getStatusLabel = () => {
     if (recordingState === "recording") return "Recording";

@@ -48,10 +48,10 @@ export function Home(): React.ReactElement {
   const renameRecording = useRenameRecording();
 
   const filteredRecordings = React.useMemo(() => {
-    if (!recentData) return [];
+    if (!recentData?.recentRecordings || !Array.isArray(recentData.recentRecordings)) return [];
 
     const now = new Date();
-    return recentData.filter((rec) => {
+    return recentData.recentRecordings.filter((rec) => {
       const recDate = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
       switch (timeFilter) {
         case "today": {
@@ -72,7 +72,9 @@ export function Home(): React.ReactElement {
     });
   }, [recentData, timeFilter]);
 
-  const displaySessions = showAllSessions ? sessions : sessions.slice(0, 3);
+  const displaySessions = Array.isArray(sessions) 
+    ? (showAllSessions ? sessions : sessions.slice(0, 3)) 
+    : [];
 
   const handlePin = (id: string, isPinned: boolean) => {
     pinRecording.mutate({ id, isPinned: !isPinned });
