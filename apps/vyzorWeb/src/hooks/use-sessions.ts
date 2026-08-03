@@ -6,6 +6,7 @@ import {
   GET_SESSION_COUNT,
   GET_SUB_SESSIONS,
   GET_PARENT_SESSION,
+  GET_RECORDINGS,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import {
   START_SESSION,
@@ -19,12 +20,19 @@ import {
   CLOSE_OSCILLOSCOPE,
   CREATE_SUB_SESSION,
   CAPTURE_WAVEFORM,
+  UPDATE_SESSION_DSP,
+  DELETE_RECORDING,
+  DELETE_RECORDINGS,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
-import type { CreateSessionInput, UpdateSessionInput } from "@audio-scope-view/api-client/domain/session";
+import type { Session } from "@audio-scope-view/api-client/domain/session";
 
 export interface UseSessionsOptions {
   limit?: number;
   offset?: number;
+}
+
+export interface SessionDetailData {
+  session: Session;
 }
 
 export function useSessions(options: UseSessionsOptions = {}) {
@@ -135,3 +143,23 @@ export function useCloseOscilloscope() {
     refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
   });
 }
+
+export function useUpdateSessionDsp() {
+  return useMutation(UPDATE_SESSION_DSP, {
+    refetchQueries: [{ query: GET_SESSIONS }],
+  });
+}
+
+export function useDeleteRecording() {
+  return useMutation(DELETE_RECORDING, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
+  });
+}
+
+export function useDeleteRecordings() {
+  return useMutation(DELETE_RECORDINGS, {
+    refetchQueries: [{ query: GET_RECORDINGS }],
+  });
+}
+
+export { type Session } from "@audio-scope-view/api-client/domain/session";

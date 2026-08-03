@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session - Morning Lab Testing | Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-tertiary: #28282c;
+      --bg-elevated: #2e2e33;
+      --bg-hover: #35353b;
+      --foreground: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --icon: #71717a;
+      --accent-green: #22c55e;
+      --accent-blue: #3b82f6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #fb7185;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-primary);
+      color: var(--foreground);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero {
+      padding: 24px 32px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .session-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .session-title-group { flex: 1; }
+    .session-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--foreground);
+    }
+    .session-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .meta-item svg {
+      width: 14px;
+      height: 14px;
+      color: var(--icon);
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .status-badge.active {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: var(--accent-green);
+    }
+    .status-badge.active::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+    .btn:hover {
+      background: var(--bg-elevated);
+      color: var(--foreground);
+      border-color: var(--border-hover);
+    }
+    .btn svg { width: 14px; height: 14px; color: var(--icon); }
+    .btn:hover svg { color: var(--foreground); }
+    .live-scope-section {
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+      border: 2px solid var(--icon);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .live-scope-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .live-scope-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .live-scope-title h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(113, 113, 122, 0.15);
+      border: 1px solid rgba(113, 113, 122, 0.3);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--icon);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .live-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: var(--icon);
+      border-radius: 50%;
+    }
+    .live-scope-content {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+    .live-scope-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .live-scope-stat .stat-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .live-scope-stat .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--foreground);
+      font-family: ui-monospace, monospace;
+    }
+    .content {
+      padding: 24px 32px;
+    }
+    .stats-bar {
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      margin-bottom: 24px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 4px;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 20px 24px;
+      flex: 1;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .stat-item:hover {
+      background: var(--bg-hover);
+    }
+    .stat-item-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--foreground);
+      font-family: ui-monospace, monospace;
+      line-height: 1;
+    }
+    .stat-item-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--foreground);
+      margin-bottom: 10px;
+    }
+    .session-details-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .session-details-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .detail-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .detail-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+    .tabs-container {
+      margin-top: 20px;
+    }
+    .tabs-header {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover {
+      color: var(--foreground);
+    }
+    .tab-btn.active {
+      color: var(--foreground);
+      border-bottom-color: var(--foreground);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .live-captures-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 12px;
+    }
+    .live-capture-card {
+      background: var(--bg-secondary);
+      border: 2px solid var(--icon);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .live-capture-card:hover {
+      border-color: var(--foreground);
+      background: var(--bg-tertiary);
+    }
+    .live-capture-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .live-capture-id {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+      font-family: ui-monospace, monospace;
+    }
+    .live-capture-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: ui-monospace, monospace;
+    }
+    .live-capture-stats-row {
+      display: flex;
+      gap: 16px;
+    }
+    .live-capture-stat-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .live-capture-stat-group-title {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .live-capture-stat-pair {
+      display: flex;
+      gap: 12px;
+    }
+    .live-capture-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .live-capture-stat-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+    .live-capture-stat-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--foreground);
+      font-family: ui-monospace, monospace;
+    }
+    .recordings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 12px;
+    }
+    .recording-card {
+      background: var(--bg-secondary);
+      border: 2px solid var(--icon);
+      border-radius: 10px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .recording-card:hover {
+      border-color: var(--foreground);
+      background: var(--bg-tertiary);
+    }
+    .recording-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--foreground);
+      margin-bottom: 12px;
+    }
+    .measurements-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+    }
+    .measurement-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .measurement-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .measurement-value {
+      font-size: 14px;
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+      color: var(--foreground);
+    }
+    .recording-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .meta-row svg {
+      width: 13px;
+      height: 13px;
+      color: var(--icon);
+      flex-shrink: 0;
+    }
+    .meta-row .meta-value {
+      color: var(--foreground);
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+    }
+    .range-bar {
+      height: 4px;
+      background: var(--bg-hover);
+      border-radius: 2px;
+      margin-bottom: 12px;
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+      font-family: ui-monospace, monospace;
+    }
+    .recording-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .recording-timestamp {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .recording-size {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .recording-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .recording-card:hover .recording-actions {
+      opacity: 1;
+    }
+    .action-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .action-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--foreground);
+    }
+    .action-btn svg { width: 13px; height: 13px; color: var(--icon); }
+    .action-btn:hover svg { color: var(--foreground); }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="session-info">
+        <div class="session-title-group">
+          <h1 class="session-title">Morning Lab Testing</h1>
+          <div class="session-meta">
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              Jan 15, 2025
+            </div>
+            <div class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              9:00 AM
+            </div>
+            <span class="status-badge active">Live</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+            </svg>
+            End Session
+          </button>
+        </div>
+      </div>
+      <div class="live-scope-section">
+        <div class="session-details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Session ID</span>
+            <span class="detail-value">sess_abc123def</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Started</span>
+            <span class="detail-value">Jan 15, 9:00 AM</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Last Activity</span>
+            <span class="detail-value">2 minutes ago</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="detail-value">
+              <span class="live-badge">Active - 2:45</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="content">
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-item-value">24</span>
+          <span class="stat-item-label">Recordings</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-item-value">3h 45m</span>
+          <span class="stat-item-label">Total Duration</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-item-value">156 MB</span>
+          <span class="stat-item-label">Storage Used</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-item-value">1h 20m</span>
+          <span class="stat-item-label">Oscilloscope Time</span>
+        </div>
+      </div>
+      <div class="tabs-container">
+        <div class="tabs-header">
+          <button class="tab-btn active" onclick="switchTab('live-captures')">Live Captures</button>
+          <button class="tab-btn" onclick="switchTab('recordings')">Recordings</button>
+        </div>
+        <div id="live-captures" class="tab-content active">
+          <div class="live-captures-grid">
+            <div class="live-capture-card">
+              <div class="live-capture-top">
+                <span class="live-capture-id">cap_abc123</span>
+                <span class="live-capture-time">9:00 AM - 9:30 AM</span>
+              </div>
+              <div class="live-capture-stats-row">
+                <div class="live-capture-stat-group">
+                  <span class="live-capture-stat-group-title">Voltage</span>
+                  <div class="live-capture-stat-pair">
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">High</span>
+                      <span class="live-capture-stat-value">+1.4 V</span>
+                    </div>
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">Low</span>
+                      <span class="live-capture-stat-value">-1.2 V</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="live-capture-stat-group">
+                  <span class="live-capture-stat-group-title">Frequency</span>
+                  <div class="live-capture-stat-pair">
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">High</span>
+                      <span class="live-capture-stat-value">1.2 kHz</span>
+                    </div>
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">Low</span>
+                      <span class="live-capture-stat-value">120 Hz</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="live-capture-card">
+              <div class="live-capture-top">
+                <span class="live-capture-id">cap_def456</span>
+                <span class="live-capture-time">2:30 PM - 2:45 PM</span>
+              </div>
+              <div class="live-capture-stats-row">
+                <div class="live-capture-stat-group">
+                  <span class="live-capture-stat-group-title">Voltage</span>
+                  <div class="live-capture-stat-pair">
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">High</span>
+                      <span class="live-capture-stat-value">+0.8 V</span>
+                    </div>
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">Low</span>
+                      <span class="live-capture-stat-value">-0.6 V</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="live-capture-stat-group">
+                  <span class="live-capture-stat-group-title">Frequency</span>
+                  <div class="live-capture-stat-pair">
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">High</span>
+                      <span class="live-capture-stat-value">800 Hz</span>
+                    </div>
+                    <div class="live-capture-stat-item">
+                      <span class="live-capture-stat-label">Low</span>
+                      <span class="live-capture-stat-value">60 Hz</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="recordings" class="tab-content">
+          <div class="recordings-grid">
+          <div class="recording-card">
+            <div class="recording-name">Microphone Check - Room A</div>
+            <div class="measurements-grid">
+              <div class="measurement-item">
+                <span class="measurement-label">Peak +</span>
+                <span class="measurement-value peak">+2.34 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">Peak -</span>
+                <span class="measurement-value peak">-1.87 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">RMS</span>
+                <span class="measurement-value rms">-12.4 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">DC Offset</span>
+                <span class="measurement-value dc">+0.02 V</span>
+              </div>
+            </div>
+            <div class="range-bar">
+            </div>
+            <div class="range-labels">
+              <span>-40 dB</span>
+              <span>Peak: +2.34 dB</span>
+              <span>0 dB</span>
+            </div>
+            <div class="recording-meta">
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span class="meta-value">2:30</span>
+                <span>Duration</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <span class="meta-value">96 kHz</span>
+                <span>Sample Rate</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span class="meta-value">14.4M</span>
+                <span>Samples</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span class="meta-value">12.4 MB</span>
+                <span>Size</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                <span class="meta-value">1.2 kHz</span>
+                <span>Dominant Freq</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span class="meta-value">24-bit</span>
+                <span>Depth</span>
+              </div>
+            </div>
+            <div class="recording-footer">
+              <span class="recording-timestamp">Today at 12:45 PM</span>
+              <div class="recording-actions">
+                <button class="action-btn" title="Play">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+                <button class="action-btn" title="View">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                <button class="action-btn" title="Delete">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="recording-card">
+            <div class="recording-name">Amplifier Gain Test</div>
+            <div class="measurements-grid">
+              <div class="measurement-item">
+                <span class="measurement-label">Peak +</span>
+                <span class="measurement-value peak">+8.91 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">Peak -</span>
+                <span class="measurement-value peak">-9.12 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">RMS</span>
+                <span class="measurement-value rms">-3.45 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">DC Offset</span>
+                <span class="measurement-value dc">-0.01 V</span>
+              </div>
+            </div>
+            <div class="range-bar">
+            </div>
+            <div class="range-labels">
+              <span>-40 dB</span>
+              <span>Peak: +8.91 dB</span>
+              <span>0 dB</span>
+            </div>
+            <div class="recording-meta">
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span class="meta-value">5:12</span>
+                <span>Duration</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <span class="meta-value">192 kHz</span>
+                <span>Sample Rate</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span class="meta-value">60.0M</span>
+                <span>Samples</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span class="meta-value">25.8 MB</span>
+                <span>Size</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                <span class="meta-value">60 Hz</span>
+                <span>Dominant Freq</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span class="meta-value">32-bit</span>
+                <span>Depth</span>
+              </div>
+            </div>
+            <div class="recording-footer">
+              <span class="recording-timestamp">Today at 12:30 PM</span>
+              <div class="recording-actions">
+                <button class="action-btn" title="Play">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+                <button class="action-btn" title="View">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                <button class="action-btn" title="Delete">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="recording-card">
+            <div class="recording-name">Noise Floor Baseline</div>
+            <div class="measurements-grid">
+              <div class="measurement-item">
+                <span class="measurement-label">Peak +</span>
+                <span class="measurement-value peak">-48.2 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">Peak -</span>
+                <span class="measurement-value peak">-51.3 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">RMS</span>
+                <span class="measurement-value rms">-62.8 dB</span>
+              </div>
+              <div class="measurement-item">
+                <span class="measurement-label">DC Offset</span>
+                <span class="measurement-value dc">+0.00 V</span>
+              </div>
+            </div>
+            <div class="range-bar">
+            </div>
+            <div class="range-labels">
+              <span>-80 dB</span>
+              <span>Peak: -48.2 dB</span>
+              <span>-20 dB</span>
+            </div>
+            <div class="recording-meta">
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span class="meta-value">0:30</span>
+                <span>Duration</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <span class="meta-value">44.1 kHz</span>
+                <span>Sample Rate</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span class="meta-value">1.3M</span>
+                <span>Samples</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span class="meta-value">1.2 MB</span>
+                <span>Size</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                <span class="meta-value">~0 Hz</span>
+                <span>Dominant Freq</span>
+              </div>
+              <div class="meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span class="meta-value">16-bit</span>
+                <span>Depth</span>
+              </div>
+            </div>
+            <div class="recording-footer">
+              <span class="recording-timestamp">Today at 11:45 AM</span>
+              <div class="recording-actions">
+                <button class="action-btn" title="Play">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </button>
+                <button class="action-btn" title="View">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                <button class="action-btn" title="Delete">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

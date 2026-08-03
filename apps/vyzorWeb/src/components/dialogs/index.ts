@@ -9,5 +9,5 @@ export { ExportDialog } from "./export-dialog";
 export { RecordingInfoDialog } from "./recording-info-dialog";
 export { RenameDialog } from "./rename-dialog";
 export { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
-export { CreateSessionDialog } from "./create-session-dialog";
 export { SelectDialog } from "./select-dialog";
+export { CalibrationDialog } from "./calibration-dialog";

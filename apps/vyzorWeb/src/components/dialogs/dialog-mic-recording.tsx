@@ -186,7 +186,6 @@ export function DialogMicRecording({
   const [activeSessionId, setActiveSessionId] = React.useState<string | undefined>();
   const globalSampleRate = useAudioStore((state) => state.sampleRate);
 
-  // Auto-get or create session when dialog opens
   React.useEffect(() => {
     if (isOpen && !activeSessionId) {
       getOrCreateSession()
@@ -287,7 +286,7 @@ export function DialogMicRecording({
             input: {
               sessionId: activeSessionId,
               name: recordingName || `Recording ${new Date().toLocaleString()}`,
-              samples: Array.from(captured),
+              samples: [...captured],
               sampleRate: globalSampleRate,
             },
           },

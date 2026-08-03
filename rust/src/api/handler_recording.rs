@@ -124,15 +124,6 @@ pub async fn get_recording_samples(
     ).into_response()
 }
 
-/// Streaming PCM endpoint for AudioWorklet
-/// 
-/// GET /api/recordings/{id}/stream
-/// Query params:
-///   - start: Start sample index (default: 0)
-///   - end: End sample index (default: auto-calculated based on chunk size)
-/// 
-/// Returns raw binary f32 samples for efficient streaming playback.
-/// The AudioWorklet processor will fetch chunks and play them seamlessly.
 pub async fn stream_recording_pcm(
     State(state): State<Arc<AppState>>,
     Path(recording_id): Path<String>,

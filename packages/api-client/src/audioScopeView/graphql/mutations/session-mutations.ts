@@ -102,3 +102,17 @@ export const CAPTURE_WAVEFORM = gql`
     }
   }
 `;
+
+export const UPDATE_SESSION_DSP = gql`
+  mutation UpdateSessionDsp($id: String!, $input: UpdateSessionDspInput!) {
+    updateSessionDsp(id: $id, input: $input) {
+      id
+      peakAmplitude
+      rmsAmplitude
+      dcOffset
+      dominantFrequency
+      frequencyHigh
+      frequencyLow
+    }
+  }
+`;

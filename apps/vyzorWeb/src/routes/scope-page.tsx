@@ -9,9 +9,13 @@ import {
   useSessionDialogs,
   useToast,
   useStreamingPlayback,
+  useScopeCapture,
+  type ScopeCaptureDspMetrics,
+  type AnalysisUpdate,
 } from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
+import { CalibrationDialog } from "@/components/dialogs";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
@@ -26,14 +30,39 @@ export function ScopePage(): React.ReactElement {
   const { showToast } = useToast();
 
   const recordingId = searchParameters.get("recording") ?? undefined;
+  const sessionId = searchParameters.get("sessionId") ?? undefined;
   const isPlaybackMode = Boolean(recordingId);
+  const isLiveMode = Boolean(sessionId);
 
   const { setSessionMode, testMode, toggleTestMode, smoothWaveform } = useUIStore();
+
+  const [serverAnalysis, setServerAnalysis] = React.useState<AnalysisUpdate | undefined>();
+
+  const handleAnalysisUpdate = React.useCallback((data: AnalysisUpdate) => {
+    setServerAnalysis(data);
+
+    console.debug("Server analysis:", data);
+  }, []);
+
+  const scopeCapture = useScopeCapture({
+    sessionId: sessionId ?? "",
+    onAnalysisUpdate: handleAnalysisUpdate,
+  });
 
   React.useEffect(() => {
     setSessionMode(isPlaybackMode ? "playback" : "live");
     return () => setSessionMode("live");
   }, [isPlaybackMode, setSessionMode]);
+
+  React.useEffect(() => {
+    if (isLiveMode && !sessionId) {
+      showToast({
+        message: "No session selected. Redirecting to create or select a session.",
+        type: "error",
+      });
+      navigate("/");
+    }
+  }, [isLiveMode, sessionId, navigate, showToast]);
 
   const SMOOTHING = {
     smooth: 0.8,
@@ -108,6 +137,8 @@ export function ScopePage(): React.ReactElement {
   const [loopPlayback, setLoopPlayback] = React.useState(false);
   const animationFrameReference = React.useRef<number | undefined>(undefined);
   const lastTimestampReference = React.useRef<number | undefined>(undefined);
+
+  const [calibrationDialogOpen, setCalibrationDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (shouldUseStreaming && streamingPlayback.state.isPlaying) {
@@ -281,6 +312,14 @@ export function ScopePage(): React.ReactElement {
     dialogHandlers.onOpenMeasurements();
   };
 
+  const handleOpenCalibration = () => {
+    setCalibrationDialogOpen(true);
+  };
+
+  const handleCloseCalibration = () => {
+    setCalibrationDialogOpen(false);
+  };
+
   const handleOpenExport = () => {
     dialogHandlers.onOpenExport();
   };
@@ -308,6 +347,93 @@ export function ScopePage(): React.ReactElement {
       showToast({ message: "Delete is only available for recordings", type: "info" });
     }
   };
+
+  const buildDspMetrics = React.useCallback((): ScopeCaptureDspMetrics => {
+    return {
+      peakAmplitude: audioAnalyzer.peakLevel,
+      rmsAmplitude: audioAnalyzer.volumeLevel,
+      dcOffset: 0,
+      dominantFrequency: audioAnalyzer.frequency,
+      frequencyHigh: audioAnalyzer.frequency * 1.2,
+      frequencyLow: audioAnalyzer.frequency * 0.8,
+    };
+  }, [audioAnalyzer.peakLevel, audioAnalyzer.volumeLevel, audioAnalyzer.frequency]);
+
+  const handleProbe = async () => {
+    if (!sessionId) {
+      showToast({
+        message: "No session selected. Please create or select a session first.",
+        type: "error",
+      });
+      navigate("/");
+      return;
+    }
+
+    try {
+      await audioAnalyzer.startCapture();
+
+      scopeCapture.startCapture(buildDspMetrics());
+      showToast({ message: "Probe started - capturing audio", type: "success" });
+    } catch {
+      showToast({
+        message: "Failed to start probe - check microphone permissions",
+        type: "error",
+      });
+    }
+  };
+
+  const handlePauseCapture = () => {
+    audioAnalyzer.pauseCapture();
+    showToast({ message: "Capture paused", type: "info" });
+  };
+
+  const handleResumeCapture = () => {
+    audioAnalyzer.resumeCapture();
+    showToast({ message: "Capture resumed", type: "success" });
+  };
+
+  const handleStopCapture = () => {
+    audioAnalyzer.stopCapture();
+
+    scopeCapture.stopCapture();
+    showToast({ message: "Capture stopped", type: "info" });
+  };
+
+  React.useEffect(() => {
+    if (!isLiveMode || audioAnalyzer.recordingState === "idle" || !scopeCapture.isCapturing) {
+      return;
+    }
+
+    const sendInterval = setInterval(() => {
+      if (scopeCapture.activeSubSessionId || sessionId) {
+        const samples = [...audioAnalyzer.samples];
+        scopeCapture.sendWaveformData(samples, sampleRate, buildDspMetrics());
+      }
+    }, 100);
+
+    return () => clearInterval(sendInterval);
+  }, [
+    isLiveMode,
+    audioAnalyzer.recordingState,
+    audioAnalyzer.samples,
+    scopeCapture.isCapturing,
+    scopeCapture,
+    sessionId,
+    sampleRate,
+    buildDspMetrics,
+  ]);
+
+  React.useEffect(() => {
+    if (!isLiveMode || audioAnalyzer.recordingState === "idle") {
+      return;
+    }
+
+    const updateInterval = setInterval(() => {
+      scopeCapture.updateMetrics(buildDspMetrics());
+    }, 500);
+
+    return () => clearInterval(updateInterval);
+  }, [isLiveMode, audioAnalyzer.recordingState, scopeCapture, buildDspMetrics]);
 
   if (isLoading) {
     return (
@@ -426,6 +552,7 @@ export function ScopePage(): React.ReactElement {
           onOpenDisplaySettings={handleOpenDisplaySettings}
           onOpenTriggerSettings={handleOpenTriggerSettings}
           onOpenMeasurements={handleOpenMeasurements}
+          onOpenCalibration={handleOpenCalibration}
           onOpenExport={handleOpenExport}
           onOpenRecordingInfo={handleOpenRecordingInfo}
           onRename={handleRename}
@@ -448,29 +575,10 @@ export function ScopePage(): React.ReactElement {
           onStop={handleStop}
           testMode={testMode}
           onToggleTestMode={toggleTestMode}
-          onProbe={async () => {
-            try {
-              await audioAnalyzer.startCapture();
-              showToast({ message: "Probe started - capturing audio", type: "success" });
-            } catch {
-              showToast({
-                message: "Failed to start probe - check microphone permissions",
-                type: "error",
-              });
-            }
-          }}
-          onPauseCapture={() => {
-            audioAnalyzer.pauseCapture();
-            showToast({ message: "Capture paused", type: "info" });
-          }}
-          onResumeCapture={() => {
-            audioAnalyzer.resumeCapture();
-            showToast({ message: "Capture resumed", type: "success" });
-          }}
-          onStopCapture={() => {
-            audioAnalyzer.stopCapture();
-            showToast({ message: "Capture stopped", type: "info" });
-          }}
+          onProbe={handleProbe}
+          onPauseCapture={handlePauseCapture}
+          onResumeCapture={handleResumeCapture}
+          onStopCapture={handleStopCapture}
           mobileMenuItems={
             isPlaybackMode
               ? [
@@ -485,7 +593,7 @@ export function ScopePage(): React.ReactElement {
                   { id: "display", label: "Display", onClick: handleOpenDisplaySettings },
                   { id: "trigger", label: "Trigger", onClick: handleOpenTriggerSettings },
                   { id: "measure", label: "Measure", onClick: handleOpenMeasurements },
-                  { id: "cal", label: "Cal", onClick: () => {} },
+                  { id: "cal", label: "Cal", onClick: handleOpenCalibration },
                   { id: "export", label: "Export", onClick: handleOpenExport },
                 ]
           }
@@ -517,7 +625,6 @@ export function ScopePage(): React.ReactElement {
               </p>
             </div>
           )}
-
         </div>
 
         {}
@@ -542,6 +649,14 @@ export function ScopePage(): React.ReactElement {
 
       {}
       <Dialogs />
+
+      {}
+      <CalibrationDialog
+        isOpen={calibrationDialogOpen}
+        onClose={handleCloseCalibration}
+        analysisData={serverAnalysis}
+        isCapturing={scopeCapture.isCapturing}
+      />
     </div>
   );
 }

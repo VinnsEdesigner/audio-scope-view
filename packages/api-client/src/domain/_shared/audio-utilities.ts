@@ -184,3 +184,74 @@ export function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string)
   link.click();
   link.remove();
 }
+
+export function formatSampleRate(hz: number): string {
+  if (hz >= 1000) {
+    return `${(hz / 1000).toFixed(1)} kHz`;
+  }
+  return `${hz.toFixed(0)} Hz`;
+}
+
+export function formatFrequency(hz: number): string {
+  if (hz >= 1000) {
+    return `${(hz / 1000).toFixed(1)} kHz`;
+  }
+  if (hz < 1) {
+    return `~0 Hz`;
+  }
+  return `${hz.toFixed(0)} Hz`;
+}
+
+export function formatSampleCount(count: number): string {
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(1)}M`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+}
+
+export function formatBitDepth(bits: number): string {
+  return `${bits}-bit`;
+}
+
+export function formatDCOffset(volts: number): string {
+  const sign = volts >= 0 ? "+" : "";
+  return `${sign}${volts.toFixed(2)} V`;
+}
+
+export function formatDecibel(decibel: number): string {
+  const sign = decibel >= 0 ? "+" : "";
+  return `${sign}${decibel.toFixed(1)} dB`;
+}
+
+export function formatDecibelRange(
+  minDecibel: number,
+  maxDecibel: number,
+  peakDecibel: number,
+): { min: string; max: string; peak: string } {
+  return {
+    min: `${minDecibel.toFixed(0)} dB`,
+    max: `${maxDecibel.toFixed(0)} dB`,
+    peak: formatDecibel(peakDecibel),
+  };
+}
+
+export function formatSessionDate(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function formatSessionTime(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}

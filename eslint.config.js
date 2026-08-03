@@ -24,6 +24,17 @@ export default [
     },
   },
   {
+    files: ['**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.browser,
+        AudioWorkletProcessor: 'readonly',
+        registerProcessor: 'readonly',
+      },
+    },
+  },
+  {
     rules: {
       'no-restricted-imports': [
         'error',

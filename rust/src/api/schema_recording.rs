@@ -1,5 +1,7 @@
 //! Recording GraphQL schema
 
+#![allow(dead_code)]
+
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 
 use crate::api::context_extractor::GraphqlContext;
@@ -141,6 +143,16 @@ pub struct RecordingSummaryOutput {
     pub timestamp: String,
     pub duration_ms: f64,
     pub size_bytes: i64,
+    pub peak_amplitude: f32,
+    pub rms_amplitude: f32,
+    pub peak_db: f32,
+    pub rms_db: f32,
+    pub peak_negative_db: f32,
+    pub dc_offset: f32,
+    pub dominant_frequency: f32,
+    pub frequency_high: f32,
+    pub frequency_low: f32,
+    pub bit_depth: i32,
     pub is_pinned: bool,
 }
 
@@ -155,6 +167,16 @@ impl RecordingSummaryOutput {
             timestamp: recording.timestamp.to_rfc3339(),
             duration_ms: recording.duration_ms,
             size_bytes: recording.size_bytes as i64,
+            peak_amplitude: recording.peak_amplitude,
+            rms_amplitude: recording.rms_amplitude,
+            peak_db: recording.peak_db,
+            rms_db: recording.rms_db,
+            peak_negative_db: recording.peak_negative_db,
+            dc_offset: recording.dc_offset,
+            dominant_frequency: recording.dominant_frequency,
+            frequency_high: recording.frequency_high,
+            frequency_low: recording.frequency_low,
+            bit_depth: recording.bit_depth as i32,
             is_pinned: recording.is_pinned,
         }
     }
@@ -169,6 +191,16 @@ impl RecordingSummaryOutput {
             timestamp: summary.timestamp.to_rfc3339(),
             duration_ms: summary.duration_ms,
             size_bytes: summary.size_bytes as i64,
+            peak_amplitude: summary.peak_amplitude,
+            rms_amplitude: summary.rms_amplitude,
+            peak_db: summary.peak_db,
+            rms_db: summary.rms_db,
+            peak_negative_db: summary.peak_negative_db,
+            dc_offset: summary.dc_offset,
+            dominant_frequency: summary.dominant_frequency,
+            frequency_high: summary.frequency_high,
+            frequency_low: summary.frequency_low,
+            bit_depth: summary.bit_depth as i32,
             is_pinned: summary.is_pinned,
         }
     }
@@ -196,7 +228,7 @@ impl From<RecordingStats> for RecordingStatsOutput {
 
 /// Session with status output for home page
 #[derive(Debug, SimpleObject)]
-pub struct SessionWithStatusOutput {
+pub struct RecordingSessionWithStatusOutput {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
@@ -209,7 +241,7 @@ pub struct SessionWithStatusOutput {
     pub recording_count: i64,
 }
 
-impl From<SessionWithStatus> for SessionWithStatusOutput {
+impl From<SessionWithStatus> for RecordingSessionWithStatusOutput {
     fn from(session: SessionWithStatus) -> Self {
         let status_str = match session.status {
             ScopeStatus::Live => "live",
@@ -233,7 +265,7 @@ impl From<SessionWithStatus> for SessionWithStatusOutput {
 
 /// Session status counts output
 #[derive(Debug, SimpleObject)]
-pub struct SessionStatusCountsOutput {
+pub struct RecordingSessionStatusCountsOutput {
     pub live_count: i64,
     pub paused_count: i64,
     pub offline_count: i64,
@@ -251,7 +283,7 @@ pub struct RecordingListResultOutput {
 /// Session list result output
 #[derive(Debug, SimpleObject)]
 pub struct SessionListResultOutput {
-    pub sessions: Vec<SessionWithStatusOutput>,
+    pub sessions: Vec<RecordingSessionWithStatusOutput>,
     pub total: i64,
     pub has_more: bool,
 }
@@ -422,7 +454,7 @@ impl RecordingQuery {
             .get_sessions_with_status(limit, offset)
             .await
             .map(|(sessions, total, has_more)| SessionListResultOutput {
-                sessions: sessions.into_iter().map(SessionWithStatusOutput::from).collect(),
+                sessions: sessions.into_iter().map(RecordingSessionWithStatusOutput::from).collect(),
                 total: total as i64,
                 has_more,
             })
@@ -437,7 +469,7 @@ impl RecordingQuery {
     async fn active_sessions_with_status(
         &self,
         ctx: &Context<'_>,
-    ) -> Vec<SessionWithStatusOutput> {
+    ) -> Vec<RecordingSessionWithStatusOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         context
             .recording_service
@@ -445,16 +477,16 @@ impl RecordingQuery {
             .await
             .unwrap_or_default()
             .into_iter()
-            .map(SessionWithStatusOutput::from)
+            .map(RecordingSessionWithStatusOutput::from)
             .collect()
     }
 
     /// Get session status counts
-    async fn session_status_counts(&self, ctx: &Context<'_>) -> SessionStatusCountsOutput {
+    async fn session_status_counts(&self, ctx: &Context<'_>) -> RecordingSessionStatusCountsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let counts = context.recording_service.get_session_status_counts().await;
         let total = counts.live + counts.paused + counts.offline;
-        SessionStatusCountsOutput {
+        RecordingSessionStatusCountsOutput {
             live_count: counts.live as i64,
             paused_count: counts.paused as i64,
             offline_count: counts.offline as i64,

@@ -14,6 +14,12 @@ export function sessionFromRaw(serverSession: SessionServer): Session {
     parentSessionId: serverSession.parentSessionId,
     isSubSession: serverSession.isSubSession,
     subSessionCount: serverSession.subSessionCount,
+    peakAmplitude: serverSession.peakAmplitude,
+    rmsAmplitude: serverSession.rmsAmplitude,
+    dcOffset: serverSession.dcOffset,
+    dominantFrequency: serverSession.dominantFrequency,
+    frequencyHigh: serverSession.frequencyHigh,
+    frequencyLow: serverSession.frequencyLow,
   };
 }
 

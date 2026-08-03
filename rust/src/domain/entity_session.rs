@@ -22,6 +22,19 @@ pub struct Session {
     pub parent_session_id: Option<String>,
     /// Whether this session is a sub-session (auto-created during 30s captures)
     pub is_sub_session: bool,
+    // DSP / Audio Analysis fields (for live captures)
+    /// Peak amplitude (0.0 to 1.0)
+    pub peak_amplitude: Option<f32>,
+    /// RMS amplitude (0.0 to 1.0)
+    pub rms_amplitude: Option<f32>,
+    /// DC offset (average, typically near 0)
+    pub dc_offset: Option<f32>,
+    /// Dominant/peak frequency in Hz
+    pub dominant_frequency: Option<f32>,
+    /// Highest significant frequency in Hz
+    pub frequency_high: Option<f32>,
+    /// Lowest significant frequency in Hz
+    pub frequency_low: Option<f32>,
 }
 
 impl Session {
@@ -39,6 +52,12 @@ impl Session {
             oscilloscope_duration_ms: None,
             parent_session_id: None,
             is_sub_session: false,
+            peak_amplitude: None,
+            rms_amplitude: None,
+            dc_offset: None,
+            dominant_frequency: None,
+            frequency_high: None,
+            frequency_low: None,
         }
     }
 
@@ -56,6 +75,12 @@ impl Session {
             oscilloscope_duration_ms: None,
             parent_session_id: None,
             is_sub_session: false,
+            peak_amplitude: None,
+            rms_amplitude: None,
+            dc_offset: None,
+            dominant_frequency: None,
+            frequency_high: None,
+            frequency_low: None,
         }
     }
 
@@ -73,6 +98,12 @@ impl Session {
             oscilloscope_duration_ms: None,
             parent_session_id: Some(parent_id),
             is_sub_session: true,
+            peak_amplitude: None,
+            rms_amplitude: None,
+            dc_offset: None,
+            dominant_frequency: None,
+            frequency_high: None,
+            frequency_low: None,
         }
     }
 

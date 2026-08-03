@@ -28,6 +28,7 @@ use infrastructure::{
     repo_sqlite_settings::SqliteSettingsRepository, repo_sqlite_waveform::SqliteWaveformRepository,
     repo_sqlite_recording::SqliteRecordingRepository,
     repo_sqlite_api_key::SqliteApiKeyRepository,
+    repo_sqlite_user_preferences::SqliteUserPreferencesRepository,
     AudioStreamEvent, AudioStreamManager,
 };
 
@@ -175,6 +176,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let waveform_repo = Arc::new(SqliteWaveformRepository::new(db.pool().clone()));
     let recording_repo = Arc::new(SqliteRecordingRepository::new(db.pool().clone()));
     let api_key_repo = Arc::new(SqliteApiKeyRepository::new(db.pool().clone()));
+    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(db.pool().clone()));
 
     // Create services
     let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
@@ -246,6 +248,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         batch_capture_service,
         bootstrap_key,
         key_store,
+        user_prefs_repo,
     ));
 
     // Start server

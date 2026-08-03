@@ -86,14 +86,14 @@ def process_file(filepath, dry_run=True):
 def find_frontend_files(directory, extensions=None):
     """Find all frontend files in directory."""
     if extensions is None:
-        extensions = {'.ts', '.tsx', '.js', '.jsx'}
+        extensions = {'.ts', '.tsx', '.js', '.jsx', '.cjs', '.mjs'}
     
     files = []
     for root, dirs, filenames in os.walk(directory):
-        dirs[:] = [d for d in dirs if d not in ['node_modules', '.git', '.next', 'dist', 'build']]
+        dirs[:] = [d for d in dirs if d not in ['node_modules', '.git', '.next', 'dist', 'build', '.turbo', '.vinxi', 'target']]
         
         for filename in filenames:
-            if any(filename.endswith(ext) for ext in ['.ts', '.tsx', '.js', '.jsx']):
+            if any(filename.endswith(ext) for ext in extensions):
                 filepath = os.path.join(root, filename)
                 files.append(filepath)
     

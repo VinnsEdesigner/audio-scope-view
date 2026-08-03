@@ -3,6 +3,7 @@
 
 use crate::application::{DashboardService, RecordingService, SessionService, SettingsService, WaveformService};
 use crate::api::auth::ApiKey;
+use crate::domain::UserPreferencesRepository;
 use std::sync::Arc;
 
 /// Optional API key info extracted from request
@@ -20,16 +21,19 @@ pub struct GraphqlContext {
     pub dashboard_service: Arc<DashboardService>,
     pub waveform_service: Arc<WaveformService>,
     pub recording_service: Arc<RecordingService>,
+    pub user_preferences_repository: Arc<dyn UserPreferencesRepository>,
     pub auth: ApiKeyAuth,
 }
 
 impl GraphqlContext {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         session_service: Arc<SessionService>,
         settings_service: Arc<SettingsService>,
         dashboard_service: Arc<DashboardService>,
         waveform_service: Arc<WaveformService>,
         recording_service: Arc<RecordingService>,
+        user_preferences_repository: Arc<dyn UserPreferencesRepository>,
     ) -> Self {
         Self {
             session_service,
@@ -37,6 +41,7 @@ impl GraphqlContext {
             dashboard_service,
             waveform_service,
             recording_service,
+            user_preferences_repository,
             auth: ApiKeyAuth::default(),
         }
     }

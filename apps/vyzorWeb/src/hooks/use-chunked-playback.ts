@@ -49,8 +49,8 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
     isPlaying: false,
     currentTime: 0,
     duration: 0,
-    // eslint-disable-next-line unicorn/no-null
-    error: null,
+
+    error: undefined,
     chunksLoaded: 0,
     totalChunks: 0,
   });
@@ -78,8 +78,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
     let cancelled = false;
 
     async function loadMetadata() {
-      // eslint-disable-next-line unicorn/no-null
-      setState((s) => ({ ...s, isLoading: true, error: null }));
+      setState((s) => ({ ...s, isLoading: true, error: undefined }));
 
       try {
         const meta = await serviceReference.current.getMetadata(recordingId);
@@ -132,7 +131,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
           sourceNodeReference.current.stop();
           sourceNodeReference.current.disconnect();
         } catch {
-          /* ignore cleanup errors */
+          // Ignore errors when stopping/disconnecting
         }
         sourceNodeReference.current = undefined;
       }
@@ -255,7 +254,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
         sourceNodeReference.current.stop();
         sourceNodeReference.current.disconnect();
       } catch {
-        /* ignore cleanup errors */
+        // Ignore errors when stopping
       }
     }
 
@@ -293,7 +292,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
       sourceNodeReference.current.stop();
       sourceNodeReference.current.disconnect();
     } catch {
-      /* ignore cleanup errors */
+      // Ignore errors when stopping
     }
     sourceNodeReference.current = undefined;
 
@@ -306,7 +305,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
         sourceNodeReference.current.stop();
         sourceNodeReference.current.disconnect();
       } catch {
-        /* ignore cleanup errors */
+        // Ignore errors when stopping
       }
       sourceNodeReference.current = undefined;
     }
@@ -332,8 +331,8 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
         await play();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.isPlaying, state.duration, pause, play],
+
+    [state.isPlaying, state.duration, pause, play, preloadAround],
   );
 
   const setSpeed = useCallback((speed: number) => {

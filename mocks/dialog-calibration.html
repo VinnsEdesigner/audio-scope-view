@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calibration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Geist', sans-serif;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 420px;
+      max-height: 80vh;
+      background: #18181b;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: #18181b;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fafafa;
+    }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(34, 197, 94, 0.15);
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #22c55e;
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .close-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: #71717a;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: #27272a;
+      color: #fafafa;
+    }
+    .dialog-content {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section:last-child {
+      margin-bottom: 0;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+    .section-header svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0.7;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .metric-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .metric-card {
+      background: #27272a;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .metric-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #3f3f46;
+      border-radius: 6px;
+    }
+    .metric-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+    .metric-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .metric-label {
+      font-size: 10px;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .metric-desc {
+      font-size: 9px;
+      color: #52525b;
+      margin-top: 1px;
+    }
+    .metric-value {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Geist Mono', monospace;
+      color: #fafafa;
+      text-align: right;
+    }
+    .metric-unit {
+      font-size: 10px;
+      color: #71717a;
+      margin-left: 2px;
+    }
+    /* Status colors */
+    .status-good { color: #4ade80; }
+    .status-warning { color: #fbbf24; }
+    .status-bad { color: #f87171; }
+    
+    /* Harmonics section */
+    .harmonics-container {
+      background: #27272a;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .harmonics-header {
+      display: flex;
+      gap: 8px;
+      font-size: 9px;
+      color: #52525b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+    .harmonics-header span:first-child {
+      width: 24px;
+      text-align: right;
+    }
+    .harmonics-header span:nth-child(2) {
+      flex: 1;
+    }
+    .harmonics-header span:last-child {
+      width: 60px;
+      text-align: right;
+    }
+    .harmonic-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .harmonic-row:last-child {
+      margin-bottom: 0;
+    }
+    .harmonic-index {
+      font-size: 10px;
+      font-family: 'Geist Mono', monospace;
+      color: #52525b;
+      width: 24px;
+      text-align: right;
+    }
+    .harmonic-bar-container {
+      flex: 1;
+      height: 16px;
+      background: #3f3f46;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .harmonic-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .harmonic-bar.fundamental {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+    .harmonic-bar.harmonic {
+      background: linear-gradient(90deg, #06b6d4, #0891b2);
+    }
+    .harmonic-freq {
+      font-size: 10px;
+      font-family: 'Geist Mono', monospace;
+      color: #71717a;
+      width: 60px;
+      text-align: right;
+    }
+    .dialog-footer {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #27272a;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      position: sticky;
+      bottom: 0;
+    }
+    .footer-text {
+      font-size: 10px;
+      color: #52525b;
+      text-align: center;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <div class="dialog-header">
+      <div class="header-left">
+        <span class="dialog-title">Calibration</span>
+        <span class="live-badge">
+          <span class="live-dot"></span>
+          LIVE
+        </span>
+      </div>
+      <button class="close-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="dialog-content">
+      <!-- Frequency Analysis Section -->
+      <div class="section">
+        <div class="section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+          Frequency Analysis
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #ec4899;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">Dominant</div>
+              <div class="metric-desc">Peak frequency</div>
+            </div>
+            <div class="metric-value">440.00<span class="metric-unit">Hz</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #06b6d4;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">Fundamental</div>
+              <div class="metric-desc">1st harmonic</div>
+            </div>
+            <div class="metric-value">439.87<span class="metric-unit">Hz</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Amplitude Section -->
+      <div class="section">
+        <div class="section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M3 9h18"></path>
+            <path d="M9 21V9"></path>
+          </svg>
+          Amplitude
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #f97316;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">Peak</div>
+              <div class="metric-desc">Maximum</div>
+            </div>
+            <div class="metric-value">0.7071</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #eab308;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">RMS</div>
+              <div class="metric-desc">Root mean square</div>
+            </div>
+            <div class="metric-value">0.5000</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #a855f7;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">DC Offset</div>
+              <div class="metric-desc">Average offset</div>
+            </div>
+            <div class="metric-value status-good">0.023<span class="metric-unit">mV</span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #3b82f6;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">Crest Factor</div>
+              <div class="metric-desc">Peak / RMS</div>
+            </div>
+            <div class="metric-value status-good">1.414</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Signal Quality Section -->
+      <div class="section">
+        <div class="section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+            <path d="M9 1v3"></path>
+            <path d="M15 1v3"></path>
+            <path d="M9 20v3"></path>
+            <path d="M15 20v3"></path>
+            <path d="M20 9h3"></path>
+            <path d="M20 14h3"></path>
+            <path d="M1 9h3"></path>
+            <path d="M1 14h3"></path>
+          </svg>
+          Signal Quality
+        </div>
+        <div class="metric-grid-3">
+          <div class="metric-card" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+              <div class="metric-icon" style="color: #eab308;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">THD</div>
+                <div class="metric-desc">Harmonic distortion</div>
+              </div>
+            </div>
+            <div class="metric-value status-good" style="width: 100%; text-align: left;">0.823<span class="metric-unit">%</span></div>
+          </div>
+          <div class="metric-card" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+              <div class="metric-icon" style="color: #ef4444;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">THD+N</div>
+                <div class="metric-desc">With noise</div>
+              </div>
+            </div>
+            <div class="metric-value status-warning">2.156<span class="metric-unit">%</span></div>
+          </div>
+          <div class="metric-card" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+              <div class="metric-icon" style="color: #22c55e;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+              </div>
+              <div class="metric-info">
+                <div class="metric-label">SNR</div>
+                <div class="metric-desc">Signal-to-noise</div>
+              </div>
+            </div>
+            <div class="metric-value status-good">72.4<span class="metric-unit">dB</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Energy Analysis Section -->
+      <div class="section">
+        <div class="section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M3 9h18"></path>
+            <path d="M9 21V9"></path>
+          </svg>
+          Energy Analysis
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #22c55e;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">Signal Energy</div>
+              <div class="metric-desc">Fundamental + harmonics</div>
+            </div>
+            <div class="metric-value">12.45</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="color: #6b7280;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <div class="metric-label">Noise Energy</div>
+              <div class="metric-desc">Non-harmonic</div>
+            </div>
+            <div class="metric-value">0.089</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Harmonic Breakdown Section -->
+      <div class="section">
+        <div class="section-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          Harmonic Breakdown
+        </div>
+        <div class="harmonics-container">
+          <div class="harmonics-header">
+            <span>#</span>
+            <span>Magnitude</span>
+            <span>Frequency</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H1</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar fundamental" style="width: 100%;"></div>
+            </div>
+            <span class="harmonic-freq">439.87 Hz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H2</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 42.3%;"></div>
+            </div>
+            <span class="harmonic-freq">879.74 Hz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H3</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 18.7%;"></div>
+            </div>
+            <span class="harmonic-freq">1.32 kHz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H4</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 8.2%;"></div>
+            </div>
+            <span class="harmonic-freq">1.76 kHz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H5</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 3.4%;"></div>
+            </div>
+            <span class="harmonic-freq">2.20 kHz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H6</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 1.8%;"></div>
+            </div>
+            <span class="harmonic-freq">2.64 kHz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H7</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 0.9%;"></div>
+            </div>
+            <span class="harmonic-freq">3.08 kHz</span>
+          </div>
+          
+          <div class="harmonic-row">
+            <span class="harmonic-index">H8</span>
+            <div class="harmonic-bar-container">
+              <div class="harmonic-bar harmonic" style="width: 0.4%;"></div>
+            </div>
+            <span class="harmonic-freq">3.52 kHz</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dialog-footer">
+      <p class="footer-text">All metrics computed server-side via FFT and harmonic analysis</p>
+    </div>
+  </div>
+</body>
+</html>

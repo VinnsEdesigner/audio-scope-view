@@ -7,6 +7,17 @@ use crate::domain::Session;
 use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;
 use crate::shared::{AppError, AppResult};
 
+/// DSP metrics for audio analysis
+#[derive(Debug, Default, Clone)]
+pub struct DspMetrics {
+    pub peak_amplitude: Option<f32>,
+    pub rms_amplitude: Option<f32>,
+    pub dc_offset: Option<f32>,
+    pub dominant_frequency: Option<f32>,
+    pub frequency_high: Option<f32>,
+    pub frequency_low: Option<f32>,
+}
+
 /// Session service for managing oscilloscope sessions
 pub struct SessionService {
     repository: Arc<SqliteSessionRepository>,
@@ -223,6 +234,47 @@ impl SessionService {
         }
         if let Some(d) = description {
             session.description = Some(d);
+        }
+
+        self.repository
+            .update_session(&session)
+            .await
+            .map_err(AppError::Domain)?;
+        Ok(session)
+    }
+
+    /// Update session DSP metrics from live capture
+    /// This is called periodically during oscilloscope capture to store
+    /// peak amplitude, RMS amplitude, DC offset, and frequency data
+    pub async fn update_session_dsp_metrics(
+        &self,
+        id: &str,
+        metrics: DspMetrics,
+    ) -> AppResult<Session> {
+        let mut session = self.repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+            .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
+
+        // Update DSP metrics if provided
+        if let Some(pa) = metrics.peak_amplitude {
+            session.peak_amplitude = Some(pa);
+        }
+        if let Some(rms) = metrics.rms_amplitude {
+            session.rms_amplitude = Some(rms);
+        }
+        if let Some(dc) = metrics.dc_offset {
+            session.dc_offset = Some(dc);
+        }
+        if let Some(df) = metrics.dominant_frequency {
+            session.dominant_frequency = Some(df);
+        }
+        if let Some(fh) = metrics.frequency_high {
+            session.frequency_high = Some(fh);
+        }
+        if let Some(fl) = metrics.frequency_low {
+            session.frequency_low = Some(fl);
         }
 
         self.repository

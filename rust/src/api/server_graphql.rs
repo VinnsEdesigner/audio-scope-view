@@ -100,13 +100,15 @@ impl AppState {
         batch_capture_service: Arc<BatchCaptureService>,
         bootstrap_key: String,
         key_store: Arc<ApiKeyStore>,
+        user_preferences_repository: Arc<dyn crate::domain::UserPreferencesRepository>,
     ) -> Self {
         let context = GraphqlContext::new(
-            session_service,
+            session_service.clone(),
             settings_service,
             dashboard_service,
             waveform_service,
             recording_service.clone(),
+            user_preferences_repository,
         );
 
         let schema = build_schema();

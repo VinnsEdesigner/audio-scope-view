@@ -1,5 +1,7 @@
 //! Recording domain types
 
+#![allow(dead_code)]
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -24,10 +26,26 @@ pub struct Recording {
     pub duration_ms: f64,
     /// File size in bytes
     pub size_bytes: u64,
-    /// Peak amplitude
+    /// Peak amplitude (0 to 1)
     pub peak_amplitude: f32,
-    /// RMS amplitude
+    /// RMS amplitude (0 to 1)
     pub rms_amplitude: f32,
+    /// Peak amplitude in dBFS (0 dBFS = full scale)
+    pub peak_db: f32,
+    /// RMS amplitude in dBFS
+    pub rms_db: f32,
+    /// Negative peak amplitude in dBFS (most negative value)
+    pub peak_negative_db: f32,
+    /// DC offset (average)
+    pub dc_offset: f32,
+    /// Dominant/peak frequency in Hz
+    pub dominant_frequency: f32,
+    /// Highest significant frequency in Hz
+    pub frequency_high: f32,
+    /// Lowest significant frequency in Hz
+    pub frequency_low: f32,
+    /// Bit depth (bits per sample)
+    pub bit_depth: u8,
     /// Whether recording is pinned
     pub is_pinned: bool,
 }
@@ -52,10 +70,26 @@ pub struct RecordingMetadata {
     pub duration_ms: f64,
     /// File size in bytes
     pub size_bytes: u64,
-    /// Peak amplitude
+    /// Peak amplitude (0 to 1)
     pub peak_amplitude: f32,
-    /// RMS amplitude
+    /// RMS amplitude (0 to 1)
     pub rms_amplitude: f32,
+    /// Peak amplitude in dBFS
+    pub peak_db: f32,
+    /// RMS amplitude in dBFS
+    pub rms_db: f32,
+    /// Negative peak amplitude in dBFS
+    pub peak_negative_db: f32,
+    /// DC offset (average)
+    pub dc_offset: f32,
+    /// Dominant/peak frequency in Hz
+    pub dominant_frequency: f32,
+    /// Highest significant frequency in Hz
+    pub frequency_high: f32,
+    /// Lowest significant frequency in Hz
+    pub frequency_low: f32,
+    /// Bit depth (bits per sample)
+    pub bit_depth: u8,
     /// Whether recording is pinned
     pub is_pinned: bool,
     /// Pre-computed waveform overview (min-max pairs) for fast display
@@ -71,13 +105,24 @@ impl Recording {
         samples: Vec<f32>,
         sample_rate: u32,
     ) -> Self {
+        use crate::domain::measurements::{analyze_waveform, find_negative_peak_amplitude, peak_to_dbfs, rms_to_dbfs};
+
         let now = Utc::now();
         let duration_ms = (samples.len() as f64 / sample_rate as f64) * 1000.0;
 
-        let peak_amplitude = samples.iter().map(|s| s.abs()).fold(0.0f32, |a, b| a.max(b));
+        // Analyze waveform for DSP metrics
+        let analysis = analyze_waveform(&samples, sample_rate as f32);
 
-        let sum_squares: f32 = samples.iter().map(|s| s * s).sum();
-        let rms_amplitude = (sum_squares / samples.len() as f32).sqrt();
+        // Compute frequency bounds using FFT
+        let (freq_low, freq_high) = Self::compute_frequency_bounds(&samples, sample_rate as f32);
+
+        // Compute dB values
+        let peak_db = peak_to_dbfs(analysis.peak_amplitude);
+        let rms_db = rms_to_dbfs(analysis.rms_amplitude);
+
+        // Compute negative peak dB (find_negative_peak_amplitude returns the most negative value)
+        let negative_peak_amplitude = find_negative_peak_amplitude(&samples);
+        let peak_negative_db = peak_to_dbfs(negative_peak_amplitude.abs());
 
         // Estimate file size (4 bytes per sample for f32)
         let size_bytes = (samples.len() * 4) as u64;
@@ -91,10 +136,60 @@ impl Recording {
             timestamp: now,
             duration_ms,
             size_bytes,
-            peak_amplitude,
-            rms_amplitude,
+            peak_amplitude: analysis.peak_amplitude,
+            rms_amplitude: analysis.rms_amplitude,
+            peak_db,
+            rms_db,
+            peak_negative_db,
+            dc_offset: analysis.dc_offset,
+            dominant_frequency: analysis.dominant_frequency,
+            frequency_high: freq_high,
+            frequency_low: freq_low,
+            bit_depth: 32, // f32 is 32-bit float
             is_pinned: false,
         }
+    }
+
+    /// Compute frequency bounds from samples using FFT
+    fn compute_frequency_bounds(samples: &[f32], sample_rate: f32) -> (f32, f32) {
+        use crate::domain::fft_processor::FftProcessor;
+
+        if samples.len() < 64 {
+            return (20.0, sample_rate / 2.0);
+        }
+
+        let mut fft = FftProcessor::new();
+        let spectrum = fft.compute_magnitudes(samples, sample_rate);
+
+        // Find frequency resolution
+        let fft_size = spectrum.len();
+        let freq_res = sample_rate / (fft_size * 2) as f32;
+
+        // Find -60dB cutoff boundaries
+        let noise_floor_db = -60.0;
+        let mut low_bin = 0;
+        let mut high_bin = spectrum.len() - 1;
+
+        // Find low frequency cutoff (first bin above noise floor)
+        for (i, &mag) in spectrum.iter().enumerate() {
+            if mag > noise_floor_db && i > 0 {
+                low_bin = i;
+                break;
+            }
+        }
+
+        // Find high frequency cutoff (last bin above noise floor)
+        for (i, &mag) in spectrum.iter().enumerate().rev() {
+            if mag > noise_floor_db {
+                high_bin = i;
+                break;
+            }
+        }
+
+        let freq_low = (low_bin as f32 * freq_res).max(20.0);
+        let freq_high = (high_bin as f32 * freq_res).min(sample_rate / 2.0);
+
+        (freq_low, freq_high)
     }
 
     /// Get the number of samples
@@ -140,10 +235,26 @@ pub struct RecordingSummary {
     pub duration_ms: f64,
     /// File size in bytes
     pub size_bytes: u64,
-    /// Peak amplitude
+    /// Peak amplitude (0 to 1)
     pub peak_amplitude: f32,
-    /// RMS amplitude
+    /// RMS amplitude (0 to 1)
     pub rms_amplitude: f32,
+    /// Peak amplitude in dBFS
+    pub peak_db: f32,
+    /// RMS amplitude in dBFS
+    pub rms_db: f32,
+    /// Negative peak amplitude in dBFS
+    pub peak_negative_db: f32,
+    /// DC offset (average)
+    pub dc_offset: f32,
+    /// Dominant/peak frequency in Hz
+    pub dominant_frequency: f32,
+    /// Highest significant frequency in Hz
+    pub frequency_high: f32,
+    /// Lowest significant frequency in Hz
+    pub frequency_low: f32,
+    /// Bit depth (bits per sample)
+    pub bit_depth: u8,
     /// Whether recording is pinned
     pub is_pinned: bool,
 }
@@ -160,6 +271,14 @@ impl From<Recording> for RecordingSummary {
             size_bytes: recording.size_bytes,
             peak_amplitude: recording.peak_amplitude,
             rms_amplitude: recording.rms_amplitude,
+            peak_db: recording.peak_db,
+            rms_db: recording.rms_db,
+            peak_negative_db: recording.peak_negative_db,
+            dc_offset: recording.dc_offset,
+            dominant_frequency: recording.dominant_frequency,
+            frequency_high: recording.frequency_high,
+            frequency_low: recording.frequency_low,
+            bit_depth: recording.bit_depth,
             is_pinned: recording.is_pinned,
         }
     }

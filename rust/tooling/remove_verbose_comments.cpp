@@ -1,7 +1,7 @@
 /**
  * Remove verbose doc comments from Rust source files.
  * 
- * This tool removes block doc comments (//! ...) that contain:
+ * This tool removes doc comments (//! and ///) that contain:
  * - List items (lines starting with -, *, =)
  * - All-caps headers
  * - Common verbose patterns (Routes:, Endpoints:, Features:, Implementation:)
@@ -19,13 +19,31 @@
 
 namespace fs = std::filesystem;
 
+// Check if a line is a doc comment (//! or ///)
+bool is_doc_comment(const std::string& line) {
+    size_t pos = line.find_first_not_of(" \t");
+    if (pos == std::string::npos) return false;
+    return line.substr(pos).rfind("///", 0) == 0 || line.substr(pos).rfind("//!", 0) == 0;
+}
+
+// Get the prefix length for doc comment (//! or ///)
+size_t get_doc_prefix_len(const std::string& line) {
+    size_t pos = line.find_first_not_of(" \t");
+    if (pos == std::string::npos) return 0;
+    std::string rest = line.substr(pos);
+    if (rest.rfind("///", 0) == 0) return pos + 3;
+    if (rest.rfind("//!", 0) == 0) return pos + 2;
+    return 0;
+}
+
 bool is_verbose_doc_block(const std::vector<std::string>& block) {
     if (block.size() <= 1) {
         return false;
     }
 
     for (const auto& line : block) {
-        std::string content = line.substr(3); // Remove //! 
+        size_t prefix_len = get_doc_prefix_len(line);
+        std::string content = line.substr(prefix_len);
         
         // Skip empty lines in doc block
         size_t first_nonspace = content.find_first_not_of(" \t");
@@ -88,12 +106,12 @@ bool process_file(const fs::path& filepath) {
     size_t i = 0;
     
     while (i < lines.size()) {
-        // Check if this is the start of a doc block
-        if (lines[i].find("//!") == 0) {
+        // Check if this is the start of a doc block (//! or ///)
+        if (is_doc_comment(lines[i])) {
             std::vector<std::string> doc_block;
             
             // Collect the entire doc block
-            while (i < lines.size() && lines[i].find("//!") == 0) {
+            while (i < lines.size() && is_doc_comment(lines[i])) {
                 doc_block.push_back(lines[i]);
                 i++;
             }

@@ -13,6 +13,13 @@ export const RECORDING_FIELDS = gql`
     sizeBytes
     peakAmplitude
     rmsAmplitude
+    peakDb
+    rmsDb
+    dcOffset
+    dominantFrequency
+    frequencyHigh
+    frequencyLow
+    bitDepth
     isPinned
     isRecording
     waveformOverview
@@ -25,9 +32,20 @@ export const RECORDING_SUMMARY_FIELDS = gql`
     sessionId
     sessionName
     name
+    sampleRate
     timestamp
     durationMs
     sizeBytes
+    peakAmplitude
+    rmsAmplitude
+    peakDb
+    rmsDb
+    peakNegativeDb
+    dcOffset
+    dominantFrequency
+    frequencyHigh
+    frequencyLow
+    bitDepth
     isPinned
   }
 `;
@@ -66,6 +84,13 @@ export const GET_RECORDING_PREVIEW = gql`
     sizeBytes
     peakAmplitude
     rmsAmplitude
+    peakDb
+    rmsDb
+    dcOffset
+    dominantFrequency
+    frequencyHigh
+    frequencyLow
+    bitDepth
     isPinned
     isRecording
     waveformOverview

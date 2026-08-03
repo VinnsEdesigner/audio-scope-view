@@ -164,7 +164,7 @@ export function ScopeTopBar({
         onClick={onToggleTestMode}
         className={`ml-2 p-2 rounded-md transition-colors ${
           testMode
-            ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+            ? "bg-neutral-500/20 text-neutral-400 hover:bg-neutral-500/30"
             : "bg-bg-elevated text-text-secondary hover:text-foreground"
         }`}
         title={testMode ? "Test Mode Active - Click to disable" : "Enable Test Mode (Mock Audio)"}

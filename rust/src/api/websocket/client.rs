@@ -19,6 +19,28 @@ pub enum WsMessage {
     /// Unsubscribe from spectrum
     #[serde(rename = "unsubscribe_spectrum")]
     UnsubscribeSpectrum { session_id: String },
+    /// Send waveform data TO server (for live capture streaming)
+    #[serde(rename = "waveform_data")]
+    WaveformData {
+        session_id: String,
+        samples: Vec<f32>,
+        timestamp: i64,
+        sample_rate: u32,
+        peak_amplitude: f32,
+        rms_amplitude: f32,
+    },
+    /// Send analysis results TO server
+    #[serde(rename = "analysis_data")]
+    AnalysisData {
+        session_id: String,
+        peak_amplitude: f32,
+        rms_amplitude: f32,
+        dominant_frequency: f32,
+        frequency_high: f32,
+        frequency_low: f32,
+        dc_offset: f32,
+        timestamp: i64,
+    },
     /// Ping/pong for keepalive
     #[serde(rename = "ping")]
     Ping,

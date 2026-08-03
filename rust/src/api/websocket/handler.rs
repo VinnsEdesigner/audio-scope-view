@@ -37,9 +37,35 @@ pub struct WsState {
     /// GraphQL subscription: stats broadcast channels per scope
     #[doc(hidden)]
     pub stats_subscribers: RwLock<HashMap<String, tokio::sync::broadcast::Sender<crate::api::schema_subscription::AudioStats>>>,
+    /// GraphQL subscription: analysis results broadcast channels per scope
+    #[doc(hidden)]
+    pub analysis_subscribers: RwLock<HashMap<String, tokio::sync::broadcast::Sender<crate::api::schema_subscription::AnalysisResult>>>,
     /// GraphQL subscription: all waveform subscribers
     #[doc(hidden)]
     pub all_waveform_subscribers: RwLock<Vec<tokio::sync::broadcast::Sender<crate::api::schema_subscription::WaveformData>>>,
+    /// In-memory buffer for live waveform data (for calculations, not persistence)
+    /// Key: session_id, Value: circular buffer of recent waveform chunks
+    live_waveform_buffers: RwLock<HashMap<String, LiveWaveformBuffer>>,
+}
+
+/// In-memory buffer for live waveform capture
+/// Keeps only the last N seconds of data for real-time calculations
+/// Does NOT persist to database - waveforms are only used for display/calculations
+pub(crate) struct LiveWaveformBuffer {
+    /// Recent waveform chunks (in memory only)
+    chunks: Vec<WaveformChunk>,
+    /// Max buffer size (number of chunks to keep)
+    max_chunks: usize,
+    /// Session ID
+    session_id: String,
+}
+
+/// A single waveform chunk for live buffer
+#[derive(Clone)]
+pub(crate) struct WaveformChunk {
+    pub samples: Vec<f32>,
+    pub timestamp: i64,
+    pub sample_rate: u32,
 }
 
 /// Client connection with subscription info
@@ -121,7 +147,9 @@ impl WsState {
             waveform_subscribers: RwLock::new(HashMap::new()),
             spectrum_subscribers: RwLock::new(HashMap::new()),
             stats_subscribers: RwLock::new(HashMap::new()),
+            analysis_subscribers: RwLock::new(HashMap::new()),
             all_waveform_subscribers: RwLock::new(Vec::new()),
+            live_waveform_buffers: RwLock::new(HashMap::new()),
         }
     }
 
@@ -170,6 +198,70 @@ impl WsState {
         if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data);
         }
+    }
+
+    /// Broadcast DSP analysis results to GraphQL subscribers for a specific scope
+    pub async fn broadcast_to_graphql_analysis(&self, session_id: &str, data: crate::api::schema_subscription::AnalysisResult) {
+        let subscribers = self.analysis_subscribers.read().await;
+        if let Some(tx) = subscribers.get(session_id) {
+            let _ = tx.send(data);
+        }
+    }
+
+    /// Add a waveform chunk to the live buffer for a session
+    /// This is for in-memory calculations only - NOT persisted
+    pub(crate) async fn add_to_live_buffer(&self, session_id: &str, samples: Vec<f32>, timestamp: i64, sample_rate: u32) {
+        let mut buffers = self.live_waveform_buffers.write().await;
+        
+        // Get or create buffer for this session
+        let buffer = buffers.entry(session_id.to_string()).or_insert_with(|| {
+            LiveWaveformBuffer {
+                chunks: Vec::new(),
+                max_chunks: 100, // Keep ~100 chunks (~10 seconds at 100ms intervals)
+                session_id: session_id.to_string(),
+            }
+        });
+        
+        // Add new chunk
+        buffer.chunks.push(WaveformChunk {
+            samples,
+            timestamp,
+            sample_rate,
+        });
+        
+        // Evict oldest chunks if buffer is full (circular buffer behavior)
+        while buffer.chunks.len() > buffer.max_chunks {
+            buffer.chunks.remove(0);
+        }
+    }
+
+    /// Get the latest waveform from the live buffer for a session
+    pub(crate) async fn get_latest_from_buffer(&self, session_id: &str) -> Option<WaveformChunk> {
+        let buffers = self.live_waveform_buffers.read().await;
+        buffers.get(session_id).and_then(|b| b.chunks.last().cloned())
+    }
+
+    /// Get all recent chunks from the live buffer for calculations
+    pub(crate) async fn get_recent_from_buffer(&self, session_id: &str, count: usize) -> Vec<WaveformChunk> {
+        let buffers = self.live_waveform_buffers.read().await;
+        if let Some(buffer) = buffers.get(session_id) {
+            let start = buffer.chunks.len().saturating_sub(count);
+            buffer.chunks[start..].to_vec()
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Clear the live buffer for a session (called when capture ends)
+    pub(crate) async fn clear_live_buffer(&self, session_id: &str) {
+        let mut buffers = self.live_waveform_buffers.write().await;
+        buffers.remove(session_id);
+    }
+
+    /// Check if a session has an active live buffer
+    pub(crate) async fn has_live_buffer(&self, session_id: &str) -> bool {
+        let buffers = self.live_waveform_buffers.read().await;
+        buffers.contains_key(session_id)
     }
 }
 
@@ -409,6 +501,113 @@ async fn handle_client_message(
             };
             let _ = sender.send(response).await;
             debug!("Client {} unsubscribed from spectrum: {}", client_id, session_id_clone);
+        }
+        
+        WsMessage::WaveformData {
+            session_id,
+            samples,
+            timestamp,
+            sample_rate,
+            peak_amplitude: _,  // Ignored - server calculates own values
+            rms_amplitude: _,  // Ignored - server calculates own values
+        } => {
+            let sample_rate_f = sample_rate as f32;
+            
+            // Perform waveform analysis (basic measurements)
+            let waveform_analysis = crate::domain::measurements::analyze_waveform(&samples, sample_rate_f);
+            
+            // Perform harmonic analysis (detailed frequency breakdown)
+            let harmonic_analysis = crate::domain::measurements::analyze_harmonics(&samples, sample_rate_f);
+            
+            // Build harmonics list (first 10)
+            let harmonics: Vec<crate::api::schema_subscription::HarmonicComponent> = harmonic_analysis
+                .harmonics
+                .iter()
+                .take(10)
+                .map(|h| crate::api::schema_subscription::HarmonicComponent {
+                    harmonic: h.harmonic as i32,
+                    frequency: h.frequency,
+                    magnitude: h.magnitude,
+                    phase: h.phase,
+                })
+                .collect();
+            
+            // Broadcast DSP analysis results to GraphQL subscribers (for UI updates)
+            let analysis_data = crate::api::schema_subscription::AnalysisResult {
+                session_id: session_id.clone(),
+                timestamp,
+                sample_rate,
+                // Basic amplitude metrics
+                peak_amplitude: waveform_analysis.peak_amplitude,
+                rms_amplitude: waveform_analysis.rms_amplitude,
+                dc_offset: waveform_analysis.dc_offset,
+                // Frequency metrics
+                dominant_frequency: waveform_analysis.dominant_frequency,
+                fundamental_frequency: harmonic_analysis.fundamental.frequency,
+                // Signal quality metrics
+                thd: waveform_analysis.thd,
+                thdn: harmonic_analysis.thdn,
+                snr: waveform_analysis.snr,
+                crest_factor: waveform_analysis.crest_factor,
+                // Energy metrics
+                signal_energy: harmonic_analysis.signal_energy,
+                noise_energy: harmonic_analysis.noise_energy,
+                // Harmonic breakdown
+                harmonics,
+            };
+            state.broadcast_to_graphql_analysis(&session_id, analysis_data).await;
+            
+            // Store in live buffer for calculations (NOT persisted to database)
+            // Buffer keeps last ~10 seconds of data in memory, auto-evicts old chunks
+            state.add_to_live_buffer(&session_id, samples.clone(), timestamp, sample_rate).await;
+            
+            debug!(
+                "Received waveform data from client {} for session {}: {} samples, freq={:.1}Hz, thd={:.2}%, thdn={:.2}%",
+                client_id,
+                session_id,
+                samples.len(),
+                waveform_analysis.dominant_frequency,
+                waveform_analysis.thd * 100.0,
+                harmonic_analysis.thdn * 100.0
+            );
+        }
+        
+        WsMessage::AnalysisData {
+            session_id,
+            peak_amplitude,
+            rms_amplitude,
+            dominant_frequency,
+            frequency_high: _,
+            frequency_low: _,
+            dc_offset: _,
+            timestamp: _,
+        } => {
+            // Broadcast analysis data to GraphQL subscribers
+            // Note: Could also store this in session DSP metrics via GraphQL mutation
+            let analysis = OutgoingMessage::Analysis {
+                session_id: session_id.clone(),
+                peak_amplitude,
+                rms_amplitude,
+                dominant_frequency,
+                thd: 0.0, // THD not sent from client
+                snr: 0.0, // SNR not sent from client
+                timestamp: chrono::Utc::now().timestamp_millis(),
+            };
+            
+            // Send analysis to the client that sent it (for confirmation)
+            let clients = state.clients.read().await;
+            if let Some(client) = clients.get(client_id) {
+                let _ = client.sender.send(analysis).await;
+            }
+            
+            debug!(
+                "Received analysis data from client {} for session {}: peak={}, rms={}, freq={}",
+                client_id,
+                session_id,
+                peak_amplitude,
+                rms_amplitude,
+                dominant_frequency
+            );
         }
         
         WsMessage::Ping => {

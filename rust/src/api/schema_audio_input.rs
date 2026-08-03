@@ -84,14 +84,6 @@ pub struct AudioInputMutationRoot;
 
 #[Object]
 impl AudioInputMutationRoot {
-    /// Submit audio samples from any client platform
-    /// 
-    /// The client is responsible for:
-    /// - Detecting the platform (Browser/Android/Desktop)
-    /// - Using the appropriate audio capture API
-    /// - Converting to the standard format (f32 samples, normalized)
-    /// 
-    /// Server simply receives and processes the audio data.
     async fn submit_audio(
         &self,
         ctx: &Context<'_>,

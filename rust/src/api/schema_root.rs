@@ -15,6 +15,7 @@ use super::{
     schema_session::{SessionMutation, SessionQuery},
     schema_settings::{SettingsMutation, SettingsQuery},
     schema_subscription::SubscriptionRoot,
+    schema_user_preferences::{UserPreferencesMutation, UserPreferencesQuery},
     schema_waveform::{WaveformMutation, WaveformQuery},
 };
 
@@ -31,6 +32,7 @@ pub struct Query(
     ApiKeyQueryRoot,
     AudioInputQueryRoot,
     DspQueryRoot,
+    UserPreferencesQuery,
 );
 
 /// Combined mutation type
@@ -45,6 +47,7 @@ pub struct Mutation(
     ApiKeyMutationRoot,
     AudioInputMutationRoot,
     DspMutationRoot,
+    UserPreferencesMutation,
 );
 
 /// Root subscription type (using SubscriptionRoot for real-time streaming)

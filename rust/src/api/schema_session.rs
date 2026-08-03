@@ -79,6 +79,18 @@ pub struct SessionOutput {
     pub is_sub_session: bool,
     /// Number of sub-sessions under this session
     pub sub_session_count: i32,
+    /// Peak amplitude
+    pub peak_amplitude: Option<f32>,
+    /// RMS amplitude
+    pub rms_amplitude: Option<f32>,
+    /// DC offset
+    pub dc_offset: Option<f32>,
+    /// Dominant frequency in Hz
+    pub dominant_frequency: Option<f32>,
+    /// Highest significant frequency in Hz
+    pub frequency_high: Option<f32>,
+    /// Lowest significant frequency in Hz
+    pub frequency_low: Option<f32>,
 }
 
 impl SessionOutput {
@@ -99,6 +111,12 @@ impl SessionOutput {
             parent_session_id: session.parent_session_id,
             is_sub_session: session.is_sub_session,
             sub_session_count: 0,
+            peak_amplitude: session.peak_amplitude,
+            rms_amplitude: session.rms_amplitude,
+            dc_offset: session.dc_offset,
+            dominant_frequency: session.dominant_frequency,
+            frequency_high: session.frequency_high,
+            frequency_low: session.frequency_low,
         }
     }
 
@@ -128,6 +146,12 @@ impl SessionOutput {
             parent_session_id: session.parent_session_id,
             is_sub_session: session.is_sub_session,
             sub_session_count,
+            peak_amplitude: session.peak_amplitude,
+            rms_amplitude: session.rms_amplitude,
+            dc_offset: session.dc_offset,
+            dominant_frequency: session.dominant_frequency,
+            frequency_high: session.frequency_high,
+            frequency_low: session.frequency_low,
         }
     }
 }
@@ -150,6 +174,17 @@ pub struct CreateSessionInput {
 pub struct UpdateSessionInput {
     pub name: Option<String>,
     pub description: Option<String>,
+}
+
+/// Input for updating session DSP metrics from live capture
+#[derive(Debug, InputObject)]
+pub struct UpdateSessionDspInput {
+    pub peak_amplitude: Option<f32>,
+    pub rms_amplitude: Option<f32>,
+    pub dc_offset: Option<f32>,
+    pub dominant_frequency: Option<f32>,
+    pub frequency_high: Option<f32>,
+    pub frequency_low: Option<f32>,
 }
 
 /// Input for audio capture settings
@@ -667,5 +702,36 @@ impl SessionMutation {
             .map_err(|e| async_graphql::Error::new(format!("Failed to save waveform: {:?}", e)))?;
 
         Ok(Some(crate::api::schema_waveform::WaveformOutput::from(saved_waveform)))
+    }
+
+    /// Update session DSP metrics from live oscilloscope capture
+    /// This is called periodically during capture to store amplitude and frequency data
+    async fn update_session_dsp(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        input: UpdateSessionDspInput,
+    ) -> Result<Option<SessionOutput>, async_graphql::Error> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+
+        let session = context
+            .session_service
+            .update_session_dsp_metrics(
+                &id,
+                crate::application::service_scope::DspMetrics {
+                    peak_amplitude: input.peak_amplitude,
+                    rms_amplitude: input.rms_amplitude,
+                    dc_offset: input.dc_offset,
+                    dominant_frequency: input.dominant_frequency,
+                    frequency_high: input.frequency_high,
+                    frequency_low: input.frequency_low,
+                },
+            )
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update session DSP: {:?}", e)))?;
+
+        Ok(Some(SessionOutput::from(session)))
     }
 }

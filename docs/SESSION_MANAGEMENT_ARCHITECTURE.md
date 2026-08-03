@@ -373,16 +373,21 @@ interface DialogSessionSelectProps {
 **Options**:
 ```typescript
 interface SessionSettingsOptions {
-  autoSelectLastSession: boolean;  // Default: false
-  // When true: Use last selected session automatically
-  // When false: Always show session selection dialog
-  
-  defaultSessionTimeout: number;  // Default: 30 (seconds)
-  // Auto-create sub-session after this duration
+  autoSelectLastSession: boolean;  // Default: true
+  // When true: Use last selected session automatically for all activities
+  //           (recordings, live captures, oscilloscope)
+  // When false: Always show session selection dialog when opening
+  //            oscilloscope or starting a recording
 }
 ```
 
+**Behavior**:
+- `autoSelectLastSession: true` → Automatically use the last used session for all activities
+- `autoSelectLastSession: false` → Always show session selection dialog
+
 **Storage**: Persist in localStorage or user preferences API
+
+**Note**: Sub-session creation (auto-create after 30s of inactivity) is handled automatically by the scope and is not configurable through settings.
 
 ---
 

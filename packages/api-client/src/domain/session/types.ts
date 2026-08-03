@@ -11,6 +11,12 @@ export interface Session {
   parentSessionId?: string;
   isSubSession: boolean;
   subSessionCount: number;
+  peakAmplitude?: number;
+  rmsAmplitude?: number;
+  dcOffset?: number;
+  dominantFrequency?: number;
+  frequencyHigh?: number;
+  frequencyLow?: number;
 }
 
 export interface CaptureSettingsInput {
@@ -30,6 +36,15 @@ export interface UpdateSessionInput {
   description?: string;
 }
 
+export interface UpdateSessionDspInput {
+  peakAmplitude?: number;
+  rmsAmplitude?: number;
+  dcOffset?: number;
+  dominantFrequency?: number;
+  frequencyHigh?: number;
+  frequencyLow?: number;
+}
+
 export interface SessionServer {
   id: string;
   name?: string;
@@ -43,4 +58,10 @@ export interface SessionServer {
   parentSessionId?: string;
   isSubSession: boolean;
   subSessionCount: number;
+  peakAmplitude?: number;
+  rmsAmplitude?: number;
+  dcOffset?: number;
+  dominantFrequency?: number;
+  frequencyHigh?: number;
+  frequencyLow?: number;
 }

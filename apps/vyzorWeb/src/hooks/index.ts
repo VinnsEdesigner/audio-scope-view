@@ -16,7 +16,12 @@ export {
   useCaptureWaveform,
   useOpenOscilloscope,
   useCloseOscilloscope,
+  useUpdateSessionDsp,
 } from "./use-sessions";
+export type { Session } from "./use-sessions";
+
+export { useSessionSettings } from "./use-session-settings";
+export { useLastUsedSession, useInitialSession } from "./use-last-used-session";
 
 export {
   useRecordings,
@@ -61,6 +66,15 @@ export {
   formatDuration,
   formatDurationLong,
   formatTimestampRelative,
+  formatSampleRate,
+  formatFrequency,
+  formatSampleCount,
+  formatBitDepth,
+  formatDCOffset,
+  formatDecibel,
+  formatDecibelRange,
+  formatSessionDate,
+  formatSessionTime,
 } from "@audio-scope-view/api-client/domain/_shared/audio-utilities";
 
 export { useAudioSettings } from "./use-audio-settings";
@@ -99,3 +113,12 @@ export type {
   StreamingPlaybackOptions,
   StreamingPlaybackReturn,
 } from "@/audio";
+
+export { useScopeCapture } from "./use-scope-capture";
+export type {
+  DspMetrics as ScopeCaptureDspMetrics,
+  DspMetrics,
+  AnalysisUpdate,
+  HarmonicComponent,
+  UseScopeCaptureReturn,
+} from "./use-scope-capture";

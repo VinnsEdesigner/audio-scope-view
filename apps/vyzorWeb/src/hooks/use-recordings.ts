@@ -27,10 +27,11 @@ export interface UseRecordingResult {
   error?: Error;
   called: boolean;
   client: ApolloClient<NormalizedCacheObject>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  refetch: (variables?: any) => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fetchMore: (variables?: any) => Promise<any>;
+
+  refetch: <T = RecordingPreview>(
+    variables?: Record<string, unknown>,
+  ) => Promise<{ data: T | undefined }>;
+  fetchMore: (variables?: Record<string, unknown>) => Promise<unknown>;
 }
 
 export interface UseRecordingsOptions {

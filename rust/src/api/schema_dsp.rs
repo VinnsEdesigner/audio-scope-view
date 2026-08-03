@@ -1,10 +1,3 @@
-//! DSP Schema - Signal Processing Operations
-//! 
-//! Wires up the domain DSP modules to the GraphQL API:
-//! - FFT Processor
-//! - Measurements (THD, SNR, RMS, Peak, etc.)
-//! - Spectrogram
-//! - Waveform Analysis
 
 use async_graphql::{Context, Object, InputObject, Enum};
 use chrono::Utc;

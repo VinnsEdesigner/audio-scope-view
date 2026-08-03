@@ -1,5 +1,7 @@
 //! Recording domain validation
 
+#![allow(dead_code)]
+
 use super::errors::RecordingError;
 use super::Recording;
 

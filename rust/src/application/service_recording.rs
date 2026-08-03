@@ -1,5 +1,7 @@
 //! Recording service - Business logic for recording operations
 
+#![allow(dead_code)]
+
 use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, ScopeStatus, SessionWithStatus, TimeRange};
 use crate::infrastructure::repo_sqlite_recording::SqliteRecordingRepository;
 use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;

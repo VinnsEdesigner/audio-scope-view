@@ -89,6 +89,14 @@ pub fn find_peak_amplitude(samples: &[f32]) -> f32 {
         .fold(0.0f32, |max, x| if x > max { x } else { max })
 }
 
+/// Find negative peak (minimum/most negative value) amplitude
+/// This is the actual negative peak of the waveform, not the absolute value
+pub fn find_negative_peak_amplitude(samples: &[f32]) -> f32 {
+    samples
+        .iter()
+        .fold(0.0f32, |min, &x| if x < min { x } else { min })
+}
+
 /// Compute RMS (Root Mean Square) amplitude
 pub fn compute_rms(samples: &[f32]) -> f32 {
     if samples.is_empty() {
@@ -290,6 +298,93 @@ pub fn format_snr(snr: f32) -> String {
     format!("{:.1} dB", snr)
 }
 
+// ============================================================================
+// Decibel (dB) Conversion Functions
+// ============================================================================
+
+/// Reference amplitude for dBFS (full-scale) calculations
+const DBFS_REFERENCE: f32 = 1.0;
+
+/// Convert linear amplitude (0 to 1) to decibels (dB)
+/// Returns -inf for zero amplitude, clamps to reasonable range
+pub fn amplitude_to_db(amplitude: f32) -> f32 {
+    if amplitude <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * amplitude.log10()
+    }
+}
+
+/// Convert decibels back to linear amplitude
+pub fn db_to_amplitude(db: f32) -> f32 {
+    if db == f32::NEG_INFINITY {
+        0.0
+    } else {
+        10.0_f32.powf(db / 20.0)
+    }
+}
+
+/// Convert peak amplitude to dBFS (dB Full Scale)
+/// 0 dBFS = maximum representable level (amplitude = 1.0)
+/// Negative values indicate headroom below full scale
+pub fn peak_to_dbfs(peak_amplitude: f32) -> f32 {
+    if peak_amplitude <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * (peak_amplitude / DBFS_REFERENCE).log10()
+    }
+}
+
+/// Convert RMS amplitude to dBFS
+/// For a pure sine wave, RMS = peak/sqrt(2), so RMS dBFS ≈ peak dBFS - 3dB
+pub fn rms_to_dbfs(rms_amplitude: f32) -> f32 {
+    if rms_amplitude <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * (rms_amplitude / DBFS_REFERENCE).log10()
+    }
+}
+
+/// Convert dBFS to linear amplitude
+pub fn dbfs_to_amplitude(dbfs: f32) -> f32 {
+    db_to_amplitude(dbfs)
+}
+
+/// Format amplitude as dB string
+pub fn format_db(value_db: f32) -> String {
+    if value_db == f32::NEG_INFINITY {
+        "-∞ dB".to_string()
+    } else {
+        format!("{:.1} dB", value_db)
+    }
+}
+
+/// Format amplitude as dBFS string (Full Scale)
+pub fn format_dbfs(value_dbfs: f32) -> String {
+    if value_dbfs == f32::NEG_INFINITY {
+        "-∞ dBFS".to_string()
+    } else {
+        format!("{:.1} dBFS", value_dbfs)
+    }
+}
+
+pub fn crest_factor_db(crest_factor: f32) -> f32 {
+    if crest_factor <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * crest_factor.log10()
+    }
+}
+
+/// Compute SNR in dB from signal and noise amplitudes
+pub fn snr_to_db(signal_amplitude: f32, noise_amplitude: f32) -> f32 {
+    if signal_amplitude <= 0.0 || noise_amplitude <= 0.0 {
+        0.0
+    } else {
+        20.0 * (signal_amplitude / noise_amplitude).log10()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,5 +433,74 @@ mod tests {
         let analysis = analyze_waveform(&samples, sample_rate);
         assert!((analysis.peak_amplitude - 0.8).abs() < 0.01);
         assert!((analysis.crest_factor - 1.414).abs() < 0.1);
+    }
+
+    // dB conversion tests
+    #[test]
+    fn test_amplitude_to_db() {
+        // amplitude 1.0 = 0 dB
+        assert!((amplitude_to_db(1.0) - 0.0).abs() < 0.001);
+        // amplitude 0.5 ≈ -6 dB
+        assert!((amplitude_to_db(0.5) - (-6.0206)).abs() < 0.01);
+        // amplitude 0.0 = -infinity (negative infinity since it's below reference)
+        let result = amplitude_to_db(0.0);
+        assert!(result.is_infinite() && result.is_sign_negative());
+    }
+
+    #[test]
+    fn test_db_to_amplitude() {
+        // 0 dB = amplitude 1.0
+        assert!((db_to_amplitude(0.0) - 1.0).abs() < 0.001);
+        // -6 dB ≈ 0.5
+        assert!((db_to_amplitude(-6.0206) - 0.5).abs() < 0.01);
+        // -infinity = 0
+        assert!((db_to_amplitude(f32::NEG_INFINITY) - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_peak_to_dbfs() {
+        // peak 1.0 = 0 dBFS
+        assert!((peak_to_dbfs(1.0) - 0.0).abs() < 0.001);
+        // peak 0.707 ≈ -3 dBFS
+        assert!((peak_to_dbfs(0.707).abs() - 3.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_rms_to_dbfs() {
+        // For a sine wave, RMS = peak/sqrt(2)
+        // If peak = 1.0, RMS ≈ 0.707, which is -3 dBFS
+        // But for RMS directly = 1.0, that's 0 dBFS
+        assert!((rms_to_dbfs(1.0) - 0.0).abs() < 0.001);
+        // RMS 0.5 ≈ -6 dBFS
+        assert!((rms_to_dbfs(0.5) - (-6.0206)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_db_roundtrip() {
+        // Test amplitude -> dB -> amplitude roundtrip
+        let original = 0.75;
+        let db = amplitude_to_db(original);
+        let recovered = db_to_amplitude(db);
+        assert!((original - recovered).abs() < 0.0001);
+
+        // Test dBFS -> amplitude -> dBFS roundtrip
+        let original_dbfs = -12.0;
+        let amp = dbfs_to_amplitude(original_dbfs);
+        let recovered_dbfs = rms_to_dbfs(amp);
+        assert!((original_dbfs - recovered_dbfs).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_format_db() {
+        assert_eq!(format_db(0.0), "0.0 dB");
+        assert_eq!(format_db(-6.0), "-6.0 dB");
+        assert_eq!(format_db(f32::NEG_INFINITY), "-∞ dB".to_string());
+    }
+
+    #[test]
+    fn test_format_dbfs() {
+        assert_eq!(format_dbfs(0.0), "0.0 dBFS");
+        assert_eq!(format_dbfs(-3.0), "-3.0 dBFS");
+        assert_eq!(format_dbfs(f32::NEG_INFINITY), "-∞ dBFS".to_string());
     }
 }

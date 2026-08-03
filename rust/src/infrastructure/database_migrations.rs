@@ -53,6 +53,21 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "add_oscilloscope_to_sessions",
         sql: include_str!("../../migrations/009_add_oscilloscope_to_sessions.sql"),
     },
+    Migration {
+        version: 9,
+        name: "add_session_metadata",
+        sql: include_str!("../../migrations/010_add_session_metadata.sql"),
+    },
+    Migration {
+        version: 10,
+        name: "create_user_preferences",
+        sql: include_str!("../../migrations/011_create_user_preferences.sql"),
+    },
+    Migration {
+        version: 11,
+        name: "add_peak_negative_db_to_recordings",
+        sql: include_str!("../../migrations/012_add_peak_negative_db_to_recordings.sql"),
+    },
 ];
 
 /// Run all pending migrations

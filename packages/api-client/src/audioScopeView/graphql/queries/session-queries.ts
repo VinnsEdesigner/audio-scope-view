@@ -14,6 +14,12 @@ export const SESSION_FIELDS = gql`
     parentSessionId
     isSubSession
     subSessionCount
+    peakAmplitude
+    rmsAmplitude
+    dcOffset
+    dominantFrequency
+    frequencyHigh
+    frequencyLow
   }
 `;
 
