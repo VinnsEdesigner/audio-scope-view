@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
   useCreateRecording,
+  useGetOrCreateSession,
   useAudioAnalyzer,
   useUIStore,
   useAudioStore,
@@ -169,21 +170,37 @@ function WaveformCanvas({
 interface DialogMicRecordingProperties {
   isOpen: boolean;
   onClose: () => void;
-  sessionId?: string;
   _scopeName?: string;
 }
 
 export function DialogMicRecording({
   isOpen,
   onClose,
-  sessionId,
   _scopeName,
 }: DialogMicRecordingProperties): React.ReactElement {
   const { showToast } = useToast();
   const { devices, selectedDeviceId, setSelectedDeviceId, hasPermission, requestPermission } =
     useMediaDevices();
   const [createRecording] = useCreateRecording();
+  const [getOrCreateSession] = useGetOrCreateSession();
+  const [activeSessionId, setActiveSessionId] = React.useState<string | undefined>();
   const globalSampleRate = useAudioStore((state) => state.sampleRate);
+
+  // Auto-get or create session when dialog opens
+  React.useEffect(() => {
+    if (isOpen && !activeSessionId) {
+      getOrCreateSession()
+        .then((result) => {
+          const sessionId = result?.data?.getOrCreateSession?.id;
+          if (sessionId) {
+            setActiveSessionId(sessionId);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to get or create session:", error);
+        });
+    }
+  }, [isOpen, activeSessionId, getOrCreateSession]);
 
   const { waveformColor, showGrid, smoothWaveform, glow, autoScale, invert } = useUIStore();
 
@@ -255,8 +272,8 @@ export function DialogMicRecording({
   };
 
   const stopAndSave = async () => {
-    if (!sessionId) {
-      showToast({ message: "No active session — please start a session first", type: "warning" });
+    if (!activeSessionId) {
+      showToast({ message: "No active session — please try again", type: "warning" });
       return;
     }
 
@@ -268,7 +285,7 @@ export function DialogMicRecording({
         await createRecording({
           variables: {
             input: {
-              sessionId,
+              sessionId: activeSessionId,
               name: recordingName || `Recording ${new Date().toLocaleString()}`,
               samples: Array.from(captured),
               sampleRate: globalSampleRate,

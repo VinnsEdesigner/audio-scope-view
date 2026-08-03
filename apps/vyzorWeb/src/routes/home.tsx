@@ -221,54 +221,20 @@ export function Home(): React.ReactElement {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {isLoading ? (
-            <>
-              <Skeleton className="w-10 h-10 rounded-lg" />
-              <Skeleton className="w-10 h-10 rounded-lg" />
-            </>
-          ) : (
-            <>
-              {activeSessionId ? (
-                <>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/20 border border-accent/30 rounded-lg">
-                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                    <span className="text-xs text-accent font-medium">Session Active</span>
-                  </div>
-                  <button
-                    onClick={() => handleEndSession(activeSessionId)}
-                    className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-destructive/20 border border-border-subtle rounded-lg transition-colors"
-                    title="End Session"
-                  >
-                    <Square size={16} className="text-destructive" />
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={handleStartSession}
-                  className="flex items-center gap-2 px-3 py-2 bg-accent hover:bg-accent/80 text-white rounded-lg transition-colors text-sm font-medium"
-                  title="Start Session"
-                >
-                  <Plus size={16} />
-                  Start Session
-                </button>
-              )}
-              <button
-                onClick={() => setIsMicDialogOpen(true)}
-                disabled={!activeSessionId}
-                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={activeSessionId ? "Record to Session" : "Start a session first"}
-              >
-                <Mic size={18} className="text-text-secondary" />
-              </button>
-              <button
-                onClick={() => navigate("/settings")}
-                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-                title="Settings"
-              >
-                <SettingsIcon size={18} className="text-text-secondary" />
-              </button>
-            </>
-          )}
+          <button
+            onClick={() => setIsMicDialogOpen(true)}
+            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+            title="Record"
+          >
+            <Mic size={18} className="text-text-secondary" />
+          </button>
+          <button
+            onClick={() => navigate("/settings")}
+            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+            title="Settings"
+          >
+            <SettingsIcon size={18} className="text-text-secondary" />
+          </button>
         </div>
       </header>
 
@@ -669,7 +635,6 @@ export function Home(): React.ReactElement {
       <DialogMicRecording
         isOpen={isMicDialogOpen}
         onClose={() => setIsMicDialogOpen(false)}
-        sessionId={activeSessionId}
       />
     </div>
   );
