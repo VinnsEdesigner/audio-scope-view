@@ -19,7 +19,6 @@ interface ScopeCanvasProperties {
 
 export function ScopeCanvas({
   waveformData,
-  isCapturing = false,
   isPaused = false,
   forwardedRef,
 }: ScopeCanvasProperties) {
