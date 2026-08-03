@@ -251,9 +251,9 @@ export function DialogMicRecording({
   };
 
   const stopAndSave = async () => {
-    stopCapture();
+    const captured = stopCapture();
 
-    if (samples.length > 0 && sessionId) {
+    if (captured.length > 0 && sessionId) {
       try {
         await startRecording({
           variables: {
@@ -265,6 +265,8 @@ export function DialogMicRecording({
       } catch {
         showToast({ message: "Failed to save recording", type: "error" });
       }
+    } else {
+      showToast({ message: "Nothing captured — recording not saved", type: "warning" });
     }
   };
 
@@ -279,10 +281,12 @@ export function DialogMicRecording({
     }
   }, [isOpen, hasPermission, requestPermission]);
 
+  const wasOpenReference = React.useRef(false);
   React.useEffect(() => {
-    if (!isOpen) {
+    if (wasOpenReference.current && !isOpen) {
       discardCapture();
     }
+    wasOpenReference.current = isOpen;
   }, [isOpen, discardCapture]);
 
   const handleClose = () => {
