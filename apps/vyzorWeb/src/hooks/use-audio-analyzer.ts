@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import {
   normalizeAudioData,
   calculateRMS,
@@ -7,6 +7,7 @@ import {
   downsampleWaveform,
   collectSamples,
 } from "@audio-scope-view/api-client/domain/_shared/audio-utilities";
+import { useAudioStore } from "../store";
 
 export type RecordingState = "idle" | "recording" | "paused";
 
@@ -27,238 +28,256 @@ export interface AudioAnalyzerState {
   sampleRate: number;
   duration: number;
   samples: Float32Array;
+  analysisFrame: Float32Array;
   vpp: number;
   frequency: number;
   windowMs: number;
+  error: Error | undefined;
 }
 
 export interface UseAudioAnalyzerReturn extends AudioAnalyzerState {
   startCapture: () => Promise<void>;
   pauseCapture: () => void;
   resumeCapture: () => void;
-  stopCapture: () => void;
+  stopCapture: () => Float32Array;
   discardCapture: () => void;
   isCapturing: boolean;
-  error: Error | undefined;
 }
 
 const DEFAULT_FFT_SIZE = 4096;
 const DEFAULT_SMOOTHING = 0.3;
-const DEFAULT_WAVEFORM_POINTS = 64;
+const DEFAULT_WAVEFORM_POINTS = 256;
 const DEFAULT_SAMPLE_INTERVAL = 16;
+const ANALYSIS_FRAME_INTERVAL_MS = 100;
 
-export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudioAnalyzerReturn {
-  const {
-    deviceId,
-    desiredSampleRate,
-    fftSize = DEFAULT_FFT_SIZE,
-    smoothingTimeConstant = DEFAULT_SMOOTHING,
-    waveformPoints = DEFAULT_WAVEFORM_POINTS,
-    sampleCollectionInterval = DEFAULT_SAMPLE_INTERVAL,
-  } = options;
+const EMPTY_SAMPLES = new Float32Array();
 
-  const [recordingState, setRecordingState] = useState<RecordingState>("idle");
-  const [volumeLevel, setVolumeLevel] = useState(0);
-  const [peakLevel, setPeakLevel] = useState(0);
-  const [waveformData, setWaveformData] = useState<number[]>([]);
-  const [sampleRate, setSampleRate] = useState(44_100);
-  const [duration, setDuration] = useState(0);
-  const [samples, setSamples] = useState<Float32Array>(new Float32Array());
-  const [vpp, setVpp] = useState(0);
-  const [frequency, setFrequency] = useState(0);
-  const [error, setError] = useState<Error | undefined>();
+function createInitialState(): AudioAnalyzerState {
+  return {
+    recordingState: "idle",
+    volumeLevel: 0,
+    peakLevel: 0,
+    waveformData: [],
+    sampleRate: useAudioStore.getState().sampleRate,
+    duration: 0,
+    samples: EMPTY_SAMPLES,
+    analysisFrame: EMPTY_SAMPLES,
+    vpp: 0,
+    frequency: 0,
+    windowMs: 0,
+    error: undefined,
+  };
+}
 
-  const audioContextReference = useRef<AudioContext | undefined>(undefined);
-  const analyserReference = useRef<AnalyserNode | undefined>(undefined);
-  const mediaStreamReference = useRef<MediaStream | undefined>(undefined);
-  const animationFrameReference = useRef<number | undefined>(undefined);
-  const durationIntervalReference = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  const collectedSamplesReference = useRef<Float32Array>(new Float32Array());
-  const recordingStateReference = useRef<RecordingState>("idle");
+/**
+ * The microphone is a single hardware resource, so the analyzer is a module-level
+ * singleton store. Every component that calls `useAudioAnalyzer` observes the exact
+ * same capture state (previously each call site created an isolated instance, so the
+ * top bar / bottom readouts / dialogs never reflected the running capture).
+ */
+let state: AudioAnalyzerState = createInitialState();
+const listeners = new Set<() => void>();
 
-  const isCapturing = recordingState !== "idle";
+function emit() {
+  for (const listener of listeners) listener();
+}
 
-  const cleanup = useCallback(() => {
-    if (animationFrameReference.current) {
-      cancelAnimationFrame(animationFrameReference.current);
-      animationFrameReference.current = undefined;
+function setState(patch: Partial<AudioAnalyzerState>) {
+  state = { ...state, ...patch };
+  emit();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot() {
+  return state;
+}
+
+let options: Required<Omit<UseAudioAnalyzerOptions, "deviceId" | "desiredSampleRate">> &
+  Pick<UseAudioAnalyzerOptions, "deviceId" | "desiredSampleRate"> = {
+  deviceId: undefined,
+  desiredSampleRate: undefined,
+  fftSize: DEFAULT_FFT_SIZE,
+  smoothingTimeConstant: DEFAULT_SMOOTHING,
+  waveformPoints: DEFAULT_WAVEFORM_POINTS,
+  sampleCollectionInterval: DEFAULT_SAMPLE_INTERVAL,
+};
+
+function mergeOptions(next: UseAudioAnalyzerOptions) {
+  const merged = { ...options };
+  for (const key of Object.keys(next) as (keyof UseAudioAnalyzerOptions)[]) {
+    const value = next[key];
+    if (value !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (merged as any)[key] = value;
     }
+  }
+  options = merged;
+}
 
-    if (durationIntervalReference.current) {
-      clearInterval(durationIntervalReference.current);
-      durationIntervalReference.current = undefined;
-    }
+let audioContext: AudioContext | undefined;
+let analyser: AnalyserNode | undefined;
+let mediaStream: MediaStream | undefined;
+let animationFrameId: number | undefined;
+let durationInterval: ReturnType<typeof setInterval> | undefined;
+let collected: Float32Array = new Float32Array();
 
-    if (mediaStreamReference.current) {
-      for (const track of mediaStreamReference.current.getTracks()) track.stop();
-      mediaStreamReference.current = undefined;
-    }
+function cleanup() {
+  if (animationFrameId !== undefined) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = undefined;
+  }
+  if (durationInterval !== undefined) {
+    clearInterval(durationInterval);
+    durationInterval = undefined;
+  }
+  if (mediaStream) {
+    for (const track of mediaStream.getTracks()) track.stop();
+    mediaStream = undefined;
+  }
+  if (audioContext) {
+    void audioContext.close();
+    audioContext = undefined;
+  }
+  analyser = undefined;
+}
 
-    if (audioContextReference.current) {
-      audioContextReference.current.close();
-      audioContextReference.current = undefined;
-    }
+async function startCapture(): Promise<void> {
+  try {
+    setState({ error: undefined });
+    cleanup();
 
-    analyserReference.current = undefined;
-  }, []);
+    const { deviceId, desiredSampleRate, fftSize, smoothingTimeConstant, waveformPoints } = options;
 
-  const startCapture = useCallback(async () => {
-    try {
-      setError(undefined);
-      cleanup();
+    const audioConstraints: MediaTrackConstraints = {
+      deviceId: deviceId ? { exact: deviceId } : undefined,
+      echoCancellation: { exact: false },
+      noiseSuppression: { exact: false },
+      autoGainControl: { exact: false },
+    };
 
-      const audioConstraints: MediaTrackConstraints = {
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        echoCancellation: { exact: false },
-        noiseSuppression: { exact: false },
-        autoGainControl: { exact: false },
-      };
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
 
-      if (desiredSampleRate) {
-        audioConstraints.sampleRate = { exact: desiredSampleRate };
+    const contextOptions: AudioContextOptions = {};
+    if (desiredSampleRate) contextOptions.sampleRate = desiredSampleRate;
+
+    const context = new AudioContext(contextOptions);
+    const source = context.createMediaStreamSource(stream);
+    const node = context.createAnalyser();
+
+    node.fftSize = fftSize;
+    node.smoothingTimeConstant = smoothingTimeConstant;
+    source.connect(node);
+
+    mediaStream = stream;
+    audioContext = context;
+    analyser = node;
+    collected = new Float32Array();
+
+    setState({
+      sampleRate: context.sampleRate,
+      duration: 0,
+      recordingState: "recording",
+      samples: EMPTY_SAMPLES,
+    });
+
+    durationInterval = setInterval(() => {
+      if (state.recordingState === "recording") {
+        setState({ duration: state.duration + 100 });
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints,
-      });
-
-      const audioContextOptions: AudioContextOptions = {};
-      if (desiredSampleRate) {
-        audioContextOptions.sampleRate = desiredSampleRate;
-      }
-      const audioContext = new AudioContext(audioContextOptions);
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-
-      analyser.fftSize = fftSize;
-      analyser.smoothingTimeConstant = smoothingTimeConstant;
-      source.connect(analyser);
-
-      mediaStreamReference.current = stream;
-      audioContextReference.current = audioContext;
-      analyserReference.current = analyser;
-      setSampleRate(audioContext.sampleRate);
-
-      collectedSamplesReference.current = new Float32Array();
-
-      setDuration(0);
-      durationIntervalReference.current = setInterval(() => {
-        setDuration((d) => d + 100);
-      }, 100);
-
-      recordingStateReference.current = "recording";
-      setRecordingState("recording");
-
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      const updateVisualization = () => {
-        if (
-          !analyserReference.current ||
-          !audioContextReference.current ||
-          recordingStateReference.current === "idle"
-        ) {
-          return;
-        }
-
-        analyserReference.current.getByteTimeDomainData(dataArray);
-
-        const normalizedData = normalizeAudioData(dataArray);
-
-        const rms = calculateRMS(normalizedData);
-        const peak = calculatePeak(normalizedData);
-        const freq = calculateFrequency(normalizedData, audioContextReference.current.sampleRate);
-
-        setVolumeLevel(Math.min(rms * 3, 1));
-        setPeakLevel(Math.min(peak, 1));
-        setVpp(peak * 2);
-        setFrequency(freq);
-
-        const waveform = downsampleWaveform(normalizedData, waveformPoints);
-        setWaveformData(waveform);
-
-        if (recordingStateReference.current === "recording") {
-          const collected = collectSamples(dataArray, sampleCollectionInterval);
-          const currentSamples = collectedSamplesReference.current;
-          collectedSamplesReference.current = new Float32Array(
-            currentSamples.length + collected.length,
-          );
-          collectedSamplesReference.current.set(currentSamples);
-          collectedSamplesReference.current.set(collected, currentSamples.length);
-        }
-
-        animationFrameReference.current = requestAnimationFrame(updateVisualization);
-      };
-
-      updateVisualization();
-    } catch (error_) {
-      console.error("Failed to start audio capture:", error_);
-      setError(error_ instanceof Error ? error_ : new Error("Failed to start capture"));
-      cleanup();
-    }
-  }, [
-    deviceId,
-    desiredSampleRate,
-    fftSize,
-    smoothingTimeConstant,
-    waveformPoints,
-    sampleCollectionInterval,
-    cleanup,
-  ]);
-
-  const pauseCapture = useCallback(() => {
-    if (durationIntervalReference.current) {
-      clearInterval(durationIntervalReference.current);
-      durationIntervalReference.current = undefined;
-    }
-    recordingStateReference.current = "paused";
-    setRecordingState("paused");
-  }, []);
-
-  const resumeCapture = useCallback(() => {
-    durationIntervalReference.current = setInterval(() => {
-      setDuration((d) => d + 100);
     }, 100);
-    recordingStateReference.current = "recording";
-    setRecordingState("recording");
-  }, []);
 
-  const stopCapture = useCallback(() => {
-    setSamples(collectedSamplesReference.current);
-    cleanup();
-    recordingStateReference.current = "idle";
-    setRecordingState("idle");
-  }, [cleanup]);
+    const dataArray = new Uint8Array(node.frequencyBinCount);
+    let lastAnalysisFrameAt = 0;
 
-  const discardCapture = useCallback(() => {
-    collectedSamplesReference.current = new Float32Array();
-    setSamples(new Float32Array());
+    const tick = () => {
+      if (!analyser || !audioContext || state.recordingState === "idle") return;
+
+      if (state.recordingState === "recording") {
+        analyser.getByteTimeDomainData(dataArray);
+
+        const normalized = normalizeAudioData(dataArray);
+        const rms = calculateRMS(normalized);
+        const peak = calculatePeak(normalized);
+        const frequency = calculateFrequency(normalized, audioContext.sampleRate);
+
+        const patch: Partial<AudioAnalyzerState> = {
+          volumeLevel: Math.min(rms * 3, 1),
+          peakLevel: Math.min(peak, 1),
+          vpp: peak * 2,
+          frequency,
+          waveformData: downsampleWaveform(normalized, options.waveformPoints ?? waveformPoints),
+        };
+
+        const now = performance.now();
+        if (now - lastAnalysisFrameAt > ANALYSIS_FRAME_INTERVAL_MS) {
+          lastAnalysisFrameAt = now;
+          patch.analysisFrame = normalized;
+        }
+
+        setState(patch);
+
+        const chunk = collectSamples(dataArray, options.sampleCollectionInterval);
+        const next = new Float32Array(collected.length + chunk.length);
+        next.set(collected);
+        next.set(chunk, collected.length);
+        collected = next;
+      }
+
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    tick();
+  } catch (error) {
+    console.error("Failed to start audio capture:", error);
+    setState({
+      error: error instanceof Error ? error : new Error("Failed to start capture"),
+      recordingState: "idle",
+    });
     cleanup();
-    recordingStateReference.current = "idle";
-    setRecordingState("idle");
-    setVolumeLevel(0);
-    setPeakLevel(0);
-    setWaveformData([]);
-    setDuration(0);
-    setVpp(0);
-    setFrequency(0);
-  }, [cleanup]);
+  }
+}
+
+function pauseCapture() {
+  if (state.recordingState !== "recording") return;
+  setState({ recordingState: "paused" });
+}
+
+function resumeCapture() {
+  if (state.recordingState !== "paused") return;
+  setState({ recordingState: "recording" });
+}
+
+function stopCapture(): Float32Array {
+  const captured = collected;
+  cleanup();
+  setState({ samples: captured, recordingState: "idle" });
+  return captured;
+}
+
+function discardCapture() {
+  collected = new Float32Array();
+  cleanup();
+  state = { ...createInitialState(), sampleRate: state.sampleRate };
+  emit();
+}
+
+export function useAudioAnalyzer(hookOptions: UseAudioAnalyzerOptions = {}): UseAudioAnalyzerReturn {
+  mergeOptions(hookOptions);
+
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const start = useCallback(() => startCapture(), []);
 
   return {
-    recordingState,
-    volumeLevel,
-    peakLevel,
-    waveformData,
-    sampleRate,
-    duration,
-    samples,
-    vpp,
-    frequency,
-    windowMs: 0,
-    isCapturing,
-    error,
-
-    startCapture,
+    ...snapshot,
+    isCapturing: snapshot.recordingState !== "idle",
+    startCapture: start,
     pauseCapture,
     resumeCapture,
     stopCapture,
