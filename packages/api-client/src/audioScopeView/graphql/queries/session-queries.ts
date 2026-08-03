@@ -3,12 +3,17 @@ import { gql } from "@apollo/client";
 export const SESSION_FIELDS = gql`
   fragment SessionFields on SessionOutput {
     id
+    name
+    description
     startedAt
     endedAt
     durationSeconds
     recordingCount
     isOscilloscopeOpen
     oscilloscopeDurationMs
+    parentSessionId
+    isSubSession
+    subSessionCount
   }
 `;
 
@@ -42,5 +47,23 @@ export const GET_ACTIVE_SESSIONS = gql`
 export const GET_SESSION_COUNT = gql`
   query GetSessionCount {
     sessionCount
+  }
+`;
+
+export const GET_SUB_SESSIONS = gql`
+  ${SESSION_FIELDS}
+  query GetSubSessions($parentId: String!, $limit: Int, $offset: Int) {
+    subSessions(parentId: $parentId, limit: $limit, offset: $offset) {
+      ...SessionFields
+    }
+  }
+`;
+
+export const GET_PARENT_SESSION = gql`
+  ${SESSION_FIELDS}
+  query GetParentSession($subSessionId: String!) {
+    parentSession(subSessionId: $subSessionId) {
+      ...SessionFields
+    }
   }
 `;

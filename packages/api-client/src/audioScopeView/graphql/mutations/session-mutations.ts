@@ -10,6 +10,15 @@ export const START_SESSION = gql`
   }
 `;
 
+export const CREATE_NAMED_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation CreateNamedSession($input: CreateSessionInput!) {
+    createNamedSession(input: $input) {
+      ...SessionFields
+    }
+  }
+`;
+
 export const GET_OR_CREATE_SESSION = gql`
   ${SESSION_FIELDS}
   mutation GetOrCreateSession {
@@ -41,6 +50,15 @@ export const DELETE_SESSION = gql`
   }
 `;
 
+export const UPDATE_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation UpdateSession($id: String!, $input: UpdateSessionInput!) {
+    updateSession(id: $id, input: $input) {
+      ...SessionFields
+    }
+  }
+`;
+
 export const OPEN_OSCILLOSCOPE = gql`
   mutation OpenOscilloscope($sessionId: String!) {
     openOscilloscope(sessionId: $sessionId) {
@@ -57,6 +75,15 @@ export const CLOSE_OSCILLOSCOPE = gql`
       id
       isOscilloscopeOpen
       oscilloscopeDurationMs
+    }
+  }
+`;
+
+export const CREATE_SUB_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation CreateSubSession($parentId: String!) {
+    createSubSession(parentId: $parentId) {
+      ...SessionFields
     }
   }
 `;

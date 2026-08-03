@@ -4,17 +4,23 @@ import {
   GET_SESSIONS_BY_ID,
   GET_ACTIVE_SESSIONS,
   GET_SESSION_COUNT,
+  GET_SUB_SESSIONS,
+  GET_PARENT_SESSION,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import {
   START_SESSION,
+  CREATE_NAMED_SESSION,
   GET_OR_CREATE_SESSION,
   END_SESSION,
   SESSION_HEARTBEAT,
   DELETE_SESSION,
+  UPDATE_SESSION,
   OPEN_OSCILLOSCOPE,
   CLOSE_OSCILLOSCOPE,
+  CREATE_SUB_SESSION,
   CAPTURE_WAVEFORM,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
+import type { CreateSessionInput, UpdateSessionInput } from "@audio-scope-view/api-client/domain/session";
 
 export interface UseSessionsOptions {
   limit?: number;
@@ -49,8 +55,31 @@ export function useSessionDetail(id: string | undefined) {
   });
 }
 
+export function useSubSessions(parentId: string | undefined, options: UseSessionsOptions = {}) {
+  const { limit = 20, offset = 0 } = options;
+  return useQuery(GET_SUB_SESSIONS, {
+    variables: { parentId, limit, offset },
+    skip: !parentId,
+    fetchPolicy: "cache-and-network",
+  });
+}
+
+export function useParentSession(subSessionId: string | undefined) {
+  return useQuery(GET_PARENT_SESSION, {
+    variables: { subSessionId },
+    skip: !subSessionId,
+    fetchPolicy: "cache-and-network",
+  });
+}
+
 export function useStartSession() {
   return useMutation(START_SESSION, {
+    refetchQueries: [{ query: GET_SESSIONS }],
+  });
+}
+
+export function useCreateNamedSession() {
+  return useMutation(CREATE_NAMED_SESSION, {
     refetchQueries: [{ query: GET_SESSIONS }],
   });
 }
@@ -73,6 +102,18 @@ export function useSessionHeartbeat() {
 
 export function useDeleteSession() {
   return useMutation(DELETE_SESSION, {
+    refetchQueries: [{ query: GET_SESSIONS }],
+  });
+}
+
+export function useUpdateSession() {
+  return useMutation(UPDATE_SESSION, {
+    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_SESSIONS_BY_ID }],
+  });
+}
+
+export function useCreateSubSession() {
+  return useMutation(CREATE_SUB_SESSION, {
     refetchQueries: [{ query: GET_SESSIONS }],
   });
 }

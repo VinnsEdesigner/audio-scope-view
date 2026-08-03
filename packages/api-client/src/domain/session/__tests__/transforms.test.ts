@@ -9,6 +9,9 @@ describe("session transforms", () => {
         id: "session-1",
         startedAt: "2024-01-01T00:00:00Z",
         recordingCount: 0,
+        isOscilloscopeOpen: false,
+        isSubSession: false,
+        subSessionCount: 0,
       };
 
       const session = sessionFromRaw(serverSession);
@@ -18,6 +21,9 @@ describe("session transforms", () => {
       expect(session.endedAt).toBeUndefined();
       expect(session.durationSeconds).toBeUndefined();
       expect(session.recordingCount).toBe(0);
+      expect(session.isOscilloscopeOpen).toBe(false);
+      expect(session.isSubSession).toBe(false);
+      expect(session.subSessionCount).toBe(0);
     });
 
     it("should handle ended session with duration", () => {
@@ -27,6 +33,9 @@ describe("session transforms", () => {
         endedAt: "2024-01-01T01:00:00Z",
         durationSeconds: 3600,
         recordingCount: 5,
+        isOscilloscopeOpen: false,
+        isSubSession: false,
+        subSessionCount: 0,
       };
 
       const session = sessionFromRaw(serverSession);
@@ -43,12 +52,56 @@ describe("session transforms", () => {
         endedAt: "2024-03-10T13:00:00.000Z",
         durationSeconds: 3600,
         recordingCount: 3,
+        isOscilloscopeOpen: true,
+        oscilloscopeDurationMs: 5000,
+        isSubSession: false,
+        subSessionCount: 2,
       };
 
       const session = sessionFromRaw(serverSession);
 
       expect(session.startedAt.getTime()).toBe(new Date("2024-03-10T12:00:00.000Z").getTime());
       expect(session.endedAt?.getTime()).toBe(new Date("2024-03-10T13:00:00.000Z").getTime());
+      expect(session.isOscilloscopeOpen).toBe(true);
+      expect(session.oscilloscopeDurationMs).toBe(5000);
+      expect(session.subSessionCount).toBe(2);
+    });
+
+    it("should handle named session", () => {
+      const serverSession: SessionServer = {
+        id: "session-4",
+        name: "Morning Lab",
+        description: "Testing audio filters",
+        startedAt: "2024-01-01T00:00:00Z",
+        recordingCount: 2,
+        isOscilloscopeOpen: false,
+        isSubSession: false,
+        subSessionCount: 1,
+      };
+
+      const session = sessionFromRaw(serverSession);
+
+      expect(session.name).toBe("Morning Lab");
+      expect(session.description).toBe("Testing audio filters");
+      expect(session.subSessionCount).toBe(1);
+    });
+
+    it("should handle sub-session", () => {
+      const serverSession: SessionServer = {
+        id: "sub-session-1",
+        startedAt: "2024-01-01T00:00:00Z",
+        recordingCount: 1,
+        isOscilloscopeOpen: false,
+        isSubSession: true,
+        subSessionCount: 0,
+        parentSessionId: "parent-session-1",
+      };
+
+      const session = sessionFromRaw(serverSession);
+
+      expect(session.isSubSession).toBe(true);
+      expect(session.parentSessionId).toBe("parent-session-1");
+      expect(session.subSessionCount).toBe(0);
     });
   });
 
@@ -59,6 +112,9 @@ describe("session transforms", () => {
           id: "session-1",
           startedAt: "2024-01-01T00:00:00Z",
           recordingCount: 0,
+          isOscilloscopeOpen: false,
+          isSubSession: false,
+          subSessionCount: 0,
         },
         {
           id: "session-2",
@@ -66,6 +122,9 @@ describe("session transforms", () => {
           endedAt: "2024-01-02T01:00:00Z",
           durationSeconds: 3600,
           recordingCount: 3,
+          isOscilloscopeOpen: false,
+          isSubSession: false,
+          subSessionCount: 0,
         },
       ];
 
