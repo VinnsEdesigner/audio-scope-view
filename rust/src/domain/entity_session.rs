@@ -12,6 +12,10 @@ pub struct Session {
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
     pub duration_seconds: Option<i64>,
+    /// When oscilloscope was opened within this session
+    pub oscilloscope_opened_at: Option<DateTime<Utc>>,
+    /// Total oscilloscope capture duration in milliseconds
+    pub oscilloscope_duration_ms: Option<f64>,
 }
 
 impl Session {
@@ -23,6 +27,8 @@ impl Session {
             started_at: Utc::now(),
             ended_at: None,
             duration_seconds: None,
+            oscilloscope_opened_at: None,
+            oscilloscope_duration_ms: None,
         }
     }
 
@@ -42,6 +48,29 @@ impl Session {
     /// Check if session is still active (not ended)
     pub fn is_active(&self) -> bool {
         self.ended_at.is_none()
+    }
+
+    /// Open oscilloscope capture (starts tracking time)
+    pub fn open_oscilloscope(&mut self) {
+        if self.oscilloscope_opened_at.is_none() {
+            self.oscilloscope_opened_at = Some(Utc::now());
+        }
+    }
+
+    /// Close oscilloscope capture (calculates duration)
+    pub fn close_oscilloscope(&mut self) {
+        if let Some(opened_at) = self.oscilloscope_opened_at.take() {
+            let now = Utc::now();
+            let duration = (now - opened_at).num_milliseconds() as f64;
+            self.oscilloscope_duration_ms = Some(
+                self.oscilloscope_duration_ms.unwrap_or(0.0) + duration
+            );
+        }
+    }
+
+    /// Check if oscilloscope is currently open
+    pub fn is_oscilloscope_open(&self) -> bool {
+        self.oscilloscope_opened_at.is_some()
     }
 }
 

@@ -10,6 +10,15 @@ export const START_SESSION = gql`
   }
 `;
 
+export const GET_OR_CREATE_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation GetOrCreateSession {
+    getOrCreateSession {
+      ...SessionFields
+    }
+  }
+`;
+
 export const END_SESSION = gql`
   mutation EndSession($id: String!) {
     endSession(id: $id) {
@@ -29,6 +38,26 @@ export const SESSION_HEARTBEAT = gql`
 export const DELETE_SESSION = gql`
   mutation DeleteSession($id: String!) {
     deleteSession(id: $id)
+  }
+`;
+
+export const OPEN_OSCILLOSCOPE = gql`
+  mutation OpenOscilloscope($sessionId: String!) {
+    openOscilloscope(sessionId: $sessionId) {
+      id
+      isOscilloscopeOpen
+      oscilloscopeDurationMs
+    }
+  }
+`;
+
+export const CLOSE_OSCILLOSCOPE = gql`
+  mutation CloseOscilloscope($sessionId: String!) {
+    closeOscilloscope(sessionId: $sessionId) {
+      id
+      isOscilloscopeOpen
+      oscilloscopeDurationMs
+    }
   }
 `;
 

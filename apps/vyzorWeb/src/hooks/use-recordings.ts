@@ -13,10 +13,7 @@ import {
   DELETE_RECORDING,
   PIN_RECORDINGS,
   DELETE_RECORDINGS,
-  START_RECORDING,
-  STOP_RECORDING,
-  PAUSE_RECORDING,
-  RESUME_RECORDING,
+  CREATE_RECORDING,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations/recording-mutations";
 import type { TimeRange, RecordingPreview } from "@audio-scope-view/api-client/domain/recording";
 import { transformRecordingPreview } from "@audio-scope-view/api-client/domain/recording";
@@ -150,26 +147,8 @@ export function useDeleteRecordings() {
   });
 }
 
-export function useStartRecording() {
-  return useMutation(START_RECORDING, {
+export function useCreateRecording() {
+  return useMutation(CREATE_RECORDING, {
     refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
-  });
-}
-
-export function useStopRecording() {
-  return useMutation(STOP_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
-  });
-}
-
-export function usePauseRecording() {
-  return useMutation(PAUSE_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
-  });
-}
-
-export function useResumeRecording() {
-  return useMutation(RESUME_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }

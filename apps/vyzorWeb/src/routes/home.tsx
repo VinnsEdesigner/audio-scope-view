@@ -11,6 +11,9 @@ import {
   ChevronDown,
   ChevronUp,
   FileAudio,
+  Play,
+  Square,
+  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -19,7 +22,10 @@ import {
   useHomePageSessions,
   usePinRecording,
   useDeleteRecording,
+  useDeleteSession,
   useRenameRecording,
+  useStartSession,
+  useEndSession,
   formatBytes,
   formatTimestampRelative,
 } from "../hooks";
@@ -33,6 +39,7 @@ export function Home(): React.ReactElement {
   const { showToast } = useToast();
 
   const [isMicDialogOpen, setIsMicDialogOpen] = React.useState(false);
+  const [activeSessionId, setActiveSessionId] = React.useState<string | undefined>();
   const [activeTab, setActiveTab] = React.useState<"recordings" | "sessions">("recordings");
   const [timeFilter, setTimeFilter] = React.useState<"all" | "today" | "week" | "month">("all");
   const [showAllSessions, setShowAllSessions] = React.useState(false);
@@ -46,7 +53,10 @@ export function Home(): React.ReactElement {
 
   const [pinRecording] = usePinRecording();
   const [deleteRecording] = useDeleteRecording();
+  const [deleteSession] = useDeleteSession();
   const [renameRecording] = useRenameRecording();
+  const [startSession] = useStartSession();
+  const [endSession] = useEndSession();
 
   const filteredRecordings = React.useMemo(() => {
     if (!recentData?.recentRecordings || !Array.isArray(recentData.recentRecordings)) return [];
@@ -151,6 +161,37 @@ export function Home(): React.ReactElement {
     setRenameValue("");
   };
 
+  const handleStartSession = () => {
+    startSession({
+      onCompleted: (data) => {
+        const newSessionId = data?.createSession?.id;
+        if (newSessionId) {
+          setActiveSessionId(newSessionId);
+          showToast({ message: "Session started", type: "success" });
+        }
+      },
+      onError: (error: Error) => {
+        showToast({ message: `Failed to start session: ${error.message}`, type: "error" });
+      },
+    });
+  };
+
+  const handleEndSession = (sessionId: string) => {
+    if (activeSessionId === sessionId) {
+      setActiveSessionId(undefined);
+    }
+    endSession({
+      variables: { id: sessionId },
+      onCompleted: () => {
+        showToast({ message: "Session ended", type: "success" });
+      },
+      onError: (error: Error) => {
+        showToast({ message: `Failed to end session: ${error.message}`, type: "error" });
+      },
+    });
+    setOpenMenuId(undefined);
+  };
+
   React.useEffect(() => {
     const handleClick = () => setOpenMenuId(undefined);
     document.addEventListener("click", handleClick);
@@ -187,10 +228,35 @@ export function Home(): React.ReactElement {
             </>
           ) : (
             <>
+              {activeSessionId ? (
+                <>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/20 border border-accent/30 rounded-lg">
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    <span className="text-xs text-accent font-medium">Session Active</span>
+                  </div>
+                  <button
+                    onClick={() => handleEndSession(activeSessionId)}
+                    className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-destructive/20 border border-border-subtle rounded-lg transition-colors"
+                    title="End Session"
+                  >
+                    <Square size={16} className="text-destructive" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleStartSession}
+                  className="flex items-center gap-2 px-3 py-2 bg-accent hover:bg-accent/80 text-white rounded-lg transition-colors text-sm font-medium"
+                  title="Start Session"
+                >
+                  <Plus size={16} />
+                  Start Session
+                </button>
+              )}
               <button
                 onClick={() => setIsMicDialogOpen(true)}
-                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-                title="Test Microphone"
+                disabled={!activeSessionId}
+                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={activeSessionId ? "Record to Session" : "Start a session first"}
               >
                 <Mic size={18} className="text-text-secondary" />
               </button>
@@ -561,6 +627,35 @@ export function Home(): React.ReactElement {
                           )}
                         </div>
                       </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {session.status !== "offline" && (
+                          <button
+                            onClick={() => handleEndSession(session.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-destructive/20 transition-colors"
+                            title="End Session"
+                          >
+                            <Square size={14} className="text-destructive" />
+                          </button>
+                        )}
+                        {session.status === "offline" && (
+                          <button
+                            onClick={() => {
+                              if (confirm("Delete this session and all its recordings?")) {
+                                deleteSession({
+                                  variables: { id: session.id },
+                                  onCompleted: () => {
+                                    showToast({ message: "Session deleted", type: "success" });
+                                  },
+                                });
+                              }
+                            }}
+                            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-destructive/20 transition-colors"
+                            title="Delete Session"
+                          >
+                            <Trash2 size={14} className="text-destructive" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -571,7 +666,11 @@ export function Home(): React.ReactElement {
       </main>
 
       {}
-      <DialogMicRecording isOpen={isMicDialogOpen} onClose={() => setIsMicDialogOpen(false)} />
+      <DialogMicRecording
+        isOpen={isMicDialogOpen}
+        onClose={() => setIsMicDialogOpen(false)}
+        sessionId={activeSessionId}
+      />
     </div>
   );
 }

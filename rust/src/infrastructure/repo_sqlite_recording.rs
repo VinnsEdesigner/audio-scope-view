@@ -17,6 +17,7 @@ struct RecordingRow {
     name: String,
     samples: String, // JSON array
     sample_count: i32,
+    sample_rate: i32,
     timestamp: String,
     duration_ms: f64,
     size_bytes: i64,
@@ -34,6 +35,7 @@ pub struct RecordingMetadataRow {
     pub session_id: String,
     pub name: String,
     pub sample_count: i32,
+    pub sample_rate: i32,
     pub timestamp: String,
     pub duration_ms: f64,
     pub size_bytes: i64,
@@ -59,6 +61,7 @@ impl TryFrom<RecordingMetadataRow> for RecordingMetadata {
             session_id: row.session_id,
             name: row.name,
             sample_count: row.sample_count as usize,
+            sample_rate: row.sample_rate as u32,
             timestamp,
             duration_ms: row.duration_ms,
             size_bytes: row.size_bytes as u64,
@@ -83,6 +86,7 @@ impl TryFrom<RecordingRow> for Recording {
             session_id: row.session_id,
             name: row.name,
             samples,
+            sample_rate: row.sample_rate as u32,
             timestamp,
             duration_ms: row.duration_ms,
             size_bytes: row.size_bytes as u64,
@@ -111,6 +115,7 @@ impl From<Recording> for RecordingRow {
             name: recording.name,
             samples: samples_json,
             sample_count: recording.samples.len() as i32,
+            sample_rate: recording.sample_rate as i32,
             timestamp: recording.timestamp.to_rfc3339(),
             duration_ms: recording.duration_ms,
             size_bytes: recording.size_bytes as i64,
@@ -184,11 +189,11 @@ impl SqliteRecordingRepository {
         sqlx::query(
             r#"
             INSERT INTO recordings (
-                id, session_id, name, samples, sample_count, timestamp, 
+                id, session_id, name, samples, sample_count, sample_rate, timestamp, 
                 duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
                 is_pinned, created_at, waveform_overview
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&row.id)
@@ -196,6 +201,7 @@ impl SqliteRecordingRepository {
         .bind(&row.name)
         .bind(&row.samples)
         .bind(row.sample_count)
+        .bind(row.sample_rate)
         .bind(&row.timestamp)
         .bind(row.duration_ms)
         .bind(row.size_bytes)
@@ -321,6 +327,7 @@ impl SqliteRecordingRepository {
                     id: r.id,
                     session_id: r.session_id,
                     name: r.name,
+                    sample_rate: r.sample_rate as u32,
                     timestamp: parse_datetime(&r.timestamp)?,
                     duration_ms: r.duration_ms,
                     size_bytes: r.size_bytes as u64,
@@ -354,6 +361,7 @@ impl SqliteRecordingRepository {
                     id: r.id,
                     session_id: r.session_id,
                     name: r.name,
+                    sample_rate: r.sample_rate as u32,
                     timestamp: parse_datetime(&r.timestamp)?,
                     duration_ms: r.duration_ms,
                     size_bytes: r.size_bytes as u64,

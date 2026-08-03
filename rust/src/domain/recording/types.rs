@@ -16,6 +16,8 @@ pub struct Recording {
     pub name: String,
     /// Audio samples as 32-bit floats
     pub samples: Vec<f32>,
+    /// Sample rate in Hz
+    pub sample_rate: u32,
     /// Capture timestamp
     pub timestamp: DateTime<Utc>,
     /// Duration in milliseconds
@@ -42,6 +44,8 @@ pub struct RecordingMetadata {
     pub name: String,
     /// Number of audio samples
     pub sample_count: usize,
+    /// Sample rate in Hz
+    pub sample_rate: u32,
     /// Capture timestamp
     pub timestamp: DateTime<Utc>,
     /// Duration in milliseconds
@@ -83,6 +87,7 @@ impl Recording {
             session_id,
             name,
             samples,
+            sample_rate,
             timestamp: now,
             duration_ms,
             size_bytes,
@@ -127,6 +132,8 @@ pub struct RecordingSummary {
     pub session_id: String,
     /// Display name
     pub name: String,
+    /// Sample rate in Hz
+    pub sample_rate: u32,
     /// Capture timestamp
     pub timestamp: DateTime<Utc>,
     /// Duration in milliseconds
@@ -147,6 +154,7 @@ impl From<Recording> for RecordingSummary {
             id: recording.id,
             session_id: recording.session_id,
             name: recording.name,
+            sample_rate: recording.sample_rate,
             timestamp: recording.timestamp,
             duration_ms: recording.duration_ms,
             size_bytes: recording.size_bytes,

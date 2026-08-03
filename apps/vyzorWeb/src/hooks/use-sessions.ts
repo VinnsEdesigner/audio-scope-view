@@ -7,8 +7,12 @@ import {
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import {
   START_SESSION,
+  GET_OR_CREATE_SESSION,
   END_SESSION,
+  SESSION_HEARTBEAT,
   DELETE_SESSION,
+  OPEN_OSCILLOSCOPE,
+  CLOSE_OSCILLOSCOPE,
   CAPTURE_WAVEFORM,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
 
@@ -51,10 +55,20 @@ export function useStartSession() {
   });
 }
 
+export function useGetOrCreateSession() {
+  return useMutation(GET_OR_CREATE_SESSION, {
+    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
+  });
+}
+
 export function useEndSession() {
   return useMutation(END_SESSION, {
     refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
   });
+}
+
+export function useSessionHeartbeat() {
+  return useMutation(SESSION_HEARTBEAT);
 }
 
 export function useDeleteSession() {
@@ -66,5 +80,17 @@ export function useDeleteSession() {
 export function useCaptureWaveform() {
   return useMutation(CAPTURE_WAVEFORM, {
     refetchQueries: [{ query: GET_SESSIONS }],
+  });
+}
+
+export function useOpenOscilloscope() {
+  return useMutation(OPEN_OSCILLOSCOPE, {
+    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
+  });
+}
+
+export function useCloseOscilloscope() {
+  return useMutation(CLOSE_OSCILLOSCOPE, {
+    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
   });
 }

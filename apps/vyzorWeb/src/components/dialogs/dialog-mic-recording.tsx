@@ -1,13 +1,15 @@
 import * as React from "react";
 import { Dialog, DialogFooter } from "../ui/dialog";
 import { SelectDialog } from "./select-dialog";
+import { Spinner } from "../ui/spinner";
 import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
-  useStartRecording,
+  useCreateRecording,
   useAudioAnalyzer,
   useUIStore,
+  useAudioStore,
   formatDuration,
   type WaveformColor,
 } from "../../hooks";
@@ -174,13 +176,14 @@ interface DialogMicRecordingProperties {
 export function DialogMicRecording({
   isOpen,
   onClose,
-  sessionId = "default",
+  sessionId,
   _scopeName,
 }: DialogMicRecordingProperties): React.ReactElement {
   const { showToast } = useToast();
   const { devices, selectedDeviceId, setSelectedDeviceId, hasPermission, requestPermission } =
     useMediaDevices();
-  const [startRecording] = useStartRecording();
+  const [createRecording] = useCreateRecording();
+  const globalSampleRate = useAudioStore((state) => state.sampleRate);
 
   const { waveformColor, showGrid, smoothWaveform, glow, autoScale, invert } = useUIStore();
 
@@ -189,7 +192,7 @@ export function DialogMicRecording({
     volumeLevel,
     peakLevel,
     waveformData,
-    sampleRate,
+    sampleRate: _localSampleRate,
     duration,
     samples,
     error,
@@ -204,6 +207,7 @@ export function DialogMicRecording({
   });
 
   const [recordingName, setRecordingName] = React.useState("");
+  const [isSaving, setIsSaving] = React.useState(false);
 
   const inputDevices = Array.isArray(devices) ? devices.filter((d) => d.kind === "audioinput") : [];
 
@@ -251,19 +255,32 @@ export function DialogMicRecording({
   };
 
   const stopAndSave = async () => {
+    if (!sessionId) {
+      showToast({ message: "No active session — please start a session first", type: "warning" });
+      return;
+    }
+
     const captured = stopCapture();
 
-    if (captured.length > 0 && sessionId) {
+    if (captured.length > 0) {
+      setIsSaving(true);
       try {
-        await startRecording({
+        await createRecording({
           variables: {
-            sessionId,
-            name: recordingName || `Recording ${new Date().toLocaleString()}`,
+            input: {
+              sessionId,
+              name: recordingName || `Recording ${new Date().toLocaleString()}`,
+              samples: Array.from(captured),
+              sampleRate: globalSampleRate,
+            },
           },
         });
         showToast({ message: "Recording saved successfully!", type: "success" });
+        onClose();
       } catch {
         showToast({ message: "Failed to save recording", type: "error" });
+      } finally {
+        setIsSaving(false);
       }
     } else {
       showToast({ message: "Nothing captured — recording not saved", type: "warning" });
@@ -430,7 +447,7 @@ export function DialogMicRecording({
         <div className="grid grid-cols-4 gap-2">
           <div className="text-center p-2 bg-bg-elevated rounded-lg">
             <div className="text-sm font-semibold font-mono text-foreground">
-              {(sampleRate / 1000).toFixed(1)}
+              {(globalSampleRate / 1000).toFixed(1)}
             </div>
             <div className="text-[10px] text-text-tertiary uppercase">kHz</div>
           </div>
@@ -502,10 +519,11 @@ export function DialogMicRecording({
               )}
               <button
                 onClick={stopAndSave}
+                disabled={isSaving}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
               >
-                <Save size={16} />
-                Save
+                {isSaving ? <Spinner size={16} /> : <Save size={16} />}
+                {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </>

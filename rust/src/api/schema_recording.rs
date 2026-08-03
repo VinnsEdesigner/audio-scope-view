@@ -14,6 +14,7 @@ pub struct RecordingOutput {
     pub name: String,
     pub samples: Vec<f32>,
     pub sample_count: i32,
+    pub sample_rate: i32,
     pub timestamp: String,
     pub duration_ms: f64,
     pub size_bytes: i64,
@@ -37,6 +38,7 @@ impl RecordingOutput {
             name: recording.name,
             samples: recording.samples,
             sample_count,
+            sample_rate: recording.sample_rate as i32,
             timestamp: recording.timestamp.to_rfc3339(),
             duration_ms: recording.duration_ms,
             size_bytes: recording.size_bytes as i64,
@@ -95,6 +97,7 @@ pub struct RecordingPreviewOutput {
     pub session_name: String,
     pub name: String,
     pub sample_count: i32,
+    pub sample_rate: i32,
     pub timestamp: String,
     pub duration_ms: f64,
     pub size_bytes: i64,
@@ -114,6 +117,7 @@ impl RecordingPreviewOutput {
             session_name,
             name: metadata.name,
             sample_count: metadata.sample_count as i32,
+            sample_rate: metadata.sample_rate as i32,
             timestamp: metadata.timestamp.to_rfc3339(),
             duration_ms: metadata.duration_ms,
             size_bytes: metadata.size_bytes as i64,
@@ -133,6 +137,7 @@ pub struct RecordingSummaryOutput {
     pub session_id: String,
     pub session_name: String,
     pub name: String,
+    pub sample_rate: i32,
     pub timestamp: String,
     pub duration_ms: f64,
     pub size_bytes: i64,
@@ -146,6 +151,7 @@ impl RecordingSummaryOutput {
             session_id: recording.session_id,
             session_name,
             name: recording.name,
+            sample_rate: recording.sample_rate as i32,
             timestamp: recording.timestamp.to_rfc3339(),
             duration_ms: recording.duration_ms,
             size_bytes: recording.size_bytes as i64,
@@ -159,6 +165,7 @@ impl RecordingSummaryOutput {
             session_id: summary.session_id,
             session_name,
             name: summary.name,
+            sample_rate: summary.sample_rate as i32,
             timestamp: summary.timestamp.to_rfc3339(),
             duration_ms: summary.duration_ms,
             size_bytes: summary.size_bytes as i64,
@@ -264,6 +271,7 @@ pub struct CreateRecordingInput {
     pub session_id: String,
     pub name: String,
     pub samples: Vec<f32>,
+    pub sample_rate: i32,
 }
 
 /// Input for updating a recording
@@ -494,7 +502,7 @@ impl RecordingMutation {
             input.session_id.clone(),
             input.name.clone(),
             input.samples,
-            44100, // Default sample rate
+            input.sample_rate as u32,
         );
 
         let result = context.recording_service.save(recording).await;

@@ -7,6 +7,8 @@ export const SESSION_FIELDS = gql`
     endedAt
     durationSeconds
     recordingCount
+    isOscilloscopeOpen
+    oscilloscopeDurationMs
   }
 `;
 

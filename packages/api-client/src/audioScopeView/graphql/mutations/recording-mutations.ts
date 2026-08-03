@@ -25,41 +25,21 @@ export const DELETE_RECORDING = gql`
   }
 `;
 
-export const START_RECORDING = gql`
+export const CREATE_RECORDING = gql`
   ${RECORDING_FIELDS}
-  mutation StartRecording($sessionId: String!, $name: String) {
-    startRecording(sessionId: $sessionId, name: $name) {
+  mutation CreateRecording($input: CreateRecordingInput!) {
+    createRecording(input: $input) {
       ...RecordingFields
     }
   }
 `;
 
-export const STOP_RECORDING = gql`
-  ${RECORDING_FIELDS}
-  mutation StopRecording($id: String!) {
-    stopRecording(id: $id) {
-      ...RecordingFields
-    }
-  }
-`;
-
-export const PAUSE_RECORDING = gql`
-  ${RECORDING_FIELDS}
-  mutation PauseRecording($id: String!) {
-    pauseRecording(id: $id) {
-      ...RecordingFields
-    }
-  }
-`;
-
-export const RESUME_RECORDING = gql`
-  ${RECORDING_FIELDS}
-  mutation ResumeRecording($id: String!) {
-    resumeRecording(id: $id) {
-      ...RecordingFields
-    }
-  }
-`;
+export interface CreateRecordingInput {
+  sessionId: string;
+  name: string;
+  samples: number[];
+  sampleRate: number;
+}
 
 export const DELETE_RECORDINGS = gql`
   mutation DeleteRecordings($ids: [String!]!) {

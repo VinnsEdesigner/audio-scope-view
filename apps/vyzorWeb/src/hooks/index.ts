@@ -4,9 +4,13 @@ export {
   useSessionCount,
   useSessionDetail,
   useStartSession,
+  useGetOrCreateSession,
   useEndSession,
+  useSessionHeartbeat,
   useDeleteSession,
   useCaptureWaveform,
+  useOpenOscilloscope,
+  useCloseOscilloscope,
 } from "./use-sessions";
 
 export {
@@ -20,10 +24,7 @@ export {
   useDeleteRecording,
   usePinRecordings,
   useDeleteRecordings,
-  useStartRecording,
-  useStopRecording,
-  usePauseRecording,
-  useResumeRecording,
+  useCreateRecording,
 } from "./use-recordings";
 export type { RecordingSummary } from "./use-recordings";
 

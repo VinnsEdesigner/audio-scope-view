@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 //! Session service - Business logic for session operations
 
+use std::sync::Arc;
+
 use crate::domain::Session;
 use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;
 use crate::shared::{AppError, AppResult};
-use std::sync::Arc;
 
 /// Session service for managing oscilloscope sessions
 pub struct SessionService {
@@ -44,7 +45,6 @@ impl SessionService {
 
     /// Heartbeat to keep session alive (no-op for now, could extend later)
     pub async fn heartbeat(&self, _id: &str) -> AppResult<()> {
-        // Sessions are auto-ended by frontend timer, this is a placeholder for future extensions
         Ok(())
     }
 
@@ -72,5 +72,49 @@ impl SessionService {
     /// Count total sessions
     pub async fn count(&self) -> AppResult<u32> {
         self.repository.count_sessions().await.map_err(AppError::Domain)
+    }
+
+    /// Get an active (not ended) session, or create a new one if none exists
+    /// This implements the "get or create" pattern for session management
+    pub async fn get_or_create_active_session(&self) -> AppResult<Session> {
+        // First, try to find an existing active session using efficient query
+        if let Some(active_session) = self.repository.find_active_session().await.map_err(AppError::Domain)? {
+            return Ok(active_session);
+        }
+        
+        // No active session found, create a new one
+        self.create_session().await
+    }
+
+    /// Open oscilloscope capture (starts tracking time)
+    pub async fn open_oscilloscope(&self, id: &str) -> AppResult<Session> {
+        let mut session = self.repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+            .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
+        
+        session.open_oscilloscope();
+        self.repository
+            .update_session(&session)
+            .await
+            .map_err(AppError::Domain)?;
+        Ok(session)
+    }
+
+    /// Close oscilloscope capture (calculates and accumulates duration)
+    pub async fn close_oscilloscope(&self, id: &str) -> AppResult<Session> {
+        let mut session = self.repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+            .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
+        
+        session.close_oscilloscope();
+        self.repository
+            .update_session(&session)
+            .await
+            .map_err(AppError::Domain)?;
+        Ok(session)
     }
 }

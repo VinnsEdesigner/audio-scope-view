@@ -38,6 +38,21 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "create_api_keys",
         sql: include_str!("../../migrations/006_create_api_keys.sql"),
     },
+    Migration {
+        version: 6,
+        name: "add_waveform_overview",
+        sql: include_str!("../../migrations/007_add_waveform_overview.sql"),
+    },
+    Migration {
+        version: 7,
+        name: "add_sample_rate_to_recordings",
+        sql: include_str!("../../migrations/008_add_sample_rate_to_recordings.sql"),
+    },
+    Migration {
+        version: 8,
+        name: "add_oscilloscope_to_sessions",
+        sql: include_str!("../../migrations/009_add_oscilloscope_to_sessions.sql"),
+    },
 ];
 
 /// Run all pending migrations

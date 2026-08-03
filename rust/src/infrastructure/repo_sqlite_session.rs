@@ -13,6 +13,8 @@ struct SessionRow {
     started_at: String,
     ended_at: Option<String>,
     duration_seconds: Option<i64>,
+    oscilloscope_opened_at: Option<String>,
+    oscilloscope_duration_ms: Option<f64>,
 }
 
 impl TryFrom<SessionRow> for Session {
@@ -25,6 +27,8 @@ impl TryFrom<SessionRow> for Session {
             started_at: parse_datetime(&row.started_at)?,
             ended_at: row.ended_at.and_then(|s| parse_datetime(&s).ok()),
             duration_seconds: row.duration_seconds,
+            oscilloscope_opened_at: row.oscilloscope_opened_at.and_then(|s| parse_datetime(&s).ok()),
+            oscilloscope_duration_ms: row.oscilloscope_duration_ms,
         })
     }
 }
@@ -55,8 +59,8 @@ impl SqliteSessionRepository {
     pub async fn save_session(&self, session: &Session) -> DomainErrorResult<()> {
         sqlx::query(
             r#"
-            INSERT INTO sessions (id, user_id, started_at, ended_at, duration_seconds)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO sessions (id, user_id, started_at, ended_at, duration_seconds, oscilloscope_opened_at, oscilloscope_duration_ms)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&session.id)
@@ -64,6 +68,8 @@ impl SqliteSessionRepository {
         .bind(session.started_at.to_rfc3339())
         .bind(session.ended_at.map(|dt| dt.to_rfc3339()))
         .bind(session.duration_seconds)
+        .bind(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339()))
+        .bind(session.oscilloscope_duration_ms)
         .execute(&self.pool)
         .await
         .map_err(map_sqlx_err)?;
@@ -74,7 +80,7 @@ impl SqliteSessionRepository {
         sqlx::query(
             r#"
             UPDATE sessions
-            SET user_id = ?, started_at = ?, ended_at = ?, duration_seconds = ?
+            SET user_id = ?, started_at = ?, ended_at = ?, duration_seconds = ?, oscilloscope_opened_at = ?, oscilloscope_duration_ms = ?
             WHERE id = ?
             "#,
         )
@@ -82,6 +88,8 @@ impl SqliteSessionRepository {
         .bind(session.started_at.to_rfc3339())
         .bind(session.ended_at.map(|dt| dt.to_rfc3339()))
         .bind(session.duration_seconds)
+        .bind(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339()))
+        .bind(session.oscilloscope_duration_ms)
         .bind(&session.id)
         .execute(&self.pool)
         .await
@@ -95,6 +103,21 @@ impl SqliteSessionRepository {
             .fetch_optional(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
+
+        match row {
+            Some(r) => Ok(Some(r.try_into()?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Find the most recent active (not ended) session
+    pub async fn find_active_session(&self) -> DomainErrorResult<Option<Session>> {
+        let row: Option<SessionRow> = sqlx::query_as(
+            "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
 
         match row {
             Some(r) => Ok(Some(r.try_into()?)),
