@@ -153,7 +153,7 @@ export function ScopeCanvas({
   }, [effectiveCanvasReference]);
 
   return (
-    <div ref={containerReference} className="flex-1 relative bg-[#111820] min-h-0">
+    <div ref={containerReference} className="absolute inset-0 bg-[#111820]">
       {}
       {showGrid && (
         <div
@@ -172,7 +172,7 @@ export function ScopeCanvas({
       <canvas ref={effectiveCanvasReference} className="absolute inset-0 w-full h-full" />
 
       {}
-      {(isCapturing || isFrozen) && (
+      {isFrozen && (
         <div className="absolute top-3 left-3 bg-white text-[#09090b] px-2 py-1 rounded text-[11px] font-semibold">
           HOLD
         </div>
