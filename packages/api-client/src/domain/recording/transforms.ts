@@ -1,11 +1,13 @@
 import type {
   Recording,
+  RecordingPreview,
   RecordingSummary,
   RecordingListResult,
   RecordingStats,
   SessionWithStatus,
   SessionListResult,
   RecordingServer,
+  RecordingPreviewServer,
   RecordingSummaryServer,
   RecordingListResultServer,
   RecordingStatsServer,
@@ -28,6 +30,25 @@ export function transformRecording(server: RecordingServer): Recording {
     rmsAmplitude: server.rmsAmplitude,
     isPinned: server.isPinned,
     isRecording: server.isRecording,
+    waveformOverview: server.waveformOverview || [],
+  };
+}
+
+export function transformRecordingPreview(server: RecordingPreviewServer): RecordingPreview {
+  return {
+    id: server.id,
+    sessionId: server.sessionId,
+    sessionName: server.sessionName,
+    name: server.name,
+    timestamp: new Date(server.timestamp),
+    durationMs: server.durationMs,
+    sampleCount: server.sampleCount,
+    sizeBytes: server.sizeBytes,
+    peakAmplitude: server.peakAmplitude,
+    rmsAmplitude: server.rmsAmplitude,
+    isPinned: server.isPinned,
+    isRecording: server.isRecording,
+    waveformOverview: server.waveformOverview || [],
   };
 }
 

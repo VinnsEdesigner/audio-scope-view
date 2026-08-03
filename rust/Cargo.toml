@@ -72,6 +72,9 @@ headers = "0.4"
 rustfft = "6.2"
 num-complex = "0.4"
 
+# Binary data handling
+bytes = "1"
+
 # cpal - cross-platform audio
 # Supports: ALSA, PulseAudio, WASAPI, CoreAudio, OpenSL ES (Android), WebAudio (wasm)
 cpal = { version = "0.15", optional = true }

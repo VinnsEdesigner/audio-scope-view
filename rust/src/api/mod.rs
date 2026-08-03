@@ -4,6 +4,7 @@ pub mod auth;
 pub mod context_extractor;
 pub mod dto_graphql_in;
 pub mod dto_graphql_out;
+pub mod handler_recording;
 pub mod middleware_cors;
 pub mod resolver_dashboard;
 pub mod resolver_session;

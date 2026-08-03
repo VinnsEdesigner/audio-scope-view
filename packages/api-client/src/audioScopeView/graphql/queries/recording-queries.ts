@@ -15,6 +15,7 @@ export const RECORDING_FIELDS = gql`
     rmsAmplitude
     isPinned
     isRecording
+    waveformOverview
   }
 `;
 
@@ -49,6 +50,31 @@ export const GET_RECORDINGS_BY_ID = gql`
   query GetRecordingsById($id: String!) {
     recording(id: $id) {
       ...RecordingFields
+    }
+  }
+`;
+
+// Recording preview query - for fast loading without samples
+// Uses recordingPreview which loads metadata without samples
+export const GET_RECORDING_PREVIEW = gql`
+  fragment RecordingPreviewFields on RecordingPreviewOutput {
+    id
+    sessionId
+    sessionName
+    name
+    timestamp
+    durationMs
+    sampleCount
+    sizeBytes
+    peakAmplitude
+    rmsAmplitude
+    isPinned
+    isRecording
+    waveformOverview
+  }
+  query GetRecordingPreview($id: String!) {
+    recordingPreview(id: $id) {
+      ...RecordingPreviewFields
     }
   }
 `;

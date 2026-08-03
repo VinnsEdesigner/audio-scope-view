@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use serde_json;
 use sqlx::{FromRow, SqlitePool};
 
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, TimeRange};
+use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, TimeRange};
 use crate::domain::error_domain::DomainError;
 
 /// Raw recording row from database
@@ -24,6 +24,50 @@ struct RecordingRow {
     rms_amplitude: f32,
     is_pinned: bool,
     created_at: String,
+    waveform_overview: Option<String>, // JSON array of f32 (min-max pairs)
+}
+
+/// Recording metadata row (without samples)
+#[derive(Debug, Clone, FromRow)]
+pub struct RecordingMetadataRow {
+    pub id: String,
+    pub session_id: String,
+    pub name: String,
+    pub sample_count: i32,
+    pub timestamp: String,
+    pub duration_ms: f64,
+    pub size_bytes: i64,
+    pub peak_amplitude: f32,
+    pub rms_amplitude: f32,
+    pub is_pinned: bool,
+    pub created_at: String,
+    pub waveform_overview: Option<String>,
+}
+
+impl TryFrom<RecordingMetadataRow> for RecordingMetadata {
+    type Error = DomainError;
+
+    fn try_from(row: RecordingMetadataRow) -> Result<Self, Self::Error> {
+        let timestamp = parse_datetime(&row.timestamp)?;
+        let waveform_overview = row.waveform_overview
+            .map(|json| serde_json::from_str(&json))
+            .transpose()
+            .map_err(|e| DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e)))?;
+        
+        Ok(RecordingMetadata {
+            id: row.id,
+            session_id: row.session_id,
+            name: row.name,
+            sample_count: row.sample_count as usize,
+            timestamp,
+            duration_ms: row.duration_ms,
+            size_bytes: row.size_bytes as u64,
+            peak_amplitude: row.peak_amplitude,
+            rms_amplitude: row.rms_amplitude,
+            is_pinned: row.is_pinned,
+            waveform_overview,
+        })
+    }
 }
 
 impl TryFrom<RecordingRow> for Recording {
@@ -52,6 +96,15 @@ impl TryFrom<RecordingRow> for Recording {
 impl From<Recording> for RecordingRow {
     fn from(recording: Recording) -> Self {
         let samples_json = serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
+        
+        // Compute waveform overview from samples (min-max downsampling)
+        let waveform_overview = if recording.samples.is_empty() {
+            None
+        } else {
+            let overview = create_waveform_overview(&recording.samples, 1000);
+            Some(serde_json::to_string(&overview).unwrap_or_else(|_| "[]".to_string()))
+        };
+        
         Self {
             id: recording.id,
             session_id: recording.session_id,
@@ -65,8 +118,45 @@ impl From<Recording> for RecordingRow {
             rms_amplitude: recording.rms_amplitude,
             is_pinned: recording.is_pinned,
             created_at: Utc::now().to_rfc3339(),
+            waveform_overview,
         }
     }
+}
+
+/// Create a downsampled waveform overview for storage
+fn create_waveform_overview(samples: &[f32], max_points: usize) -> Vec<f32> {
+    if samples.is_empty() {
+        return vec![];
+    }
+
+    if samples.len() <= max_points {
+        return samples.to_vec();
+    }
+
+    let chunk_size = (samples.len() as f64 / max_points as f64).ceil() as usize;
+    let mut overview: Vec<f32> = Vec::with_capacity(max_points * 2);
+
+    for chunk in samples.chunks(chunk_size) {
+        if chunk.is_empty() {
+            break;
+        }
+        // Find min and max in this chunk
+        let mut min_val = f32::MAX;
+        let mut max_val = f32::MIN;
+        for &sample in chunk {
+            min_val = min_val.min(sample);
+            max_val = max_val.max(sample);
+        }
+        overview.push(min_val);
+        overview.push(max_val);
+    }
+
+    // If we're over the limit, truncate
+    if overview.len() > max_points * 2 {
+        overview.truncate(max_points * 2);
+    }
+
+    overview
 }
 
 /// Parse datetime from SQLite string
@@ -96,9 +186,9 @@ impl SqliteRecordingRepository {
             INSERT INTO recordings (
                 id, session_id, name, samples, sample_count, timestamp, 
                 duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
-                is_pinned, created_at
+                is_pinned, created_at, waveform_overview
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&row.id)
@@ -113,6 +203,7 @@ impl SqliteRecordingRepository {
         .bind(row.rms_amplitude)
         .bind(row.is_pinned)
         .bind(&row.created_at)
+        .bind(&row.waveform_overview)
         .execute(&self.pool)
         .await
         .map_err(map_sqlx_err)?;
@@ -125,6 +216,28 @@ impl SqliteRecordingRepository {
             .fetch_optional(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
+
+        match row {
+            Some(r) => Ok(Some(r.try_into()?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Get recording metadata without loading samples
+    /// This is much faster for preview/list views
+    pub async fn find_metadata_by_id(&self, id: &str) -> Result<Option<RecordingMetadata>, DomainError> {
+        let row: Option<RecordingMetadataRow> = sqlx::query_as(
+            r#"
+            SELECT id, session_id, name, sample_count, timestamp, 
+                   duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
+                   is_pinned, created_at 
+            FROM recordings WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
 
         match row {
             Some(r) => Ok(Some(r.try_into()?)),
@@ -312,7 +425,7 @@ impl SqliteRecordingRepository {
         let mut where_clause = String::new();
         let (start_time, _) = if let Some(range) = time_range {
             let bounds = get_time_range_bounds(range);
-            if let Some(start) = bounds.0 {
+            if let Some(_start) = bounds.0 {
                 where_clause.push_str(" AND timestamp >= ?");
             }
             bounds

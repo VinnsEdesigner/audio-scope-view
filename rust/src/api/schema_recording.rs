@@ -3,9 +3,9 @@
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 
 use crate::api::context_extractor::GraphqlContext;
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, SessionWithStatus, TimeRange};
+use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, ScopeStatus, SessionWithStatus, TimeRange};
 
-/// Recording output type (full data)
+/// Recording output type (full data with samples)
 #[derive(Debug, SimpleObject)]
 pub struct RecordingOutput {
     pub id: String,
@@ -21,11 +21,15 @@ pub struct RecordingOutput {
     pub rms_amplitude: f32,
     pub is_pinned: bool,
     pub is_recording: bool,
+    /// Downsampled waveform overview for fast display (max 1000 points)
+    pub waveform_overview: Vec<f32>,
 }
 
 impl RecordingOutput {
     pub fn from_recording(recording: Recording, session_name: String) -> Self {
         let sample_count = recording.samples.len() as i32;
+        // Use stored waveform_overview if available, otherwise compute
+        let waveform_overview = Self::create_waveform_overview(&recording.samples, 1000);
         Self {
             id: recording.id,
             session_id: recording.session_id,
@@ -40,6 +44,84 @@ impl RecordingOutput {
             rms_amplitude: recording.rms_amplitude,
             is_pinned: recording.is_pinned,
             is_recording: false,
+            waveform_overview,
+        }
+    }
+
+    /// Create a downsampled waveform overview for fast display
+    /// Uses min-max downsampling to preserve waveform shape
+    fn create_waveform_overview(samples: &[f32], max_points: usize) -> Vec<f32> {
+        if samples.is_empty() {
+            return vec![];
+        }
+
+        if samples.len() <= max_points {
+            return samples.to_vec();
+        }
+
+        let chunk_size = (samples.len() as f64 / max_points as f64).ceil() as usize;
+        let mut overview: Vec<f32> = Vec::with_capacity(max_points * 2);
+
+        for chunk in samples.chunks(chunk_size) {
+            if chunk.is_empty() {
+                break;
+            }
+            // Find min and max in this chunk
+            let mut min_val = f32::MAX;
+            let mut max_val = f32::MIN;
+            for &sample in chunk {
+                min_val = min_val.min(sample);
+                max_val = max_val.max(sample);
+            }
+            overview.push(min_val);
+            overview.push(max_val);
+        }
+
+        // If we're over the limit, truncate (shouldn't happen with proper chunking)
+        if overview.len() > max_points * 2 {
+            overview.truncate(max_points * 2);
+        }
+
+        overview
+    }
+}
+
+/// Recording preview output (no samples, uses stored waveform_overview)
+/// This is much faster for display since it doesn't load audio data
+#[derive(Debug, SimpleObject)]
+pub struct RecordingPreviewOutput {
+    pub id: String,
+    pub session_id: String,
+    pub session_name: String,
+    pub name: String,
+    pub sample_count: i32,
+    pub timestamp: String,
+    pub duration_ms: f64,
+    pub size_bytes: i64,
+    pub peak_amplitude: f32,
+    pub rms_amplitude: f32,
+    pub is_pinned: bool,
+    pub is_recording: bool,
+    /// Downsampled waveform overview for fast display (max 1000 points)
+    pub waveform_overview: Vec<f32>,
+}
+
+impl RecordingPreviewOutput {
+    pub fn from_metadata(metadata: RecordingMetadata, session_name: String) -> Self {
+        Self {
+            id: metadata.id,
+            session_id: metadata.session_id,
+            session_name,
+            name: metadata.name,
+            sample_count: metadata.sample_count as i32,
+            timestamp: metadata.timestamp.to_rfc3339(),
+            duration_ms: metadata.duration_ms,
+            size_bytes: metadata.size_bytes as i64,
+            peak_amplitude: metadata.peak_amplitude,
+            rms_amplitude: metadata.rms_amplitude,
+            is_pinned: metadata.is_pinned,
+            is_recording: false,
+            waveform_overview: metadata.waveform_overview.unwrap_or_default(),
         }
     }
 }
@@ -197,13 +279,23 @@ pub struct RecordingQuery;
 
 #[Object]
 impl RecordingQuery {
-    /// Get recording by ID
+    /// Get recording by ID (with full samples - use only for playback)
     async fn recording(&self, ctx: &Context<'_>, id: String) -> Option<RecordingOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let recording = context.recording_service.get(&id).await.ok().flatten()?;
         // Since scopes are deprecated, use a placeholder name
         let session_name = "Recording".to_string();
         Some(RecordingOutput::from_recording(recording, session_name))
+    }
+
+    /// Get recording preview (without samples, uses stored waveform_overview)
+    /// This is much faster for display - use this for UI, not for playback
+    async fn recording_preview(&self, ctx: &Context<'_>, id: String) -> Option<RecordingPreviewOutput> {
+        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let metadata = context.recording_service.get_metadata(&id).await.ok().flatten()?;
+        // Since scopes are deprecated, use a placeholder name
+        let session_name = "Recording".to_string();
+        Some(RecordingPreviewOutput::from_metadata(metadata, session_name))
     }
 
     /// Get recordings with filters

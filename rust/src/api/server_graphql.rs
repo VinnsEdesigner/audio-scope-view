@@ -22,6 +22,7 @@ use tracing::info;
 
 use crate::api::auth::{ApiKey, ApiKeyStore};
 use crate::api::context_extractor::GraphqlContext;
+use crate::api::handler_recording::{get_recording_samples, get_recording_metadata, stream_recording_pcm};
 use crate::api::schema_root::build_schema;
 use crate::api::websocket::handler::WsState;
 use crate::application::{BatchCaptureService, DashboardService, RecordingService, SessionService, SettingsService, SimulationService, WaveformService};
@@ -251,10 +252,18 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let graphql_ws_router = Router::new()
         .route_service("/ws", graphql_subscription);
 
+    // Recording REST API routes (for chunked sample loading)
+    let recordings_router = Router::new()
+        .route("/api/recordings/{id}/samples", get(get_recording_samples))
+        .route("/api/recordings/{id}/stream", get(stream_recording_pcm))
+        .route("/api/recordings/{id}/metadata", get(get_recording_metadata))
+        .with_state(state.clone());
+
     Router::new()
         .route(HEALTH_PATH, get(health_handler))
         .nest("/graphql", graphql_router)
         .merge(graphql_ws_router)
+        .merge(recordings_router)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
 }

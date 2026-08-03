@@ -12,6 +12,7 @@ export {
 export {
   useRecordings,
   useRecording,
+  useFullRecording,
   useRecentRecordings,
   useRecordingStats,
   useRenameRecording,
@@ -76,3 +77,9 @@ export {
 
 export { useSessionDialogs } from "./use-session-dialogs";
 export type { Recording } from "./use-session-dialogs";
+
+export { useChunkedPlayback } from "./use-chunked-playback";
+export type { ChunkedPlaybackState, ChunkedPlaybackOptions, ChunkedPlaybackReturn } from "./use-chunked-playback";
+
+export { useStreamingPlayback } from "@/audio";
+export type { StreamingPlaybackState, StreamingPlaybackOptions, StreamingPlaybackReturn } from "@/audio";

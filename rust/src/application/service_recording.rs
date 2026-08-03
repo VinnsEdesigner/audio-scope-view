@@ -1,6 +1,6 @@
 //! Recording service - Business logic for recording operations
 
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, SessionWithStatus, TimeRange};
+use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, ScopeStatus, SessionWithStatus, TimeRange};
 use crate::infrastructure::repo_sqlite_recording::SqliteRecordingRepository;
 use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;
 use crate::shared::{AppError, AppResult};
@@ -36,6 +36,14 @@ impl RecordingService {
     pub async fn get(&self, id: &str) -> AppResult<Option<Recording>> {
         self.repository
             .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)
+    }
+
+    /// Get recording metadata without samples (for fast preview loading)
+    pub async fn get_metadata(&self, id: &str) -> AppResult<Option<RecordingMetadata>> {
+        self.repository
+            .find_metadata_by_id(id)
             .await
             .map_err(AppError::Domain)
     }

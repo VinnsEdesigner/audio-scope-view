@@ -237,7 +237,7 @@ export function Home(): React.ReactElement {
               <>
                 <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
                   <div className="text-2xl md:text-3xl font-bold font-mono text-gray-800">
-                    {stats?.totalRecordings ?? 0}
+                    {stats?.recordingStats?.totalRecordings ?? 0}
                   </div>
                   <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">
                     Recordings
@@ -245,7 +245,7 @@ export function Home(): React.ReactElement {
                 </div>
                 <div className="text-center p-4 bg-yellow-600/50 rounded-lg">
                   <div className="text-2xl md:text-3xl font-bold font-mono text-gray-800">
-                    {formatBytes(stats?.totalSizeBytes ?? 0)}
+                    {formatBytes(stats?.recordingStats?.totalSizeBytes ?? 0)}
                   </div>
                   <div className="text-sm text-gray-800 uppercase tracking-wider mt-1">Storage</div>
                 </div>

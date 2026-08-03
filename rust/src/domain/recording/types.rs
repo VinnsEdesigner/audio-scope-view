@@ -30,6 +30,34 @@ pub struct Recording {
     pub is_pinned: bool,
 }
 
+/// Recording metadata (without samples)
+/// Used for fast preview loading without fetching audio data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecordingMetadata {
+    /// Unique identifier
+    pub id: String,
+    /// Associated session ID
+    pub session_id: String,
+    /// Display name
+    pub name: String,
+    /// Number of audio samples
+    pub sample_count: usize,
+    /// Capture timestamp
+    pub timestamp: DateTime<Utc>,
+    /// Duration in milliseconds
+    pub duration_ms: f64,
+    /// File size in bytes
+    pub size_bytes: u64,
+    /// Peak amplitude
+    pub peak_amplitude: f32,
+    /// RMS amplitude
+    pub rms_amplitude: f32,
+    /// Whether recording is pinned
+    pub is_pinned: bool,
+    /// Pre-computed waveform overview (min-max pairs) for fast display
+    pub waveform_overview: Option<Vec<f32>>,
+}
+
 impl Recording {
     /// Create a new recording from samples
     pub fn new(

@@ -42,8 +42,31 @@ export const graphqlClient = new ApolloClient({
           },
         },
       },
+      RecordingOutput: {
+        // Use 'id' as the cache key
+        keyFields: ["id"],
+        // Don't normalize large arrays - store them as-is
+        // This prevents Apollo from breaking large arrays (10MB+) into individual cache entries
+        fields: {
+          samples: {
+            merge: true, // Replace existing samples when new data comes in
+          },
+          waveformOverview: {
+            merge: true,
+          },
+        },
+      },
     },
   }),
+  // Don't store large responses in memory cache
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: "cache-first",
+    },
+    query: {
+      fetchPolicy: "cache-first",
+    },
+  },
 });
 
 export { HttpLink } from "@apollo/client";

@@ -8,12 +8,21 @@ import {
   useRecording,
   useSessionDialogs,
   useToast,
+  useStreamingPlayback,
 } from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
+
+// Threshold for using streaming playback (samples)
+// Recordings with more than this many samples use streaming
+const STREAMING_THRESHOLD_SAMPLES = 500_000; // ~10 seconds at 48kHz or ~11MB
+
+// Threshold for using streaming playback (file size in bytes)
+// Recordings larger than this use streaming
+const STREAMING_THRESHOLD_BYTES = 5 * 1024 * 1024; // 5MB
 
 export function ScopePage(): React.ReactElement {
   const [searchParameters] = useSearchParams();
@@ -57,9 +66,32 @@ export function ScopePage(): React.ReactElement {
   // PLAYBACK mode hooks
   const {
     data: recordingData,
-    isLoading: recordingLoading,
+    loading: recordingLoading,
     error: recordingError,
   } = useRecording(recordingId);
+
+  // Determine if we should use streaming playback
+  // Use streaming for large recordings to avoid buffering issues
+  const shouldUseStreaming = React.useMemo(() => {
+    if (!recordingData) return false;
+    return (
+      recordingData.sampleCount > STREAMING_THRESHOLD_SAMPLES ||
+      recordingData.sizeBytes > STREAMING_THRESHOLD_BYTES
+    );
+  }, [recordingData]);
+
+  // Streaming playback for large recordings
+  const streamingPlayback = useStreamingPlayback({
+    recordingId: recordingId ?? "",
+    chunkSize: 44100, // ~1 second of audio per chunk
+    autoPlay: false,
+    onEnded: () => {
+      if (loopPlayback) {
+        streamingPlayback.seek(0);
+        streamingPlayback.play();
+      }
+    },
+  });
 
   // Recording for dialogs
   const recordingForDialogs: Recording | undefined = recordingData
@@ -95,6 +127,12 @@ export function ScopePage(): React.ReactElement {
 
   // Playback animation loop using requestAnimationFrame
   React.useEffect(() => {
+    // When using streaming, sync currentPlaybackTime from streaming state
+    if (shouldUseStreaming && streamingPlayback.state.isPlaying) {
+      setCurrentPlaybackTime(streamingPlayback.state.currentTime);
+      return;
+    }
+    
     if (!isPlaybackMode || !isPlaying || !recordingData) {
       if (animationFrameReference.current !== undefined) {
         cancelAnimationFrame(animationFrameReference.current);
@@ -140,38 +178,49 @@ export function ScopePage(): React.ReactElement {
         animationFrameReference.current = undefined;
       }
     };
-  }, [isPlaybackMode, isPlaying, recordingData, playbackSpeed, loopPlayback]);
+  }, [isPlaybackMode, isPlaying, recordingData, playbackSpeed, loopPlayback, shouldUseStreaming, streamingPlayback.state.isPlaying, streamingPlayback.state.currentTime]);
 
   // Calculate visible waveform data based on current playback time
+  // Use waveformOverview for fast display (downsampled min-max pairs)
+  // Only use full samples when seeking/playing for precise playback
   const playbackWaveformData = React.useMemo(() => {
-    if (!isPlaybackMode || !recordingData?.samples || recordingData.samples.length === 0) {
+    if (!isPlaybackMode) {
       return [];
     }
 
-    const samples = recordingData.samples;
-    const sampleCount = recordingData.sampleCount;
-    const durationMs = recordingData.durationMs;
-    const timebase = 1024; // samples per window
+    // First priority: use waveformOverview for display (fast, ~8KB max)
+    if (recordingData?.waveformOverview && recordingData.waveformOverview.length > 0) {
+      // Calculate which portion of the overview to show based on current time
+      const overview = recordingData.waveformOverview;
+      const durationMs = recordingData.durationMs;
+      const sampleCount = recordingData.sampleCount;
+      
+      if (durationMs === 0 || sampleCount === 0) {
+        return overview;
+      }
 
-    if (durationMs === 0 || sampleCount === 0) {
-      return samples.slice(0, timebase);
+      // Calculate which sample index corresponds to currentPlaybackTime
+      const samplesPerMs = sampleCount / durationMs;
+      const currentSampleIndex = Math.floor(currentPlaybackTime * samplesPerMs);
+      
+      // Calculate how many overview points to show (overview has min-max pairs)
+      // Each overview point represents chunk_size samples, where chunk_size = sampleCount / (overview.length / 2)
+      const overviewPointCount = Math.floor(overview.length / 2);
+      const samplesPerOverviewPoint = sampleCount / overviewPointCount;
+      const currentOverviewIndex = Math.floor(currentSampleIndex / samplesPerOverviewPoint);
+      
+      // Show a window of overview points centered on current position
+      const windowSize = 50; // number of overview points to show
+      const halfWindow = Math.floor(windowSize / 2);
+      let startIndex = Math.max(0, currentOverviewIndex - halfWindow) * 2;
+      let endIndex = Math.min(overview.length, (currentOverviewIndex + halfWindow) * 2);
+      
+      return overview.slice(startIndex, endIndex);
     }
 
-    // Calculate which sample index corresponds to currentPlaybackTime
-    const samplesPerMs = sampleCount / durationMs;
-    const currentSampleIndex = Math.floor(currentPlaybackTime * samplesPerMs);
-
-    // Calculate the window of samples to show
-    const halfWindow = Math.floor(timebase / 2);
-    let startIndex = Math.max(0, currentSampleIndex - halfWindow);
-    const endIndex = Math.min(sampleCount, startIndex + timebase);
-
-    // Adjust start if we're near the end
-    if (endIndex - startIndex < timebase) {
-      startIndex = Math.max(0, endIndex - timebase);
-    }
-
-    return samples.slice(startIndex, endIndex);
+    // No samples fallback - RecordingPreview doesn't have samples
+    // waveformOverview should always be available now that it's stored in the database
+    return [];
   }, [isPlaybackMode, recordingData, currentPlaybackTime]);
 
   // Use playback waveform in playback mode, live waveform otherwise
@@ -193,6 +242,9 @@ export function ScopePage(): React.ReactElement {
   // Handle back navigation
   const handleBack = () => {
     // Stop playback when navigating away
+    if (shouldUseStreaming) {
+      streamingPlayback.stop();
+    }
     setIsPlaying(false);
     navigate("/");
   };
@@ -200,24 +252,40 @@ export function ScopePage(): React.ReactElement {
   // Handle playback play/pause
   const handlePlay = () => {
     if (!recordingData) return;
+    
+    if (shouldUseStreaming) {
+      streamingPlayback.play();
+    }
     setIsPlaying(true);
   };
 
   const handlePause = () => {
+    if (shouldUseStreaming) {
+      streamingPlayback.pause();
+    }
     setIsPlaying(false);
   };
 
   const handleStop = () => {
+    if (shouldUseStreaming) {
+      streamingPlayback.stop();
+    }
     setIsPlaying(false);
     setCurrentPlaybackTime(0);
   };
 
   const handleSeek = (time: number) => {
+    if (shouldUseStreaming) {
+      streamingPlayback.seek(time);
+    }
     setCurrentPlaybackTime(Math.max(0, Math.min(time, recordingData?.durationMs ?? 0)));
   };
 
   const handleSpeedChange = (speed: number) => {
     setPlaybackSpeed(speed);
+    if (shouldUseStreaming) {
+      streamingPlayback.setSpeed(speed);
+    }
   };
 
   const handleLoopToggle = () => {

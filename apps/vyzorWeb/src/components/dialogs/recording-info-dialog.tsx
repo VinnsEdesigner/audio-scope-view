@@ -49,7 +49,7 @@ export function RecordingInfoDialog({
   onClose,
   recordingId,
 }: RecordingInfoDialogProperties) {
-  const { data: recording, isLoading } = useRecording(recordingId);
+  const { data: recording, loading: isLoading } = useRecording(recordingId);
 
   const formattedDate = React.useMemo(() => {
     if (!recording?.timestamp) return "—";
