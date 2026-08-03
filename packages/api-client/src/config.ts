@@ -1,7 +1,7 @@
 function getEnvironment(key: string, fallback: string): string {
   if (globalThis.window !== undefined) {
-    const env = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
-    return env[key] ?? fallback;
+    const environment = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
+    return environment[key] ?? fallback;
   }
   return process.env[key] ?? fallback;
 }
@@ -53,8 +53,10 @@ export function getConfig<K extends keyof ClientConfig>(key: K): ClientConfig[K]
   return config[key];
 }
 
-const env = (import.meta as unknown as { env: Record<string, boolean | string | undefined> }).env;
+const environment = (
+  import.meta as unknown as { env: Record<string, boolean | string | undefined> }
+).env;
 
-export const isProduction = env.PROD === true;
+export const isProduction = environment.PROD === true;
 
-export const isDevelopment = env.DEV === true;
+export const isDevelopment = environment.DEV === true;
