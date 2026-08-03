@@ -45,7 +45,8 @@ function formatPeriod(freq: number): string {
 }
 
 export function MeasurementsDialog({ isOpen: _isOpen, onClose }: MeasurementsDialogProperties) {
-  const { samples, sampleRate, isCapturing } = useAudioAnalyzer();
+  const { analysisFrame, sampleRate, isCapturing } = useAudioAnalyzer();
+  const samples = analysisFrame;
 
   const [measurements, setMeasurements] = React.useState({
     vpp: 0,

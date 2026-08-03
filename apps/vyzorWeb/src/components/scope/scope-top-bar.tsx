@@ -15,6 +15,7 @@ interface ScopeTopBarProperties {
   scopeName?: string;
   recordingName?: string;
   sampleRate?: number;
+  recordingState?: "idle" | "recording" | "paused";
   isPlaying?: boolean;
   onPlay?: () => void;
   onPause?: () => void;
@@ -33,6 +34,7 @@ export function ScopeTopBar({
   scopeName,
   recordingName,
   sampleRate,
+  recordingState: controlledRecordingState,
   isPlaying = false,
   onPlay,
   onPause,
@@ -45,7 +47,8 @@ export function ScopeTopBar({
   onStopCapture,
   mobileMenuItems = [],
 }: ScopeTopBarProperties) {
-  const { sampleRate: liveSampleRate, recordingState } = useAudioAnalyzer();
+  const { sampleRate: liveSampleRate, recordingState: liveRecordingState } = useAudioAnalyzer();
+  const recordingState = controlledRecordingState ?? liveRecordingState;
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const isCapturing = recordingState === "recording";

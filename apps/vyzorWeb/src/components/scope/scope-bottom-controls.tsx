@@ -59,6 +59,7 @@ interface ScopeBottomControlsProperties {
   vpp?: number;
   frequency?: number;
   windowMs?: number;
+  sampleRate?: number;
   timebase?: number;
   verticalGain?: number;
   onTimebaseChange?: (value: number) => void;
@@ -82,6 +83,7 @@ export function ScopeBottomControls({
   vpp,
   frequency,
   windowMs,
+  sampleRate,
   timebase: controlledTimebase,
   verticalGain: controlledVerticalGain,
   onTimebaseChange,
@@ -108,7 +110,7 @@ export function ScopeBottomControls({
   const effectiveVerticalGain = controlledVerticalGain ?? store.verticalGain;
   const effectiveVpp = vpp ?? audioAnalyzer.vpp;
   const effectiveFrequency = frequency ?? audioAnalyzer.frequency;
-  const effectiveSampleRate = audioAnalyzer.sampleRate;
+  const effectiveSampleRate = sampleRate ?? audioAnalyzer.sampleRate;
   const effectiveWindowMs =
     windowMs ?? (effectiveSampleRate > 0 ? (effectiveTimebase / effectiveSampleRate) * 1000 : 0);
 
