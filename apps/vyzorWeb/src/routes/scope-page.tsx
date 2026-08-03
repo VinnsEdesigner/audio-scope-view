@@ -441,6 +441,7 @@ export function ScopePage(): React.ReactElement {
           scopeName={scopeName}
           recordingName={recordingName}
           sampleRate={sampleRate}
+          recordingState={audioAnalyzer.recordingState}
           isPlaying={isPlaying}
           onPlay={handlePlay}
           onPause={handlePause}
