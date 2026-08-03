@@ -31,8 +31,7 @@ function AppShell() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Hide spinner after initial render
-    const timer = setTimeout(() => setIsLoading(false), 500);
+    const timer = setTimeout(() => setIsLoading(false), 10_000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -81,8 +80,6 @@ function ThemedApp() {
 }
 
 export function Root() {
-  // ApolloProvider requires ApolloClient<NormalizedCacheObject>, but due to version
-  // mismatches in the monorepo we need to cast
   const apolloClient = graphqlClient as unknown as ApolloClient<NormalizedCacheObject>;
 
   return (

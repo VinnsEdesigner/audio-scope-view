@@ -37,7 +37,7 @@ export function CreateApiKeyDialog({ isOpen, onClose, onCreated }: CreateApiKeyD
         message: `API key "${result.data!.createApiKey.name}" created successfully`,
         type: "success",
       });
-      // Reset form and close
+
       setName("");
       setRateLimit(60);
       setExpiry(undefined);

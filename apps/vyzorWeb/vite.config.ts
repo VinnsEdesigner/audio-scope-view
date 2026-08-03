@@ -16,7 +16,6 @@ export default defineConfig(({ command, mode }) => {
       }),
     ],
 
-    // Tamagui reads process.env.* at runtime; provide safe browser defaults.
     define: {
       "process.env.NODE_ENV": JSON.stringify(mode === "production" ? "production" : "development"),
       "process.env.TAMAGUI_TARGET": JSON.stringify("web"),
@@ -37,7 +36,6 @@ export default defineConfig(({ command, mode }) => {
 
     build: isSsrBuild
       ? {
-          // SSR build - outputs server bundle
           lib: {
             entry: resolve(__dirname, "src/entry-server.tsx"),
             formats: ["es"],
@@ -64,7 +62,6 @@ export default defineConfig(({ command, mode }) => {
           outDir: "dist/server",
         }
       : {
-          // Client/SPA build
           outDir: "dist/client",
           rollupOptions: {
             input: {
@@ -74,7 +71,6 @@ export default defineConfig(({ command, mode }) => {
           chunkSizeWarningLimit: 800,
         },
 
-    // SSR settings
     ssr: {
       noExternal: [
         "@audio-scope-view/ui",
@@ -83,9 +79,7 @@ export default defineConfig(({ command, mode }) => {
       ],
     },
 
-    // SPA fallback
     appType: "spa",
     base: "./",
   };
 });
-

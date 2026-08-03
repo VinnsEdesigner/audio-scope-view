@@ -114,7 +114,6 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
         autoGainControl: { exact: false },
       };
 
-      // Add sampleRate constraint if specified (browser may not honor all values)
       if (desiredSampleRate) {
         audioConstraints.sampleRate = { exact: desiredSampleRate };
       }
@@ -123,7 +122,6 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
         audio: audioConstraints,
       });
 
-      // Create AudioContext with desired sample rate if specified
       const audioContextOptions: AudioContextOptions = {};
       if (desiredSampleRate) {
         audioContextOptions.sampleRate = desiredSampleRate;
@@ -179,7 +177,6 @@ export function useAudioAnalyzer(options: UseAudioAnalyzerOptions = {}): UseAudi
         const waveform = downsampleWaveform(normalizedData, waveformPoints);
         setWaveformData(waveform);
 
-        // Only collect samples when actively recording, not when paused or previewing
         if (recordingStateReference.current === "recording") {
           const collected = collectSamples(dataArray, sampleCollectionInterval);
           const currentSamples = collectedSamplesReference.current;

@@ -13,11 +13,9 @@ export function CreateSessionDialog({
   onClose,
 }: CreateSessionDialogProperties): React.ReactElement | undefined {
   const { showToast } = useToast();
-  const startSession = useStartSession();
+  const [startSession, { loading: isLoading }] = useStartSession();
 
   const [name, setName] = React.useState("");
-
-  const isLoading = startSession.isPending;
 
   React.useEffect(() => {
     if (isOpen && !name) {
@@ -47,7 +45,7 @@ export function CreateSessionDialog({
     }
 
     try {
-      await startSession.mutateAsync();
+      await startSession();
       showToast({ message: "Session started successfully!", type: "success" });
       handleClose();
     } catch (error) {
@@ -68,7 +66,7 @@ export function CreateSessionDialog({
       maxWidth="max-w-[480px]"
     >
       <div className="space-y-5">
-        {/* Session Name */}
+        {}
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">Session Name</label>
           <input

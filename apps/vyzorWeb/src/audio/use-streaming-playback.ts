@@ -115,6 +115,7 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
   const workletLoadedReference = useRef(false);
   const playbackSpeedReference = useRef(playbackSpeed);
   const isPlayingReference = useRef(false);
+  const isReadyReference = useRef(false);
 
   // Fetch state
   const totalSamplesReference = useRef(0);
@@ -122,11 +123,17 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
   const currentSampleReference = useRef(0);
   const pendingFetchesReference = useRef<Map<number, AbortController>>(new Map());
 
-  // Load metadata
+  // Combined effect: Load metadata THEN initialize AudioContext and Worklet
+  // This ensures totalSamples is set BEFORE the worklet is configured
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
     let cancelled = false;
 
-    async function loadMetadata() {
+    async function initAudioWithMetadata() {
+      // Reset cancelled flag at start of each invocation
+      cancelled = false;
+
+      // Step 1: Load metadata first
       setState((s) => ({ ...s, isLoading: true, error: undefined }));
 
       try {
@@ -143,11 +150,14 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
 
         const metadata = await response.json();
 
-        if (cancelled) return;
+        // Check cancelled BEFORE proceeding with audio init
+        if (cancelled) {
+          return;
+        }
 
+        // Store metadata values
         totalSamplesReference.current = metadata.sample_count;
         sampleRateReference.current = metadata.sample_rate || 44_100;
-
         const durationMs = metadata.duration_ms;
 
         setState((s) => ({
@@ -156,38 +166,14 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
           duration: durationMs,
           totalSamples: metadata.sample_count,
         }));
-      } catch (error) {
-        if (!cancelled) {
-          const error_ = error instanceof Error ? error : new Error(String(error));
-          setState((s) => ({ ...s, isLoading: false, error: error_ }));
-          onError?.(error_);
-        }
-      }
-    }
 
-    loadMetadata();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [recordingId, onError]);
-
-  // Initialize AudioContext and Worklet
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
-
-    async function initAudio() {
-      try {
-        // Create AudioContext
+        // Step 2: Now that we have metadata, create AudioContext
         const context = new AudioContext({ sampleRate: sampleRateReference.current });
         audioContextReference.current = context;
 
         // Load AudioWorklet processor from public directory
-        // Using fetch to get the worklet from public directory
         const workletPath = "/audio/worklets/audio-streaming-processor.js";
 
-        // First, we'll try to load from public directory
-        // The worklet must be served as a static file
         try {
           await context.audioWorklet.addModule(workletPath);
         } catch {
@@ -202,6 +188,12 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
         }
         workletLoadedReference.current = true;
 
+        // Check cancelled BEFORE creating worklet node
+        if (cancelled) {
+          context.close();
+          return;
+        }
+
         // Create AudioWorkletNode
         const workletNode = new AudioWorkletNode(context, WORKLET_PROCESSOR_NAME, {
           numberOfInputs: 0,
@@ -214,26 +206,42 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
         workletNode.connect(context.destination);
 
         // Handle messages from worklet
-        // Using addEventListener for proper Web Audio API port handling
         workletNode.port.addEventListener("message", (event: MessageEvent) => {
           handleWorkletMessage(event.data);
         });
 
-        // Configure the worklet
-        workletNode.port.postMessage({
-          type: "config",
-          recordingId,
-          sampleRate: sampleRateReference.current,
-          totalSamples: totalSamplesReference.current,
-          chunkSize,
-          baseUrl: config.graphqlEndpoint.replace("/graphql", ""),
-          authHeader: config.bootstrapKey ? `Bearer ${config.bootstrapKey}` : undefined,
+        // Configure the worklet and wait for acknowledgment
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error("Worklet config timeout"));
+          }, 5000);
+
+          const handler = (event: MessageEvent) => {
+            if (event.data.type === "config_acknowledged") {
+              clearTimeout(timeout);
+              workletNode.port.removeEventListener("message", handler);
+              resolve();
+            }
+          };
+          workletNode.port.addEventListener("message", handler);
+
+          // Now sending config AFTER metadata is loaded, so totalSamples is correct
+          workletNode.port.postMessage({
+            type: "config",
+            recordingId,
+            sampleRate: sampleRateReference.current,
+            totalSamples: totalSamplesReference.current,
+            chunkSize,
+            baseUrl: config.graphqlEndpoint.replace("/graphql", ""),
+            authHeader: config.bootstrapKey ? `Bearer ${config.bootstrapKey}` : undefined,
+          });
         });
 
         setState((s) => ({ ...s, isReady: true }));
+        isReadyReference.current = true;
 
         // Auto-play if requested
-        if (autoPlay) {
+        if (autoPlay && !cancelled) {
           play();
         }
 
@@ -243,15 +251,20 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
           context.close();
         };
       } catch (error) {
-        const error_ = error instanceof Error ? error : new Error(String(error));
-        setState((s) => ({ ...s, error: error_ }));
-        onError?.(error_);
+        if (!cancelled) {
+          console.error("[Hook] Error initializing audio:", error);
+          const error_ = error instanceof Error ? error : new Error(String(error));
+          setState((s) => ({ ...s, error: error_, isReady: false }));
+          isReadyReference.current = false;
+          onError?.(error_);
+        }
       }
     }
 
-    initAudio();
+    initAudioWithMetadata();
 
     return () => {
+      cancelled = true;
       cleanup?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -364,7 +377,9 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
 
   // Play
   const play = useCallback(async () => {
-    if (!workletNodeReference.current || !audioContextReference.current) return;
+    if (!workletNodeReference.current || !audioContextReference.current) {
+      return;
+    }
 
     // Resume context if suspended
     const context = audioContextReference.current;
@@ -372,10 +387,24 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
       await context.resume();
     }
 
+    // Send config to ensure worklet has it
+    workletNodeReference.current.port.postMessage({
+      type: "config",
+      recordingId,
+      sampleRate: sampleRateReference.current,
+      totalSamples: totalSamplesReference.current,
+      chunkSize: 44_100,
+      baseUrl: config.graphqlEndpoint.replace("/graphql", ""),
+      authHeader: config.bootstrapKey ? `Bearer ${config.bootstrapKey}` : undefined,
+    });
+
+    // Small delay to ensure config is processed
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     isPlayingReference.current = true;
     workletNodeReference.current.port.postMessage({ type: "play" });
     setState((s) => ({ ...s, isPlaying: true }));
-  }, []);
+  }, [recordingId]);
 
   // Pause
   const pause = useCallback(() => {

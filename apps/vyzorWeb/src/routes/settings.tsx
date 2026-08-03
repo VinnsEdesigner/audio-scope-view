@@ -7,10 +7,6 @@ import type { WaveformColor } from "@/store/ui-store";
 import { APP_VERSION } from "@audio-scope-view/api-client";
 import { cn } from "@/lib/utilities";
 
-// ============================================
-// Constants
-// ============================================
-
 const WAVEFORM_COLORS: readonly { readonly value: WaveformColor; readonly color: string }[] = [
   { value: "cyan", color: "#06b6d4" },
   { value: "blue", color: "#3b82f6" },
@@ -37,10 +33,6 @@ const BUFFER_SIZE_OPTIONS = [
   { value: 512, label: "512 samples" },
   { value: 1024, label: "1024 samples" },
 ] as const;
-
-// ============================================
-// Types
-// ============================================
 
 type Theme = "light" | "dark" | "system";
 
@@ -82,10 +74,6 @@ interface ToggleSwitchProperties {
   readonly disabledLabel: string;
 }
 
-// ============================================
-// Utility Functions
-// ============================================
-
 function getPermissionStatus(permissionState: string): {
   readonly text: string;
   readonly className: string;
@@ -102,10 +90,6 @@ function getPermissionStatus(permissionState: string): {
     }
   }
 }
-
-// ============================================
-// Components
-// ============================================
 
 const Section = React.memo(function Section({
   icon,
@@ -278,12 +262,7 @@ const PermissionStatus = React.memo(function PermissionStatus({
   );
 });
 
-// ============================================
-// Main Settings Page
-// ============================================
-
 export function Settings(): React.ReactElement {
-  // Store state
   const {
     theme,
     setTheme,
@@ -297,12 +276,10 @@ export function Settings(): React.ReactElement {
     setWaveformColor,
   } = useUIStore();
 
-  // Device and audio settings
   const { devices, selectedDeviceId, setSelectedDeviceId, permissionState } = useMediaDevices();
   const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
   const { addToast } = useToast();
 
-  // Toast callback
   const showSuccessToast = React.useCallback(
     (message: string) => {
       addToast("success", message);
@@ -310,7 +287,6 @@ export function Settings(): React.ReactElement {
     [addToast],
   );
 
-  // Device change handler
   const handleDeviceChange = React.useCallback(
     (value: string | number) => {
       setSelectedDeviceId(String(value));
@@ -320,7 +296,6 @@ export function Settings(): React.ReactElement {
     [devices, setSelectedDeviceId, addToast],
   );
 
-  // Theme handlers
   const handleThemeChange = React.useCallback(
     (newTheme: Theme) => {
       setTheme(newTheme);
@@ -328,7 +303,6 @@ export function Settings(): React.ReactElement {
     [setTheme],
   );
 
-  // Color handlers
   const handleColorChange = React.useCallback(
     (color: WaveformColor) => {
       setWaveformColor(color);
@@ -336,7 +310,6 @@ export function Settings(): React.ReactElement {
     [setWaveformColor],
   );
 
-  // Toggle handlers
   const handleGridToggle = React.useCallback(
     (checked: boolean) => {
       setShowGrid(checked);
@@ -361,7 +334,7 @@ export function Settings(): React.ReactElement {
   return (
     <div className="w-full h-full overflow-y-auto">
       <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
-        {/* Header */}
+        {}
         <header className="pl-0 md:pl-12 mb-6 md:mb-8 lg:mb-12">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
             Settings
@@ -371,7 +344,7 @@ export function Settings(): React.ReactElement {
           </p>
         </header>
 
-        {/* Appearance Section */}
+        {}
         <Section
           icon={<Palette size={20} />}
           title="Appearance"
@@ -400,7 +373,7 @@ export function Settings(): React.ReactElement {
           </SettingsCard>
         </Section>
 
-        {/* Audio Section */}
+        {}
         <Section
           icon={<Mic size={20} />}
           title="Audio"
@@ -454,7 +427,7 @@ export function Settings(): React.ReactElement {
           </SettingsCard>
         </Section>
 
-        {/* Display Section */}
+        {}
         <Section
           icon={<MonitorCheck size={20} />}
           title="Display"
@@ -500,7 +473,7 @@ export function Settings(): React.ReactElement {
           </SettingsCard>
         </Section>
 
-        {/* About Section */}
+        {}
         <Section icon={<Info size={20} />} title="About" description="Application information">
           <SettingsCard>
             <SettingsRow label="Version" border={false}>

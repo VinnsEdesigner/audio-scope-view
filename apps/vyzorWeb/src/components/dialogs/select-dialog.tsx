@@ -77,7 +77,6 @@ export function SelectDialog({
   const dialogReference = React.useRef<HTMLDivElement>(null);
   const triggerReference = React.useRef<HTMLButtonElement>(null);
 
-  // Position dialog next to the trigger button
   React.useEffect(() => {
     if (!isOpen || !dialogReference.current || !triggerReference.current) return;
 
@@ -87,16 +86,13 @@ export function SelectDialog({
     const positionDialog = () => {
       const triggerRect = trigger.getBoundingClientRect();
 
-      // Position below the trigger button, aligned to the left edge
       const left = triggerRect.left;
-      let top = triggerRect.bottom + 4; // 4px gap below trigger
+      let top = triggerRect.bottom + 4;
 
-      // Get dialog height after content renders
       const dialogRect = dialog.getBoundingClientRect();
 
-      // Keep dialog within viewport
       if (top + dialogRect.height > window.innerHeight - 16) {
-        top = triggerRect.top - dialogRect.height - 4; // Show above if not enough space below
+        top = triggerRect.top - dialogRect.height - 4;
       }
       if (top < 16) top = 16;
 
@@ -104,7 +100,6 @@ export function SelectDialog({
       dialog.style.top = `${top}px`;
     };
 
-    // Use requestAnimationFrame to ensure dialog content is rendered first
     requestAnimationFrame(positionDialog);
   }, [isOpen]);
 
@@ -126,7 +121,7 @@ export function SelectDialog({
 
       {isOpen && (
         <>
-          {/* Invisible backdrop to capture clicks outside dialog */}
+          {}
           <div className="fixed inset-0 z-50" onClick={handleOverlayClick} />
           <div
             ref={dialogReference}

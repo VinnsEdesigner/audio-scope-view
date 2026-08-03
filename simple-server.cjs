@@ -62,6 +62,33 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  // Proxy API requests to Rust server (for recording streaming, metadata, etc.)
+  if (urlPath.startsWith('/api/')) {
+    console.log(`  -> Proxying to API server: ${GRAPHQL_SERVER}${urlPath}`);
+    const proxyReq = http.request(
+      `${GRAPHQL_SERVER}${urlPath}`,
+      {
+        method: req.method,
+        headers: {
+          ...req.headers,
+          'Host': '127.0.0.1:8080',
+          'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
+        },
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
+      }
+    );
+    proxyReq.on('error', (err) => {
+      console.log(`  -> Proxy error: ${err.message}`);
+      res.writeHead(502);
+      res.end('Bad Gateway');
+    });
+    req.pipe(proxyReq);
+    return;
+  }
+  
   // API client requests
   if (urlPath.startsWith('/api-client/')) {
     const filePath = path.join(API_DIR, urlPath.replace('/api-client/', ''));

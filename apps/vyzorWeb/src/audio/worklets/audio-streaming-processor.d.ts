@@ -1,7 +1,3 @@
-/**
- * Type definitions for Audio Streaming Worklet
- */
-
 export interface StreamingConfig {
   recordingId: string;
   sampleRate: number;
@@ -12,43 +8,43 @@ export interface StreamingConfig {
 }
 
 export interface ChunkRequest {
-  type: 'request_chunk';
+  type: "request_chunk";
   startSample: number;
   endSample: number;
   priority: number;
 }
 
 export interface ChunkData {
-  type: 'chunk_data';
+  type: "chunk_data";
   startSample: number;
   endSample: number;
   samples: Float32Array | number[];
 }
 
 export interface PlayCommand {
-  type: 'play';
+  type: "play";
 }
 
 export interface PauseCommand {
-  type: 'pause';
+  type: "pause";
 }
 
 export interface StopCommand {
-  type: 'stop';
+  type: "stop";
 }
 
 export interface SeekCommand {
-  type: 'seek';
+  type: "seek";
   samplePosition: number;
 }
 
 export interface SetSpeedCommand {
-  type: 'set_speed';
+  type: "set_speed";
   speed: number;
 }
 
 export interface ConfigCommand {
-  type: 'config';
+  type: "config";
   recordingId: string;
   sampleRate: number;
   totalSamples: number;
@@ -58,24 +54,32 @@ export interface ConfigCommand {
 }
 
 export interface PositionUpdate {
-  type: 'position_update';
+  type: "position_update";
   currentSample: number;
 }
 
 export interface BufferStatus {
-  type: 'buffer_status';
+  type: "buffer_status";
   bufferedChunks: number;
   currentSample: number;
 }
 
 export interface ReadyMessage {
-  type: 'ready';
+  type: "ready";
 }
 
 export interface EndedMessage {
-  type: 'ended';
+  type: "ended";
 }
 
-export type WorkerOutgoingMessage = ChunkRequest | PositionUpdate | BufferStatus | ReadyMessage | EndedMessage;
+export type WorkerOutgoingMessage =
+  ChunkRequest | PositionUpdate | BufferStatus | ReadyMessage | EndedMessage;
 
-export type WorkerIncomingMessage = ChunkData | PlayCommand | PauseCommand | StopCommand | SeekCommand | SetSpeedCommand | ConfigCommand;
+export type WorkerIncomingMessage =
+  | ChunkData
+  | PlayCommand
+  | PauseCommand
+  | StopCommand
+  | SeekCommand
+  | SetSpeedCommand
+  | ConfigCommand;

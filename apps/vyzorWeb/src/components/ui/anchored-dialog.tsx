@@ -21,7 +21,6 @@ export function AnchoredDialog({
   const pointerReference = React.useRef<HTMLDivElement>(null);
   const [isPositioned, setIsPositioned] = React.useState(false);
 
-  // Handle escape key
   React.useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isOpen) {
@@ -32,18 +31,15 @@ export function AnchoredDialog({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  // Reset positioned state when dialog closes
   React.useEffect(() => {
     if (!isOpen) {
       setIsPositioned(false);
     }
   }, [isOpen]);
 
-  // Apply position and pointer directly to DOM elements
   React.useEffect(() => {
     if (!isOpen || !dialogReference.current) return;
 
-    // If no anchorRect provided, use default centered position
     if (!anchorRect) {
       setIsPositioned(true);
       return;
@@ -53,32 +49,25 @@ export function AnchoredDialog({
     const pointer = pointerReference.current;
     const viewportHeight = window.innerHeight;
 
-    // Capture values for RAF closure
     const buttonTop = anchorRect.top;
     const buttonHeight = anchorRect.height;
 
-    // Fixed X: right of sidebar (72px) + gap (8px) + pointer (12px) = 92px
     const left = 92;
 
-    // Get dialog height after first render
     requestAnimationFrame(() => {
       if (!dialog) return;
       const dialogRect = dialog.getBoundingClientRect();
 
-      // Vertical center on anchor button
       let top = buttonTop + buttonHeight / 2 - dialogRect.height / 2;
 
-      // Clamp to viewport
       if (top < 16) top = 16;
       if (top + dialogRect.height > viewportHeight - 16) {
         top = viewportHeight - dialogRect.height - 16;
       }
 
-      // Apply dialog position
       dialog.style.left = `${left}px`;
       dialog.style.top = `${top}px`;
 
-      // Position pointer relative to dialog - center on button
       if (pointer) {
         const buttonCenter = buttonTop + buttonHeight / 2;
         const pointerTop = buttonCenter - top - 10;
@@ -93,10 +82,10 @@ export function AnchoredDialog({
 
   return (
     <div className="fixed inset-0 z-[100] pointer-events-none">
-      {/* Backdrop */}
+      {}
       <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose} />
 
-      {/* Dialog - hidden until positioned */}
+      {}
       <div
         ref={dialogReference}
         className={`absolute pointer-events-auto ${maxWidth} ${className}`}
@@ -107,7 +96,7 @@ export function AnchoredDialog({
           transition: "opacity 0.1s ease-out",
         }}
       >
-        {/* Pointer triangle - positioned via ref in useEffect */}
+        {}
         <div
           ref={pointerReference}
           className="absolute w-0 h-0 pointer-events-none"
@@ -120,7 +109,7 @@ export function AnchoredDialog({
           }}
         />
 
-        {/* Dialog content */}
+        {}
         <div className="bg-bg-secondary border border-border-subtle rounded-xl shadow-2xl overflow-hidden">
           {children}
         </div>

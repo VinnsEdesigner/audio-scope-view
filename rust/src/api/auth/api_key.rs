@@ -8,6 +8,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::infrastructure::SqliteApiKeyRepository;
+use crate::infrastructure::repo_sqlite_api_key::ApiKeyWithHash;
 
 #[derive(Debug, Clone)]
 pub struct ApiKey {
@@ -86,18 +87,18 @@ impl ApiKeyStore {
     /// Load all keys from the database
     pub async fn load_from_database(&self) {
         if let Some(repo) = &self.repository {
-            match repo.list_all().await {
-                Ok(keys) => {
-                    let count = keys.len();
-                    for api_key in keys {
-                        let key_hash = hash_key(&api_key.key);
+            match repo.list_all_with_hash().await {
+                Ok(keys_with_hash) => {
+                    let count = keys_with_hash.len();
+                    for ApiKeyWithHash { api_key, key_hash } in keys_with_hash {
                         let key_hash_for_ids = key_hash.clone();
+                        let api_key_id = api_key.id.clone();
                         
                         let mut keys_guard = self.keys.write().await;
                         let mut key_ids_guard = self.key_ids.write().await;
                         
-                        keys_guard.insert(key_hash, api_key.clone());
-                        key_ids_guard.insert(api_key.id.clone(), key_hash_for_ids);
+                        keys_guard.insert(key_hash, api_key);
+                        key_ids_guard.insert(api_key_id, key_hash_for_ids);
                     }
                     tracing::info!("Loaded {} API keys from database", count);
                 }

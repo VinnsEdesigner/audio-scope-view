@@ -15,7 +15,6 @@ export interface UIState {
 
   theme: "light" | "dark" | "system";
 
-  // Test mode for mock audio
   testMode: boolean;
 
   showGrid: boolean;
@@ -32,7 +31,6 @@ export interface UIState {
   timebase: number;
   verticalGain: number;
 
-  // Playback state
   isPlaying: boolean;
   isPaused: boolean;
   playbackSpeed: number;
@@ -78,7 +76,6 @@ export interface UIActions {
   setTimebase: (timebase: number) => void;
   setVerticalGain: (gain: number) => void;
 
-  // Playback actions
   setIsPlaying: (isPlaying: boolean) => void;
   setIsPaused: (isPaused: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
@@ -166,7 +163,6 @@ export const useUIStore = create<UIStore>()(
       setTimebase: (timebase) => set({ timebase }),
       setVerticalGain: (verticalGain) => set({ verticalGain }),
 
-      // Playback actions
       setIsPlaying: (isPlaying) => set({ isPlaying }),
       setIsPaused: (isPaused) => set({ isPaused }),
       setPlaybackSpeed: (playbackSpeed) => set({ playbackSpeed }),

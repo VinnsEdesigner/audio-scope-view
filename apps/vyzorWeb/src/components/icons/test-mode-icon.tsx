@@ -17,14 +17,14 @@ export function TestModeIcon({
       xmlns="http://www.w3.org/2000/svg"
       {...properties}
     >
-      {/* Audio waveform bars */}
+      {}
       <rect x="2" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.6" />
       <rect x="7" y="6" width="3" height="12" rx="1" fill="currentColor" opacity="0.8" />
       <rect x="12" y="3" width="3" height="18" rx="1" fill="currentColor" />
       <rect x="17" y="6" width="3" height="12" rx="1" fill="currentColor" opacity="0.8" />
       <rect x="22" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.6" />
 
-      {/* Small "T" badge in top right */}
+      {}
       <circle cx="19" cy="5" r="4" fill="#10b981" />
       <text
         x="19"

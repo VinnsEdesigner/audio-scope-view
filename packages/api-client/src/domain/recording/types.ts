@@ -12,14 +12,10 @@ export interface Recording {
   rmsAmplitude: number;
   isPinned: boolean;
   isRecording: boolean;
-  /** Downsampled waveform overview for fast display (min-max pairs) */
+
   waveformOverview: number[];
 }
 
-/**
- * Recording preview type - used for fast loading without samples.
- * Use this for display purposes only. For playback, use chunked loading.
- */
 export interface RecordingPreview {
   id: string;
   sessionId: string;
@@ -33,7 +29,7 @@ export interface RecordingPreview {
   rmsAmplitude: number;
   isPinned: boolean;
   isRecording: boolean;
-  /** Downsampled waveform overview for fast display (min-max pairs) */
+
   waveformOverview: number[];
 }
 
@@ -118,14 +114,10 @@ export interface RecordingServer {
   rmsAmplitude: number;
   isPinned: boolean;
   isRecording: boolean;
-  /** Downsampled waveform overview for fast display (min-max pairs) */
+
   waveformOverview: number[];
 }
 
-/**
- * Server response for recording preview (without samples).
- * This is returned by the recordingPreview GraphQL query.
- */
 export interface RecordingPreviewServer {
   id: string;
   sessionId: string;
@@ -139,7 +131,7 @@ export interface RecordingPreviewServer {
   rmsAmplitude: number;
   isPinned: boolean;
   isRecording: boolean;
-  /** Downsampled waveform overview for fast display (min-max pairs) */
+
   waveformOverview: number[];
 }
 

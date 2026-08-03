@@ -49,30 +49,28 @@ function Checkbox({
 
 export function DeleteApiKeyDialog({ isOpen, onClose, apiKey }: DeleteApiKeyDialogProperties) {
   const { showToast } = useToast();
-  const deleteApiKey = useDeleteApiKey();
+  const [deleteApiKey, { loading: isPending }] = useDeleteApiKey();
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
 
   const handleDelete = () => {
     if (!apiKey) return;
-    deleteApiKey.mutate(
-      { id: apiKey.id },
-      {
-        onSuccess: () => {
-          onClose();
-          showToast({
-            message: `API key "${apiKey.name}" deleted successfully`,
-            type: "success",
-          });
-          setDeleteConfirmed(false);
-        },
-        onError: (error) => {
-          showToast({
-            message: `Failed to delete API key: ${error.message || "Unknown error"}`,
-            type: "error",
-          });
-        },
+    deleteApiKey({
+      variables: { id: apiKey.id },
+      onCompleted: () => {
+        onClose();
+        showToast({
+          message: `API key "${apiKey.name}" deleted successfully`,
+          type: "success",
+        });
+        setDeleteConfirmed(false);
       },
-    );
+      onError: (error: Error) => {
+        showToast({
+          message: `Failed to delete API key: ${error.message || "Unknown error"}`,
+          type: "error",
+        });
+      },
+    });
   };
 
   return (
@@ -116,15 +114,15 @@ export function DeleteApiKeyDialog({ isOpen, onClose, apiKey }: DeleteApiKeyDial
         </button>
         <button
           onClick={handleDelete}
-          disabled={!deleteConfirmed || deleteApiKey.isPending}
+          disabled={!deleteConfirmed || isPending}
           className={cn(
             "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer h-9 px-4 py-2",
-            !deleteConfirmed || deleteApiKey.isPending
+            !deleteConfirmed || isPending
               ? "bg-transparent text-text-secondary border border-border"
               : "bg-transparent text-destructive border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive",
           )}
         >
-          {deleteApiKey.isPending ? "Deleting..." : "Delete API Key"}
+          {isPending ? "Deleting..." : "Delete API Key"}
         </button>
       </DialogFooter>
     </Dialog>

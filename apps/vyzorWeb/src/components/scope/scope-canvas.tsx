@@ -28,16 +28,13 @@ export function ScopeCanvas({
   const internalCanvasReference = React.useRef<HTMLCanvasElement>(null);
   const containerReference = React.useRef<HTMLDivElement>(null);
 
-  // Use forwarded ref if provided, otherwise use internal ref
   const effectiveCanvasReference = forwardedRef ?? internalCanvasReference;
 
-  // Store waveform data in ref for RAF loop access
   const waveformDataReference = React.useRef(waveformData);
   React.useEffect(() => {
     waveformDataReference.current = waveformData;
   }, [waveformData]);
 
-  // Store settings in refs to avoid effect re-runs
   const settingsReference = React.useRef({
     glow,
     autoScale,
@@ -51,7 +48,6 @@ export function ScopeCanvas({
 
   const isFrozen = isPaused;
 
-  // RAF loop for continuous 60fps drawing
   React.useEffect(() => {
     const canvas = effectiveCanvasReference.current;
     const container = containerReference.current;
@@ -67,7 +63,6 @@ export function ScopeCanvas({
       const width = rect.width;
       const height = rect.height;
 
-      // Skip if canvas has no size
       if (width === 0 || height === 0) {
         animationFrameId = requestAnimationFrame(draw);
         return;
@@ -75,14 +70,12 @@ export function ScopeCanvas({
 
       const dpr = window.devicePixelRatio || 1;
 
-      // Set canvas size accounting for device pixel ratio
       if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
         canvas.width = width * dpr;
         canvas.height = height * dpr;
         context.scale(dpr, dpr);
       }
 
-      // Clear canvas
       context.fillStyle = "#111820";
       context.fillRect(0, 0, width, height);
 
@@ -90,17 +83,14 @@ export function ScopeCanvas({
       const { glow, autoScale, invert, waveformColor, verticalGain } = settingsReference.current;
       const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
 
-      // Draw waveform if we have data
       if (waveformData.length > 0) {
         context.save();
 
-        // Apply glow effect
         if (glow) {
           context.shadowColor = waveformColorValue;
           context.shadowBlur = 8;
         }
 
-        // Apply invert
         if (invert) {
           context.scale(1, -1);
           context.translate(0, -height);
@@ -114,14 +104,12 @@ export function ScopeCanvas({
 
         const centerY = height / 2;
 
-        // Auto-scale: fit waveform to canvas
         let scale = verticalGain;
         if (autoScale) {
           const maxValue = Math.max(...waveformData.map((v: number) => Math.abs(v)), 0.01);
           scale = ((height / 2) * 0.8 * verticalGain) / maxValue;
         }
 
-        // Draw waveform
         for (let index = 0; index < waveformData.length; index++) {
           const x = (index / (waveformData.length - 1)) * width;
           const y = centerY + waveformData[index] * scale;
@@ -149,7 +137,6 @@ export function ScopeCanvas({
     };
   }, [effectiveCanvasReference]);
 
-  // Resize observer
   React.useEffect(() => {
     const canvas = effectiveCanvasReference.current;
     const container = containerReference.current;
@@ -167,24 +154,24 @@ export function ScopeCanvas({
 
   return (
     <div ref={containerReference} className="flex-1 relative bg-[#111820] min-h-0">
-      {/* Grid overlay */}
+      {}
       {showGrid && (
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(120, 160, 170, 0.15) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(120, 160, 170, 0.15) 1px, transparent 1px)
-            `,
+ linear-gradient(rgba(120, 160, 170, 0.15) 1px, transparent 1px),
+ linear-gradient(90deg, rgba(120, 160, 170, 0.15) 1px, transparent 1px)
+ `,
             backgroundSize: "10% 12.5%",
           }}
         />
       )}
 
-      {/* Canvas */}
+      {}
       <canvas ref={effectiveCanvasReference} className="absolute inset-0 w-full h-full" />
 
-      {/* Hold badge */}
+      {}
       {(isCapturing || isFrozen) && (
         <div className="absolute top-3 left-3 bg-white text-[#09090b] px-2 py-1 rounded text-[11px] font-semibold">
           HOLD

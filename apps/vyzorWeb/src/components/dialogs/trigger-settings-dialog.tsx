@@ -101,7 +101,7 @@ export function TriggerSettingsDialog({
 
   return (
     <div className="w-[320px]">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <h2 className="text-base font-semibold text-foreground tracking-tight">Trigger Settings</h2>
         <button
@@ -113,7 +113,7 @@ export function TriggerSettingsDialog({
         </button>
       </div>
 
-      {/* Content */}
+      {}
       <div className="p-4">
         {isPlayback && (
           <div className="mb-4 p-3 bg-bg-elevated rounded-lg border border-border">
@@ -123,7 +123,7 @@ export function TriggerSettingsDialog({
           </div>
         )}
         <div className={`space-y-6 ${isPlayback ? "opacity-50 pointer-events-none" : ""}`}>
-          {/* Edge Selection */}
+          {}
           <div>
             <label className="block text-sm font-medium text-foreground mb-3">Edge</label>
             <div className="flex gap-2">
@@ -144,7 +144,7 @@ export function TriggerSettingsDialog({
             </div>
           </div>
 
-          {/* Level Slider */}
+          {}
           <div>
             <label className="block text-sm font-medium text-foreground mb-3">Level</label>
             <Slider
@@ -159,7 +159,7 @@ export function TriggerSettingsDialog({
           </div>
         </div>
 
-        {/* Footer buttons */}
+        {}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={handleCancel}

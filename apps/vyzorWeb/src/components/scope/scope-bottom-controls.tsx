@@ -63,7 +63,7 @@ interface ScopeBottomControlsProperties {
   verticalGain?: number;
   onTimebaseChange?: (value: number) => void;
   onVerticalGainChange?: (value: number) => void;
-  // Playback only
+
   duration?: number;
   currentTime?: number;
   onSeek?: (time: number) => void;
@@ -104,7 +104,6 @@ export function ScopeBottomControls({
 
   const isPlayback = mode === "playback";
 
-  // Use controlled values if provided, otherwise use store/audio analyzer values
   const effectiveTimebase = controlledTimebase ?? store.timebase;
   const effectiveVerticalGain = controlledVerticalGain ?? store.verticalGain;
   const effectiveVpp = vpp ?? audioAnalyzer.vpp;
@@ -113,12 +112,10 @@ export function ScopeBottomControls({
   const effectiveWindowMs =
     windowMs ?? (effectiveSampleRate > 0 ? (effectiveTimebase / effectiveSampleRate) * 1000 : 0);
 
-  // Playback state from store
   const effectivePlaybackSpeed = controlledPlaybackSpeed ?? store.playbackSpeed;
   const effectiveCurrentTime = currentTime ?? store.currentPlaybackTime;
   const effectiveDuration = duration ?? store.playbackDuration;
 
-  // Handlers for playback controls
   const handleSpeedChange = (speed: number) => {
     if (onSpeedChange) {
       onSpeedChange(speed);
@@ -173,7 +170,7 @@ export function ScopeBottomControls({
 
   return (
     <div className="border-t border-border-subtle bg-bg-secondary">
-      {/* Playback seek bar */}
+      {}
       {isPlayback && (
         <div className="px-3 py-2 border-b border-border-subtle">
           <div className="flex items-center gap-3">
@@ -207,7 +204,7 @@ export function ScopeBottomControls({
             </div>
           </div>
 
-          {/* Playback speed and controls */}
+          {}
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-text-secondary">Speed:</span>
@@ -229,7 +226,7 @@ export function ScopeBottomControls({
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Loop toggle */}
+              {}
               <button
                 onClick={handleLoopToggle}
                 className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
@@ -247,7 +244,7 @@ export function ScopeBottomControls({
         </div>
       )}
 
-      {/* Header with readouts and toggle */}
+      {}
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex gap-4 text-[11px]">
           {showMeasurements && (
@@ -282,10 +279,10 @@ export function ScopeBottomControls({
         </button>
       </div>
 
-      {/* Expanded controls */}
+      {}
       {isExpanded && (
         <div className="px-3 py-3 border-t border-border-subtle flex flex-col gap-3">
-          {/* View toggle */}
+          {}
           <div className="flex gap-1.5">
             {(["time", "spectrum"] as const).map((v) => (
               <button
@@ -302,7 +299,7 @@ export function ScopeBottomControls({
             ))}
           </div>
 
-          {/* Timebase slider */}
+          {}
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-[12px]">
               <span className="text-foreground/80">Timebase {isPlayback && "(read-only)"}</span>
@@ -318,7 +315,7 @@ export function ScopeBottomControls({
             />
           </div>
 
-          {/* Vertical gain slider */}
+          {}
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-[12px]">
               <span className="text-foreground/80">

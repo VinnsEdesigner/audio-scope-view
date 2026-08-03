@@ -16,13 +16,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
 
-// Threshold for using streaming playback (samples)
-// Recordings with more than this many samples use streaming
-const STREAMING_THRESHOLD_SAMPLES = 500_000; // ~10 seconds at 48kHz or ~11MB
+const STREAMING_THRESHOLD_SAMPLES = 500_000;
 
-// Threshold for using streaming playback (file size in bytes)
-// Recordings larger than this use streaming
-const STREAMING_THRESHOLD_BYTES = 5 * 1024 * 1024; // 5MB
+const STREAMING_THRESHOLD_BYTES = 400 * 1024;
 
 export function ScopePage(): React.ReactElement {
   const [searchParameters] = useSearchParams();
@@ -32,7 +28,6 @@ export function ScopePage(): React.ReactElement {
   const recordingId = searchParameters.get("recording") ?? undefined;
   const isPlaybackMode = Boolean(recordingId);
 
-  // Set scope mode in store
   const { setSessionMode, testMode, toggleTestMode, smoothWaveform } = useUIStore();
 
   React.useEffect(() => {
@@ -40,17 +35,14 @@ export function ScopePage(): React.ReactElement {
     return () => setSessionMode("live");
   }, [isPlaybackMode, setSessionMode]);
 
-  // Smoothing values for waveform
   const SMOOTHING = {
     smooth: 0.8,
     normal: 0.3,
   };
   const smoothingTimeConstant = smoothWaveform ? SMOOTHING.smooth : SMOOTHING.normal;
 
-  // Audio settings
   const { sampleRate, bufferSize } = useAudioSettings();
 
-  // Both analyzers - we use one based on testMode
   const realAnalyzer = useAudioAnalyzer({
     desiredSampleRate: sampleRate,
     smoothingTimeConstant,
@@ -63,15 +55,12 @@ export function ScopePage(): React.ReactElement {
   });
   const audioAnalyzer = testMode ? mockAnalyzer : realAnalyzer;
 
-  // PLAYBACK mode hooks
   const {
     data: recordingData,
     loading: recordingLoading,
     error: recordingError,
   } = useRecording(recordingId);
 
-  // Determine if we should use streaming playback
-  // Use streaming for large recordings to avoid buffering issues
   const shouldUseStreaming = React.useMemo(() => {
     if (!recordingData) return false;
     return (
@@ -80,10 +69,9 @@ export function ScopePage(): React.ReactElement {
     );
   }, [recordingData]);
 
-  // Streaming playback for large recordings
   const streamingPlayback = useStreamingPlayback({
     recordingId: recordingId ?? "",
-    chunkSize: 44100, // ~1 second of audio per chunk
+    chunkSize: 44_100,
     autoPlay: false,
     onEnded: () => {
       if (loopPlayback) {
@@ -93,7 +81,6 @@ export function ScopePage(): React.ReactElement {
     },
   });
 
-  // Recording for dialogs
   const recordingForDialogs: Recording | undefined = recordingData
     ? {
         id: recordingData.id,
@@ -106,10 +93,8 @@ export function ScopePage(): React.ReactElement {
       }
     : undefined;
 
-  // Canvas ref for export dialog
   const canvasReference = React.useRef<HTMLCanvasElement | null>(null);
 
-  // Dialogs hook - handles all dialog state management
   const { handlers: dialogHandlers, Dialogs } = useSessionDialogs({
     mode: isPlaybackMode ? "playback" : "live",
     recording: recordingForDialogs,
@@ -117,7 +102,6 @@ export function ScopePage(): React.ReactElement {
     canvasRef: canvasReference,
   });
 
-  // Playback state
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentPlaybackTime, setCurrentPlaybackTime] = React.useState(0);
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
@@ -125,14 +109,12 @@ export function ScopePage(): React.ReactElement {
   const animationFrameReference = React.useRef<number | undefined>(undefined);
   const lastTimestampReference = React.useRef<number | undefined>(undefined);
 
-  // Playback animation loop using requestAnimationFrame
   React.useEffect(() => {
-    // When using streaming, sync currentPlaybackTime from streaming state
     if (shouldUseStreaming && streamingPlayback.state.isPlaying) {
       setCurrentPlaybackTime(streamingPlayback.state.currentTime);
       return;
     }
-    
+
     if (!isPlaybackMode || !isPlaying || !recordingData) {
       if (animationFrameReference.current !== undefined) {
         cancelAnimationFrame(animationFrameReference.current);
@@ -178,70 +160,62 @@ export function ScopePage(): React.ReactElement {
         animationFrameReference.current = undefined;
       }
     };
-  }, [isPlaybackMode, isPlaying, recordingData, playbackSpeed, loopPlayback, shouldUseStreaming, streamingPlayback.state.isPlaying, streamingPlayback.state.currentTime]);
+  }, [
+    isPlaybackMode,
+    isPlaying,
+    recordingData,
+    playbackSpeed,
+    loopPlayback,
+    shouldUseStreaming,
+    streamingPlayback.state.isPlaying,
+    streamingPlayback.state.currentTime,
+  ]);
 
-  // Calculate visible waveform data based on current playback time
-  // Use waveformOverview for fast display (downsampled min-max pairs)
-  // Only use full samples when seeking/playing for precise playback
   const playbackWaveformData = React.useMemo(() => {
     if (!isPlaybackMode) {
       return [];
     }
 
-    // First priority: use waveformOverview for display (fast, ~8KB max)
     if (recordingData?.waveformOverview && recordingData.waveformOverview.length > 0) {
-      // Calculate which portion of the overview to show based on current time
       const overview = recordingData.waveformOverview;
       const durationMs = recordingData.durationMs;
       const sampleCount = recordingData.sampleCount;
-      
+
       if (durationMs === 0 || sampleCount === 0) {
         return overview;
       }
 
-      // Calculate which sample index corresponds to currentPlaybackTime
       const samplesPerMs = sampleCount / durationMs;
       const currentSampleIndex = Math.floor(currentPlaybackTime * samplesPerMs);
-      
-      // Calculate how many overview points to show (overview has min-max pairs)
-      // Each overview point represents chunk_size samples, where chunk_size = sampleCount / (overview.length / 2)
+
       const overviewPointCount = Math.floor(overview.length / 2);
       const samplesPerOverviewPoint = sampleCount / overviewPointCount;
       const currentOverviewIndex = Math.floor(currentSampleIndex / samplesPerOverviewPoint);
-      
-      // Show a window of overview points centered on current position
-      const windowSize = 50; // number of overview points to show
+
+      const windowSize = 50;
       const halfWindow = Math.floor(windowSize / 2);
-      let startIndex = Math.max(0, currentOverviewIndex - halfWindow) * 2;
-      let endIndex = Math.min(overview.length, (currentOverviewIndex + halfWindow) * 2);
-      
+      const startIndex = Math.max(0, currentOverviewIndex - halfWindow) * 2;
+      const endIndex = Math.min(overview.length, (currentOverviewIndex + halfWindow) * 2);
+
       return overview.slice(startIndex, endIndex);
     }
 
-    // No samples fallback - RecordingPreview doesn't have samples
-    // waveformOverview should always be available now that it's stored in the database
     return [];
   }, [isPlaybackMode, recordingData, currentPlaybackTime]);
 
-  // Use playback waveform in playback mode, live waveform otherwise
   const waveformData = isPlaybackMode ? playbackWaveformData : audioAnalyzer.waveformData;
 
   const isCapturing = !isPlaybackMode && audioAnalyzer.isCapturing;
   const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
 
-  // Scope info
   const scopeName = "Oscilloscope";
   const recordingName = recordingData?.name;
 
-  // Loading state
   const isLoading = isPlaybackMode && recordingLoading;
 
-  // Error state
   const error = isPlaybackMode ? recordingError : undefined;
 
-  // Handle back navigation
   const handleBack = () => {
-    // Stop playback when navigating away
     if (shouldUseStreaming) {
       streamingPlayback.stop();
     }
@@ -249,10 +223,9 @@ export function ScopePage(): React.ReactElement {
     navigate("/");
   };
 
-  // Handle playback play/pause
   const handlePlay = () => {
     if (!recordingData) return;
-    
+
     if (shouldUseStreaming) {
       streamingPlayback.play();
     }
@@ -292,7 +265,6 @@ export function ScopePage(): React.ReactElement {
     setLoopPlayback((previous) => !previous);
   };
 
-  // Toast for sidebar actions
   const handleOpenDisplaySettings = () => {
     dialogHandlers.onOpenDisplaySettings();
   };
@@ -337,11 +309,10 @@ export function ScopePage(): React.ReactElement {
     }
   };
 
-  // Loading skeleton - matches actual layout structure
   if (isLoading) {
     return (
       <div className="flex w-full h-screen bg-bg-primary text-foreground overflow-hidden">
-        {/* Left Sidebar: 5 nav items with icon + label placeholders */}
+        {}
         <div className="w-[72px] bg-bg-secondary border-r border-border-subtle flex flex-col pt-16 pb-3 px-2 gap-1">
           {[1, 2, 3, 4, 5].map((index) => (
             <div key={index} className="flex flex-col items-center gap-1 py-2.5 px-1.5">
@@ -352,9 +323,9 @@ export function ScopePage(): React.ReactElement {
           <div className="flex-1" />
         </div>
 
-        {/* Main Content */}
+        {}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Top Bar: Back button, scope name, recording name, sample rate, test mode toggle */}
+          {}
           <div className="flex items-center gap-4 px-4 py-3 border-b border-border-subtle">
             <Skeleton className="w-9 h-9 rounded-md" />
             <Skeleton className="h-5 w-32" />
@@ -364,16 +335,16 @@ export function ScopePage(): React.ReactElement {
             <Skeleton className="w-20 h-8 rounded-md" />
           </div>
 
-          {/* Canvas Area: Dark background with centered spinner */}
+          {}
           <div className="flex-1 relative bg-[#111820] min-h-0">
             <div className="absolute inset-0 flex items-center justify-center">
               <Spinner size={48} />
             </div>
           </div>
 
-          {/* Bottom Controls: 4 measurement values + playback controls */}
+          {}
           <div className="border-t border-border-subtle bg-bg-secondary">
-            {/* 4 measurement value placeholders */}
+            {}
             <div className="flex items-center justify-around px-4 py-3 border-b border-border-subtle">
               <div className="flex flex-col items-center">
                 <Skeleton className="h-4 w-8 mb-1" />
@@ -392,7 +363,7 @@ export function ScopePage(): React.ReactElement {
                 <Skeleton className="h-3 w-12" />
               </div>
             </div>
-            {/* Playback controls: play/pause/stop buttons, seek bar, speed selector, loop toggle */}
+            {}
             <div className="flex items-center gap-4 px-4 py-3">
               <Skeleton className="w-10 h-10 rounded-full" />
               <Skeleton className="w-10 h-10 rounded-full" />
@@ -409,12 +380,11 @@ export function ScopePage(): React.ReactElement {
     );
   }
 
-  // Error screen
   if (error) {
     return (
       <div className="flex w-full h-screen bg-bg-primary text-foreground">
         <div className="flex-1 flex flex-col">
-          {/* Minimal top bar for error */}
+          {}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
             <button
               onClick={handleBack}
@@ -425,7 +395,7 @@ export function ScopePage(): React.ReactElement {
             <span className="text-sm font-medium">Error</span>
           </div>
 
-          {/* Error message */}
+          {}
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -448,10 +418,9 @@ export function ScopePage(): React.ReactElement {
     );
   }
 
-  // Main scope page UI (matches the mock exactly)
   return (
     <div className="flex w-full h-screen bg-bg-primary text-foreground overflow-hidden">
-      {/* Left Sidebar - hidden on mobile */}
+      {}
       <div className="hidden md:block">
         <ScopeSidebar
           onOpenDisplaySettings={handleOpenDisplaySettings}
@@ -464,9 +433,9 @@ export function ScopePage(): React.ReactElement {
         />
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
+        {}
         <ScopeTopBar
           mode={isPlaybackMode ? "playback" : "live"}
           scopeName={scopeName}
@@ -521,9 +490,9 @@ export function ScopePage(): React.ReactElement {
           }
         />
 
-        {/* Canvas Area */}
+        {}
         <div className="flex-1 relative bg-[#111820] min-h-0">
-          {/* The actual canvas - passes ref for export dialog */}
+          {}
           <ScopeCanvas
             waveformData={waveformData}
             isCapturing={isCapturing}
@@ -531,7 +500,7 @@ export function ScopePage(): React.ReactElement {
             forwardedRef={canvasReference}
           />
 
-          {/* Placeholder when no data */}
+          {}
           {!isCapturing && waveformData.length === 0 && !isPlaybackMode && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#111820]/70">
               <p className="max-w-[300px] text-[14px] text-[#a1a1aa] text-center leading-relaxed">
@@ -540,7 +509,7 @@ export function ScopePage(): React.ReactElement {
             </div>
           )}
 
-          {/* No recording data placeholder */}
+          {}
           {isPlaybackMode && waveformData.length === 0 && !recordingLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#111820]/70">
               <p className="max-w-[300px] text-[14px] text-[#a1a1aa] text-center leading-relaxed">
@@ -549,7 +518,7 @@ export function ScopePage(): React.ReactElement {
             </div>
           )}
 
-          {/* Hold badge */}
+          {}
           {(isCapturing || isPaused) && (
             <div className="absolute top-3 left-3 bg-white text-[#09090b] px-2 py-1 rounded text-[11px] font-semibold">
               HOLD
@@ -557,7 +526,7 @@ export function ScopePage(): React.ReactElement {
           )}
         </div>
 
-        {/* Bottom Controls */}
+        {}
         <ScopeBottomControls
           mode={isPlaybackMode ? "playback" : "live"}
           vpp={recordingData?.peakAmplitude ?? audioAnalyzer.vpp}
@@ -579,7 +548,7 @@ export function ScopePage(): React.ReactElement {
         />
       </div>
 
-      {/* Dialogs */}
+      {}
       <Dialogs />
     </div>
   );

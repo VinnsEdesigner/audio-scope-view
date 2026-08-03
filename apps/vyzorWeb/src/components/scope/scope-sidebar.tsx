@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/store";
 
-// Custom Display icon matching the mock (bar chart with horizontal connectors)
 const DisplayIcon = ({ size = 18 }: { size: number }) => (
   <svg
     width={size}
@@ -66,7 +65,6 @@ export function ScopeSidebar({
 
   const isPlayback = sessionMode === "playback";
 
-  // Default IDs for each mode
   const defaultLiveViewId = "display";
   const defaultPlaybackViewId = "display";
 
@@ -89,7 +87,6 @@ export function ScopeSidebar({
   const defaultActiveView = navItems[0]?.id ?? "display";
   const [activeView, setActiveView] = React.useState<string>(defaultActiveView);
 
-  // Reset state when mode changes
   React.useEffect(() => {
     const newDefault = isPlayback ? defaultPlaybackViewId : defaultLiveViewId;
     setActiveView(newDefault);
@@ -122,7 +119,7 @@ export function ScopeSidebar({
         );
       })}
 
-      {/* More menu for playback mode */}
+      {}
       {isPlayback && (
         <div className="relative">
           <button

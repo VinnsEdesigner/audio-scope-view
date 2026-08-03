@@ -42,17 +42,14 @@ export function calculateDCOffset(data: Float32Array): number {
 export function calculateFrequency(data: Float32Array, sampleRate: number): number {
   if (data.length < 2) return 0;
 
-  // Zero-crossing rate approach for frequency detection
   let zeroCrossings = 0;
 
   for (let index = 1; index < data.length; index++) {
-    // Check for sign change (zero crossing)
     if ((data[index - 1] >= 0 && data[index] < 0) || (data[index - 1] < 0 && data[index] >= 0)) {
       zeroCrossings++;
     }
   }
 
-  // Each zero crossing represents half a period
   const fullCycles = zeroCrossings / 2;
   const durationInSeconds = data.length / sampleRate;
 

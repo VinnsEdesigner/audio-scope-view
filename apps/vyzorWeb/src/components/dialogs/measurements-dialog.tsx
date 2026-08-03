@@ -67,7 +67,7 @@ export function MeasurementsDialog({ isOpen: _isOpen, onClose }: MeasurementsDia
       return;
     }
 
-    const vpp = calculatePeak(samples) * 2; // Peak-to-peak is 2x peak
+    const vpp = calculatePeak(samples) * 2;
     const rms = calculateRMS(samples);
     const dcOffset = calculateDCOffset(samples);
     const frequency = calculateFrequency(samples, sampleRate);
@@ -83,7 +83,7 @@ export function MeasurementsDialog({ isOpen: _isOpen, onClose }: MeasurementsDia
 
   return (
     <div className="w-[320px]">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <h2 className="text-base font-semibold text-foreground tracking-tight">Measurements</h2>
         <button
@@ -95,7 +95,7 @@ export function MeasurementsDialog({ isOpen: _isOpen, onClose }: MeasurementsDia
         </button>
       </div>
 
-      {/* Content */}
+      {}
       <div className="p-4 space-y-4">
         <p className="text-xs text-text-tertiary leading-relaxed">
           Live readouts from the DSP engine. Values follow calibration and update several times per

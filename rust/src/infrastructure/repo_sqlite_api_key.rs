@@ -19,6 +19,13 @@ struct ApiKeyRow {
     created_at: String,
 }
 
+/// API key with hash for loading into memory store
+#[derive(Debug, Clone)]
+pub struct ApiKeyWithHash {
+    pub api_key: ApiKey,
+    pub key_hash: String,
+}
+
 impl TryFrom<ApiKeyRow> for ApiKey {
     type Error = AppError;
 
@@ -167,6 +174,34 @@ impl SqliteApiKeyRepository {
         .map_err(|e| AppError::database(&format!("Failed to list API keys: {}", e)))?;
 
         rows.into_iter().map(TryInto::try_into).collect()
+    }
+
+    /// List all API keys with their hashes (for loading into memory store)
+    pub async fn list_all_with_hash(&self) -> AppResult<Vec<ApiKeyWithHash>> {
+        let rows: Vec<ApiKeyRow> = sqlx::query_as(
+            "SELECT * FROM api_keys ORDER BY created_at DESC"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::database(&format!("Failed to list API keys: {}", e)))?;
+
+        rows.into_iter()
+            .map(|row| {
+                let api_key = ApiKey {
+                    id: row.id.clone(),
+                    key: String::new(), // Key is not stored, only hash
+                    name: row.name.clone(),
+                    created_at: parse_datetime(&row.created_at)?,
+                    expires_at: row.expires_at.and_then(|s| parse_datetime(&s).ok()),
+                    rate_limit_per_minute: row.rate_limit_per_minute as u32,
+                    last_used_at: row.last_used_at.and_then(|s| parse_datetime(&s).ok()),
+                };
+                Ok(ApiKeyWithHash {
+                    api_key,
+                    key_hash: row.key_hash,
+                })
+            })
+            .collect()
     }
 
     /// Delete an API key by ID

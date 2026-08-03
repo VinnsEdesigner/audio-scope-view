@@ -62,7 +62,7 @@ export function ExportDialog({
 
   return (
     <div className="w-[320px]">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <h2 className="text-base font-semibold text-foreground tracking-tight">Export</h2>
         <button
@@ -74,7 +74,7 @@ export function ExportDialog({
         </button>
       </div>
 
-      {/* Content */}
+      {}
       <div className="p-4 space-y-4">
         <p className="text-sm text-text-tertiary">{getDescription()}</p>
 

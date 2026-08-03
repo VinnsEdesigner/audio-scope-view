@@ -54,8 +54,6 @@ export const GET_RECORDINGS_BY_ID = gql`
   }
 `;
 
-// Recording preview query - for fast loading without samples
-// Uses recordingPreview which loads metadata without samples
 export const GET_RECORDING_PREVIEW = gql`
   fragment RecordingPreviewFields on RecordingPreviewOutput {
     id

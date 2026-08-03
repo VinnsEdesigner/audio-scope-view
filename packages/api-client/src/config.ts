@@ -1,8 +1,7 @@
-/// <reference types="vite/client" />
-
 function getEnvironment(key: string, fallback: string): string {
   if (globalThis.window !== undefined) {
-    return (import.meta.env[key] as string | undefined) ?? fallback;
+    const env = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
+    return env[key] ?? fallback;
   }
   return process.env[key] ?? fallback;
 }
@@ -54,6 +53,8 @@ export function getConfig<K extends keyof ClientConfig>(key: K): ClientConfig[K]
   return config[key];
 }
 
-export const isProduction = import.meta.env.PROD;
+const env = (import.meta as unknown as { env: Record<string, boolean | string | undefined> }).env;
 
-export const isDevelopment = import.meta.env.DEV;
+export const isProduction = env.PROD === true;
+
+export const isDevelopment = env.DEV === true;

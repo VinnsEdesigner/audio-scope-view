@@ -57,19 +57,16 @@ export function ApiKeys() {
   >();
   const [openMenuId, setOpenMenuId] = useState<string | undefined>();
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClick = () => setOpenMenuId(undefined);
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
-  // Handle errors with toast notifications
   useEffect(() => {
     if (error) {
       const errorMessage = error.message || "";
 
-      // Check if it's a network error (can't reach server)
       if (
         errorMessage.includes("fetch") ||
         errorMessage.includes("network") ||
@@ -82,7 +79,6 @@ export function ApiKeys() {
           type: "error",
         });
       } else {
-        // Extract status code if present
         const statusMatch = errorMessage.match(/status.*?(\d+)/i) || errorMessage.match(/(\d{3})/);
         if (statusMatch) {
           showToast({
@@ -180,12 +176,12 @@ export function ApiKeys() {
                   key={index}
                   className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5"
                 >
-                  {/* Mobile skeleton */}
+                  {}
                   <div className="flex items-center justify-between gap-2 md:hidden">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="w-8 h-8 rounded-md" />
                   </div>
-                  {/* Desktop skeleton */}
+                  {}
                   <div className="hidden md:flex flex-col gap-1 min-w-0">
                     <Skeleton className="h-4 w-32" />
                   </div>
@@ -224,7 +220,7 @@ export function ApiKeys() {
           </ApiKeysCard>
         ) : (
           <ApiKeysCard className="overflow-visible">
-            {/* Desktop header - hidden on mobile */}
+            {}
             <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
               <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
                 Name
@@ -242,7 +238,7 @@ export function ApiKeys() {
             </div>
 
             <div className="divide-y divide-border-subtle">
-              {apiKeys.map((apiKey) => {
+              {apiKeys.map((apiKey: ApiKey) => {
                 const expired = isExpired(apiKey.expiresAt);
                 const status = apiKey.isValid ? (expired ? "expired" : "active") : "revoked";
 
@@ -251,7 +247,7 @@ export function ApiKeys() {
                     key={apiKey.id}
                     className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5 hover:bg-bg-hover transition-colors overflow-visible"
                   >
-                    {/* Mobile: Name and Actions in flex row */}
+                    {}
                     <div className="flex items-center justify-between gap-2 md:hidden">
                       <span className="text-sm font-medium text-foreground truncate">
                         {apiKey.name}
@@ -317,7 +313,7 @@ export function ApiKeys() {
                       </div>
                     </div>
 
-                    {/* Desktop: Full grid layout */}
+                    {}
                     <div className="hidden md:flex flex-col gap-1 min-w-0">
                       <span className="text-sm font-medium text-foreground truncate">
                         {apiKey.name}

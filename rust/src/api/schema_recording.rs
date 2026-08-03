@@ -497,7 +497,11 @@ impl RecordingMutation {
             44100, // Default sample rate
         );
 
-        let saved = context.recording_service.save(recording).await.ok()?;
+        let result = context.recording_service.save(recording).await;
+        if let Err(e) = &result {
+            tracing::error!("Failed to save recording: {}", e);
+        }
+        let saved = result.ok()?;
         // Since scopes are deprecated, use a placeholder name
         Some(RecordingOutput::from_recording(saved, "Recording".to_string()))
     }

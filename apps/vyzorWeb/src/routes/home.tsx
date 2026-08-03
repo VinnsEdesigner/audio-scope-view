@@ -23,6 +23,7 @@ import {
   formatBytes,
   formatTimestampRelative,
 } from "../hooks";
+import type { RecordingSummary, SessionWithStatus } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
 import { useToast } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,19 +40,19 @@ export function Home(): React.ReactElement {
   const [renamingId, setRenamingId] = React.useState<string | undefined>();
   const [renameValue, setRenameValue] = React.useState("");
 
-  const { data: stats, isLoading: statsLoading } = useRecordingStats();
-  const { data: recentData, isLoading: recordingsLoading } = useRecentRecordings(20);
+  const { data: stats, loading: statsLoading } = useRecordingStats();
+  const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
   const { sessions, counts } = useHomePageSessions();
 
-  const pinRecording = usePinRecording();
-  const deleteRecording = useDeleteRecording();
-  const renameRecording = useRenameRecording();
+  const [pinRecording] = usePinRecording();
+  const [deleteRecording] = useDeleteRecording();
+  const [renameRecording] = useRenameRecording();
 
   const filteredRecordings = React.useMemo(() => {
     if (!recentData?.recentRecordings || !Array.isArray(recentData.recentRecordings)) return [];
 
     const now = new Date();
-    return recentData.recentRecordings.filter((rec) => {
+    return recentData.recentRecordings.filter((rec: RecordingSummary) => {
       const recDate = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
       switch (timeFilter) {
         case "today": {
@@ -72,12 +73,14 @@ export function Home(): React.ReactElement {
     });
   }, [recentData, timeFilter]);
 
-  const displaySessions = Array.isArray(sessions) 
-    ? (showAllSessions ? sessions : sessions.slice(0, 3)) 
+  const displaySessions = Array.isArray(sessions)
+    ? showAllSessions
+      ? sessions
+      : sessions.slice(0, 3)
     : [];
 
   const handlePin = (id: string, isPinned: boolean) => {
-    pinRecording.mutate({ id, isPinned: !isPinned });
+    pinRecording({ variables: { id, isPinned: !isPinned } });
     setOpenMenuId(undefined);
     showToast({
       message: isPinned ? "Removing pin..." : "Pinning recording...",
@@ -87,14 +90,15 @@ export function Home(): React.ReactElement {
 
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
-      deleteRecording.mutate(id, {
-        onSuccess: () => {
+      deleteRecording({
+        variables: { id },
+        onCompleted: () => {
           showToast({
             message: "Recording deleted successfully",
             type: "success",
           });
         },
-        onError: (error) => {
+        onError: (error: Error) => {
           showToast({
             message: `Failed to delete recording: ${error.message}`,
             type: "error",
@@ -123,23 +127,21 @@ export function Home(): React.ReactElement {
       return;
     }
 
-    renameRecording.mutate(
-      { id, name: trimmedName },
-      {
-        onSuccess: () => {
-          showToast({
-            message: "Recording renamed successfully",
-            type: "success",
-          });
-        },
-        onError: (error) => {
-          showToast({
-            message: `Failed to rename: ${error.message}`,
-            type: "error",
-          });
-        },
+    renameRecording({
+      variables: { id, name: trimmedName },
+      onCompleted: () => {
+        showToast({
+          message: "Recording renamed successfully",
+          type: "success",
+        });
       },
-    );
+      onError: (error: Error) => {
+        showToast({
+          message: `Failed to rename: ${error.message}`,
+          type: "error",
+        });
+      },
+    });
     setRenamingId(undefined);
     setRenameValue("");
   };
@@ -412,7 +414,7 @@ export function Home(): React.ReactElement {
                     <p className="text-sm">No recordings found</p>
                   </div>
                 ) : (
-                  filteredRecordings.map((recording) => (
+                  filteredRecordings.map((recording: RecordingSummary) => (
                     <div
                       key={recording.id}
                       className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg hover:bg-bg-hover transition-colors cursor-pointer"
@@ -527,7 +529,7 @@ export function Home(): React.ReactElement {
                     <p className="text-sm">No active sessions</p>
                   </div>
                 ) : (
-                  sessions.map((session) => (
+                  sessions.map((session: SessionWithStatus) => (
                     <div
                       key={session.id}
                       className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"

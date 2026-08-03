@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS recordings (
     rms_amplitude REAL NOT NULL DEFAULT 0.0,
     is_pinned INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    waveform_overview TEXT,
     
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );

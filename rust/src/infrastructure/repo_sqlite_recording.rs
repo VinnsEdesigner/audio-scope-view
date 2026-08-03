@@ -230,7 +230,7 @@ impl SqliteRecordingRepository {
             r#"
             SELECT id, session_id, name, sample_count, timestamp, 
                    duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
-                   is_pinned, created_at 
+                   is_pinned, created_at, waveform_overview
             FROM recordings WHERE id = ?
             "#,
         )

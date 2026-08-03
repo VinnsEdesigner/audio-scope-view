@@ -166,39 +166,31 @@ export function useMockAudioAnalyzer(
       analyser.fftSize = fftSize;
       analyser.smoothingTimeConstant = smoothingTimeConstant;
 
-      // Create oscillator for the base waveform
       const oscillator = audioContext.createOscillator();
       if (currentWaveformType !== "noise") {
         oscillator.type = currentWaveformType;
       }
       oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
 
-      // Create noise source
       const noiseSource = createNoiseSource(audioContext);
       const noiseGain = audioContext.createGain();
       noiseGain.gain.setValueAtTime(noiseLevel, audioContext.currentTime);
 
-      // Create main gain control
       const mainGain = audioContext.createGain();
       mainGain.gain.setValueAtTime(amplitude, audioContext.currentTime);
 
-      // Create noise gain for oscillator (to reduce noise on clean signals)
       const oscillatorNoiseGain = audioContext.createGain();
       oscillatorNoiseGain.gain.setValueAtTime(1 - noiseLevel * 2, audioContext.currentTime);
 
-      // Connect oscillator -> oscillatorNoiseGain -> analyser
       oscillator.connect(oscillatorNoiseGain);
       oscillatorNoiseGain.connect(analyser);
 
-      // Connect noise -> noiseGain -> analyser
       noiseSource.connect(noiseGain);
       noiseGain.connect(analyser);
 
-      // Connect analyser to destination (for debugging, can hear it)
       analyser.connect(mainGain);
       mainGain.connect(audioContext.destination);
 
-      // Start sources
       oscillator.start();
       noiseSource.start();
 
@@ -221,7 +213,6 @@ export function useMockAudioAnalyzer(
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      // Generate initial samples
       const initialSamples: number[] = [];
       for (let index = 0; index < 1024; index++) {
         initialSamples.push(
@@ -279,7 +270,6 @@ export function useMockAudioAnalyzer(
     setFrequency,
   ]);
 
-  // Generate a single sample based on waveform type
   const generateSample = (
     index: number,
     freq: number,
@@ -332,7 +322,6 @@ export function useMockAudioAnalyzer(
   }, []);
 
   const stopCapture = useCallback(() => {
-    // Collect samples from the buffer
     if (analyserReference.current && audioContextReference.current) {
       const bufferLength = analyserReference.current.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);

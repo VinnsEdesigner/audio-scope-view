@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@apollo/client";
+import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import {
   GET_RECORDINGS,
   GET_RECORDINGS_BY_ID,
@@ -20,15 +21,18 @@ import {
 import type { TimeRange, RecordingPreview } from "@audio-scope-view/api-client/domain/recording";
 import { transformRecordingPreview } from "@audio-scope-view/api-client/domain/recording";
 
-/** Return type for useRecording hook */
+export type { RecordingSummary } from "@audio-scope-view/api-client/domain/recording";
+
 export interface UseRecordingResult {
   data: RecordingPreview | undefined;
   recordingPreview: RecordingPreview | undefined;
   loading: boolean;
-  error?: any;
+  error?: Error;
   called: boolean;
-  client: any;
+  client: ApolloClient<NormalizedCacheObject>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   refetch: (variables?: any) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fetchMore: (variables?: any) => Promise<any>;
 }
 
@@ -49,7 +53,6 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
     pinnedOnly = false,
   } = options;
 
-  // Map frontend timeRange to backend filter format
   const timeRangeFilter =
     timeRange === "last_hour"
       ? "today"
@@ -61,7 +64,6 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
             ? "last_month"
             : undefined;
 
-  // Build filter - undefined fields will be stripped by GraphQL
   const filter = {
     time_range: timeRangeFilter,
     session_id: sessionId,
@@ -99,13 +101,10 @@ export function useRecording(recordingId: string | undefined): UseRecordingResul
     fetchPolicy: "cache-and-network",
   });
 
-  // Transform the response to RecordingPreview type
-  const recording: RecordingPreview | undefined = queryResult.data?.recordingPreview 
+  const recording: RecordingPreview | undefined = queryResult.data?.recordingPreview
     ? transformRecordingPreview(queryResult.data.recordingPreview)
     : undefined;
 
-  // Return with full query result plus transformed data
-  // This maintains backward compatibility
   return {
     ...queryResult,
     data: recording ?? undefined,
@@ -113,13 +112,11 @@ export function useRecording(recordingId: string | undefined): UseRecordingResul
   };
 }
 
-// Hook for getting full recording with samples (use only when needed for playback)
-// This loads all samples at once - use useChunkedPlayback for large recordings
 export function useFullRecording(recordingId: string | undefined) {
   return useQuery(GET_RECORDINGS_BY_ID, {
     variables: { id: recordingId },
     skip: !recordingId,
-    fetchPolicy: "network-only", // Always fetch from network, never from cache
+    fetchPolicy: "network-only",
   });
 }
 

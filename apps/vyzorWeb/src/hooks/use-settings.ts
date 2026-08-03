@@ -2,7 +2,6 @@ import { useQuery, useMutation } from "@apollo/client";
 import { GET_SETTINGS } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import { UPDATE_SETTINGS } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
 
-// Re-export types for use by components
 export type { Settings, UpdateSettingsInput } from "@audio-scope-view/api-client/domain/settings";
 
 export function useSettings(sessionId: string | undefined) {

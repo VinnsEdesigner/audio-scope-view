@@ -100,7 +100,6 @@ export function ScopeTopBar({
 
       <div className="flex items-center gap-1.5">
         {isPlayback ? (
-          // PLAYBACK mode controls
           <>
             <button
               onClick={isPlaying ? handlePause : handlePlay}
@@ -118,7 +117,6 @@ export function ScopeTopBar({
             </button>
           </>
         ) : (
-          // LIVE mode controls
           <>
             <button
               onClick={handleFreeze}
@@ -158,7 +156,7 @@ export function ScopeTopBar({
         )}
       </div>
 
-      {/* Test Mode Toggle */}
+      {}
       <button
         onClick={onToggleTestMode}
         className={`ml-2 p-2 rounded-md transition-colors ${
@@ -171,7 +169,7 @@ export function ScopeTopBar({
         <TestModeIcon size={16} />
       </button>
 
-      {/* Mobile Menu Button - visible only on mobile */}
+      {}
       {mobileMenuItems.length > 0 && (
         <div className="relative md:hidden">
           <button

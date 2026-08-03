@@ -44,19 +44,16 @@ function WaveformCanvas({
   const canvasReference = React.useRef<HTMLCanvasElement>(null);
   const containerReference = React.useRef<HTMLDivElement>(null);
 
-  // Store waveform data in ref for RAF loop access
   const waveformDataReference = React.useRef(waveformData);
   React.useEffect(() => {
     waveformDataReference.current = waveformData;
   }, [waveformData]);
 
-  // Store settings in refs to avoid effect re-runs
   const settingsReference = React.useRef({ waveformColor, glow, autoScale, invert });
   React.useEffect(() => {
     settingsReference.current = { waveformColor, glow, autoScale, invert };
   }, [waveformColor, glow, autoScale, invert]);
 
-  // RAF loop for continuous 60fps drawing
   React.useEffect(() => {
     const canvas = canvasReference.current;
     const container = containerReference.current;
@@ -72,7 +69,6 @@ function WaveformCanvas({
       const width = rect.width;
       const height = rect.height;
 
-      // Skip if canvas has no size
       if (width === 0 || height === 0) {
         animationFrameId = requestAnimationFrame(draw);
         return;
@@ -80,25 +76,21 @@ function WaveformCanvas({
 
       const dpr = window.devicePixelRatio || 1;
 
-      // Set canvas size accounting for device pixel ratio
       if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
         canvas.width = width * dpr;
         canvas.height = height * dpr;
         context.scale(dpr, dpr);
       }
 
-      // Clear canvas
       context.clearRect(0, 0, width, height);
 
       const waveformData = waveformDataReference.current;
       const { waveformColor, glow, autoScale, invert } = settingsReference.current;
       const color = WAVEFORM_COLORS[waveformColor] || WAVEFORM_COLORS.cyan;
 
-      // Draw waveform if we have data
       if (waveformData.length > 0) {
         const centerY = height / 2;
 
-        // Calculate scale for autoScale
         let scale = 1;
         if (autoScale) {
           const maxValue = Math.max(...waveformData.map((v) => Math.abs(v)), 0.01);
@@ -107,13 +99,11 @@ function WaveformCanvas({
 
         context.save();
 
-        // Apply glow effect
         if (glow) {
           context.shadowColor = color;
           context.shadowBlur = 8;
         }
 
-        // Apply invert
         if (invert) {
           context.scale(1, -1);
           context.translate(0, -height);
@@ -152,7 +142,6 @@ function WaveformCanvas({
     };
   }, []);
 
-  // Handle container resize
   React.useEffect(() => {
     const container = containerReference.current;
     const canvas = canvasReference.current;
@@ -191,7 +180,7 @@ export function DialogMicRecording({
   const { showToast } = useToast();
   const { devices, selectedDeviceId, setSelectedDeviceId, hasPermission, requestPermission } =
     useMediaDevices();
-  const startRecordingMutation = useStartRecording();
+  const [startRecording] = useStartRecording();
 
   const { waveformColor, showGrid, smoothWaveform, glow, autoScale, invert } = useUIStore();
 
@@ -266,9 +255,11 @@ export function DialogMicRecording({
 
     if (samples.length > 0 && sessionId) {
       try {
-        await startRecordingMutation.mutateAsync({
-          sessionId,
-          name: recordingName || `Recording ${new Date().toLocaleString()}`,
+        await startRecording({
+          variables: {
+            sessionId,
+            name: recordingName || `Recording ${new Date().toLocaleString()}`,
+          },
         });
         showToast({ message: "Recording saved successfully!", type: "success" });
       } catch {

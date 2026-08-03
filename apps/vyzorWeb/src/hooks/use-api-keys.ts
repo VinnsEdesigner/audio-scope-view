@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@apollo/client";
+import type { ApolloCache } from "@apollo/client/cache";
 import {
   GET_API_KEYS,
   GET_API_KEY,
@@ -9,9 +10,8 @@ import {
   UPDATE_API_KEY,
   DELETE_API_KEY,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
-import type { ApolloCache } from "@apollo/client/cache";
+import type { ApiKey } from "@audio-scope-view/api-client/domain/api-key";
 
-// Re-export types for use by components (keeps domain types in one place)
 export type {
   ApiKey,
   CreatedApiKey,
@@ -19,7 +19,6 @@ export type {
   UpdateApiKeyInput,
 } from "@audio-scope-view/api-client/domain/api-key";
 
-// Helper to get the apiKeys from cache
 function getApiKeysFromCache(cache: ApolloCache<unknown>): ApiKey[] | undefined {
   try {
     const data = cache.readQuery<{ apiKeys: ApiKey[] }>({ query: GET_API_KEYS });
@@ -29,14 +28,12 @@ function getApiKeysFromCache(cache: ApolloCache<unknown>): ApiKey[] | undefined 
   }
 }
 
-// Helper to write apiKeys to cache
 function writeApiKeysToCache(cache: ApolloCache<unknown>, apiKeys: ApiKey[]): void {
-  // Ensure all apiKeys have __typename for Apollo Client cache identification
   const apiKeysWithTypename = apiKeys.map((key) => ({
     __typename: "ApiKeyInfo",
     ...key,
   }));
-  
+
   cache.writeQuery({
     query: GET_API_KEYS,
     data: { apiKeys: apiKeysWithTypename },
@@ -59,86 +56,73 @@ export function useApiKey(id: string | undefined) {
 
 export function useVerifyApiKey() {
   return useMutation(VERIFY_API_KEY, {
-    onCompleted: () => {
-      // No cache update needed for verification
-    },
+    onCompleted: () => {},
   });
 }
 
 export function useCreateApiKey() {
   return useMutation(CREATE_API_KEY, {
-    // Immediately update the cache with the new API key
     update: (cache, { data }) => {
       if (!data?.createApiKey) return;
 
-      // Get existing keys from cache
       const existingKeys = getApiKeysFromCache(cache);
 
-      // Create the new API key object from the mutation result
-      // Include __typename for Apollo Client cache identification
       const newApiKey = {
         __typename: "ApiKeyInfo",
         id: data.createApiKey.id,
         name: data.createApiKey.name,
-        createdAt: Math.floor(Date.now() / 1000), // Server would set this, but approximate for immediate display
+        createdAt: Math.floor(Date.now() / 1000),
         expiresAt: undefined,
         lastUsedAt: undefined,
-        rateLimitPerMinute: 60, // Default rate limit
+        rateLimitPerMinute: 60,
         isValid: true,
       };
 
-      // Prepend the new key to the list
       const updatedKeys = existingKeys === undefined ? [newApiKey] : [newApiKey, ...existingKeys];
       writeApiKeysToCache(cache, updatedKeys);
     },
-    // Fallback refetch if cache read fails
+
     refetchQueries: [{ query: GET_API_KEYS }],
   });
 }
 
 export function useUpdateApiKey() {
   return useMutation(UPDATE_API_KEY, {
-    // Immediately update the cache with the modified API key
-    update: (cache, { data, variables }) => {
-      if (!data?.updateApiKey || !variables?.id) return;
+    update: (cache, { data }) => {
+      if (!data?.updateApiKey) return;
 
-      // Get existing keys from cache
       const existingKeys = getApiKeysFromCache(cache);
       if (!existingKeys) return;
 
-      // Find and update the key
       const updatedKeys = existingKeys.map((key) =>
-        key.id === variables.id
+        key.id === data.updateApiKey.id
           ? {
               ...key,
-              name: variables.input?.name ?? key.name,
-              rateLimitPerMinute: variables.input?.rateLimitPerMinute ?? key.rateLimitPerMinute,
+              name: data.updateApiKey.name ?? key.name,
+              rateLimitPerMinute: data.updateApiKey.rateLimitPerMinute ?? key.rateLimitPerMinute,
             }
           : key,
       );
 
       writeApiKeysToCache(cache, updatedKeys);
     },
-    // Fallback refetch if cache read fails
+
     refetchQueries: [{ query: GET_API_KEYS }],
   });
 }
 
 export function useDeleteApiKey() {
   return useMutation(DELETE_API_KEY, {
-    // Immediately remove the deleted API key from cache
-    update: (cache, { data, variables }) => {
-      if (!data?.deleteApiKey || !variables?.id) return;
+    update: (cache, { data }) => {
+      if (!data?.deleteApiKey) return;
 
-      // Get existing keys from cache
       const existingKeys = getApiKeysFromCache(cache);
       if (!existingKeys) return;
 
-      // Filter out the deleted key
-      const updatedKeys = existingKeys.filter((key) => key.id !== variables.id);
+      const updatedKeys = existingKeys.filter((key) => key.id !== data.deleteApiKey.id);
       writeApiKeysToCache(cache, updatedKeys);
     },
-    // Fallback refetch if cache read fails
+
     refetchQueries: [{ query: GET_API_KEYS }],
   });
 }

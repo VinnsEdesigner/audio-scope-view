@@ -12,12 +12,11 @@ interface EditApiKeyDialogProperties {
 
 export function EditApiKeyDialog({ isOpen, onClose, apiKey }: EditApiKeyDialogProperties) {
   const { showToast } = useToast();
-  const updateApiKey = useUpdateApiKey();
+  const [updateApiKey, { loading: isPending }] = useUpdateApiKey();
 
   const [name, setName] = useState(apiKey?.name ?? "");
   const [rateLimit, setRateLimit] = useState(apiKey?.rateLimitPerMinute ?? 60);
 
-  // Update local state when apiKey changes
   useEffect(() => {
     if (apiKey) {
       setName(apiKey.name);
@@ -33,24 +32,22 @@ export function EditApiKeyDialog({ isOpen, onClose, apiKey }: EditApiKeyDialogPr
       rateLimitPerMinute: rateLimit,
     };
 
-    updateApiKey.mutate(
-      { id: apiKey.id, input },
-      {
-        onSuccess: () => {
-          showToast({
-            message: `API key "${name}" updated successfully`,
-            type: "success",
-          });
-          onClose();
-        },
-        onError: (error) => {
-          showToast({
-            message: `Failed to update API key: ${error.message || "Unknown error"}`,
-            type: "error",
-          });
-        },
+    updateApiKey({
+      variables: { id: apiKey.id, input },
+      onCompleted: () => {
+        showToast({
+          message: `API key "${name}" updated successfully`,
+          type: "success",
+        });
+        onClose();
       },
-    );
+      onError: (error: Error) => {
+        showToast({
+          message: `Failed to update API key: ${error.message || "Unknown error"}`,
+          type: "error",
+        });
+      },
+    });
   };
 
   return (
@@ -93,11 +90,11 @@ export function EditApiKeyDialog({ isOpen, onClose, apiKey }: EditApiKeyDialogPr
           Cancel
         </button>
         <button
-          disabled={!name.trim() || updateApiKey.isPending}
+          disabled={!name.trim() || isPending}
           onClick={handleSave}
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
         >
-          {updateApiKey.isPending ? "Saving..." : "Save Changes"}
+          {isPending ? "Saving..." : "Save Changes"}
         </button>
       </DialogFooter>
     </Dialog>

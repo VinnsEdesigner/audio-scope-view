@@ -25,6 +25,7 @@ export {
   usePauseRecording,
   useResumeRecording,
 } from "./use-recordings";
+export type { RecordingSummary } from "./use-recordings";
 
 export {
   useSessionsWithStatus,
@@ -32,6 +33,7 @@ export {
   useSessionStatusCounts,
   useHomePageSessions,
 } from "./use-sessions-with-status";
+export type { SessionWithStatus } from "./use-sessions-with-status";
 
 export { useSettings, useUpdateSettings } from "./use-settings";
 
@@ -79,7 +81,15 @@ export { useSessionDialogs } from "./use-session-dialogs";
 export type { Recording } from "./use-session-dialogs";
 
 export { useChunkedPlayback } from "./use-chunked-playback";
-export type { ChunkedPlaybackState, ChunkedPlaybackOptions, ChunkedPlaybackReturn } from "./use-chunked-playback";
+export type {
+  ChunkedPlaybackState,
+  ChunkedPlaybackOptions,
+  ChunkedPlaybackReturn,
+} from "./use-chunked-playback";
 
 export { useStreamingPlayback } from "@/audio";
-export type { StreamingPlaybackState, StreamingPlaybackOptions, StreamingPlaybackReturn } from "@/audio";
+export type {
+  StreamingPlaybackState,
+  StreamingPlaybackOptions,
+  StreamingPlaybackReturn,
+} from "@/audio";

@@ -37,28 +37,22 @@ export function useSessionDialogs({
   const isPlayback = mode === "playback";
   const { showToast } = useToast();
 
-  // Dialog open states
   const [displaySettingsOpen, setDisplaySettingsOpen] = React.useState(false);
   const [triggerSettingsOpen, setTriggerSettingsOpen] = React.useState(false);
   const [measurementsOpen, setMeasurementsOpen] = React.useState(false);
   const [recordingInfoOpen, setRecordingInfoOpen] = React.useState(false);
   const [exportOpen, setExportOpen] = React.useState(false);
 
-  // Rename dialog state
   const [renameDialogOpen, setRenameDialogOpen] = React.useState(false);
   const [renameValue, setRenameValue] = React.useState("");
 
-  // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
-  // Recording hooks
-  const renameRecording = useRenameRecording();
-  const deleteRecording = useDeleteRecording();
+  const [renameRecording, { loading: isRenaming }] = useRenameRecording();
+  const [deleteRecording, { loading: isDeleting }] = useDeleteRecording();
 
-  // Effective recording ID
   const effectiveRecordingId = recordingId ?? recording?.id;
 
-  // Handlers for SessionSidebar callbacks
   const handleOpenDisplaySettings = React.useCallback(() => {
     setDisplaySettingsOpen(true);
   }, []);
@@ -93,12 +87,12 @@ export function useSessionDialogs({
   const handleRenameConfirm = React.useCallback(async () => {
     const idToRename = recording?.id;
     const previousName = recording?.name;
-    // Get value from global ref (for browser automation) or React state
+
     const nameToSet = renameDialogInputReference.current?.value.trim() || renameValue.trim();
     if (idToRename && nameToSet) {
       try {
         setRenameDialogOpen(false);
-        await renameRecording.mutateAsync({ id: idToRename, name: nameToSet });
+        await renameRecording({ variables: { id: idToRename, name: nameToSet } });
         showToast({
           message:
             previousName === nameToSet
@@ -119,7 +113,7 @@ export function useSessionDialogs({
     const recordingName = recording?.name;
     if (recording) {
       try {
-        await deleteRecording.mutateAsync(recording.id);
+        await deleteRecording({ variables: { id: recording.id } });
         setDeleteDialogOpen(false);
         showToast({
           message: `Recording "${recordingName}" deleted`,
@@ -134,7 +128,6 @@ export function useSessionDialogs({
     }
   }, [recording, deleteRecording, showToast]);
 
-  // Close handlers for dialogs
   const handleCloseDisplaySettings = React.useCallback(() => setDisplaySettingsOpen(false), []);
   const handleCloseTriggerSettings = React.useCallback(() => setTriggerSettingsOpen(false), []);
   const handleCloseMeasurements = React.useCallback(() => setMeasurementsOpen(false), []);
@@ -146,7 +139,7 @@ export function useSessionDialogs({
   const Dialogs = React.useMemo(
     () => () => (
       <>
-        {/* Display Settings */}
+        {}
         <AnchoredDialog isOpen={displaySettingsOpen} onClose={handleCloseDisplaySettings}>
           <DisplaySettingsDialog
             isOpen={displaySettingsOpen}
@@ -154,7 +147,7 @@ export function useSessionDialogs({
           />
         </AnchoredDialog>
 
-        {/* Trigger Settings */}
+        {}
         {!isPlayback && (
           <AnchoredDialog isOpen={triggerSettingsOpen} onClose={handleCloseTriggerSettings}>
             <TriggerSettingsDialog
@@ -165,12 +158,12 @@ export function useSessionDialogs({
           </AnchoredDialog>
         )}
 
-        {/* Measurements */}
+        {}
         <AnchoredDialog isOpen={measurementsOpen} onClose={handleCloseMeasurements}>
           <MeasurementsDialog isOpen={measurementsOpen} onClose={handleCloseMeasurements} />
         </AnchoredDialog>
 
-        {/* Export */}
+        {}
         {canvasRef && (
           <AnchoredDialog isOpen={exportOpen} onClose={handleCloseExport}>
             <ExportDialog
@@ -182,7 +175,7 @@ export function useSessionDialogs({
           </AnchoredDialog>
         )}
 
-        {/* Recording Info */}
+        {}
         {isPlayback && effectiveRecordingId && (
           <AnchoredDialog isOpen={recordingInfoOpen} onClose={handleCloseRecordingInfo}>
             <RecordingInfoDialog
@@ -193,7 +186,7 @@ export function useSessionDialogs({
           </AnchoredDialog>
         )}
 
-        {/* Rename Dialog */}
+        {}
         {renameDialogOpen && (
           <RenameDialog
             isOpen={renameDialogOpen}
@@ -201,18 +194,18 @@ export function useSessionDialogs({
             onChange={setRenameValue}
             onConfirm={handleRenameConfirm}
             onCancel={handleCloseRename}
-            isLoading={renameRecording.isPending}
+            isLoading={isRenaming}
           />
         )}
 
-        {/* Delete Dialog */}
+        {}
         {deleteDialogOpen && (
           <DeleteConfirmationDialog
             isOpen={deleteDialogOpen}
             recordingName={recording?.name}
             onConfirm={handleDeleteConfirm}
             onCancel={handleCloseDelete}
-            isLoading={deleteRecording.isPending}
+            isLoading={isDeleting}
           />
         )}
       </>
@@ -240,8 +233,8 @@ export function useSessionDialogs({
       handleCloseDelete,
       handleRenameConfirm,
       handleDeleteConfirm,
-      renameRecording.isPending,
-      deleteRecording.isPending,
+      isRenaming,
+      isDeleting,
     ],
   );
 

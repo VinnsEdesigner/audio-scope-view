@@ -20,7 +20,6 @@ export function RenameDialog({
 }: RenameDialogProperties) {
   const inputReference = React.useRef<HTMLInputElement>(null);
 
-  // Keep the global ref in sync
   React.useEffect(() => {
     renameDialogInputReference.current = inputReference.current ?? undefined;
   });

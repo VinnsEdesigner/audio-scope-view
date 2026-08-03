@@ -83,13 +83,12 @@ export function DisplaySettingsDialog({
     onClose();
   };
 
-  // When used inside AnchoredDialog, use prop callbacks; otherwise use internal handlers
   const handleSaveFinal = onSave || handleSave;
   const handleCancelFinal = onCancel || handleCancel;
 
   return (
     <div className="w-[320px]">
-      {/* Header - matches AnchoredDialog style */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <h2 className="text-base font-semibold text-foreground tracking-tight">Display Settings</h2>
         <button
@@ -101,7 +100,7 @@ export function DisplaySettingsDialog({
         </button>
       </div>
 
-      {/* Content */}
+      {}
       <div className="p-4">
         <div className="space-y-0">
           <SettingRow
@@ -130,7 +129,7 @@ export function DisplaySettingsDialog({
           />
         </div>
 
-        {/* Footer buttons */}
+        {}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={handleCancelFinal}

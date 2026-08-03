@@ -87,7 +87,7 @@ export function RecordingInfoDialog({
 
   return (
     <div className="w-[320px]">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <h2 className="text-base font-semibold text-foreground tracking-tight">Recording Info</h2>
         <button
@@ -99,7 +99,7 @@ export function RecordingInfoDialog({
         </button>
       </div>
 
-      {/* Content */}
+      {}
       <div className="p-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -107,7 +107,7 @@ export function RecordingInfoDialog({
           </div>
         ) : recording ? (
           <div className="space-y-4">
-            {/* Recording Name */}
+            {}
             <div className="p-4 bg-bg-elevated rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wide mb-2">
                 Recording Name
@@ -115,14 +115,14 @@ export function RecordingInfoDialog({
               <div className="text-base font-medium text-foreground">{recording.name}</div>
             </div>
 
-            {/* Stats Grid */}
+            {}
             <div className="grid grid-cols-3 gap-3">
               <StatCard value={formattedDuration} label="Duration" />
               <StatCard value={formattedSize} label="Size" />
               <StatCard value={formattedSampleRate} label="Sample Rate" />
             </div>
 
-            {/* Info Rows */}
+            {}
             <div className="space-y-2">
               <InfoRow
                 icon={<Calendar size={16} className="opacity-70" />}

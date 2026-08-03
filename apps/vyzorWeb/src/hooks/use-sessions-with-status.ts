@@ -5,6 +5,8 @@ import {
   GET_SESSION_STATUS_COUNTS,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries/recording-queries";
 
+export type { SessionWithStatus } from "@audio-scope-view/api-client/domain/recording";
+
 export interface UseSessionsWithStatusOptions {
   limit?: number;
   offset?: number;
