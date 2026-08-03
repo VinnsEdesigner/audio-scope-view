@@ -58,10 +58,12 @@ pub struct SessionStatusCountsOutput {
     pub total: i32,
 }
 
-/// Session output type
+/// Session output type with all fields
 #[derive(Debug, SimpleObject)]
 pub struct SessionOutput {
     pub id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
     pub started_at: String,
     pub ended_at: Option<String>,
     pub duration_seconds: Option<i64>,
@@ -71,6 +73,12 @@ pub struct SessionOutput {
     pub is_oscilloscope_open: bool,
     /// Total oscilloscope capture duration in milliseconds
     pub oscilloscope_duration_ms: Option<f64>,
+    /// Parent session ID (for sub-sessions)
+    pub parent_session_id: Option<String>,
+    /// Whether this is a sub-session
+    pub is_sub_session: bool,
+    /// Number of sub-sessions under this session
+    pub sub_session_count: i32,
 }
 
 impl SessionOutput {
@@ -80,27 +88,46 @@ impl SessionOutput {
         let oscilloscope_duration_ms = session.oscilloscope_duration_ms;
         Self {
             id: session.id,
+            name: session.name,
+            description: session.description,
             started_at: session.started_at.to_rfc3339(),
             ended_at: session.ended_at.map(|dt| dt.to_rfc3339()),
             duration_seconds: session.duration_seconds,
             recording_count: 0,
             is_oscilloscope_open,
             oscilloscope_duration_ms,
+            parent_session_id: session.parent_session_id,
+            is_sub_session: session.is_sub_session,
+            sub_session_count: 0,
         }
     }
 
     /// Create SessionOutput from Session with recording count
     pub fn from_session_with_count(session: Session, recording_count: i64) -> Self {
+        Self::from_session_full(session, recording_count, 0)
+    }
+
+    /// Create SessionOutput from Session with recording count and sub-session count
+    pub fn from_session_full(
+        session: Session,
+        recording_count: i64,
+        sub_session_count: i32,
+    ) -> Self {
         let is_oscilloscope_open = session.is_oscilloscope_open();
         let oscilloscope_duration_ms = session.oscilloscope_duration_ms;
         Self {
             id: session.id,
+            name: session.name,
+            description: session.description,
             started_at: session.started_at.to_rfc3339(),
             ended_at: session.ended_at.map(|dt| dt.to_rfc3339()),
             duration_seconds: session.duration_seconds,
             recording_count,
             is_oscilloscope_open,
             oscilloscope_duration_ms,
+            parent_session_id: session.parent_session_id,
+            is_sub_session: session.is_sub_session,
+            sub_session_count,
         }
     }
 }
@@ -109,6 +136,20 @@ impl From<Session> for SessionOutput {
     fn from(session: Session) -> Self {
         Self::from_session(session)
     }
+}
+
+/// Input for creating a named session
+#[derive(Debug, InputObject)]
+pub struct CreateSessionInput {
+    pub name: Option<String>,
+    pub description: Option<String>,
+}
+
+/// Input for updating session metadata
+#[derive(Debug, InputObject)]
+pub struct UpdateSessionInput {
+    pub name: Option<String>,
+    pub description: Option<String>,
 }
 
 /// Input for audio capture settings
@@ -209,6 +250,63 @@ impl SessionQuery {
             results.push(SessionOutput::from_session_with_count(session, count as i64));
         }
         results
+    }
+
+    /// Get sub-sessions for a parent session
+    async fn sub_sessions(
+        &self,
+        ctx: &Context<'_>,
+        parent_id: String,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Vec<SessionOutput> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
+        let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
+        let offset = offset.unwrap_or(0).max(0) as u32;
+
+        let sessions = context
+            .session_service
+            .get_sub_sessions_paginated(&parent_id, limit, offset)
+            .await
+            .unwrap_or_default();
+
+        let mut results: Vec<SessionOutput> = Vec::new();
+        for session in sessions {
+            let count = context
+                .recording_service
+                .get_recording_count_for_scope(&session.id)
+                .await
+                .unwrap_or(0) as i64;
+            results.push(SessionOutput::from_session_with_count(session, count));
+        }
+        results
+    }
+
+    /// Get parent session for a sub-session
+    async fn parent_session(&self, ctx: &Context<'_>, sub_session_id: String) -> Option<SessionOutput> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
+        
+        let parent_opt = context
+            .session_service
+            .get_parent_session(&sub_session_id)
+            .await
+            .ok()
+            .flatten();
+
+        if let Some(session) = parent_opt {
+            let count = context
+                .recording_service
+                .get_recording_count_for_scope(&session.id)
+                .await
+                .unwrap_or(0) as i64;
+            Some(SessionOutput::from_session_with_count(session, count))
+        } else {
+            None
+        }
     }
 
     /// Get paginated sessions with status information
@@ -347,6 +445,71 @@ impl SessionMutation {
             .map_err(|e| async_graphql::Error::new(format!("Failed to create session: {:?}", e)))?;
             
         Ok(SessionOutput::from(session))
+    }
+
+    /// Create a named session with optional name and description
+    async fn create_named_session(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateSessionInput,
+    ) -> Result<SessionOutput, async_graphql::Error> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+        
+        let session = context
+            .session_service
+            .create_named_session(input.name, input.description)
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create named session: {:?}", e)))?;
+            
+        Ok(SessionOutput::from(session))
+    }
+
+    /// Create a sub-session under a parent session
+    /// This is automatically called when a capture runs for 30+ seconds
+    async fn create_sub_session(
+        &self,
+        ctx: &Context<'_>,
+        parent_id: String,
+    ) -> Result<SessionOutput, async_graphql::Error> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+        
+        let session = context
+            .session_service
+            .create_sub_session(&parent_id)
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to create sub-session: {:?}", e)))?;
+            
+        Ok(SessionOutput::from(session))
+    }
+
+    /// Update session name and/or description
+    async fn update_session(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        input: UpdateSessionInput,
+    ) -> Result<Option<SessionOutput>, async_graphql::Error> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+        
+        let session = context
+            .session_service
+            .update_session_metadata(&id, input.name, input.description)
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to update session: {:?}", e)))?;
+        
+        let count = context
+            .recording_service
+            .get_recording_count_for_scope(&session.id)
+            .await
+            .unwrap_or(0) as i64;
+            
+        Ok(Some(SessionOutput::from_session_with_count(session, count)))
     }
 
     /// Get an active session or create a new one if none exists

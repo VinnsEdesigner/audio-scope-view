@@ -27,6 +27,38 @@ impl SessionService {
         Ok(session)
     }
 
+    /// Create a new named session with optional name and description
+    pub async fn create_named_session(
+        &self,
+        name: Option<String>,
+        description: Option<String>,
+    ) -> AppResult<Session> {
+        let session = Session::new_named(uuid::Uuid::new_v4().to_string(), name, description);
+        self.repository
+            .save_session(&session)
+            .await
+            .map_err(AppError::Domain)?;
+        Ok(session)
+    }
+
+    /// Create a sub-session under a parent session
+    /// This is automatically called when a capture runs for 30+ seconds
+    pub async fn create_sub_session(&self, parent_id: &str) -> AppResult<Session> {
+        // Verify parent exists
+        let _parent = self.repository
+            .find_by_id(parent_id)
+            .await
+            .map_err(AppError::Domain)?
+            .ok_or_else(|| AppError::NotFound("Parent session not found".to_string()))?;
+
+        let session = Session::new_sub_session(uuid::Uuid::new_v4().to_string(), parent_id.to_string());
+        self.repository
+            .save_session(&session)
+            .await
+            .map_err(AppError::Domain)?;
+        Ok(session)
+    }
+
     /// End a session and calculate duration
     pub async fn end_session(&self, id: &str) -> AppResult<Session> {
         let mut session = self.repository
@@ -64,6 +96,14 @@ impl SessionService {
             .map_err(AppError::Domain)
     }
 
+    /// List only main sessions (not sub-sessions) with pagination
+    pub async fn list_main_sessions(&self, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
+        self.repository
+            .find_main_sessions(limit, offset)
+            .await
+            .map_err(AppError::Domain)
+    }
+
     /// Delete a session
     pub async fn delete(&self, id: &str) -> AppResult<bool> {
         self.repository.delete(id).await.map_err(AppError::Domain)
@@ -84,6 +124,53 @@ impl SessionService {
         
         // No active session found, create a new one
         self.create_session().await
+    }
+
+    /// Get all sub-sessions for a parent session
+    pub async fn get_sub_sessions(&self, parent_id: &str) -> AppResult<Vec<Session>> {
+        self.repository
+            .find_sub_sessions(parent_id)
+            .await
+            .map_err(AppError::Domain)
+    }
+
+    /// Get paginated sub-sessions for a parent session
+    pub async fn get_sub_sessions_paginated(
+        &self,
+        parent_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> AppResult<Vec<Session>> {
+        self.repository
+            .find_sub_sessions_paginated(parent_id, limit, offset)
+            .await
+            .map_err(AppError::Domain)
+    }
+
+    /// Count sub-sessions for a parent session
+    pub async fn count_sub_sessions(&self, parent_id: &str) -> AppResult<u32> {
+        self.repository
+            .count_sub_sessions(parent_id)
+            .await
+            .map_err(AppError::Domain)
+    }
+
+    /// Get the parent session of a sub-session
+    pub async fn get_parent_session(&self, sub_session_id: &str) -> AppResult<Option<Session>> {
+        let sub_session = self.repository
+            .find_by_id(sub_session_id)
+            .await
+            .map_err(AppError::Domain)?
+            .ok_or_else(|| AppError::NotFound("Sub-session not found".to_string()))?;
+
+        if let Some(parent_id) = sub_session.parent_session_id {
+            self.repository
+                .find_by_id(&parent_id)
+                .await
+                .map_err(AppError::Domain)
+        } else {
+            Ok(None)
+        }
     }
 
     /// Open oscilloscope capture (starts tracking time)
@@ -111,6 +198,33 @@ impl SessionService {
             .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
         
         session.close_oscilloscope();
+        self.repository
+            .update_session(&session)
+            .await
+            .map_err(AppError::Domain)?;
+        Ok(session)
+    }
+
+    /// Update session name and/or description
+    pub async fn update_session_metadata(
+        &self,
+        id: &str,
+        name: Option<String>,
+        description: Option<String>,
+    ) -> AppResult<Session> {
+        let mut session = self.repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+            .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
+
+        if let Some(n) = name {
+            session.name = Some(n);
+        }
+        if let Some(d) = description {
+            session.description = Some(d);
+        }
+
         self.repository
             .update_session(&session)
             .await

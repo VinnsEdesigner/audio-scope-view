@@ -10,11 +10,15 @@ use sqlx::{FromRow, SqlitePool};
 struct SessionRow {
     id: String,
     user_id: Option<String>,
+    name: Option<String>,
+    description: Option<String>,
     started_at: String,
     ended_at: Option<String>,
     duration_seconds: Option<i64>,
     oscilloscope_opened_at: Option<String>,
     oscilloscope_duration_ms: Option<f64>,
+    parent_session_id: Option<String>,
+    is_sub_session: bool,
 }
 
 impl TryFrom<SessionRow> for Session {
@@ -24,11 +28,15 @@ impl TryFrom<SessionRow> for Session {
         Ok(Self {
             id: row.id,
             user_id: row.user_id,
+            name: row.name,
+            description: row.description,
             started_at: parse_datetime(&row.started_at)?,
             ended_at: row.ended_at.and_then(|s| parse_datetime(&s).ok()),
             duration_seconds: row.duration_seconds,
             oscilloscope_opened_at: row.oscilloscope_opened_at.and_then(|s| parse_datetime(&s).ok()),
             oscilloscope_duration_ms: row.oscilloscope_duration_ms,
+            parent_session_id: row.parent_session_id,
+            is_sub_session: row.is_sub_session,
         })
     }
 }
@@ -59,17 +67,21 @@ impl SqliteSessionRepository {
     pub async fn save_session(&self, session: &Session) -> DomainErrorResult<()> {
         sqlx::query(
             r#"
-            INSERT INTO sessions (id, user_id, started_at, ended_at, duration_seconds, oscilloscope_opened_at, oscilloscope_duration_ms)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO sessions (id, user_id, name, description, started_at, ended_at, duration_seconds, oscilloscope_opened_at, oscilloscope_duration_ms, parent_session_id, is_sub_session)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&session.id)
         .bind(&session.user_id)
+        .bind(&session.name)
+        .bind(&session.description)
         .bind(session.started_at.to_rfc3339())
         .bind(session.ended_at.map(|dt| dt.to_rfc3339()))
         .bind(session.duration_seconds)
         .bind(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339()))
         .bind(session.oscilloscope_duration_ms)
+        .bind(&session.parent_session_id)
+        .bind(session.is_sub_session)
         .execute(&self.pool)
         .await
         .map_err(map_sqlx_err)?;
@@ -80,16 +92,20 @@ impl SqliteSessionRepository {
         sqlx::query(
             r#"
             UPDATE sessions
-            SET user_id = ?, started_at = ?, ended_at = ?, duration_seconds = ?, oscilloscope_opened_at = ?, oscilloscope_duration_ms = ?
+            SET user_id = ?, name = ?, description = ?, started_at = ?, ended_at = ?, duration_seconds = ?, oscilloscope_opened_at = ?, oscilloscope_duration_ms = ?, parent_session_id = ?, is_sub_session = ?
             WHERE id = ?
             "#,
         )
         .bind(&session.user_id)
+        .bind(&session.name)
+        .bind(&session.description)
         .bind(session.started_at.to_rfc3339())
         .bind(session.ended_at.map(|dt| dt.to_rfc3339()))
         .bind(session.duration_seconds)
         .bind(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339()))
         .bind(session.oscilloscope_duration_ms)
+        .bind(&session.parent_session_id)
+        .bind(session.is_sub_session)
         .bind(&session.id)
         .execute(&self.pool)
         .await
@@ -156,6 +172,65 @@ impl SqliteSessionRepository {
 
     pub async fn count(&self) -> DomainErrorResult<u32> {
         self.count_sessions().await
+    }
+
+    /// Find all sub-sessions for a given parent session
+    pub async fn find_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<Vec<Session>> {
+        let rows: Vec<SessionRow> = sqlx::query_as(
+            "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC"
+        )
+        .bind(parent_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        rows.into_iter().map(TryInto::try_into).collect()
+    }
+
+    /// Find sub-sessions with pagination
+    pub async fn find_sub_sessions_paginated(
+        &self,
+        parent_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> DomainErrorResult<Vec<Session>> {
+        let rows: Vec<SessionRow> = sqlx::query_as(
+            "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC LIMIT ? OFFSET ?"
+        )
+        .bind(parent_id)
+        .bind(limit as i32)
+        .bind(offset as i32)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        rows.into_iter().map(TryInto::try_into).collect()
+    }
+
+    /// Count sub-sessions for a parent session
+    pub async fn count_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<u32> {
+        let row: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM sessions WHERE parent_session_id = ?"
+        )
+        .bind(parent_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+        Ok(row.0 as u32)
+    }
+
+    /// Find all main sessions (not sub-sessions)
+    pub async fn find_main_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+        let rows: Vec<SessionRow> = sqlx::query_as(
+            "SELECT * FROM sessions WHERE is_sub_session = FALSE ORDER BY started_at DESC LIMIT ? OFFSET ?"
+        )
+        .bind(limit as i32)
+        .bind(offset as i32)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx_err)?;
+
+        rows.into_iter().map(TryInto::try_into).collect()
     }
 }
 
