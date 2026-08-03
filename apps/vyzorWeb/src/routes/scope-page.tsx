@@ -495,7 +495,6 @@ export function ScopePage(): React.ReactElement {
           {}
           <ScopeCanvas
             waveformData={waveformData}
-            isCapturing={isCapturing}
             isPaused={isPaused}
             forwardedRef={canvasReference}
           />
@@ -518,12 +517,6 @@ export function ScopePage(): React.ReactElement {
             </div>
           )}
 
-          {}
-          {(isCapturing || isPaused) && (
-            <div className="absolute top-3 left-3 bg-white text-[#09090b] px-2 py-1 rounded text-[11px] font-semibold">
-              HOLD
-            </div>
-          )}
         </div>
 
         {}
@@ -531,9 +524,7 @@ export function ScopePage(): React.ReactElement {
           mode={isPlaybackMode ? "playback" : "live"}
           vpp={recordingData?.peakAmplitude ?? audioAnalyzer.vpp}
           frequency={audioAnalyzer.frequency}
-          windowMs={audioAnalyzer.windowMs}
-          timebase={1024}
-          verticalGain={1}
+          sampleRate={sampleRate}
           duration={recordingData?.durationMs}
           currentTime={currentPlaybackTime}
           isPlaying={isPlaying}
