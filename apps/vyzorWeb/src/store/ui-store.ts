@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 
 export type WaveformColor = "cyan" | "blue" | "purple" | "green" | "orange" | "red";
 export type SessionMode = "live" | "playback";
+export type TriggerMode = "auto" | "normal" | "single";
+export type ScopeView = "time" | "spectrum";
 
 export interface UIState {
   sessionMode: SessionMode;
@@ -27,6 +29,11 @@ export interface UIState {
 
   triggerEdge: "rising" | "falling" | "auto";
   triggerLevel: number;
+  triggerMode: TriggerMode;
+  triggerEnabled: boolean;
+  triggerHoldoff: number;
+
+  scopeView: ScopeView;
 
   timebase: number;
   verticalGain: number;
@@ -72,6 +79,10 @@ export interface UIActions {
 
   setTriggerEdge: (edge: "rising" | "falling" | "auto") => void;
   setTriggerLevel: (level: number) => void;
+  setTriggerMode: (mode: TriggerMode) => void;
+  setTriggerEnabled: (enabled: boolean) => void;
+  setTriggerHoldoff: (holdoff: number) => void;
+  setScopeView: (view: ScopeView) => void;
 
   setTimebase: (timebase: number) => void;
   setVerticalGain: (gain: number) => void;
@@ -114,6 +125,10 @@ const initialState: UIState = {
   invert: false,
   triggerEdge: "rising",
   triggerLevel: 0,
+  triggerMode: "auto",
+  triggerEnabled: true,
+  triggerHoldoff: 0,
+  scopeView: "time",
   timebase: 1024,
   verticalGain: 1,
   isPlaying: false,
@@ -162,6 +177,10 @@ export const useUIStore = create<UIStore>()(
 
       setTriggerEdge: (triggerEdge) => set({ triggerEdge }),
       setTriggerLevel: (triggerLevel) => set({ triggerLevel }),
+      setTriggerMode: (triggerMode) => set({ triggerMode }),
+      setTriggerEnabled: (triggerEnabled) => set({ triggerEnabled }),
+      setTriggerHoldoff: (triggerHoldoff) => set({ triggerHoldoff }),
+      setScopeView: (scopeView) => set({ scopeView }),
 
       setTimebase: (timebase) => set({ timebase }),
       setVerticalGain: (verticalGain) => set({ verticalGain }),
@@ -194,6 +213,10 @@ export const useUIStore = create<UIStore>()(
         invert: state.invert,
         triggerEdge: state.triggerEdge,
         triggerLevel: state.triggerLevel,
+        triggerMode: state.triggerMode,
+        triggerEnabled: state.triggerEnabled,
+        triggerHoldoff: state.triggerHoldoff,
+        scopeView: state.scopeView,
         timebase: state.timebase,
         verticalGain: state.verticalGain,
       }),
