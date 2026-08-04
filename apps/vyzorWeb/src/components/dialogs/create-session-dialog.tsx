@@ -14,7 +14,7 @@ export function CreateSessionDialog({
   onClose,
   onConfirm,
   isLoading,
-  afterCreate,
+  afterCreate: _afterCreate,
 }: CreateSessionDialogProperties) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -39,15 +39,12 @@ export function CreateSessionDialog({
     [onClose],
   );
 
-  if (!isOpen) return null;
+  if (!isOpen) return;
 
   return (
     <>
       {/* Click outside to close */}
-      <div 
-        className="fixed inset-0 z-40" 
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40" onClick={onClose} />
       <div className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[400px] overflow-hidden shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
@@ -86,7 +83,9 @@ export function CreateSessionDialog({
               className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary focus:outline-none transition-all"
               autoFocus
             />
-            <div className="text-[10px] text-text-tertiary text-right mt-0.5">{name.length}/100</div>
+            <div className="text-[10px] text-text-tertiary text-right mt-0.5">
+              {name.length}/100
+            </div>
           </div>
 
           <div>
@@ -122,9 +121,7 @@ export function CreateSessionDialog({
             disabled={isLoading || !name.trim()}
             className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md bg-bg-elevated text-foreground border border-border-hover hover:bg-bg-hover hover:border-border-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading && (
-              <Loader2 size={12} className="animate-spin" />
-            )}
+            {isLoading && <Loader2 size={12} className="animate-spin" />}
             {isLoading ? "Creating..." : "Create Session"}
           </button>
         </div>

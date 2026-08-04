@@ -104,7 +104,7 @@ export function ScopePage(): React.ReactElement {
     navigate,
   ]);
 
-  const handleSessionSelect = React.useCallback(
+  const _handleSessionSelect = React.useCallback(
     async (selectedSessionId: string) => {
       await markSessionAsUsed(selectedSessionId);
       setSearchParameters({ sessionId: selectedSessionId });
@@ -170,7 +170,7 @@ export function ScopePage(): React.ReactElement {
       }
     : undefined;
 
-  const canvasReference = React.useRef<HTMLCanvasElement | undefined>(null);
+  const canvasReference = React.useRef<HTMLCanvasElement | null>(null);
 
   const { handlers: dialogHandlers, Dialogs } = useSessionDialogs({
     mode: isPlaybackMode ? "playback" : "live",

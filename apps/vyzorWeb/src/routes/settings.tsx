@@ -278,7 +278,15 @@ export function Settings(): React.ReactElement {
     setWaveformColor,
   } = useUIStore();
 
-  const { devices, selectedDeviceId, setSelectedDeviceId, permissionState, systemInfo, requestPermission, refreshDevices } = useMediaDevices();
+  const {
+    devices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    permissionState,
+    systemInfo,
+    requestPermission,
+    refreshDevices,
+  } = useMediaDevices();
   const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
   const { addToast } = useToast();
 
@@ -365,10 +373,7 @@ export function Settings(): React.ReactElement {
             </button>
             {showDeviceInfo && (
               <>
-                <div
-                  className="fixed inset-0 z-[55]"
-                  onClick={() => setShowDeviceInfo(false)}
-                />
+                <div className="fixed inset-0 z-[55]" onClick={() => setShowDeviceInfo(false)} />
                 <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-border-subtle bg-bg-secondary shadow-lg z-[60] overflow-hidden">
                   <div className="p-4 border-b border-border-subtle bg-bg-elevated">
                     <h3 className="text-sm font-semibold text-foreground">Device Information</h3>
@@ -376,22 +381,30 @@ export function Settings(): React.ReactElement {
                   <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
                     {/* Browser Info */}
                     <div>
-                      <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">Browser</h4>
+                      <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">
+                        Browser
+                      </h4>
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
                           <span className="text-text-secondary">Name</span>
-                          <span className="text-foreground font-mono">{systemInfo?.browserName ?? "—"}</span>
+                          <span className="text-foreground font-mono">
+                            {systemInfo?.browserName ?? "—"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-secondary">Version</span>
-                          <span className="text-foreground font-mono">{systemInfo?.browserVersion ?? "—"}</span>
+                          <span className="text-foreground font-mono">
+                            {systemInfo?.browserVersion ?? "—"}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Permission Status */}
                     <div>
-                      <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">Permission</h4>
+                      <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">
+                        Permission
+                      </h4>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-text-secondary">Microphone</span>
                         <div className="flex items-center gap-2">
@@ -403,7 +416,9 @@ export function Settings(): React.ReactElement {
                               permissionState === "prompt" && "bg-warning",
                             )}
                           />
-                          <span className="text-sm text-foreground capitalize">{permissionState}</span>
+                          <span className="text-sm text-foreground capitalize">
+                            {permissionState}
+                          </span>
                         </div>
                       </div>
                       {permissionState !== "granted" && (
@@ -419,15 +434,21 @@ export function Settings(): React.ReactElement {
                     {/* Audio System Info */}
                     {systemInfo && (
                       <div>
-                        <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">Audio System</h4>
+                        <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">
+                          Audio System
+                        </h4>
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-text-secondary">Default Sample Rate</span>
-                            <span className="text-foreground font-mono">{(systemInfo.defaultSampleRate / 1000).toFixed(1)} kHz</span>
+                            <span className="text-foreground font-mono">
+                              {(systemInfo.defaultSampleRate / 1000).toFixed(1)} kHz
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-text-secondary">Max Channels</span>
-                            <span className="text-foreground font-mono">{systemInfo.maxChannels}</span>
+                            <span className="text-foreground font-mono">
+                              {systemInfo.maxChannels}
+                            </span>
                           </div>
                           <div>
                             <div className="flex justify-between mb-1">
@@ -456,7 +477,9 @@ export function Settings(): React.ReactElement {
                     {/* Devices List */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Input Devices ({devices.length})</h4>
+                        <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider">
+                          Input Devices ({devices.length})
+                        </h4>
                         <button
                           onClick={handleRefreshDevices}
                           className="p-1 text-text-secondary hover:text-foreground transition-colors"

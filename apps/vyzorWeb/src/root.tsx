@@ -9,7 +9,6 @@ import { ToastProvider } from "./components/ui/toast";
 import { NavigationLoader } from "./components/ui/navigation-loader";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import { Spinner } from "./components/ui/spinner";
 import { SessionSelectionProvider } from "./contexts/session-selection-context";
 
 const seoData = {
@@ -29,7 +28,7 @@ const seoData = {
 };
 
 function AppShell() {
-  const isInitializing = useUIStore((state) => state.isInitializing);
+  const _isInitializing = useUIStore((state) => state.isInitializing);
   const setInitializing = useUIStore((state) => state.setInitializing);
 
   useEffect(() => {

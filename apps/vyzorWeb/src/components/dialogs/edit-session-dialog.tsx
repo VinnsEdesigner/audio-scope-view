@@ -24,7 +24,7 @@ export function EditSessionDialog({
 }: EditSessionDialogProperties) {
   const [name, setName] = React.useState(sessionName);
   const [description, setDescription] = React.useState(sessionDescription);
-  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const dialogReference = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -58,17 +58,14 @@ export function EditSessionDialog({
     [onClose],
   );
 
-  if (!isOpen) return null;
+  if (!isOpen) return;
 
   return (
     <>
       {/* Click outside to close */}
-      <div 
-        className="fixed inset-0 z-40" 
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        ref={dialogRef}
+        ref={dialogReference}
         className="fixed z-50 top-16 right-4 bg-bg-secondary border border-border rounded-xl w-full max-w-[400px] overflow-hidden shadow-lg"
       >
         {/* Header */}
@@ -100,7 +97,9 @@ export function EditSessionDialog({
               <div className="text-[10px] text-text-tertiary uppercase tracking-wide">
                 Session ID
               </div>
-              <div className="text-xs text-text-secondary font-mono mt-0.5 truncate">{sessionId}</div>
+              <div className="text-xs text-text-secondary font-mono mt-0.5 truncate">
+                {sessionId}
+              </div>
             </div>
           </div>
 
@@ -117,7 +116,9 @@ export function EditSessionDialog({
               maxLength={100}
               className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary focus:outline-none transition-all"
             />
-            <div className="text-[10px] text-text-tertiary text-right mt-0.5">{name.length}/100</div>
+            <div className="text-[10px] text-text-tertiary text-right mt-0.5">
+              {name.length}/100
+            </div>
           </div>
 
           <div>
@@ -155,9 +156,7 @@ export function EditSessionDialog({
             disabled={isLoading || !name.trim()}
             className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md bg-bg-elevated text-foreground border border-border-hover hover:bg-bg-hover hover:border-border-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading && (
-              <Loader2 size={12} className="animate-spin" />
-            )}
+            {isLoading && <Loader2 size={12} className="animate-spin" />}
             {isLoading ? "Saving..." : "Save Changes"}
           </button>
         </div>

@@ -9,7 +9,6 @@ import {
   Edit3,
   Trash2,
   Eye,
-  Square,
   Database,
   Download,
   FileText,
@@ -238,51 +237,75 @@ function RecordingCard({
       <div className="grid grid-cols-4 gap-2 mb-3">
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <Clock size={10} className="text-icon" />Duration
+            <Clock size={10} className="text-icon" />
+            Duration
           </span>
-          <span className="text-xs font-mono text-foreground">{formatDuration((recording.durationMs ?? 0) / 1000)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatDuration((recording.durationMs ?? 0) / 1000)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <FileAudio size={10} className="text-icon" />Sample Rate
+            <FileAudio size={10} className="text-icon" />
+            Sample Rate
           </span>
-          <span className="text-xs font-mono text-foreground">{formatSampleRate(recording.sampleRate ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatSampleRate(recording.sampleRate ?? 0)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <FileText size={10} className="text-icon" />Samples
+            <FileText size={10} className="text-icon" />
+            Samples
           </span>
-          <span className="text-xs font-mono text-foreground">{formatSampleCount(recording.sampleCount ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatSampleCount(recording.sampleCount ?? 0)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <Download size={10} className="text-icon" />Size
+            <Download size={10} className="text-icon" />
+            Size
           </span>
-          <span className="text-xs font-mono text-foreground">{formatBytes(recording.sizeBytes ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatBytes(recording.sizeBytes ?? 0)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <FrequencyIcon size={10} className="text-icon" />Dominant
+            <FrequencyIcon size={10} className="text-icon" />
+            Dominant
           </span>
-          <span className="text-xs font-mono text-foreground">{formatFrequency(recording.dominantFrequency ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatFrequency(recording.dominantFrequency ?? 0)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <Activity size={10} className="text-icon" />High Freq
+            <Activity size={10} className="text-icon" />
+            High Freq
           </span>
-          <span className="text-xs font-mono text-foreground">{formatFrequency(recording.frequencyHigh ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatFrequency(recording.frequencyHigh ?? 0)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <Activity size={10} className="text-icon" />Low Freq
+            <Activity size={10} className="text-icon" />
+            Low Freq
           </span>
-          <span className="text-xs font-mono text-foreground">{formatFrequency(recording.frequencyLow ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatFrequency(recording.frequencyLow ?? 0)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
-            <Gauge size={10} className="text-icon" />Bit Depth
+            <Gauge size={10} className="text-icon" />
+            Bit Depth
           </span>
-          <span className="text-xs font-mono text-foreground">{formatBitDepth(recording.bitDepth ?? 0)}</span>
+          <span className="text-xs font-mono text-foreground">
+            {formatBitDepth(recording.bitDepth ?? 0)}
+          </span>
         </div>
       </div>
 
@@ -338,7 +361,7 @@ export function Session(): React.ReactElement {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
-  const editButtonRef = React.useRef<HTMLButtonElement>(null);
+  const editButtonReference = React.useRef<HTMLButtonElement>(null);
 
   const session = sessionData?.session;
   const parentSession = parentSessionData?.parentSession;
@@ -554,12 +577,10 @@ export function Session(): React.ReactElement {
                   )}
                 </div>
                 {session.description && (
-                  <p className="text-sm text-text-secondary mt-2 max-w-md">
-                    {session.description}
-                  </p>
+                  <p className="text-sm text-text-secondary mt-2 max-w-md">{session.description}</p>
                 )}
               </div>
-            ) : null}
+            ) : undefined}
           </div>
           <div className="flex flex-wrap gap-1.5">
             <button
@@ -580,7 +601,7 @@ export function Session(): React.ReactElement {
             )}
             {/* Desktop: Edit and Delete buttons - hidden on mobile */}
             <button
-              ref={editButtonRef}
+              ref={editButtonReference}
               onClick={handleOpenEdit}
               disabled={isLoading || isDeleting || isUpdating}
               className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
@@ -606,10 +627,7 @@ export function Session(): React.ReactElement {
               </button>
               {moreMenuOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setMoreMenuOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={() => setMoreMenuOpen(false)} />
                   <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-bg-elevated border border-border rounded-lg shadow-lg z-20">
                     <button
                       onClick={() => {
@@ -688,8 +706,8 @@ export function Session(): React.ReactElement {
       {isLoading ? (
         <div className="mx-4 md:mx-6 mt-6 p-4 md:p-5 bg-gradient-to-br from-bg-secondary to-bg-tertiary rounded-xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex flex-col gap-1">
+            {[1, 2, 3, 4].map((index) => (
+              <div key={index} className="flex flex-col gap-1">
                 <Skeleton className="h-3 w-16" />
                 <Skeleton className="h-4 w-20" />
               </div>
@@ -703,10 +721,14 @@ export function Session(): React.ReactElement {
               <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">
                 Session ID
               </span>
-              <span className="text-xs md:text-sm font-medium text-foreground font-mono truncate">{sessionId?.slice(0, 8)}</span>
+              <span className="text-xs md:text-sm font-medium text-foreground font-mono truncate">
+                {sessionId?.slice(0, 8)}
+              </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">Started</span>
+              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">
+                Started
+              </span>
               <span className="text-xs md:text-sm font-medium text-foreground truncate">
                 {session?.startedAt ? formatTimestampRelative(session.startedAt) : "-"}
               </span>
@@ -724,7 +746,9 @@ export function Session(): React.ReactElement {
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">Status</span>
+              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">
+                Status
+              </span>
               <span className="text-xs md:text-sm font-medium text-foreground">
                 {session?.endedAt ? "Ended" : session?.isOscilloscopeOpen ? "Active" : "Idle"}
               </span>
@@ -736,8 +760,11 @@ export function Session(): React.ReactElement {
       <main className="px-4 md:px-6 py-6">
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 p-1 bg-bg-secondary rounded-xl">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex flex-col items-center justify-center gap-1 px-2 md:px-4 py-4 md:py-5 bg-bg-tertiary rounded-lg">
+            {[1, 2, 3, 4].map((index) => (
+              <div
+                key={index}
+                className="flex flex-col items-center justify-center gap-1 px-2 md:px-4 py-4 md:py-5 bg-bg-tertiary rounded-lg"
+              >
                 <Skeleton className="h-4 w-4 rounded" />
                 <Skeleton className="h-6 w-12" />
                 <Skeleton className="h-3 w-16" />
@@ -748,7 +775,11 @@ export function Session(): React.ReactElement {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 p-1 bg-bg-secondary rounded-xl">
             {[
               { icon: FileAudio, label: "Recordings", value: recordingsTotal.toString() },
-              { icon: Clock, label: "Total Duration", value: formatDuration(totalDurationMs / 1000) },
+              {
+                icon: Clock,
+                label: "Total Duration",
+                value: formatDuration(totalDurationMs / 1000),
+              },
               { icon: Database, label: "Storage Used", value: formatBytes(totalStorageBytes ?? 0) },
               {
                 icon: Activity,
@@ -760,8 +791,10 @@ export function Session(): React.ReactElement {
                 key={stat.label}
                 className="flex flex-col items-center justify-center gap-1 px-2 md:px-4 py-4 md:py-5 bg-bg-tertiary rounded-lg transition-all hover:bg-bg-hover"
               >
-                <stat.icon size={14} md:size={16} className="text-icon mb-1" />
-                <span className="text-base md:text-xl font-bold text-foreground font-mono">{stat.value}</span>
+                <stat.icon size={14} className="text-icon mb-1 md:w-4 md:h-4" />
+                <span className="text-base md:text-xl font-bold text-foreground font-mono">
+                  {stat.value}
+                </span>
                 <span className="text-[9px] md:text-[10px] text-text-tertiary uppercase tracking-wide text-center leading-tight">
                   {stat.label}
                 </span>

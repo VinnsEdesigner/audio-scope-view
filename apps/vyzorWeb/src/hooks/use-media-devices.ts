@@ -131,17 +131,18 @@ async function getSystemAudioInfo(): Promise<SystemAudioInfo> {
 
   // API 2: navigator.mediaDevices.getUserMedia - get supported constraints
   let supportedSampleRates: number[] = [];
-  let defaultSampleRate = 48000;
+  let defaultSampleRate = 48_000;
   let maxChannels = 2;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const audioContext = new AudioContext();
     defaultSampleRate = audioContext.sampleRate;
-    maxChannels = audioContext.maxChannelCount;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    maxChannels = (audioContext as any).maxChannelCount ?? 2;
 
     // Test common sample rates
-    const testRates = [44100, 48000, 88200, 96000, 176400, 192000];
+    const testRates = [44_100, 48_000, 88_200, 96_000, 176_400, 192_000];
     for (const rate of testRates) {
       try {
         const testContext = new AudioContext({ sampleRate: rate });
@@ -161,7 +162,7 @@ async function getSystemAudioInfo(): Promise<SystemAudioInfo> {
     await audioContext.close();
   } catch {
     // If getUserMedia fails, still return basic info
-    supportedSampleRates = [44100, 48000];
+    supportedSampleRates = [44_100, 48_000];
   }
 
   return {
@@ -214,41 +215,44 @@ export function useMediaDevices() {
   }, [selectedDeviceId, setDevices, setSelectedDeviceId, setError]);
 
   // API 2: navigator.mediaDevices.getUserMedia - request microphone access with optional deviceId
-  const requestPermission = useCallback(async (deviceId?: string) => {
-    try {
-      const constraints: MediaStreamConstraints = {
-        audio: deviceId
-          ? {
-              deviceId: { exact: deviceId },
-              echoCancellation: { exact: false },
-              noiseSuppression: { exact: false },
-              autoGainControl: { exact: false },
-            }
-          : {
-              echoCancellation: { exact: false },
-              noiseSuppression: { exact: false },
-              autoGainControl: { exact: false },
-            },
-      };
+  const requestPermission = useCallback(
+    async (deviceId?: string) => {
+      try {
+        const constraints: MediaStreamConstraints = {
+          audio: deviceId
+            ? {
+                deviceId: { exact: deviceId },
+                echoCancellation: { exact: false },
+                noiseSuppression: { exact: false },
+                autoGainControl: { exact: false },
+              }
+            : {
+                echoCancellation: { exact: false },
+                noiseSuppression: { exact: false },
+                autoGainControl: { exact: false },
+              },
+        };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // Get system audio info when permission is granted
-      const info = await getSystemAudioInfo();
-      setSystemInfo(info);
+        // Get system audio info when permission is granted
+        const info = await getSystemAudioInfo();
+        setSystemInfo(info);
 
-      // Stop tracks immediately - we just needed permission and info
-      for (const track of stream.getTracks()) {
-        track.stop();
+        // Stop tracks immediately - we just needed permission and info
+        for (const track of stream.getTracks()) {
+          track.stop();
+        }
+
+        setPermissionState("granted");
+        await enumerateDevices();
+      } catch (error_) {
+        setPermissionState("denied");
+        setError(error_ instanceof Error ? error_ : new Error("Microphone permission denied"));
       }
-
-      setPermissionState("granted");
-      await enumerateDevices();
-    } catch (error_) {
-      setPermissionState("denied");
-      setError(error_ instanceof Error ? error_ : new Error("Microphone permission denied"));
-    }
-  }, [enumerateDevices, setPermissionState, setSystemInfo, setError]);
+    },
+    [enumerateDevices, setPermissionState, setSystemInfo, setError],
+  );
 
   // API 3: navigator.permissions.query - check permission state
   useEffect(() => {

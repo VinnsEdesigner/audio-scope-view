@@ -61,7 +61,7 @@ export type { WaveformType } from "./use-mock-audio-analyzer";
 
 export { useExport } from "./use-export";
 export { useStreamingCSVExport, useRecordingExport } from "./use-streaming-csv-export";
-export type { CSVExportProgress, ExportProgress, ExportFormat } from "./use-streaming-csv-export";
+export type { ExportProgress, ExportFormat } from "./use-streaming-csv-export";
 
 export {
   formatBytes,
@@ -85,8 +85,10 @@ export { useIsMobile, useIsTablet } from "./use-mobile";
 
 export { useTheme } from "./use-theme";
 
-export { useUIStore, useAudioStore } from "../store";
-export type { WaveformColor, SessionMode, SystemAudioInfo, MediaDevice } from "../store";
+export { useUIStore } from "../store";
+export type { UIStore, UIState, UIActions, WaveformColor, SessionMode } from "../store";
+export { useAudioStore } from "../store";
+export type { AudioStore, AudioState, AudioActions, SystemAudioInfo, MediaDevice } from "../store";
 
 export { useToast } from "./use-toast";
 

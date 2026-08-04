@@ -6,7 +6,7 @@ interface CalibrationDialogProperties {
   isOpen: boolean;
   onClose: () => void;
 
-  analysisData: AnalysisUpdate | null;
+  analysisData: AnalysisUpdate | undefined;
 
   isCapturing: boolean;
 }

@@ -33,7 +33,7 @@ export interface AudioState {
   devices: MediaDevice[];
   selectedDeviceId: string | undefined;
   permissionState: PermissionState;
-  systemInfo: SystemAudioInfo | null;
+  systemInfo: SystemAudioInfo | undefined;
 
   sampleRate: number;
   bufferSize: number;
@@ -71,7 +71,7 @@ const initialState: AudioState = {
   devices: [],
   selectedDeviceId: undefined,
   permissionState: "prompt",
-  systemInfo: null,
+  systemInfo: undefined,
   sampleRate: 48_000,
   bufferSize: 512,
   audioContext: undefined,

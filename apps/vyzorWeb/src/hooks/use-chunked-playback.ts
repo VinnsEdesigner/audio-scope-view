@@ -204,6 +204,31 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
     [recordingId, chunkSize],
   );
 
+  const preloadAround = useCallback(
+    async (timeMs: number, radiusMs: number, sampleRate: number): Promise<void> => {
+      const samplesPerMs = sampleRate / 1000;
+      const radiusSamples = radiusMs * samplesPerMs;
+
+      const centerSample = Math.floor((timeMs / 1000) * sampleRate);
+      const startSample = Math.max(0, centerSample - radiusSamples);
+      const endSample = centerSample + radiusSamples;
+
+      const startChunk = Math.floor(startSample / chunkSize);
+      const endChunk = Math.floor(endSample / chunkSize);
+
+      const chunksToLoad: number[] = [];
+      for (let index = startChunk; index <= endChunk; index++) {
+        const chunkStart = index * chunkSize;
+        if (!loadedChunksReference.current.has(chunkStart)) {
+          chunksToLoad.push(chunkStart);
+        }
+      }
+
+      await Promise.all(chunksToLoad.map((start) => loadChunk(start)));
+    },
+    [chunkSize, loadChunk],
+  );
+
   const buildAudioBuffer = useCallback(async (): Promise<AudioBuffer | undefined> => {
     if (!audioContextReference.current || !metadataReference.current) return undefined;
 
@@ -377,31 +402,6 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
       return new Float32Array(result);
     },
     [chunkSize],
-  );
-
-  const preloadAround = useCallback(
-    async (timeMs: number, radiusMs: number, sampleRate: number): Promise<void> => {
-      const samplesPerMs = sampleRate / 1000;
-      const radiusSamples = radiusMs * samplesPerMs;
-
-      const centerSample = Math.floor((timeMs / 1000) * sampleRate);
-      const startSample = Math.max(0, centerSample - radiusSamples);
-      const endSample = centerSample + radiusSamples;
-
-      const startChunk = Math.floor(startSample / chunkSize);
-      const endChunk = Math.floor(endSample / chunkSize);
-
-      const chunksToLoad: number[] = [];
-      for (let index = startChunk; index <= endChunk; index++) {
-        const chunkStart = index * chunkSize;
-        if (!loadedChunksReference.current.has(chunkStart)) {
-          chunksToLoad.push(chunkStart);
-        }
-      }
-
-      await Promise.all(chunksToLoad.map((start) => loadChunk(start)));
-    },
-    [chunkSize, loadChunk],
   );
 
   return {

@@ -3,14 +3,14 @@ import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utilities";
 
 export interface InlineSelectOption {
-  value: string | number | null;
+  value: string | number | undefined;
   label: string;
 }
 
 interface InlineSelectProperties {
   value: string | number | null | undefined;
   options: readonly InlineSelectOption[];
-  onChange: (value: string | number | null) => void;
+  onChange: (value: string | number | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -77,7 +77,7 @@ export function InlineSelect({
   }, [isOpen]);
 
   const handleSelect = React.useCallback(
-    (optionValue: string | number | null) => {
+    (optionValue: string | number | undefined) => {
       onChange(optionValue);
       setIsOpen(false);
     },

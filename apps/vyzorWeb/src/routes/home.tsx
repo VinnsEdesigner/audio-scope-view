@@ -56,7 +56,9 @@ export function Home(): React.ReactElement {
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [selectedSessionId, setSelectedSessionId] = React.useState<string | undefined>();
   const [cameFromSelectDialog, setCameFromSelectDialog] = React.useState(false);
-  const [pendingDestination, setPendingDestination] = React.useState<"record" | "oscilloscope" | null>(null);
+  const [pendingDestination, setPendingDestination] = React.useState<
+    "record" | "oscilloscope" | undefined
+  >();
 
   const { data: stats, loading: statsLoading } = useRecordingStats();
   const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
@@ -221,17 +223,17 @@ export function Home(): React.ReactElement {
         await markSessionAsUsed(newSession.id);
         setSelectedSessionId(newSession.id);
         setCreateDialogOpen(false);
-        
+
         // Only redirect if we had a pending destination
         if (pendingDestination === "record") {
           setIsMicDialogOpen(true);
         }
         // For oscilloscope, the user would need to navigate explicitly
-        
+
         showToast({ message: `Session "${name}" created`, type: "success" });
-        
+
         // Clear pending destination
-        setPendingDestination(null);
+        setPendingDestination(undefined);
       }
     } catch (error) {
       showToast({
@@ -297,7 +299,7 @@ export function Home(): React.ReactElement {
               {/* Create Session Button */}
               <button
                 onClick={() => {
-                  setPendingDestination(null);
+                  setPendingDestination(undefined);
                   setCreateDialogOpen(true);
                 }}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 rounded-lg transition-colors text-white font-semibold"
@@ -756,7 +758,7 @@ export function Home(): React.ReactElement {
             setSelectDialogOpen(true);
             setCameFromSelectDialog(false);
           }
-          setPendingDestination(null);
+          setPendingDestination(undefined);
         }}
         onConfirm={handleCreateSession}
         isLoading={isCreating}

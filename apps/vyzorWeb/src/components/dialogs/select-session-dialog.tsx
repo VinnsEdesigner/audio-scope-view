@@ -20,7 +20,7 @@ export function SelectSessionDialog({
   isOpen,
   sessions,
   selectedSessionId,
-  onClose,
+  onClose: _onClose,
   onSelect,
   onCreateNew,
   isLoading,
@@ -43,21 +43,14 @@ export function SelectSessionDialog({
     }
   }, [isOpen, selectedSessionId]);
 
-  const handleSelect = React.useCallback(
-    (sessionId: string) => {
-      setLocalSelectedSessionId(sessionId);
-    },
-    [],
-  );
+  const handleSelect = React.useCallback((sessionId: string) => {
+    setLocalSelectedSessionId(sessionId);
+  }, []);
 
   // Use local selection for UI, falling back to prop for initial state
   const effectiveSelectedId = localSelectedSessionId ?? selectedSessionId;
 
   if (!isOpen) return <></>;
-
-  const handleBackdropClick = () => {
-    // Do nothing - clicking backdrop should not close the dialog
-  };
 
   const handleSelectClick = () => {
     if (!effectiveSelectedId) {
@@ -73,7 +66,8 @@ export function SelectSessionDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/80" onClick={handleBackdropClick} />
+      {/* Do nothing - clicking backdrop should not close the dialog */}
+      <div className="absolute inset-0 bg-black/80" onClick={() => {}} />
       <div className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-[480px] overflow-hidden">
         {/* Header */}
         <div className="flex items-center px-5 py-4 border-b border-border-subtle">

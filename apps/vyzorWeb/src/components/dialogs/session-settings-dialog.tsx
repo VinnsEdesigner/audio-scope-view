@@ -78,7 +78,7 @@ export function SessionSettingsDialog({
       <div
         className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[420px] overflow-hidden shadow-lg pointer-events-auto"
         onKeyDown={handleKeyDown}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event_) => event_.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
@@ -114,8 +114,8 @@ export function SessionSettingsDialog({
                 </div>
               </div>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event_) => {
+                  event_.stopPropagation();
                   handleToggle();
                 }}
                 className={`relative w-11 h-6.5 bg-bg-primary border rounded-full cursor-pointer transition-all flex-shrink-0 ${

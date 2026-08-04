@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { config } from "@audio-scope-view/api-client/config";
+import { config as _config } from "@audio-scope-view/api-client/config";
 
 export type ExportFormat = "csv" | "wav" | "json";
 
@@ -52,7 +52,7 @@ export function useRecordingExport(): UseRecordingExportReturn {
 
   /**
    * Export a recording using direct download link.
-   * 
+   *
    * This approach uses a hidden <a> tag with download attribute, which lets the browser
    * handle the download natively. The browser streams directly to disk without loading
    * the entire file into memory, avoiding memory issues with large files.
@@ -81,22 +81,22 @@ export function useRecordingExport(): UseRecordingExportReturn {
         link.href = exportUrl;
         link.download = downloadFilename;
         link.style.display = "none";
-        
+
         // For CSV/JSON, we want the browser to download rather than display
         // Adding target="_blank" with download attribute forces download behavior
         if (format === "csv" || format === "json") {
           link.target = "_blank";
         }
-        
+
         // Set the appropriate MIME type for the download
         link.type = FORMAT_META[format].mimeType;
-        
-        document.body.appendChild(link);
+
+        document.body.append(link);
         link.click();
-        
+
         // Clean up immediately after click
         setTimeout(() => {
-          document.body.removeChild(link);
+          link.remove();
         }, 100);
 
         // Mark export as complete (browser handles the actual download)
