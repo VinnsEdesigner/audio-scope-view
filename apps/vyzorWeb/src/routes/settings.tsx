@@ -366,7 +366,7 @@ export function Settings(): React.ReactElement {
           <div className="relative">
             <button
               onClick={() => setShowDeviceInfo(!showDeviceInfo)}
-              className="relative z-[60] px-3 h-9 flex items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-foreground hover:bg-bg-hover transition-colors font-semibold text-sm"
+              className="relative z-[60] px-3 h-9 flex items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-neutral-600 dark:text-neutral-400 hover:bg-bg-hover transition-colors font-semibold text-sm"
               title="Device Info"
             >
               more
