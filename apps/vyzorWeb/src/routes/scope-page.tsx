@@ -653,6 +653,8 @@ export function ScopePage(): React.ReactElement {
           <ScopeCanvas
             waveformData={waveformData}
             isPaused={isPaused}
+            analysisFrame={isPlaybackMode ? undefined : audioAnalyzer.analysisFrame}
+            sampleRate={audioAnalyzer.sampleRate || sampleRate}
             forwardedRef={canvasReference}
           />
 
