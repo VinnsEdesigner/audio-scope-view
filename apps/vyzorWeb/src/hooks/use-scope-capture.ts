@@ -146,6 +146,7 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
   const activeSubSessionReference = React.useRef<string | undefined>(undefined);
   const isCreatingSubSessionReference = React.useRef(false);
   const isCapturingReference = React.useRef(false);
+  const lastTickTimeReference = React.useRef<number>(0);
 
   const effectiveSessionId = activeSubSessionId || sessionId;
   const hasValidSession = Boolean(sessionId && sessionId.trim().length > 0);
@@ -235,11 +236,11 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
     if (isCreatingSubSessionReference.current) return;
 
     const now = performance.now();
-    const timeSinceLastTick = now - lastDataTimeReference.current;
-    lastDataTimeReference.current = now;
+    const timeSinceLastTick = now - lastTickTimeReference.current;
+    lastTickTimeReference.current = now;
 
-    // Gap in the stream: restart the continuous-capture window.
-    if (timeSinceLastTick > 1000) {
+    // No fresh audio data for a while: restart the continuous-capture window.
+    if (now - lastDataTimeReference.current > 1000) {
       continuousCaptureTimeReference.current = 0;
       return;
     }
@@ -313,6 +314,7 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
       captureStartTimeReference.current = performance.now();
       continuousCaptureTimeReference.current = 0;
       lastDataTimeReference.current = performance.now();
+      lastTickTimeReference.current = performance.now();
 
       connect();
 
