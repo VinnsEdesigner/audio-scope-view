@@ -66,6 +66,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "add_peak_negative_db_to_recordings",
         sql: include_str!("../../migrations/012_add_peak_negative_db_to_recordings.sql"),
     },
+    Migration {
+        version: 13,
+        name: "add_audio_analysis_to_sessions",
+        sql: include_str!("../../migrations/013_add_audio_analysis_to_sessions.sql"),
+    },
 ];
 
 pub async fn run_migrations(pool: &SqlitePool) -> AppResult<()> {

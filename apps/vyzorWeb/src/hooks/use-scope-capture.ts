@@ -3,6 +3,18 @@ import { useSubscription } from "@apollo/client";
 import { gql } from "@apollo/client";
 import { useCreateSubSession, useCloseOscilloscope, useUpdateSessionDsp } from "./use-sessions";
 
+interface WaveformDataMessage {
+  type: "waveform_data";
+  payload: {
+    session_id: string;
+    samples: number[];
+    timestamp: number;
+    sample_rate: number;
+    peak_amplitude: number;
+    rms_amplitude: number;
+  };
+}
+
 const ANALYSIS_SUBSCRIPTION = gql`
   subscription OnAnalysisResult($sessionId: String!) {
     analysisSubscribe(sessionId: $sessionId) {
@@ -85,7 +97,7 @@ export interface UseScopeCaptureOptions {
 }
 
 export interface UseScopeCaptureReturn {
-  activeSubSessionId: string | null;
+  activeSubSessionId: string | undefined;
 
   isCapturing: boolean;
 
@@ -101,7 +113,7 @@ export interface UseScopeCaptureReturn {
 
   stopCapture: () => void;
 
-  error: Error | null;
+  error: Error | undefined;
 }
 
 export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptureReturn {
@@ -328,7 +340,7 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
   }, [activeSubSessionId, closeOscilloscope, disconnect]);
 
   return {
-    activeSubSessionId,
+    activeSubSessionId: activeSubSessionId ?? undefined,
     isCapturing,
     isConnected,
     isSubscribed,

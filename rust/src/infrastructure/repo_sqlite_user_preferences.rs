@@ -15,6 +15,7 @@ struct UserPreferencesRow {
     user_id: Option<String>,
     last_used_session_id: Option<String>,
     auto_select_last_session: i32,
+    auto_close_timeout_secs: Option<i32>,
     created_at: String,
     updated_at: String,
 }
@@ -37,6 +38,7 @@ impl TryFrom<UserPreferencesRow> for UserPreferences {
             user_id: row.user_id,
             last_used_session_id: row.last_used_session_id,
             auto_select_last_session: row.auto_select_last_session != 0,
+            auto_close_timeout_secs: row.auto_close_timeout_secs,
             created_at: parse_datetime(&row.created_at)?,
             updated_at: parse_datetime(&row.updated_at)?,
         })
@@ -83,12 +85,13 @@ impl UserPreferencesRepository for SqliteUserPreferencesRepository {
     async fn save(&self, preferences: &UserPreferences) -> DomainResult<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_preferences (id, user_id, last_used_session_id, auto_select_last_session, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO user_preferences (id, user_id, last_used_session_id, auto_select_last_session, auto_close_timeout_secs, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 user_id = excluded.user_id,
                 last_used_session_id = excluded.last_used_session_id,
                 auto_select_last_session = excluded.auto_select_last_session,
+                auto_close_timeout_secs = excluded.auto_close_timeout_secs,
                 updated_at = excluded.updated_at
             "#,
         )
@@ -96,6 +99,7 @@ impl UserPreferencesRepository for SqliteUserPreferencesRepository {
         .bind(&preferences.user_id)
         .bind(&preferences.last_used_session_id)
         .bind(if preferences.auto_select_last_session { 1 } else { 0 })
+        .bind(preferences.auto_close_timeout_secs)
         .bind(preferences.created_at.to_rfc3339())
         .bind(preferences.updated_at.to_rfc3339())
         .execute(&self.pool)

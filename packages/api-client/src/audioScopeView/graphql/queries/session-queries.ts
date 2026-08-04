@@ -13,6 +13,7 @@ export const SESSION_FIELDS = gql`
     oscilloscopeDurationMs
     parentSessionId
     isSubSession
+    autoCloseTimeoutSecs
     subSessionCount
     peakAmplitude
     rmsAmplitude

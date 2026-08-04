@@ -228,7 +228,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     let address = config.server_address();
-    info!("GraphQL endpoint: http:    info!("Health: http:
+    info!("GraphQL endpoint: http://{}/graphql", address);
+    info!("Health: http://{}/health", address);
     if let Err(e) = start_server(&address, state).await {
         error!("Server error: {}", e);
     }

@@ -7,6 +7,7 @@ import {
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
 import { SET_LAST_USED_SESSION } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
 import type { Session } from "@audio-scope-view/api-client/domain";
+import { DEFAULT_AUTO_CLOSE_TIMEOUT_SECS } from "./use-session-settings";
 
 export function useLastUsedSession() {
   const {
@@ -18,6 +19,7 @@ export function useLastUsedSession() {
       id: string;
       lastUsedSessionId: string | null;
       autoSelectLastSession: boolean;
+      autoCloseTimeoutSecs: number | null;
     };
   }>(GET_USER_PREFERENCES, {
     fetchPolicy: "cache-and-network",
@@ -25,6 +27,8 @@ export function useLastUsedSession() {
 
   const lastUsedSessionId = prefsData?.userPreferences?.lastUsedSessionId ?? undefined;
   const autoSelectLastSession = prefsData?.userPreferences?.autoSelectLastSession ?? true;
+  const autoCloseTimeoutSecs =
+    prefsData?.userPreferences?.autoCloseTimeoutSecs ?? DEFAULT_AUTO_CLOSE_TIMEOUT_SECS;
 
   const [setLastUsedSessionMutation, { loading: isSettingLastUsed }] =
     useMutation(SET_LAST_USED_SESSION);
@@ -55,7 +59,8 @@ export function useLastUsedSession() {
       await setLastUsedSessionMutation({
         variables: { sessionId },
       });
-      refetchPrefs();
+      // Wait for refetch to complete before proceeding
+      await refetchPrefs();
     },
     [setLastUsedSessionMutation, refetchPrefs],
   );
@@ -67,6 +72,8 @@ export function useLastUsedSession() {
     refetchPrefs();
   }, [setLastUsedSessionMutation, refetchPrefs]);
 
+  const isLoading = isLoadingPrefs || isLoadingLastUsed || isLoadingActive;
+
   return {
     lastUsedSessionId,
     lastUsedSession,
@@ -74,10 +81,12 @@ export function useLastUsedSession() {
 
     shouldAutoSelect: autoSelectLastSession && !!lastUsedSessionId,
     hasLastUsedSession: !!lastUsedSessionId,
+    autoCloseTimeoutSecs,
 
     isLoadingPrefs,
     isLoadingLastUsed,
     isLoadingActive,
+    isLoadingSession: isLoading,
     isSettingLastUsed,
 
     markSessionAsUsed,
@@ -98,4 +107,22 @@ export function useInitialSession() {
     shouldShowSelectionDialog: !shouldAutoSelect || !lastUsedSession,
     isLoading: isLoadingPrefs,
   };
+}
+
+// Helper function to check if a session is inactive based on timeout
+export function isSessionInactive(
+  lastActivityTime: Date | string | undefined,
+  timeoutSecs: number | null,
+): boolean {
+  if (!timeoutSecs || !lastActivityTime) {
+    return false; // No timeout set or no activity time
+  }
+
+  const lastActivity =
+    lastActivityTime instanceof Date ? lastActivityTime : new Date(lastActivityTime);
+
+  const now = new Date();
+  const elapsedSeconds = (now.getTime() - lastActivity.getTime()) / 1000;
+
+  return elapsedSeconds > timeoutSecs;
 }

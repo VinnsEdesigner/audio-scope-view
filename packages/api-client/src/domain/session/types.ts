@@ -10,6 +10,7 @@ export interface Session {
   oscilloscopeDurationMs?: number;
   parentSessionId?: string;
   isSubSession: boolean;
+  autoCloseTimeoutSecs?: number;
   subSessionCount: number;
   peakAmplitude?: number;
   rmsAmplitude?: number;
@@ -57,6 +58,7 @@ export interface SessionServer {
   oscilloscopeDurationMs?: number;
   parentSessionId?: string;
   isSubSession: boolean;
+  autoCloseTimeoutSecs?: number;
   subSessionCount: number;
   peakAmplitude?: number;
   rmsAmplitude?: number;

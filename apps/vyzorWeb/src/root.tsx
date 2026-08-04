@@ -10,6 +10,7 @@ import { NavigationLoader } from "./components/ui/navigation-loader";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { Spinner } from "./components/ui/spinner";
+import { SessionSelectionProvider } from "./contexts/session-selection-context";
 
 const seoData = {
   "@context": "https://schema.org",
@@ -74,7 +75,9 @@ function ThemedApp() {
 
   return (
     <Theme name={resolvedTheme}>
-      <AppShell />
+      <SessionSelectionProvider>
+        <AppShell />
+      </SessionSelectionProvider>
     </Theme>
   );
 }

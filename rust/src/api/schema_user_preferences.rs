@@ -10,6 +10,8 @@ pub struct UserPreferencesOutput {
     pub last_used_session_id: Option<String>,
     #[graphql(name = "autoSelectLastSession")]
     pub auto_select_last_session: bool,
+    #[graphql(name = "autoCloseTimeoutSecs")]
+    pub auto_close_timeout_secs: Option<i32>,
 }
 
 #[derive(Default)]
@@ -34,6 +36,7 @@ impl UserPreferencesQuery {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
             auto_select_last_session: prefs.auto_select_last_session,
+            auto_close_timeout_secs: prefs.auto_close_timeout_secs,
         })
     }
 
@@ -95,6 +98,7 @@ impl UserPreferencesMutation {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
             auto_select_last_session: prefs.auto_select_last_session,
+            auto_close_timeout_secs: prefs.auto_close_timeout_secs,
         })
     }
 
@@ -133,6 +137,46 @@ impl UserPreferencesMutation {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
             auto_select_last_session: prefs.auto_select_last_session,
+            auto_close_timeout_secs: prefs.auto_close_timeout_secs,
+        })
+    }
+
+    async fn set_auto_close_timeout(
+        &self,
+        ctx: &Context<'_>,
+        timeout_secs: Option<i32>,
+    ) -> Option<UserPreferencesOutput> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
+
+        let prefs_id = "default-user";
+
+        let mut prefs = match context
+            .user_preferences_repository
+            .get_or_create(prefs_id)
+            .await
+        {
+            Ok(p) => p,
+            Err(_) => return None,
+        };
+
+        prefs.update_auto_close_timeout(timeout_secs);
+
+        if context
+            .user_preferences_repository
+            .save(&prefs)
+            .await
+            .is_err()
+        {
+            return None;
+        }
+
+        Some(UserPreferencesOutput {
+            id: prefs.id,
+            last_used_session_id: prefs.last_used_session_id,
+            auto_select_last_session: prefs.auto_select_last_session,
+            auto_close_timeout_secs: prefs.auto_close_timeout_secs,
         })
     }
 
@@ -141,6 +185,7 @@ impl UserPreferencesMutation {
         ctx: &Context<'_>,
         last_used_session_id: Option<String>,
         auto_select_last_session: Option<bool>,
+        auto_close_timeout_secs: Option<i32>,
     ) -> Option<UserPreferencesOutput> {
         let context = ctx
             .data::<GraphqlContext>()
@@ -163,6 +208,9 @@ impl UserPreferencesMutation {
         if let Some(auto_select) = auto_select_last_session {
             prefs.update_auto_select(auto_select);
         }
+        if let Some(timeout_secs) = auto_close_timeout_secs {
+            prefs.update_auto_close_timeout(Some(timeout_secs));
+        }
 
         if context
             .user_preferences_repository
@@ -177,6 +225,7 @@ impl UserPreferencesMutation {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
             auto_select_last_session: prefs.auto_select_last_session,
+            auto_close_timeout_secs: prefs.auto_close_timeout_secs,
         })
     }
 }

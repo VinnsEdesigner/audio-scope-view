@@ -17,6 +17,7 @@ struct SessionRow {
     oscilloscope_duration_ms: Option<f64>,
     parent_session_id: Option<String>,
     is_sub_session: bool,
+    auto_close_timeout_secs: Option<i32>,
     peak_amplitude: f32,
     rms_amplitude: f32,
     dc_offset: f32,
@@ -41,6 +42,7 @@ impl TryFrom<SessionRow> for Session {
             oscilloscope_duration_ms: row.oscilloscope_duration_ms,
             parent_session_id: row.parent_session_id,
             is_sub_session: row.is_sub_session,
+            auto_close_timeout_secs: row.auto_close_timeout_secs,
             peak_amplitude: Some(row.peak_amplitude),
             rms_amplitude: Some(row.rms_amplitude),
             dc_offset: Some(row.dc_offset),
@@ -74,8 +76,8 @@ impl SqliteSessionRepository {
     pub async fn save_session(&self, session: &Session) -> DomainErrorResult<()> {
         sqlx::query(
             r#"
-            INSERT INTO sessions (id, user_id, name, description, started_at, ended_at, duration_seconds, oscilloscope_opened_at, oscilloscope_duration_ms, parent_session_id, is_sub_session, peak_amplitude, rms_amplitude, dc_offset, dominant_frequency, frequency_high, frequency_low)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO sessions (id, user_id, name, description, started_at, ended_at, duration_seconds, oscilloscope_opened_at, oscilloscope_duration_ms, parent_session_id, is_sub_session, auto_close_timeout_secs, peak_amplitude, rms_amplitude, dc_offset, dominant_frequency, frequency_high, frequency_low)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&session.id)
@@ -89,6 +91,7 @@ impl SqliteSessionRepository {
         .bind(session.oscilloscope_duration_ms)
         .bind(&session.parent_session_id)
         .bind(session.is_sub_session)
+        .bind(session.auto_close_timeout_secs)
         .bind(session.peak_amplitude.unwrap_or(0.0))
         .bind(session.rms_amplitude.unwrap_or(0.0))
         .bind(session.dc_offset.unwrap_or(0.0))
@@ -105,7 +108,7 @@ impl SqliteSessionRepository {
         sqlx::query(
             r#"
             UPDATE sessions
-            SET user_id = ?, name = ?, description = ?, started_at = ?, ended_at = ?, duration_seconds = ?, oscilloscope_opened_at = ?, oscilloscope_duration_ms = ?, parent_session_id = ?, is_sub_session = ?, peak_amplitude = ?, rms_amplitude = ?, dc_offset = ?, dominant_frequency = ?, frequency_high = ?, frequency_low = ?
+            SET user_id = ?, name = ?, description = ?, started_at = ?, ended_at = ?, duration_seconds = ?, oscilloscope_opened_at = ?, oscilloscope_duration_ms = ?, parent_session_id = ?, is_sub_session = ?, auto_close_timeout_secs = ?, peak_amplitude = ?, rms_amplitude = ?, dc_offset = ?, dominant_frequency = ?, frequency_high = ?, frequency_low = ?
             WHERE id = ?
             "#,
         )
@@ -119,6 +122,7 @@ impl SqliteSessionRepository {
         .bind(session.oscilloscope_duration_ms)
         .bind(&session.parent_session_id)
         .bind(session.is_sub_session)
+        .bind(session.auto_close_timeout_secs)
         .bind(session.peak_amplitude.unwrap_or(0.0))
         .bind(session.rms_amplitude.unwrap_or(0.0))
         .bind(session.dc_offset.unwrap_or(0.0))

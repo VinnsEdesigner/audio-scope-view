@@ -8,7 +8,6 @@ import {
   Activity,
   Edit3,
   Trash2,
-  Play,
   Eye,
   Square,
   Database,
@@ -16,6 +15,8 @@ import {
   FileText,
   Activity as FrequencyIcon,
   Gauge,
+  MoreVertical,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   useSessionDetail,
@@ -25,6 +26,7 @@ import {
   useDeleteSession,
   useDeleteRecording,
   useEndSession,
+  useUpdateSession,
   useLastUsedSession,
   formatBytes,
   formatDuration,
@@ -40,7 +42,8 @@ import {
 } from "../hooks";
 import type { SessionWithStatus, RecordingSummary, Session } from "../hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks";
+import { useToast, useRecordingExport } from "@/hooks";
+import { EditSessionDialog } from "@/components/dialogs";
 
 type TabType = "live-captures" | "recordings";
 
@@ -87,15 +90,121 @@ function LiveCaptureCard({ subSession, onSelect }: LiveCaptureCardProperties) {
 
 interface RecordingCardProperties {
   recording: RecordingSummary;
-  onPlay: (recording: RecordingSummary) => void;
   onView: (recording: RecordingSummary) => void;
   onDelete: (recording: RecordingSummary) => void;
+  onDownloadCsv: (recording: RecordingSummary) => void;
+  onDownloadWav: (recording: RecordingSummary) => void;
+  onDownloadJson: (recording: RecordingSummary) => void;
 }
 
-function RecordingCard({ recording, onPlay, onView, onDelete }: RecordingCardProperties) {
+function RecordingCard({
+  recording,
+  onView,
+  onDelete,
+  onDownloadCsv,
+  onDownloadWav,
+  onDownloadJson,
+}: RecordingCardProperties) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuReference = React.useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuReference.current && !menuReference.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
   return (
-    <div className="bg-bg-secondary border-2 border-icon rounded-[10px] p-4 cursor-pointer transition-all hover:border-foreground hover:bg-bg-tertiary">
-      <div className="text-sm font-medium text-foreground mb-3">{recording.name}</div>
+    <div className="bg-bg-secondary border-2 border-icon rounded-[10px] p-4 transition-all hover:border-foreground hover:bg-bg-tertiary">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-foreground truncate flex-1 mr-2">
+          {recording.name}
+        </span>
+        <div className="relative" ref={menuReference}>
+          <button
+            onClick={(event_) => {
+              event_.stopPropagation();
+              setMenuOpen(!menuOpen);
+            }}
+            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-bg-hover transition-all"
+            title="More options"
+          >
+            <MoreVertical size={16} className="text-icon" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 w-40 bg-bg-secondary border border-border rounded-lg shadow-lg z-10 overflow-hidden">
+              <button
+                onClick={(event_) => {
+                  event_.stopPropagation();
+                  onView(recording);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-all"
+              >
+                <Eye size={14} className="text-icon" />
+                View
+              </button>
+              <div className="border-t border-border-subtle" />
+              <button
+                onClick={(event_) => {
+                  event_.stopPropagation();
+                  onDownloadCsv(recording);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-all"
+              >
+                <FileSpreadsheet size={14} className="text-icon" />
+                CSV
+              </button>
+              <button
+                onClick={(event_) => {
+                  event_.stopPropagation();
+                  onDownloadWav(recording);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-all"
+              >
+                <Download size={14} className="text-icon" />
+                WAV
+              </button>
+              <button
+                onClick={(event_) => {
+                  event_.stopPropagation();
+                  onDownloadJson(recording);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-all"
+              >
+                <FileText size={14} className="text-icon" />
+                JSON
+              </button>
+              <div className="border-t border-border-subtle" />
+              <button
+                onClick={(event_) => {
+                  event_.stopPropagation();
+                  onDelete(recording);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-all"
+              >
+                <Trash2 size={14} className="text-icon" />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {}
       <div className="grid grid-cols-4 gap-2 mb-3 p-3 bg-bg-tertiary rounded-lg">
@@ -153,43 +262,11 @@ function RecordingCard({ recording, onPlay, onView, onDelete }: RecordingCardPro
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+      <div className="flex items-center pt-3 border-t border-border-subtle">
         <span className="text-xs text-text-secondary">
-          {recording.isPinned && <span className="mr-2">📌</span>}
+          {recording.isPinned && <span className="mr-2">🔒</span>}
           {formatTimestampRelative(recording.timestamp)}
         </span>
-        <div className="flex gap-1">
-          <button
-            onClick={(event_) => {
-              event_.stopPropagation();
-              onPlay(recording);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-hover transition-all"
-            title="Play"
-          >
-            <Play size={14} className="text-icon" />
-          </button>
-          <button
-            onClick={(event_) => {
-              event_.stopPropagation();
-              onView(recording);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-hover transition-all"
-            title="View"
-          >
-            <Eye size={14} className="text-icon" />
-          </button>
-          <button
-            onClick={(event_) => {
-              event_.stopPropagation();
-              onDelete(recording);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-hover transition-all"
-            title="Delete"
-          >
-            <Trash2 size={14} className="text-icon" />
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -199,6 +276,7 @@ export function Session(): React.ReactElement {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { exportRecording } = useRecordingExport();
 
   const [activeTab, setActiveTab] = React.useState<TabType>("recordings");
   const [recordingsOffset, setRecordingsOffset] = React.useState(0);
@@ -229,8 +307,12 @@ export function Session(): React.ReactElement {
 
   const [deleteSession, { loading: isDeleting }] = useDeleteSession();
   const [endSession, { loading: isEnding }] = useEndSession();
+  const [updateSession, { loading: isUpdating }] = useUpdateSession();
   const [deleteRecording] = useDeleteRecording();
   const { markSessionAsUsed } = useLastUsedSession();
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
 
   const session = sessionData?.session;
   const parentSession = parentSessionData?.parentSession;
@@ -290,16 +372,9 @@ export function Session(): React.ReactElement {
     }
   }, [session, deleteSession, navigate, showToast]);
 
-  const handlePlay = React.useCallback(
-    (recording: RecordingSummary) => {
-      navigate(`/oscilloscope?recording=${recording.id}`);
-    },
-    [navigate],
-  );
-
   const handleView = React.useCallback(
     (recording: RecordingSummary) => {
-      navigate(`/recording/${recording.id}`);
+      navigate(`/oscilloscope?recording=${recording.id}`);
     },
     [navigate],
   );
@@ -321,6 +396,83 @@ export function Session(): React.ReactElement {
     },
     [deleteRecording, refetchRecordings, showToast],
   );
+
+  const handleDownloadCsv = React.useCallback(
+    async (recording: RecordingSummary) => {
+      showToast({ message: `Exporting ${recording.name} to CSV...`, type: "info" });
+      try {
+        await exportRecording(recording.id, "csv", recording.sampleCount);
+        showToast({ message: `${recording.name} exported to CSV`, type: "success" });
+      } catch (error) {
+        showToast({
+          message: `Failed to export CSV: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
+    },
+    [showToast, exportRecording],
+  );
+
+  const handleDownloadWav = React.useCallback(
+    async (recording: RecordingSummary) => {
+      showToast({ message: `Exporting ${recording.name} to WAV...`, type: "info" });
+      try {
+        await exportRecording(recording.id, "wav", recording.sampleCount);
+        showToast({ message: `${recording.name} exported to WAV`, type: "success" });
+      } catch (error) {
+        showToast({
+          message: `Failed to export WAV: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
+    },
+    [showToast, exportRecording],
+  );
+
+  const handleDownloadJson = React.useCallback(
+    async (recording: RecordingSummary) => {
+      showToast({ message: `Exporting ${recording.name} to JSON...`, type: "info" });
+      try {
+        await exportRecording(recording.id, "json", recording.sampleCount);
+        showToast({ message: `${recording.name} exported to JSON`, type: "success" });
+      } catch (error) {
+        showToast({
+          message: `Failed to export JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
+    },
+    [showToast, exportRecording],
+  );
+
+  const handleOpenEdit = React.useCallback(() => {
+    setEditDialogOpen(true);
+  }, []);
+
+  const handleSaveSession = React.useCallback(
+    async (name: string, description: string) => {
+      if (!session) return;
+      try {
+        await updateSession({
+          variables: { id: session.id, name, description },
+        });
+        setEditDialogOpen(false);
+        refetchSession();
+        showToast({ message: "Session updated successfully", type: "success" });
+      } catch (error) {
+        showToast({
+          message: `Failed to update session: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
+    },
+    [session, updateSession, refetchSession, showToast],
+  );
+
+  const handleDeleteFromEdit = React.useCallback(() => {
+    setEditDialogOpen(false);
+    handleDelete();
+  }, [handleDelete]);
 
   const handleOpenOscilloscope = React.useCallback(() => {
     navigate(`/oscilloscope?sessionId=${sessionId}`);
@@ -398,7 +550,8 @@ export function Session(): React.ReactElement {
               </button>
             )}
             <button
-              disabled={isLoading || isDeleting}
+              onClick={handleOpenEdit}
+              disabled={isLoading || isDeleting || isUpdating}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
             >
               <Edit3 size={14} />
@@ -582,9 +735,11 @@ export function Session(): React.ReactElement {
                   <RecordingCard
                     key={recording.id}
                     recording={recording}
-                    onPlay={handlePlay}
                     onView={handleView}
                     onDelete={handleDeleteRecording}
+                    onDownloadCsv={handleDownloadCsv}
+                    onDownloadWav={handleDownloadWav}
+                    onDownloadJson={handleDownloadJson}
                   />
                 ))
               )}
@@ -621,6 +776,18 @@ export function Session(): React.ReactElement {
           </div>
         )}
       </main>
+
+      {/* Edit Session Dialog */}
+      <EditSessionDialog
+        isOpen={editDialogOpen}
+        sessionId={sessionId || ""}
+        sessionName={session?.name || ""}
+        sessionDescription={session?.description}
+        onClose={() => setEditDialogOpen(false)}
+        onSave={handleSaveSession}
+        onDelete={handleDeleteFromEdit}
+        isLoading={isUpdating}
+      />
     </div>
   );
 }

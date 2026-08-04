@@ -79,9 +79,10 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
   const pendingFetchesReference = useRef<Map<number, AbortController>>(new Map());
 
   const handleWorkletMessageReference =
-    useRef<(message: { type: string; [key: string]: unknown }) => void>();
-  const fetchChunkReference = useRef<(startSample: number, endSample: number) => Promise<void>>();
-  const playReference = useRef<() => void>();
+    useRef<(message: { type: string; [key: string]: unknown }) => void>(undefined);
+  const fetchChunkReference =
+    useRef<(startSample: number, endSample: number) => Promise<void>>(undefined);
+  const playReference = useRef<() => void>(undefined);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;

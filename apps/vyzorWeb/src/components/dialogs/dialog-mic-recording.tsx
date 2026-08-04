@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
   useCreateRecording,
-  useGetOrCreateSession,
   useAudioAnalyzer,
   useUIStore,
   useAudioStore,
@@ -170,36 +169,21 @@ function WaveformCanvas({
 interface DialogMicRecordingProperties {
   isOpen: boolean;
   onClose: () => void;
+  sessionId?: string;
   _scopeName?: string;
 }
 
 export function DialogMicRecording({
   isOpen,
   onClose,
+  sessionId,
   _scopeName,
 }: DialogMicRecordingProperties): React.ReactElement {
   const { showToast } = useToast();
   const { devices, selectedDeviceId, setSelectedDeviceId, hasPermission, requestPermission } =
     useMediaDevices();
   const [createRecording] = useCreateRecording();
-  const [getOrCreateSession] = useGetOrCreateSession();
-  const [activeSessionId, setActiveSessionId] = React.useState<string | undefined>();
   const globalSampleRate = useAudioStore((state) => state.sampleRate);
-
-  React.useEffect(() => {
-    if (isOpen && !activeSessionId) {
-      getOrCreateSession()
-        .then((result) => {
-          const sessionId = result?.data?.getOrCreateSession?.id;
-          if (sessionId) {
-            setActiveSessionId(sessionId);
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to get or create session:", error);
-        });
-    }
-  }, [isOpen, activeSessionId, getOrCreateSession]);
 
   const { waveformColor, showGrid, smoothWaveform, glow, autoScale, invert } = useUIStore();
 
@@ -225,6 +209,44 @@ export function DialogMicRecording({
   const [recordingName, setRecordingName] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
 
+  const wasOpenReference = React.useRef(false);
+
+  // Session is passed explicitly from parent
+  const activeSessionId = sessionId;
+
+  // Effects for permission and cleanup - must be called unconditionally
+  React.useEffect(() => {
+    if (isOpen && !hasPermission) {
+      requestPermission();
+    }
+  }, [isOpen, hasPermission, requestPermission]);
+
+  React.useEffect(() => {
+    if (isOpen && !recordingName) {
+      const now = new Date();
+      const dateString = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const timeString = now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      setRecordingName(`Recording ${dateString} ${timeString}`);
+    }
+  }, [isOpen, recordingName]);
+
+  React.useEffect(() => {
+    if (wasOpenReference.current && !isOpen) {
+      discardCapture();
+    }
+    wasOpenReference.current = isOpen;
+  }, [isOpen, discardCapture]);
+
+  // Don't render anything if no sessionId is provided
+  // Parent should handle session selection before opening this dialog
+  if (!sessionId) {
+    return <></>;
+  }
+
   const inputDevices = Array.isArray(devices) ? devices.filter((d) => d.kind === "audioinput") : [];
 
   const getStatusLabel = () => {
@@ -247,19 +269,6 @@ export function DialogMicRecording({
     if (volumeLevel > 0.5) return "linear-gradient(90deg, #22c55e 0%, #f59e0b 100%)";
     return "#22c55e";
   };
-
-  React.useEffect(() => {
-    if (isOpen && !recordingName) {
-      const now = new Date();
-      const dateString = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const timeString = now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      setRecordingName(`Recording ${dateString} ${timeString}`);
-    }
-  }, [isOpen, recordingName]);
 
   const handleStartCapture = async () => {
     if (error) {
@@ -307,20 +316,6 @@ export function DialogMicRecording({
     discardCapture();
     showToast({ message: "Recording discarded", type: "warning" });
   };
-
-  React.useEffect(() => {
-    if (isOpen && !hasPermission) {
-      requestPermission();
-    }
-  }, [isOpen, hasPermission, requestPermission]);
-
-  const wasOpenReference = React.useRef(false);
-  React.useEffect(() => {
-    if (wasOpenReference.current && !isOpen) {
-      discardCapture();
-    }
-    wasOpenReference.current = isOpen;
-  }, [isOpen, discardCapture]);
 
   const handleClose = () => {
     if (recordingState === "idle") {

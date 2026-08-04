@@ -1,9 +1,29 @@
 import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { InlineSelect } from "@/components/ui/inline-select";
 import { useToast } from "@/hooks";
 import { useCreateApiKey } from "@/hooks/use-api-keys";
 import type { CreateApiKeyInput } from "@/hooks/use-api-keys";
+
+const RATE_LIMIT_OPTIONS = [
+  { value: 30, label: "30 req/min" },
+  { value: 60, label: "60 req/min" },
+  { value: 100, label: "100 req/min" },
+  { value: 120, label: "120 req/min" },
+  { value: 200, label: "200 req/min" },
+  { value: 500, label: "500 req/min" },
+  { value: 1000, label: "1000 req/min" },
+] as const;
+
+const EXPIRY_OPTIONS = [
+  { value: "", label: "Never" },
+  { value: 24, label: "24 hours" },
+  { value: 168, label: "7 days" },
+  { value: 720, label: "30 days" },
+  { value: 2160, label: "90 days" },
+  { value: 8760, label: "1 year" },
+] as const;
 
 interface CreateApiKeyDialogProperties {
   isOpen: boolean;
@@ -79,35 +99,21 @@ export function CreateApiKeyDialog({ isOpen, onClose, onCreated }: CreateApiKeyD
         <label className="block text-[13px] font-medium text-foreground mb-2">
           Rate Limit (requests/minute)
         </label>
-        <select
+        <InlineSelect
           value={rateLimit}
-          onChange={(event_) => setRateLimit(Number(event_.target.value))}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {[30, 60, 100, 120, 200, 500, 1000].map((limit) => (
-            <option key={limit} value={limit}>
-              {limit} req/min
-            </option>
-          ))}
-        </select>
+          options={RATE_LIMIT_OPTIONS}
+          onChange={(value) => setRateLimit(Number(value))}
+        />
       </div>
 
       <div className="mb-5">
         <label className="block text-[13px] font-medium text-foreground mb-2">Expires</label>
-        <select
-          value={expiry ?? ""}
-          onChange={(event_) =>
-            setExpiry(event_.target.value ? Number(event_.target.value) : undefined)
-          }
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">Never</option>
-          <option value="24">24 hours</option>
-          <option value="168">7 days</option>
-          <option value="720">30 days</option>
-          <option value="2160">90 days</option>
-          <option value="8760">1 year</option>
-        </select>
+        <InlineSelect
+          value={expiry}
+          options={EXPIRY_OPTIONS}
+          onChange={(value) => setExpiry(value === "" ? undefined : Number(value))}
+          placeholder="Never"
+        />
       </div>
 
       {error && (

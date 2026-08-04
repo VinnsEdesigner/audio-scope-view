@@ -22,7 +22,7 @@ export interface ClientConfig {
 
 const DEFAULT_CONFIG: ClientConfig = {
   graphqlEndpoint: "/graphql",
-  websocketEndpoint: "ws://localhost:8080/graphql",
+  websocketEndpoint: "ws://localhost:8080/ws",
   bootstrapKey: "",
   clientUrl: "http://localhost:3000",
 };

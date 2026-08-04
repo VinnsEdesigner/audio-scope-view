@@ -503,7 +503,18 @@ impl RecordingMutation {
             tracing::error!("Failed to save recording: {}", e);
         }
         let saved = result.ok()?;
-        Some(RecordingOutput::from_recording(saved, "Recording".to_string()))
+
+        // Get the actual session name
+        let session_name = context
+            .session_service
+            .get(&input.session_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|s| s.name)
+            .unwrap_or_else(|| "Recording".to_string());
+
+        Some(RecordingOutput::from_recording(saved, session_name))
     }
 
     async fn rename_recording(
@@ -514,13 +525,35 @@ impl RecordingMutation {
     ) -> Option<RecordingOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let recording = context.recording_service.rename(&id, &name).await.ok()??;
-        Some(RecordingOutput::from_recording(recording, "Recording".to_string()))
+
+        // Get the actual session name
+        let session_name = context
+            .session_service
+            .get(&recording.session_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|s| s.name)
+            .unwrap_or_else(|| "Recording".to_string());
+
+        Some(RecordingOutput::from_recording(recording, session_name))
     }
 
     async fn pin_recording(&self, ctx: &Context<'_>, id: String) -> Option<RecordingOutput> {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
         let recording = context.recording_service.toggle_pin(&id).await.ok()??;
-        Some(RecordingOutput::from_recording(recording, "Recording".to_string()))
+
+        // Get the actual session name
+        let session_name = context
+            .session_service
+            .get(&recording.session_id)
+            .await
+            .ok()
+            .flatten()
+            .map(|s| s.name)
+            .unwrap_or_else(|| "Recording".to_string());
+
+        Some(RecordingOutput::from_recording(recording, session_name))
     }
 
     async fn delete_recording(&self, ctx: &Context<'_>, id: String) -> bool {

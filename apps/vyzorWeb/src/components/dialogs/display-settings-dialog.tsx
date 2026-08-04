@@ -1,6 +1,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { useUIStore } from "@/store";
+import { useToast } from "@/hooks";
 
 interface DisplaySettingsDialogProperties {
   isOpen: boolean;
@@ -56,6 +57,7 @@ export function DisplaySettingsDialog({
 }: DisplaySettingsDialogProperties) {
   const { showGrid, setShowGrid, glow, setGlow, autoScale, setAutoScale, invert, setInvert } =
     useUIStore();
+  const { showToast } = useToast();
 
   const [localShowGrid, setLocalShowGrid] = React.useState(showGrid);
   const [localGlow, setLocalGlow] = React.useState(glow);
@@ -76,6 +78,10 @@ export function DisplaySettingsDialog({
     setGlow(localGlow);
     setAutoScale(localAutoScale);
     setInvert(localInvert);
+    showToast({ message: "Display settings saved", type: "success" });
+    if (onSave) {
+      onSave();
+    }
     onClose();
   };
 
@@ -83,7 +89,7 @@ export function DisplaySettingsDialog({
     onClose();
   };
 
-  const handleSaveFinal = onSave || handleSave;
+  const handleSaveFinal = onSave ? handleSave : handleSave;
   const handleCancelFinal = onCancel || handleCancel;
 
   return (

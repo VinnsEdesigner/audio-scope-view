@@ -13,6 +13,7 @@ export function sessionFromRaw(serverSession: SessionServer): Session {
     oscilloscopeDurationMs: serverSession.oscilloscopeDurationMs,
     parentSessionId: serverSession.parentSessionId,
     isSubSession: serverSession.isSubSession,
+    autoCloseTimeoutSecs: serverSession.autoCloseTimeoutSecs,
     subSessionCount: serverSession.subSessionCount,
     peakAmplitude: serverSession.peakAmplitude,
     rmsAmplitude: serverSession.rmsAmplitude,

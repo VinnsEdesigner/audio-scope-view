@@ -5,6 +5,7 @@ export const USER_PREFERENCES_FIELDS = gql`
     id
     lastUsedSessionId
     autoSelectLastSession
+    autoCloseTimeoutSecs
   }
 `;
 

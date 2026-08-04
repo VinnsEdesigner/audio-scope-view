@@ -41,8 +41,8 @@ export function useSessionStatusCounts() {
 }
 
 export function useHomePageSessions() {
-  const { data: activeSessions, ...rest } = useActiveSessionsWithStatus();
-  const { data: countsData } = useSessionStatusCounts();
+  const { data: activeSessions, loading: activeLoading, ...rest } = useActiveSessionsWithStatus();
+  const { data: countsData, loading: countsLoading } = useSessionStatusCounts();
 
   const sessions = activeSessions?.activeSessionsWithStatus ?? [];
   const counts = countsData?.sessionStatusCounts ?? {
@@ -57,5 +57,6 @@ export function useHomePageSessions() {
     sessions,
     counts,
     totalWithStatus: sessions?.length ?? 0,
+    loading: activeLoading || countsLoading,
   };
 }

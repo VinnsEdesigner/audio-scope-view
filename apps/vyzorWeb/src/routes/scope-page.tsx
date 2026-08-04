@@ -10,12 +10,15 @@ import {
   useToast,
   useStreamingPlayback,
   useScopeCapture,
+  useHomePageSessions,
+  useLastUsedSession,
+  useCreateNamedSession,
   type ScopeCaptureDspMetrics,
   type AnalysisUpdate,
 } from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
-import { CalibrationDialog } from "@/components/dialogs";
+import { CalibrationDialog, SelectSessionDialog, CreateSessionDialog } from "@/components/dialogs";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
@@ -25,7 +28,7 @@ const STREAMING_THRESHOLD_SAMPLES = 500_000;
 const STREAMING_THRESHOLD_BYTES = 400 * 1024;
 
 export function ScopePage(): React.ReactElement {
-  const [searchParameters] = useSearchParams();
+  const [searchParameters, setSearchParameters] = useSearchParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -35,6 +38,19 @@ export function ScopePage(): React.ReactElement {
   const isLiveMode = Boolean(sessionId);
 
   const { setSessionMode, testMode, toggleTestMode, smoothWaveform } = useUIStore();
+
+  // Session selection state
+  const [selectDialogOpen, setSelectDialogOpen] = React.useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [cameFromSelectDialog, setCameFromSelectDialog] = React.useState(false);
+
+  const { sessions, loading: sessionsLoading } = useHomePageSessions();
+  const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
+    useLastUsedSession();
+  const [createNamedSession, { loading: isCreating }] = useCreateNamedSession();
+
+  // Combined loading state - wait for both session queries before making navigation decisions
+  const isLoadingSessionData = sessionsLoading || isLoadingSession;
 
   const [serverAnalysis, setServerAnalysis] = React.useState<AnalysisUpdate | undefined>();
 
@@ -54,15 +70,73 @@ export function ScopePage(): React.ReactElement {
     return () => setSessionMode("live");
   }, [isPlaybackMode, setSessionMode]);
 
+  // Handle session selection when navigating to oscilloscope without sessionId or with invalid sessionId
   React.useEffect(() => {
-    if (isLiveMode && !sessionId) {
-      showToast({
-        message: "No session selected. Redirecting to create or select a session.",
-        type: "error",
-      });
-      navigate("/");
+    // Only handle when we're trying to use live mode (not playback)
+    if (!isPlaybackMode) {
+      // Skip if still loading data - prevent race condition
+      if (isLoadingSessionData) {
+        return;
+      }
+
+      // Check if sessionId is valid (exists in sessions list)
+      const sessionExists = sessionId
+        ? sessions.some((s: { id: string }) => s.id === sessionId)
+        : false;
+
+      if (!sessionId || !sessionExists) {
+        // No sessionId or session doesn't exist
+        if (shouldAutoSelect && lastUsedSession) {
+          // Auto-select: update URL with last used session
+          setSearchParameters({ sessionId: lastUsedSession.id });
+        } else if (sessions.length > 0) {
+          // Sessions exist: show selection dialog
+          setSelectDialogOpen(true);
+        } else {
+          // No sessions: show create dialog
+          setCreateDialogOpen(true);
+        }
+      }
     }
-  }, [isLiveMode, sessionId, navigate, showToast]);
+  }, [
+    isPlaybackMode,
+    sessionId,
+    sessions,
+    shouldAutoSelect,
+    lastUsedSession,
+    isLoadingSessionData,
+    setSearchParameters,
+  ]);
+
+  const handleSessionSelect = React.useCallback(
+    async (selectedSessionId: string) => {
+      await markSessionAsUsed(selectedSessionId);
+      setSelectDialogOpen(false);
+      setSearchParameters({ sessionId: selectedSessionId });
+    },
+    [markSessionAsUsed, setSearchParameters],
+  );
+
+  const handleCreateSession = React.useCallback(
+    async (name: string, description: string) => {
+      try {
+        const result = await createNamedSession({ variables: { input: { name, description } } });
+        const newSession = result.data?.createNamedSession;
+        if (newSession) {
+          await markSessionAsUsed(newSession.id);
+          setCreateDialogOpen(false);
+          setSearchParameters({ sessionId: newSession.id });
+          showToast({ message: `Session "${name}" created`, type: "success" });
+        }
+      } catch (error) {
+        showToast({
+          message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+        });
+      }
+    },
+    [createNamedSession, markSessionAsUsed, showToast, setSearchParameters],
+  );
 
   const SMOOTHING = {
     smooth: 0.8,
@@ -122,7 +196,7 @@ export function ScopePage(): React.ReactElement {
       }
     : undefined;
 
-  const canvasReference = React.useRef<HTMLCanvasElement | null>(null);
+  const canvasReference = React.useRef<HTMLCanvasElement | undefined>(null);
 
   const { handlers: dialogHandlers, Dialogs } = useSessionDialogs({
     mode: isPlaybackMode ? "playback" : "live",
@@ -650,11 +724,41 @@ export function ScopePage(): React.ReactElement {
       {}
       <Dialogs />
 
-      {}
+      {/* Session Selection Dialog */}
+      <SelectSessionDialog
+        isOpen={selectDialogOpen}
+        sessions={sessions}
+        selectedSessionId={sessionId}
+        onClose={() => setSelectDialogOpen(false)}
+        onSelect={handleSessionSelect}
+        onCreateNew={() => {
+          setCameFromSelectDialog(true);
+          setSelectDialogOpen(false);
+          setCreateDialogOpen(true);
+        }}
+        isLoading={sessionsLoading}
+        required={true}
+      />
+
+      {/* Create Session Dialog */}
+      <CreateSessionDialog
+        isOpen={createDialogOpen}
+        onClose={() => {
+          setCreateDialogOpen(false);
+          if (cameFromSelectDialog) {
+            setSelectDialogOpen(true);
+            setCameFromSelectDialog(false);
+          }
+        }}
+        onConfirm={handleCreateSession}
+        isLoading={isCreating}
+      />
+
+      {/* Calibration Dialog */}
       <CalibrationDialog
         isOpen={calibrationDialogOpen}
         onClose={handleCloseCalibration}
-        analysisData={serverAnalysis}
+        analysisData={serverAnalysis ?? undefined}
         isCapturing={scopeCapture.isCapturing}
       />
     </div>

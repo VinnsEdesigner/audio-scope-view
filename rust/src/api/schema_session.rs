@@ -30,7 +30,7 @@ impl From<&Session> for SessionStatus {
 pub struct SessionWithStatusOutput {
     pub id: String,
     pub name: String,
-    pub created_at: String,
+    pub started_at: String,
     pub status: SessionStatus,
     pub recording_count: i64,
 }
@@ -64,6 +64,7 @@ pub struct SessionOutput {
     pub parent_session_id: Option<String>,
     pub is_sub_session: bool,
     pub sub_session_count: i32,
+    pub auto_close_timeout_secs: Option<i32>,
     pub peak_amplitude: Option<f32>,
     pub rms_amplitude: Option<f32>,
     pub dc_offset: Option<f32>,
@@ -89,6 +90,7 @@ impl SessionOutput {
             parent_session_id: session.parent_session_id,
             is_sub_session: session.is_sub_session,
             sub_session_count: 0,
+            auto_close_timeout_secs: session.auto_close_timeout_secs,
             peak_amplitude: session.peak_amplitude,
             rms_amplitude: session.rms_amplitude,
             dc_offset: session.dc_offset,
@@ -122,6 +124,7 @@ impl SessionOutput {
             parent_session_id: session.parent_session_id,
             is_sub_session: session.is_sub_session,
             sub_session_count,
+            auto_close_timeout_secs: session.auto_close_timeout_secs,
             peak_amplitude: session.peak_amplitude,
             rms_amplitude: session.rms_amplitude,
             dc_offset: session.dc_offset,
@@ -140,7 +143,7 @@ impl From<Session> for SessionOutput {
 
 #[derive(Debug, InputObject)]
 pub struct CreateSessionInput {
-    pub name: Option<String>,
+    pub name: String,
     pub description: Option<String>,
 }
 
@@ -336,7 +339,7 @@ impl SessionQuery {
             sessions_with_status.push(SessionWithStatusOutput {
                 id: session.id.clone(),
                 name: format!("Session {}", &session.id[..8]),
-                created_at: session.started_at.to_rfc3339(),
+                started_at: session.started_at.to_rfc3339(),
                 status: SessionStatus::from(&session),
                 recording_count: count as i64,
             });
@@ -374,7 +377,7 @@ impl SessionQuery {
             results.push(SessionWithStatusOutput {
                 id: session.id.clone(),
                 name: format!("Session {}", &session.id[..8]),
-                created_at: session.started_at.to_rfc3339(),
+                started_at: session.started_at.to_rfc3339(),
                 status: SessionStatus::from(&session),
                 recording_count: count as i64,
             });

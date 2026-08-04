@@ -214,7 +214,7 @@ export interface RecordingStatsServer {
 export interface SessionWithStatusServer {
   id: string;
   name: string;
-  createdAt: string;
+  startedAt: string;
   status: string;
   recordingCount: number;
 }

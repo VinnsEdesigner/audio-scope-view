@@ -36,10 +36,10 @@ impl SessionService {
 
     pub async fn create_named_session(
         &self,
-        name: Option<String>,
+        name: String,
         description: Option<String>,
     ) -> AppResult<Session> {
-        let session = Session::new_named(uuid::Uuid::new_v4().to_string(), name, description);
+        let session = Session::new_named(uuid::Uuid::new_v4().to_string(), Some(name), description);
         self.repository
             .save_session(&session)
             .await

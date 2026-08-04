@@ -114,7 +114,7 @@ export function transformSessionWithStatus(server: SessionWithStatusServer): Ses
   return {
     id: server.id,
     name: server.name,
-    startedAt: new Date(server.createdAt),
+    startedAt: new Date(server.startedAt),
     endedAt: undefined,
     status: server.status as "live" | "paused" | "offline",
     durationSeconds: undefined,

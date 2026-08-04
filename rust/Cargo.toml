@@ -27,6 +27,7 @@ async-graphql-axum = "7.2"
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = { version = "0.7", features = ["codec"] }
 async-trait = "0.1"
 
 # Database

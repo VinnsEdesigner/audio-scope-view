@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use async_graphql::http::GraphiQLSource;
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     body::Body,
     response::Html,
@@ -22,9 +22,9 @@ use tracing::info;
 
 use crate::api::auth::{ApiKey, ApiKeyStore};
 use crate::api::context_extractor::GraphqlContext;
-use crate::api::handler_recording::{get_recording_samples, get_recording_metadata, stream_recording_pcm};
+use crate::api::handler_recording::{get_recording_samples, get_recording_metadata, stream_recording_pcm, stream_recording_csv, stream_recording_wav, stream_recording_json};
 use crate::api::schema_root::build_schema;
-use crate::api::websocket::handler::WsState;
+use crate::api::websocket::{WsState, ws_handler};
 use crate::application::{BatchCaptureService, DashboardService, RecordingService, SessionService, SettingsService, SimulationService, WaveformService};
 use crate::shared::constants::{GRAPHQL_PATH, GRAPHQL_PLAYGROUND_PATH, HEALTH_PATH};
 
@@ -206,28 +206,33 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let graphql_subscription = GraphQLSubscription::new(state.graphql_schema.clone());
-
     let auth_middleware = from_fn(extract_auth_header);
 
     let graphql_router = Router::new()
         .route(GRAPHQL_PATH, post(graphql_handler))
         .route(GRAPHQL_PLAYGROUND_PATH, get(playground_handler))
-        .layer(auth_middleware)          .with_state(state.clone());
+        .layer(auth_middleware)
+        .with_state(state.clone());
 
-    let graphql_ws_router = Router::new()
-        .route_service("/ws", graphql_subscription);
+    // Custom WebSocket handler for real-time audio data
+    let ws_router = Router::new()
+        .route("/", get(ws_handler))
+        .layer(CorsLayer::permissive())
+        .with_state(state.ws_state());
 
     let recordings_router = Router::new()
         .route("/api/recordings/{id}/samples", get(get_recording_samples))
         .route("/api/recordings/{id}/stream", get(stream_recording_pcm))
         .route("/api/recordings/{id}/metadata", get(get_recording_metadata))
+        .route("/api/recordings/{id}/csv", get(stream_recording_csv))
+        .route("/api/recordings/{id}/wav", get(stream_recording_wav))
+        .route("/api/recordings/{id}/json", get(stream_recording_json))
         .with_state(state.clone());
 
     Router::new()
         .route(HEALTH_PATH, get(health_handler))
         .nest("/graphql", graphql_router)
-        .merge(graphql_ws_router)
+        .nest("/ws", ws_router)
         .merge(recordings_router)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
@@ -239,7 +244,7 @@ pub async fn start_server(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind(address).await?;
 
-    info!("Server listening on http:
+    info!("Server listening on http://{address}");
     axum::serve(listener, build_router(state)).await?;
 
     Ok(())

@@ -60,6 +60,8 @@ export { useMockAudioAnalyzer } from "./use-mock-audio-analyzer";
 export type { WaveformType } from "./use-mock-audio-analyzer";
 
 export { useExport } from "./use-export";
+export { useStreamingCSVExport, useRecordingExport } from "./use-streaming-csv-export";
+export type { CSVExportProgress, ExportProgress, ExportFormat } from "./use-streaming-csv-export";
 
 export {
   formatBytes,

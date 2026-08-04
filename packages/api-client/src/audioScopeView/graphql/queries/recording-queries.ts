@@ -126,7 +126,7 @@ export const SESSION_WITH_STATUS_FIELDS = gql`
   fragment SessionWithStatusFields on SessionWithStatusOutput {
     id
     name
-    createdAt
+    startedAt
     status
     recordingCount
   }

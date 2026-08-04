@@ -104,9 +104,16 @@ export function useRecording(recordingId: string | undefined): UseRecordingResul
     : undefined;
 
   return {
-    ...queryResult,
     data: recording ?? undefined,
     recordingPreview: recording,
+    loading: queryResult.loading,
+    error: queryResult.error,
+    called: queryResult.called,
+    client: queryResult.client,
+    refetch: queryResult.refetch,
+    fetchMore: async (variables?: Record<string, unknown>) => {
+      return queryResult.fetchMore({ variables }) as Promise<unknown>;
+    },
   };
 }
 

@@ -10,7 +10,7 @@ export interface ChunkedPlaybackState {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  error: Error | null;
+  error: Error | undefined;
   chunksLoaded: number;
   totalChunks: number;
 }
