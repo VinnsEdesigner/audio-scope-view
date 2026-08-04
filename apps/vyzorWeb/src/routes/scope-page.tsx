@@ -447,41 +447,47 @@ export function ScopePage(): React.ReactElement {
     showToast({ message: "Capture stopped", type: "info" });
   };
 
+  // Keep the latest analyzer frame/metrics in refs so the streaming intervals
+  // below are created once per capture instead of on every animation frame.
+  const liveFrameReference = React.useRef<Float32Array>(audioAnalyzer.analysisFrame);
+  liveFrameReference.current = audioAnalyzer.analysisFrame;
+
+  const buildDspMetricsReference = React.useRef(buildDspMetrics);
+  buildDspMetricsReference.current = buildDspMetrics;
+
+  const scopeCaptureReference = React.useRef(scopeCapture);
+  scopeCaptureReference.current = scopeCapture;
+
+  const isStreaming =
+    isLiveMode && audioAnalyzer.recordingState === "recording" && scopeCapture.isCapturing;
+
+  // Stream raw frames to the Rust engine for server-side DSP.
   React.useEffect(() => {
-    if (!isLiveMode || audioAnalyzer.recordingState === "idle" || !scopeCapture.isCapturing) {
-      return;
-    }
+    if (!isStreaming || !sessionId) return;
 
     const sendInterval = setInterval(() => {
-      if (scopeCapture.activeSubSessionId || sessionId) {
-        const samples = [...audioAnalyzer.samples];
-        scopeCapture.sendWaveformData(samples, sampleRate, buildDspMetrics());
-      }
+      const frame = liveFrameReference.current;
+      if (!frame || frame.length === 0) return;
+      scopeCaptureReference.current.sendWaveformData(
+        [...frame],
+        audioAnalyzer.sampleRate || sampleRate,
+        buildDspMetricsReference.current(),
+      );
     }, 100);
 
     return () => clearInterval(sendInterval);
-  }, [
-    isLiveMode,
-    audioAnalyzer.recordingState,
-    audioAnalyzer.samples,
-    scopeCapture.isCapturing,
-    scopeCapture,
-    sessionId,
-    sampleRate,
-    buildDspMetrics,
-  ]);
+  }, [isStreaming, sessionId, sampleRate, audioAnalyzer.sampleRate]);
 
+  // Persist rolling DSP metrics onto the active (sub-)session.
   React.useEffect(() => {
-    if (!isLiveMode || audioAnalyzer.recordingState === "idle") {
-      return;
-    }
+    if (!isStreaming) return;
 
     const updateInterval = setInterval(() => {
-      scopeCapture.updateMetrics(buildDspMetrics());
-    }, 500);
+      scopeCaptureReference.current.updateMetrics(buildDspMetricsReference.current());
+    }, 1000);
 
     return () => clearInterval(updateInterval);
-  }, [isLiveMode, audioAnalyzer.recordingState, scopeCapture, buildDspMetrics]);
+  }, [isStreaming]);
 
   if (isLoading) {
     return (
@@ -653,6 +659,8 @@ export function ScopePage(): React.ReactElement {
           <ScopeCanvas
             waveformData={waveformData}
             isPaused={isPaused}
+            analysisFrame={isPlaybackMode ? undefined : audioAnalyzer.analysisFrame}
+            sampleRate={audioAnalyzer.sampleRate || sampleRate}
             forwardedRef={canvasReference}
           />
 

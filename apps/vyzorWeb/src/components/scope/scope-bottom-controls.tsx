@@ -145,7 +145,8 @@ export function ScopeBottomControls({
   };
 
   const [isExpanded, setIsExpanded] = React.useState(true);
-  const [view, setView] = React.useState<"time" | "spectrum">("time");
+  const view = store.scopeView;
+  const setView = store.setScopeView;
 
   const handleTimebaseChange = (value: number) => {
     if (isPlayback) return;

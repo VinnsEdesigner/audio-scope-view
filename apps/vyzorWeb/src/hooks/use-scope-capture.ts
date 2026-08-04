@@ -143,6 +143,10 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
     undefined,
   );
   const currentMetricsReference = React.useRef<DspMetrics | undefined>(undefined);
+  const activeSubSessionReference = React.useRef<string | undefined>(undefined);
+  const isCreatingSubSessionReference = React.useRef(false);
+  const isCapturingReference = React.useRef(false);
+  const lastTickTimeReference = React.useRef<number>(0);
 
   const effectiveSessionId = activeSubSessionId || sessionId;
   const hasValidSession = Boolean(sessionId && sessionId.trim().length > 0);
@@ -222,37 +226,57 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
     };
   }, [disconnect]);
 
-  const checkSubSessionCreation = React.useCallback(
-    async (_metrics: DspMetrics) => {
-      if (activeSubSessionId) return;
+  /**
+   * Rotates a tracking sub-session after every `subSessionThresholdMs` of
+   * continuous live capture. Guarded by refs (never by React state) because it
+   * runs from a long-lived interval whose closure is created once.
+   */
+  const checkSubSessionCreation = React.useCallback(async () => {
+    if (!isCapturingReference.current) return;
+    if (isCreatingSubSessionReference.current) return;
 
-      const now = performance.now();
-      const timeSinceLastData = now - lastDataTimeReference.current;
+    const now = performance.now();
+    const timeSinceLastTick = now - lastTickTimeReference.current;
+    lastTickTimeReference.current = now;
 
-      if (timeSinceLastData > 1000) {
-        continuousCaptureTimeReference.current = 0;
-        return;
-      }
+    // No fresh audio data for a while: restart the continuous-capture window.
+    if (now - lastDataTimeReference.current > 1000) {
+      continuousCaptureTimeReference.current = 0;
+      return;
+    }
 
-      continuousCaptureTimeReference.current += timeSinceLastData;
-      lastDataTimeReference.current = now;
+    continuousCaptureTimeReference.current += timeSinceLastTick;
 
-      if (continuousCaptureTimeReference.current >= subSessionThresholdMs) {
-        try {
-          const result = await createSubSession({ variables: { parentId: sessionId } });
-          const subSessionId = result?.data?.createSubSession?.id;
-          if (subSessionId) {
-            setActiveSubSessionId(subSessionId);
+    if (continuousCaptureTimeReference.current < subSessionThresholdMs) return;
 
-            await closeOscilloscope({ variables: { sessionId: subSessionId } });
-          }
-        } catch (error_) {
-          console.error("Failed to create sub-session:", error_);
+    // Reset the window *before* awaiting so overlapping ticks cannot re-enter.
+    continuousCaptureTimeReference.current = 0;
+    isCreatingSubSessionReference.current = true;
+
+    const previousSubSessionId = activeSubSessionReference.current;
+
+    try {
+      const result = await createSubSession({ variables: { parentId: sessionId } });
+      const subSessionId = result?.data?.createSubSession?.id;
+
+      if (subSessionId) {
+        activeSubSessionReference.current = subSessionId;
+        setActiveSubSessionId(subSessionId);
+
+        // Close the previous tracking sub-session, not the new one.
+        if (previousSubSessionId) {
+          await closeOscilloscope({ variables: { sessionId: previousSubSessionId } });
         }
       }
-    },
-    [activeSubSessionId, sessionId, createSubSession, closeOscilloscope, subSessionThresholdMs],
-  );
+    } catch (error_) {
+      console.error("Failed to create sub-session:", error_);
+    } finally {
+      isCreatingSubSessionReference.current = false;
+    }
+  }, [sessionId, createSubSession, closeOscilloscope, subSessionThresholdMs]);
+
+  const checkSubSessionCreationReference = React.useRef(checkSubSessionCreation);
+  checkSubSessionCreationReference.current = checkSubSessionCreation;
 
   const sendWaveformData = React.useCallback(
     (samples: number[], sampleRate: number, metrics: DspMetrics) => {
@@ -285,20 +309,21 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
       }
 
       setIsCapturing(true);
+      isCapturingReference.current = true;
       currentMetricsReference.current = metrics;
       captureStartTimeReference.current = performance.now();
       continuousCaptureTimeReference.current = 0;
       lastDataTimeReference.current = performance.now();
+      lastTickTimeReference.current = performance.now();
 
       connect();
 
+      if (intervalReference.current) clearInterval(intervalReference.current);
       intervalReference.current = setInterval(async () => {
-        if (currentMetricsReference.current) {
-          await checkSubSessionCreation(currentMetricsReference.current);
-        }
+        await checkSubSessionCreationReference.current();
       }, streamIntervalMs);
     },
-    [sessionId, connect, checkSubSessionCreation, streamIntervalMs],
+    [sessionId, connect, streamIntervalMs],
   );
 
   const updateMetrics = React.useCallback(
@@ -325,19 +350,23 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
 
   const stopCapture = React.useCallback(() => {
     setIsCapturing(false);
+    isCapturingReference.current = false;
+    continuousCaptureTimeReference.current = 0;
 
     if (intervalReference.current) {
       clearInterval(intervalReference.current);
       intervalReference.current = undefined;
     }
 
-    if (activeSubSessionId) {
-      closeOscilloscope({ variables: { sessionId: activeSubSessionId } }).catch(console.error);
+    const subSessionId = activeSubSessionReference.current;
+    if (subSessionId) {
+      closeOscilloscope({ variables: { sessionId: subSessionId } }).catch(console.error);
+      activeSubSessionReference.current = undefined;
       setActiveSubSessionId(undefined);
     }
 
     disconnect();
-  }, [activeSubSessionId, closeOscilloscope, disconnect]);
+  }, [closeOscilloscope, disconnect]);
 
   return {
     activeSubSessionId: activeSubSessionId ?? undefined,

@@ -216,7 +216,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(limit, offset)
+            .list_main_sessions(limit, offset)
             .await
             .unwrap_or_default();
 
@@ -227,7 +227,16 @@ impl SessionQuery {
                 .get_recording_count_for_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            results.push(SessionOutput::from_session_with_count(session, count as i64));
+            let sub_session_count = context
+                .session_service
+                .count_sub_sessions(&session.id)
+                .await
+                .unwrap_or(0) as i32;
+            results.push(SessionOutput::from_session_full(
+                session,
+                count as i64,
+                sub_session_count,
+            ));
         }
         results
     }
@@ -249,7 +258,17 @@ impl SessionQuery {
             .await
             .unwrap_or(0);
 
-        Some(SessionOutput::from_session_with_count(session, count as i64))
+        let sub_session_count = context
+            .session_service
+            .count_sub_sessions(&session.id)
+            .await
+            .unwrap_or(0) as i32;
+
+        Some(SessionOutput::from_session_full(
+            session,
+            count as i64,
+            sub_session_count,
+        ))
     }
 
     async fn session_count(&self, ctx: &Context<'_>) -> i32 {
@@ -266,7 +285,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(100, 0)
+            .list_main_sessions(100, 0)
             .await
             .unwrap_or_default();
 
@@ -352,7 +371,7 @@ impl SessionQuery {
         let total_limit = 1000u32;
         let sessions = context
             .session_service
-            .list(total_limit, 0)
+            .list_main_sessions(total_limit, 0)
             .await
             .unwrap_or_default();
 
@@ -391,7 +410,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(100, 0)
+            .list_main_sessions(100, 0)
             .await
             .unwrap_or_default();
 
@@ -423,7 +442,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(1000, 0)
+            .list_main_sessions(1000, 0)
             .await
             .unwrap_or_default();
 

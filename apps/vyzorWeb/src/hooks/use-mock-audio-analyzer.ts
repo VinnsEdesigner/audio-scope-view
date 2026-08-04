@@ -29,6 +29,7 @@ export interface AudioAnalyzerState {
   sampleRate: number;
   duration: number;
   samples: Float32Array;
+  analysisFrame: Float32Array;
   vpp: number;
   frequency: number;
   windowMs: number;
@@ -370,6 +371,7 @@ export function useMockAudioAnalyzer(
     sampleRate,
     duration,
     samples: samplesReference.current,
+    analysisFrame: samplesReference.current,
     vpp,
     frequency,
     windowMs: 0,
