@@ -1,7 +1,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { useUIStore } from "@/store";
-import type { SessionMode } from "@/store";
+import type { SessionMode, TriggerMode } from "@/store";
 
 interface TriggerSettingsDialogProperties {
   isOpen: boolean;
@@ -15,6 +15,12 @@ const EDGE_OPTIONS: { value: TriggerEdge; label: string }[] = [
   { value: "rising", label: "Rising" },
   { value: "falling", label: "Falling" },
   { value: "auto", label: "Auto" },
+];
+
+const MODE_OPTIONS: { value: TriggerMode; label: string; hint: string }[] = [
+  { value: "auto", label: "Auto", hint: "Free-runs when no edge is found" },
+  { value: "normal", label: "Normal", hint: "Holds the last triggered frame" },
+  { value: "single", label: "Single", hint: "Captures one frame, then holds" },
 ];
 
 function formatVoltage(voltage: number): string {
@@ -75,23 +81,38 @@ export function TriggerSettingsDialog({
   onClose,
   mode = "live",
 }: TriggerSettingsDialogProperties) {
-  const { triggerEdge, setTriggerEdge, triggerLevel, setTriggerLevel } = useUIStore();
+  const {
+    triggerEdge,
+    setTriggerEdge,
+    triggerLevel,
+    setTriggerLevel,
+    triggerMode,
+    setTriggerMode,
+    triggerEnabled,
+    setTriggerEnabled,
+  } = useUIStore();
 
   const isPlayback = mode === "playback";
 
   const [localEdge, setLocalEdge] = React.useState<TriggerEdge>(triggerEdge);
   const [localLevel, setLocalLevel] = React.useState(triggerLevel);
+  const [localMode, setLocalMode] = React.useState<TriggerMode>(triggerMode);
+  const [localEnabled, setLocalEnabled] = React.useState(triggerEnabled);
 
   React.useEffect(() => {
     if (isOpen) {
       setLocalEdge(triggerEdge);
       setLocalLevel(triggerLevel);
+      setLocalMode(triggerMode);
+      setLocalEnabled(triggerEnabled);
     }
-  }, [isOpen, triggerEdge, triggerLevel]);
+  }, [isOpen, triggerEdge, triggerLevel, triggerMode, triggerEnabled]);
 
   const handleSave = () => {
     setTriggerEdge(localEdge);
     setTriggerLevel(localLevel);
+    setTriggerMode(localMode);
+    setTriggerEnabled(localEnabled);
     onClose();
   };
 
@@ -124,6 +145,47 @@ export function TriggerSettingsDialog({
         )}
         <div className={`space-y-6 ${isPlayback ? "opacity-50 pointer-events-none" : ""}`}>
           {}
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Trigger</label>
+            <button
+              onClick={() => setLocalEnabled(!localEnabled)}
+              disabled={isPlayback}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                localEnabled
+                  ? "bg-bg-elevated text-foreground border-border"
+                  : "bg-transparent text-text-secondary border-border hover:bg-bg-hover"
+              }`}
+            >
+              {localEnabled ? "Enabled" : "Disabled"}
+            </button>
+          </div>
+
+          {}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-3">Mode</label>
+            <div className="flex gap-2">
+              {MODE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setLocalMode(option.value)}
+                  disabled={isPlayback || !localEnabled}
+                  title={option.hint}
+                  className={`flex-1 py-2.5 px-3 rounded-md text-sm font-medium transition-colors border ${
+                    localMode === option.value
+                      ? "bg-bg-elevated text-foreground border-border"
+                      : "bg-transparent text-text-secondary border-border hover:bg-bg-hover hover:text-foreground"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-text-secondary">
+              {MODE_OPTIONS.find((option) => option.value === localMode)?.hint}
+            </p>
+          </div>
+
+          {}
           <div>
             <label className="block text-sm font-medium text-foreground mb-3">Edge</label>
             <div className="flex gap-2">
@@ -131,7 +193,7 @@ export function TriggerSettingsDialog({
                 <button
                   key={option.value}
                   onClick={() => setLocalEdge(option.value)}
-                  disabled={isPlayback}
+                  disabled={isPlayback || !localEnabled}
                   className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors border ${
                     localEdge === option.value
                       ? "bg-bg-elevated text-foreground border-border"
@@ -154,7 +216,7 @@ export function TriggerSettingsDialog({
               max={1}
               step={0.01}
               formatValue={formatVoltage}
-              disabled={isPlayback}
+              disabled={isPlayback || !localEnabled}
             />
           </div>
         </div>
