@@ -82,7 +82,6 @@ export function useStartSession() {
   return useMutation(START_SESSION, {
     refetchQueries: [
       { query: GET_SESSIONS },
-      { query: GET_ACTIVE_SESSIONS },
       { query: GET_SESSIONS_WITH_STATUS },
       { query: GET_ACTIVE_SESSIONS_WITH_STATUS },
       { query: GET_SESSION_STATUS_COUNTS },
@@ -94,7 +93,6 @@ export function useCreateNamedSession() {
   return useMutation(CREATE_NAMED_SESSION, {
     refetchQueries: [
       { query: GET_SESSIONS },
-      { query: GET_ACTIVE_SESSIONS },
       { query: GET_SESSIONS_WITH_STATUS },
       { query: GET_ACTIVE_SESSIONS_WITH_STATUS },
       { query: GET_SESSION_STATUS_COUNTS },
@@ -106,7 +104,6 @@ export function useGetOrCreateSession() {
   return useMutation(GET_OR_CREATE_SESSION, {
     refetchQueries: [
       { query: GET_SESSIONS },
-      { query: GET_ACTIVE_SESSIONS },
       { query: GET_SESSIONS_WITH_STATUS },
       { query: GET_ACTIVE_SESSIONS_WITH_STATUS },
       { query: GET_SESSION_STATUS_COUNTS },
@@ -118,7 +115,6 @@ export function useEndSession() {
   return useMutation(END_SESSION, {
     refetchQueries: [
       { query: GET_SESSIONS },
-      { query: GET_ACTIVE_SESSIONS },
       { query: GET_SESSIONS_WITH_STATUS },
       { query: GET_ACTIVE_SESSIONS_WITH_STATUS },
       { query: GET_SESSION_STATUS_COUNTS },
@@ -156,13 +152,13 @@ export function useCaptureWaveform() {
 
 export function useOpenOscilloscope() {
   return useMutation(OPEN_OSCILLOSCOPE, {
-    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
+    refetchQueries: [{ query: GET_SESSIONS }],
   });
 }
 
 export function useCloseOscilloscope() {
   return useMutation(CLOSE_OSCILLOSCOPE, {
-    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_ACTIVE_SESSIONS }],
+    refetchQueries: [{ query: GET_SESSIONS }],
   });
 }
 
