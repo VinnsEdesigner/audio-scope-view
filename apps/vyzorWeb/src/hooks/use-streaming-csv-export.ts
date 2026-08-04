@@ -50,6 +50,13 @@ export function useRecordingExport(): UseRecordingExportReturn {
     });
   }, []);
 
+  /**
+   * Export a recording using direct download link.
+   * 
+   * This approach uses a hidden <a> tag with download attribute, which lets the browser
+   * handle the download natively. The browser streams directly to disk without loading
+   * the entire file into memory, avoiding memory issues with large files.
+   */
   const exportRecording = useCallback(
     async (recordingId: string, format: ExportFormat, totalSamples?: number) => {
       setExportProgress({
@@ -62,78 +69,42 @@ export function useRecordingExport(): UseRecordingExportReturn {
       });
 
       try {
-        const baseUrl = config.getApiUrl();
-        const exportUrl = `${baseUrl}/api/recordings/${encodeURIComponent(recordingId)}/${format}`;
+        // Build the export URL - relative URL works since simple-server proxies /api/*
+        const exportUrl = `/api/recordings/${encodeURIComponent(recordingId)}/${format}`;
 
-        const response = await fetch(exportUrl, {
-          headers: {
-            ...(config.bootstrapKey ? { Authorization: `Bearer ${config.bootstrapKey}` } : {}),
-          },
-        });
+        // Build download filename
+        const downloadFilename = `recording_${recordingId}.${FORMAT_META[format].extension}`;
 
-        if (!response.ok) {
-          throw new Error(`Failed to download ${format.toUpperCase()}: ${response.statusText}`);
-        }
-
-        // Get filename from Content-Disposition header or use default
-        const contentDisposition = response.headers.get("Content-Disposition");
-        let downloadFilename = `recording_${recordingId}.${FORMAT_META[format].extension}`;
-        if (contentDisposition) {
-          const match = contentDisposition.match(/filename="?([^"]+)"?/);
-          if (match) {
-            downloadFilename = match[1];
-          }
-        }
-
-        // Get total samples from header if available
-        const headerTotalSamples = response.headers.get("X-Total-Samples");
-        const actualTotalSamples = headerTotalSamples
-          ? Number.parseInt(headerTotalSamples, 10)
-          : (totalSamples ?? 0);
-
-        // Stream the download using fetch + ReadableStream
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("Failed to read response stream");
-        }
-
-        const chunks: Uint8Array[] = [];
-        let receivedLength = 0;
-        const contentLength = Number.parseInt(response.headers.get("Content-Length") ?? "0", 10);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          chunks.push(value);
-          receivedLength += value.length;
-
-          // Update progress
-          if (contentLength > 0) {
-            setExportProgress((previous) => ({
-              ...previous,
-              progress: Math.round((receivedLength / contentLength) * 100),
-              processedSamples: actualTotalSamples,
-            }));
-          }
-        }
-
-        // Combine chunks and download
-        const blob = new Blob(chunks, { type: FORMAT_META[format].mimeType });
-        const url = URL.createObjectURL(blob);
+        // Create a temporary hidden link and trigger direct download
+        // The browser handles streaming to disk natively - no memory issues
         const link = document.createElement("a");
-        link.href = url;
+        link.href = exportUrl;
         link.download = downloadFilename;
-        document.body.append(link);
+        link.style.display = "none";
+        
+        // For CSV/JSON, we want the browser to download rather than display
+        // Adding target="_blank" with download attribute forces download behavior
+        if (format === "csv" || format === "json") {
+          link.target = "_blank";
+        }
+        
+        // Set the appropriate MIME type for the download
+        link.type = FORMAT_META[format].mimeType;
+        
+        document.body.appendChild(link);
         link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        
+        // Clean up immediately after click
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
 
+        // Mark export as complete (browser handles the actual download)
         setExportProgress({
           isExporting: false,
           progress: 100,
-          processedSamples: actualTotalSamples,
-          totalSamples: actualTotalSamples,
+          processedSamples: totalSamples ?? 0,
+          totalSamples: totalSamples ?? 0,
           error: undefined,
           format,
         });

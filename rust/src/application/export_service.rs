@@ -155,6 +155,7 @@ impl StreamingExportService {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_chunk_size(mut self, chunk_size: usize) -> Self {
         self.chunk_size = chunk_size;
         self
@@ -221,6 +222,7 @@ impl StreamingExportService {
     }
 
     /// Export CSV as a complete string
+    #[allow(dead_code)]
     pub fn export_csv(&self, samples: &[f32], sample_rate: u32) -> DomainResult<Vec<u8>> {
         let mut buffer = Vec::with_capacity(samples.len() * 30); // Approximate size
 

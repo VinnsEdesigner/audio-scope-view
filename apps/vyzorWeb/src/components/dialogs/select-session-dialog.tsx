@@ -1,7 +1,8 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Radio, Loader2 } from "lucide-react";
 import type { SessionWithStatus } from "@/hooks";
-import { formatTimestampRelative } from "@/hooks";
+import { formatTimestampRelative, useToast } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SelectSessionDialogProperties {
@@ -24,7 +25,10 @@ export function SelectSessionDialog({
   onCreateNew,
   isLoading,
   required = false,
-}: SelectSessionDialogProperties) {
+}: SelectSessionDialogProperties): React.ReactElement {
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
   // Local state to track the selected session within the dialog
   // This allows the dialog to auto-select a pre-selected session and still let users change selection
   const [localSelectedSessionId, setLocalSelectedSessionId] = React.useState<string | undefined>(
@@ -42,78 +46,38 @@ export function SelectSessionDialog({
   const handleSelect = React.useCallback(
     (sessionId: string) => {
       setLocalSelectedSessionId(sessionId);
-      onSelect(sessionId);
     },
-    [onSelect],
+    [],
   );
-
-  const handleKeyDown = React.useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    },
-    [onClose],
-  );
-
-  React.useEffect(() => {
-    if (isOpen) {
-      const handleEscape = (event: KeyboardEvent) => {
-        if (event.key === "Escape" && !required) {
-          onClose();
-        }
-      };
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.removeEventListener("keydown", handleEscape);
-        document.body.style.overflow = "";
-      };
-    }
-  }, [isOpen, onClose, required]);
 
   // Use local selection for UI, falling back to prop for initial state
   const effectiveSelectedId = localSelectedSessionId ?? selectedSessionId;
 
-  if (!isOpen) return;
+  if (!isOpen) return <></>;
 
   const handleBackdropClick = () => {
-    if (!required) {
-      onClose();
-    }
+    // Do nothing - clicking backdrop should not close the dialog
   };
 
-  const handleCloseClick = () => {
-    if (!required) {
-      onClose();
+  const handleSelectClick = () => {
+    if (!effectiveSelectedId) {
+      showToast({ message: "Please select a session", type: "error" });
+      return;
     }
+    onSelect(effectiveSelectedId);
+  };
+
+  const handleCancelClick = () => {
+    navigate("/");
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/80" onClick={handleBackdropClick} />
-      <div
-        className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-[480px] overflow-hidden"
-        onKeyDown={handleKeyDown}
-      >
+      <div className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-[480px] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
+        <div className="flex items-center px-5 py-4 border-b border-border-subtle">
           <h2 className="text-base font-semibold text-foreground">Select Session</h2>
-          <button
-            onClick={handleCloseClick}
-            disabled={required}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-tertiary transition-all disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
         </div>
 
         {/* Content */}
@@ -233,15 +197,15 @@ export function SelectSessionDialog({
           </button>
           <div className="flex gap-2.5">
             <button
-              onClick={onClose}
+              onClick={handleCancelClick}
               disabled={isLoading}
               className="px-4 py-2 text-sm font-medium rounded-md bg-bg-tertiary text-text-secondary border border-border hover:bg-bg-hover hover:text-foreground transition-all disabled:opacity-50"
             >
               Cancel
             </button>
             <button
-              onClick={() => effectiveSelectedId && onSelect(effectiveSelectedId)}
-              disabled={isLoading || !effectiveSelectedId}
+              onClick={handleSelectClick}
+              disabled={isLoading}
               className="px-4 py-2 text-sm font-medium rounded-md bg-bg-tertiary text-foreground border border-border hover:bg-bg-hover hover:border-border-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : "Select Session"}

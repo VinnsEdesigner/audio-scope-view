@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
 import { InlineSelect } from "@/components/ui/inline-select";
 import type { ApiKey, UpdateApiKeyInput } from "@/hooks/use-api-keys";
@@ -99,6 +100,7 @@ export function EditApiKeyDialog({ isOpen, onClose, apiKey }: EditApiKeyDialogPr
           onClick={handleSave}
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
         >
+          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           {isPending ? "Saving..." : "Save Changes"}
         </button>
       </DialogFooter>

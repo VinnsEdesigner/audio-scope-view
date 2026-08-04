@@ -12,13 +12,13 @@ import {
   useScopeCapture,
   useHomePageSessions,
   useLastUsedSession,
-  useCreateNamedSession,
   type ScopeCaptureDspMetrics,
   type AnalysisUpdate,
 } from "@/hooks";
 import { useUIStore } from "@/store";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
-import { CalibrationDialog, SelectSessionDialog, CreateSessionDialog } from "@/components/dialogs";
+import { CalibrationDialog } from "@/components/dialogs";
+import { AnchoredDialog } from "@/components/ui/anchored-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
@@ -39,15 +39,11 @@ export function ScopePage(): React.ReactElement {
 
   const { setSessionMode, testMode, toggleTestMode, smoothWaveform } = useUIStore();
 
-  // Session selection state
-  const [selectDialogOpen, setSelectDialogOpen] = React.useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
-  const [cameFromSelectDialog, setCameFromSelectDialog] = React.useState(false);
+  // Session selection state - these are now handled by SessionSelectionProvider on home page
 
   const { sessions, loading: sessionsLoading } = useHomePageSessions();
   const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
     useLastUsedSession();
-  const [createNamedSession, { loading: isCreating }] = useCreateNamedSession();
 
   // Combined loading state - wait for both session queries before making navigation decisions
   const isLoadingSessionData = sessionsLoading || isLoadingSession;
@@ -89,12 +85,11 @@ export function ScopePage(): React.ReactElement {
         if (shouldAutoSelect && lastUsedSession) {
           // Auto-select: update URL with last used session
           setSearchParameters({ sessionId: lastUsedSession.id });
-        } else if (sessions.length > 0) {
-          // Sessions exist: show selection dialog
-          setSelectDialogOpen(true);
         } else {
-          // No sessions: show create dialog
-          setCreateDialogOpen(true);
+          // Auto-select disabled or no sessions available
+          // Redirect to home - let SessionSelectionProvider handle showing the dialog
+          // This prevents the "flash" of oscilloscope UI before dialog appears
+          navigate("/");
         }
       }
     }
@@ -106,36 +101,15 @@ export function ScopePage(): React.ReactElement {
     lastUsedSession,
     isLoadingSessionData,
     setSearchParameters,
+    navigate,
   ]);
 
   const handleSessionSelect = React.useCallback(
     async (selectedSessionId: string) => {
       await markSessionAsUsed(selectedSessionId);
-      setSelectDialogOpen(false);
       setSearchParameters({ sessionId: selectedSessionId });
     },
     [markSessionAsUsed, setSearchParameters],
-  );
-
-  const handleCreateSession = React.useCallback(
-    async (name: string, description: string) => {
-      try {
-        const result = await createNamedSession({ variables: { input: { name, description } } });
-        const newSession = result.data?.createNamedSession;
-        if (newSession) {
-          await markSessionAsUsed(newSession.id);
-          setCreateDialogOpen(false);
-          setSearchParameters({ sessionId: newSession.id });
-          showToast({ message: `Session "${name}" created`, type: "success" });
-        }
-      } catch (error) {
-        showToast({
-          message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
-          type: "error",
-        });
-      }
-    },
-    [createNamedSession, markSessionAsUsed, showToast, setSearchParameters],
   );
 
   const SMOOTHING = {
@@ -724,43 +698,19 @@ export function ScopePage(): React.ReactElement {
       {}
       <Dialogs />
 
-      {/* Session Selection Dialog */}
-      <SelectSessionDialog
-        isOpen={selectDialogOpen}
-        sessions={sessions}
-        selectedSessionId={sessionId}
-        onClose={() => setSelectDialogOpen(false)}
-        onSelect={handleSessionSelect}
-        onCreateNew={() => {
-          setCameFromSelectDialog(true);
-          setSelectDialogOpen(false);
-          setCreateDialogOpen(true);
-        }}
-        isLoading={sessionsLoading}
-        required={true}
-      />
-
-      {/* Create Session Dialog */}
-      <CreateSessionDialog
-        isOpen={createDialogOpen}
-        onClose={() => {
-          setCreateDialogOpen(false);
-          if (cameFromSelectDialog) {
-            setSelectDialogOpen(true);
-            setCameFromSelectDialog(false);
-          }
-        }}
-        onConfirm={handleCreateSession}
-        isLoading={isCreating}
-      />
-
       {/* Calibration Dialog */}
-      <CalibrationDialog
+      <AnchoredDialog
         isOpen={calibrationDialogOpen}
         onClose={handleCloseCalibration}
-        analysisData={serverAnalysis ?? undefined}
-        isCapturing={scopeCapture.isCapturing}
-      />
+        maxWidth="max-w-[420px]"
+      >
+        <CalibrationDialog
+          isOpen={calibrationDialogOpen}
+          onClose={handleCloseCalibration}
+          analysisData={serverAnalysis ?? undefined}
+          isCapturing={scopeCapture.isCapturing}
+        />
+      </AnchoredDialog>
     </div>
   );
 }

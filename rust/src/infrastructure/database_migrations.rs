@@ -67,9 +67,14 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/012_add_peak_negative_db_to_recordings.sql"),
     },
     Migration {
-        version: 13,
+        version: 12,
         name: "add_audio_analysis_to_sessions",
         sql: include_str!("../../migrations/013_add_audio_analysis_to_sessions.sql"),
+    },
+    Migration {
+        version: 14,
+        name: "add_auto_close_timeout_to_sessions",
+        sql: include_str!("../../migrations/014_add_auto_close_timeout_to_sessions.sql"),
     },
 ];
 

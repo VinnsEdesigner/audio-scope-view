@@ -1,10 +1,12 @@
 import * as React from "react";
+import { Loader2 } from "lucide-react";
 
 interface CreateSessionDialogProperties {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (name: string, description: string) => void;
   isLoading?: boolean;
+  afterCreate?: (sessionId: string) => void;
 }
 
 export function CreateSessionDialog({
@@ -12,9 +14,17 @@ export function CreateSessionDialog({
   onClose,
   onConfirm,
   isLoading,
+  afterCreate,
 }: CreateSessionDialogProperties) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setName("");
+      setDescription("");
+    }
+  }, [isOpen]);
 
   const handleConfirm = React.useCallback(() => {
     if (name.trim()) {
@@ -22,26 +32,33 @@ export function CreateSessionDialog({
     }
   }, [name, description, onConfirm]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (event.key === "Escape") onClose();
-  };
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (event.key === "Escape") onClose();
+    },
+    [onClose],
+  );
 
-  if (!isOpen) return;
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-[420px] overflow-hidden">
+    <>
+      {/* Click outside to close */}
+      <div 
+        className="fixed inset-0 z-40" 
+        onClick={onClose}
+      />
+      <div className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[400px] overflow-hidden shadow-lg">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
-          <h2 className="text-base font-semibold text-foreground">Create New Session</h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+          <h2 className="text-sm font-semibold text-foreground">Create New Session</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-tertiary transition-all"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-tertiary transition-all"
           >
             <svg
-              width="18"
-              height="18"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -54,9 +71,9 @@ export function CreateSessionDialog({
         </div>
 
         {/* Content */}
-        <div className="px-5 py-5">
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-text-secondary uppercase tracking-wide mb-1.5">
+        <div className="px-4 py-4">
+          <div className="mb-3">
+            <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
               Session Name
             </label>
             <input
@@ -66,49 +83,52 @@ export function CreateSessionDialog({
               onKeyDown={handleKeyDown}
               placeholder="e.g., Morning Lab Testing"
               maxLength={100}
-              className="w-full px-3.5 py-2.5 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary focus:outline-none focus:border-icon transition-all"
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary focus:outline-none transition-all"
               autoFocus
             />
-            <div className="text-xs text-text-tertiary text-right mt-1">{name.length}/100</div>
+            <div className="text-[10px] text-text-tertiary text-right mt-0.5">{name.length}/100</div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-secondary uppercase tracking-wide mb-1.5">
+            <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
               Description (optional)
             </label>
             <textarea
               value={description}
               onChange={(event_) => setDescription(event_.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Add a description for this session..."
+              placeholder="Add a description..."
               maxLength={500}
-              rows={3}
-              className="w-full px-3.5 py-2.5 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary resize-none focus:outline-none focus:border-icon transition-all"
+              rows={2}
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary resize-none focus:outline-none transition-all"
             />
-            <div className="text-xs text-text-tertiary text-right mt-1">
+            <div className="text-[10px] text-text-tertiary text-right mt-0.5">
               {description.length}/500
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 px-5 py-4 border-t border-border-subtle">
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border-subtle">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-bg-tertiary text-text-secondary border border-border hover:bg-bg-hover hover:text-foreground transition-all disabled:opacity-50"
+            className="px-4 py-1.5 text-xs font-medium rounded-md bg-bg-tertiary text-text-secondary border border-border hover:bg-bg-hover hover:text-foreground transition-all disabled:opacity-50"
           >
             Back
           </button>
           <button
             onClick={handleConfirm}
             disabled={isLoading || !name.trim()}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-bg-tertiary text-foreground border border-border hover:bg-bg-hover hover:border-border-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md bg-bg-elevated text-foreground border border-border-hover hover:bg-bg-hover hover:border-border-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            {isLoading && (
+              <Loader2 size={12} className="animate-spin" />
+            )}
             {isLoading ? "Creating..." : "Create Session"}
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

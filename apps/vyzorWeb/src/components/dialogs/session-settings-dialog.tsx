@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Loader2 } from "lucide-react";
 import { InlineSelect } from "@/components/ui/inline-select";
 import { TIMEOUT_OPTIONS } from "@/hooks/use-session-settings";
 import { useToast } from "@/hooks";
@@ -71,11 +72,13 @@ export function SessionSettingsDialog({
   if (!isOpen) return;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
+    <>
+      {/* Click outside to close */}
+      <div className="fixed inset-0 z-40 pointer-events-none" onClick={onClose} />
       <div
-        className="relative bg-bg-secondary border border-border rounded-xl w-full max-w-[420px] overflow-hidden"
+        className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[420px] overflow-hidden shadow-lg pointer-events-auto"
         onKeyDown={handleKeyDown}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
@@ -111,7 +114,10 @@ export function SessionSettingsDialog({
                 </div>
               </div>
               <button
-                onClick={handleToggle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggle();
+                }}
                 className={`relative w-11 h-6.5 bg-bg-primary border rounded-full cursor-pointer transition-all flex-shrink-0 ${
                   autoSelect ? "bg-rose-400 border-rose-400" : "border-border"
                 }`}
@@ -160,12 +166,13 @@ export function SessionSettingsDialog({
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 text-sm font-medium rounded-md bg-bg-elevated text-foreground hover:bg-bg-hover transition-all disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 text-sm font-medium rounded-md bg-bg-elevated text-foreground hover:bg-bg-hover transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             {isLoading ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

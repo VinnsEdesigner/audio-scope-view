@@ -6,7 +6,7 @@ import urllib.request
 from typing import Dict, List, Any, Optional
 
 BASE_URL = "http://127.0.0.1:8080/graphql"
-AUTH_KEY = "6lRvhH1mErjnndtdmxvvNazSD8V7Kysv"
+AUTH_KEY = "osWuuGWVlOLbO3ZNY9Ro911h0eJcdk2P6DvA2GVy9Ro="
 
 def gql(query: str, variables: Optional[Dict] = None) -> Dict:
     """Execute a GraphQL query"""
@@ -151,7 +151,7 @@ def main():
     # Session mutations
     results.append(test_query(
         "createSession",
-        "mutation { createSession { id startedAt } }"
+        "mutation { createSession(input: {name: \"Test Session\"}) { id name startedAt } }"
     ))
     
     results.append(test_query(

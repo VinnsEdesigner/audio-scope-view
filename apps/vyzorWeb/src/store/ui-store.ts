@@ -129,8 +129,11 @@ const initialState: UIState = {
 
 export const useUIStore = create<UIStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
+
+      // Override isInitializing after hydration to ensure loading bar shows on fresh load
+      setInitializing: (isInitializing) => set({ isInitializing }),
 
       setSessionMode: (sessionMode) => set({ sessionMode }),
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
@@ -196,6 +199,12 @@ export const useUIStore = create<UIStore>()(
         timebase: state.timebase,
         verticalGain: state.verticalGain,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Force isInitializing to true after hydration to ensure loading bar shows
+        if (state) {
+          state.isInitializing = true;
+        }
+      },
     },
   ),
 );

@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any, List
 
 BASE_URL = "http://127.0.0.1:8080/graphql"
 WS_URL = "ws://127.0.0.1:8080/graphql"
-AUTH_KEY = "6lRvhH1mErjnndtdmxvvNazSD8V7Kysv"
+AUTH_KEY = "osWuuGWVlOLbO3ZNY9Ro911h0eJcdk2P6DvA2GVy9Ro="
 
 def gql(query: str, variables: Optional[Dict] = None) -> Dict:
     """Execute a GraphQL query"""
@@ -82,7 +82,7 @@ def main():
     
     # Create a simple session
     success, data = test("Create Session", """
-        mutation { createSession { id startedAt } }
+        mutation { createSession(input: {name: "Integration Test"}) { id startedAt } }
     """)
     results.append(success)
     if success and data:
@@ -102,7 +102,7 @@ def main():
     
     # Create another session for sub-session testing
     success, data = test("Create Another Session", """
-        mutation { createSession { id startedAt } }
+        mutation { createSession(input: {name: "Integration Test"}) { id startedAt } }
     """)
     results.append(success)
     if success and data:

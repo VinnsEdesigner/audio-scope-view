@@ -141,6 +141,36 @@ impl From<Session> for SessionOutput {
     }
 }
 
+fn validate_session_name(name: &str) -> Result<(), String> {
+    // Check for empty or whitespace-only
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("Session name cannot be empty".to_string());
+    }
+    
+    // Check for whitespace-only (after trimming)
+    if trimmed != name {
+        return Err("Session name cannot have leading or trailing whitespace".to_string());
+    }
+    
+    // Check length (min 1, max 255)
+    if trimmed.len() > 255 {
+        return Err("Session name cannot exceed 255 characters".to_string());
+    }
+    
+    // Allow only alphanumeric, spaces, hyphens, underscores
+    for c in trimmed.chars() {
+        if !c.is_alphanumeric() && c != ' ' && c != '-' && c != '_' {
+            return Err(format!(
+                "Session name contains invalid character '{}'. Only letters, numbers, spaces, hyphens, and underscores are allowed",
+                c
+            ));
+        }
+    }
+    
+    Ok(())
+}
+
 #[derive(Debug, InputObject)]
 pub struct CreateSessionInput {
     pub name: String,
@@ -425,14 +455,22 @@ pub struct SessionMutation;
 
 #[Object]
 impl SessionMutation {
-    async fn create_session(&self, ctx: &Context<'_>) -> Result<SessionOutput, async_graphql::Error> {
+    async fn create_session(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateSessionInput,
+    ) -> Result<SessionOutput, async_graphql::Error> {
+        // Validate session name
+        validate_session_name(&input.name)
+            .map_err(|e| async_graphql::Error::new(e))?;
+
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
         let session = context
             .session_service
-            .create_session()
+            .create_named_session(input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create session: {:?}", e)))?;
 
@@ -444,6 +482,10 @@ impl SessionMutation {
         ctx: &Context<'_>,
         input: CreateSessionInput,
     ) -> Result<SessionOutput, async_graphql::Error> {
+        // Validate session name
+        validate_session_name(&input.name)
+            .map_err(|e| async_graphql::Error::new(e))?;
+
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
@@ -481,6 +523,12 @@ impl SessionMutation {
         id: String,
         input: UpdateSessionInput,
     ) -> Result<Option<SessionOutput>, async_graphql::Error> {
+        // Validate session name if provided
+        if let Some(ref name) = input.name {
+            validate_session_name(name)
+                .map_err(|e| async_graphql::Error::new(e))?;
+        }
+
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;

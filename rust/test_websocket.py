@@ -12,7 +12,7 @@ from typing import List, Optional
 import websocket
 
 BASE_URL = "ws://127.0.0.1:8080/ws"
-AUTH_KEY = "6lRvhH1mErjnndtdmxvvNazSD8V7Kysv"
+AUTH_KEY = "osWuuGWVlOLbO3ZNY9Ro911h0eJcdk2P6DvA2GVy9Ro="
 
 class WebSocketClient:
     def __init__(self, url: str, auth_key: str):
@@ -126,7 +126,7 @@ def test_websocket_protocol():
     # Create a session for testing
     print("\n📝 Creating test session...")
     result = gql_query("""
-        mutation { createSession { id startedAt } }
+        mutation { createSession(input: {name: "WebSocket Test"}) { id startedAt } }
     """)
     if "errors" in result:
         print(f"❌ Failed to create session: {result['errors'][0]['message']}")

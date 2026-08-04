@@ -71,7 +71,8 @@ async function createRecording() {
  input: {
  sessionId: SESSION_ID,
  name: name,
- samples: samples
+ samples: samples,
+ sampleRate: sampleRate
  }
  };
 

@@ -56,6 +56,7 @@ export function Home(): React.ReactElement {
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [selectedSessionId, setSelectedSessionId] = React.useState<string | undefined>();
   const [cameFromSelectDialog, setCameFromSelectDialog] = React.useState(false);
+  const [pendingDestination, setPendingDestination] = React.useState<"record" | "oscilloscope" | null>(null);
 
   const { data: stats, loading: statsLoading } = useRecordingStats();
   const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
@@ -200,6 +201,7 @@ export function Home(): React.ReactElement {
     } else {
       // No sessions: show create dialog
       setSelectedSessionId(undefined);
+      setPendingDestination("record");
       setCreateDialogOpen(true);
     }
   };
@@ -219,8 +221,17 @@ export function Home(): React.ReactElement {
         await markSessionAsUsed(newSession.id);
         setSelectedSessionId(newSession.id);
         setCreateDialogOpen(false);
-        setIsMicDialogOpen(true);
+        
+        // Only redirect if we had a pending destination
+        if (pendingDestination === "record") {
+          setIsMicDialogOpen(true);
+        }
+        // For oscilloscope, the user would need to navigate explicitly
+        
         showToast({ message: `Session "${name}" created`, type: "success" });
+        
+        // Clear pending destination
+        setPendingDestination(null);
       }
     } catch (error) {
       showToast({
@@ -257,8 +268,8 @@ export function Home(): React.ReactElement {
   return (
     <div className="w-full min-h-screen bg-bg-primary overflow-y-auto">
       {}
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 md:px-8 md:py-4 pl-0 md:pl-16 border-b border-border-subtle bg-black gap-3">
-        <div className="ml-0 md:ml-10">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 md:px-8 md:py-4 pl-14 sm:pl-12 md:pl-16 border-b border-border-subtle bg-black gap-3">
+        <div className="ml-0 md:ml-0">
           {isLoading ? (
             <>
               <Skeleton className="h-8 w-24 mb-2 md:h-10 md:w-32" />
@@ -285,8 +296,11 @@ export function Home(): React.ReactElement {
             <>
               {/* Create Session Button */}
               <button
-                onClick={() => setCreateDialogOpen(true)}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors text-text-secondary hover:text-foreground"
+                onClick={() => {
+                  setPendingDestination(null);
+                  setCreateDialogOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 rounded-lg transition-colors text-white font-semibold"
                 title="Create Session"
               >
                 <Plus size={16} />
@@ -727,6 +741,7 @@ export function Home(): React.ReactElement {
         onCreateNew={() => {
           setCameFromSelectDialog(true);
           setSelectDialogOpen(false);
+          setPendingDestination("record");
           setCreateDialogOpen(true);
         }}
         isLoading={sessionsLoading}
@@ -741,6 +756,7 @@ export function Home(): React.ReactElement {
             setSelectDialogOpen(true);
             setCameFromSelectDialog(false);
           }
+          setPendingDestination(null);
         }}
         onConfirm={handleCreateSession}
         isLoading={isCreating}

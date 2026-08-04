@@ -98,6 +98,13 @@ pub struct RecordingPreviewOutput {
     pub is_pinned: bool,
     pub is_recording: bool,
     pub waveform_overview: Vec<f32>,
+    pub peak_db: f32,
+    pub rms_db: f32,
+    pub dc_offset: f32,
+    pub dominant_frequency: f32,
+    pub frequency_high: f32,
+    pub frequency_low: f32,
+    pub bit_depth: i32,
 }
 
 impl RecordingPreviewOutput {
@@ -117,6 +124,13 @@ impl RecordingPreviewOutput {
             is_pinned: metadata.is_pinned,
             is_recording: false,
             waveform_overview: metadata.waveform_overview.unwrap_or_default(),
+            peak_db: metadata.peak_db,
+            rms_db: metadata.rms_db,
+            dc_offset: metadata.dc_offset,
+            dominant_frequency: metadata.dominant_frequency,
+            frequency_high: metadata.frequency_high,
+            frequency_low: metadata.frequency_low,
+            bit_depth: metadata.bit_depth as i32,
         }
     }
 }
@@ -221,7 +235,7 @@ pub struct RecordingSessionWithStatusOutput {
     pub status: String,
     pub sample_rate: i32,
     pub buffer_size: i32,
-    pub created_at: String,
+    pub started_at: String,
     pub updated_at: String,
     pub last_activity_at: Option<String>,
     pub recording_count: i64,
@@ -241,7 +255,7 @@ impl From<SessionWithStatus> for RecordingSessionWithStatusOutput {
             status: status_str.to_string(),
             sample_rate: session.sample_rate as i32,
             buffer_size: session.buffer_size as i32,
-            created_at: session.created_at.to_rfc3339(),
+            started_at: session.created_at.to_rfc3339(),
             updated_at: session.updated_at.to_rfc3339(),
             last_activity_at: session.last_activity_at.map(|dt| dt.to_rfc3339()),
             recording_count: session.recording_count as i64,
@@ -511,7 +525,7 @@ impl RecordingMutation {
             .await
             .ok()
             .flatten()
-            .map(|s| s.name)
+            .and_then(|s| s.name)
             .unwrap_or_else(|| "Recording".to_string());
 
         Some(RecordingOutput::from_recording(saved, session_name))
@@ -533,7 +547,7 @@ impl RecordingMutation {
             .await
             .ok()
             .flatten()
-            .map(|s| s.name)
+            .and_then(|s| s.name)
             .unwrap_or_else(|| "Recording".to_string());
 
         Some(RecordingOutput::from_recording(recording, session_name))
@@ -550,7 +564,7 @@ impl RecordingMutation {
             .await
             .ok()
             .flatten()
-            .map(|s| s.name)
+            .and_then(|s| s.name)
             .unwrap_or_else(|| "Recording".to_string());
 
         Some(RecordingOutput::from_recording(recording, session_name))

@@ -1,8 +1,7 @@
 import * as React from "react";
 import { Dialog, DialogFooter } from "../ui/dialog";
 import { SelectDialog } from "./select-dialog";
-import { Spinner } from "../ui/spinner";
-import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save } from "lucide-react";
+import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
@@ -363,7 +362,7 @@ export function DialogMicRecording({
               value={recordingName}
               onChange={(event_) => setRecordingName(event_.target.value)}
               placeholder="Enter recording name"
-              className="w-full px-4 py-2.5 bg-bg-primary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+              className="w-full px-4 py-2.5 bg-bg-primary border border-border rounded-lg text-sm text-foreground focus:outline-none"
             />
           </div>
         )}
@@ -375,7 +374,7 @@ export function DialogMicRecording({
             value={selectedDeviceId ?? ""}
             options={inputDevices.map((device) => ({
               value: device.deviceId,
-              label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
+              label: device.label,
             }))}
             placeholder={inputDevices.length > 0 ? "Select device" : "No devices found"}
             onChange={(value) => setSelectedDeviceId(String(value) || undefined)}
@@ -533,7 +532,8 @@ export function DialogMicRecording({
                 disabled={isSaving}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
               >
-                {isSaving ? <Spinner size={16} /> : <Save size={16} />}
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {!isSaving && <Save size={16} />}
                 {isSaving ? "Saving..." : "Save"}
               </button>
             </div>

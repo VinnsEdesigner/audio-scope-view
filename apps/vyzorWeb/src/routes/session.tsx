@@ -55,7 +55,7 @@ interface LiveCaptureCardProperties {
 function LiveCaptureCard({ subSession, onSelect }: LiveCaptureCardProperties) {
   return (
     <div
-      className="bg-bg-secondary border-2 border-icon rounded-[10px] p-3 cursor-pointer transition-all hover:border-foreground hover:bg-bg-tertiary"
+      className="bg-bg-secondary rounded-[10px] p-3 cursor-pointer transition-all hover:bg-bg-tertiary"
       onClick={() => onSelect(subSession.id)}
     >
       <div className="flex items-baseline justify-between mb-3 pb-2.5 border-b border-border-subtle">
@@ -126,7 +126,7 @@ function RecordingCard({
   }, [menuOpen]);
 
   return (
-    <div className="bg-bg-secondary border-2 border-icon rounded-[10px] p-4 transition-all hover:border-foreground hover:bg-bg-tertiary">
+    <div className="bg-bg-secondary rounded-[10px] p-4 transition-all hover:bg-bg-tertiary">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-foreground truncate flex-1 mr-2">
           {recording.name}
@@ -196,9 +196,9 @@ function RecordingCard({
                   onDelete(recording);
                   setMenuOpen(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-all"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
               >
-                <Trash2 size={14} className="text-icon" />
+                <Trash2 size={14} className="text-destructive" />
                 Delete
               </button>
             </div>
@@ -211,54 +211,78 @@ function RecordingCard({
         <div className="flex flex-col gap-1">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide">Peak +</span>
           <span className="text-sm font-semibold text-foreground font-mono">
-            {formatDecibel(recording.peakDb)}
+            {formatDecibel(recording.peakDb ?? 0)}
           </span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide">Peak -</span>
           <span className="text-sm font-semibold text-foreground font-mono">
-            {formatDecibel(recording.peakNegativeDb)}
+            {formatDecibel(recording.peakNegativeDb ?? 0)}
           </span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide">RMS</span>
           <span className="text-sm font-semibold text-foreground font-mono">
-            {formatDecibel(recording.rmsDb)}
+            {formatDecibel(recording.rmsDb ?? 0)}
           </span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] text-text-tertiary uppercase tracking-wide">DC Offset</span>
           <span className="text-sm font-semibold text-foreground font-mono">
-            {formatDCOffset(recording.dcOffset)}
+            {formatDCOffset(recording.dcOffset ?? 0)}
           </span>
         </div>
       </div>
 
       {}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <Clock size={13} className="text-icon shrink-0" />
-          <span className="font-mono">{formatDuration(recording.durationMs / 1000)}</span>
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <Clock size={10} className="text-icon" />Duration
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatDuration((recording.durationMs ?? 0) / 1000)}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <FileAudio size={13} className="text-icon shrink-0" />
-          <span className="font-mono">{formatSampleRate(recording.sampleRate)}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <FileAudio size={10} className="text-icon" />Sample Rate
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatSampleRate(recording.sampleRate ?? 0)}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <FileText size={13} className="text-icon shrink-0" />
-          <span className="font-mono">{formatSampleCount(recording.sampleCount)}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <FileText size={10} className="text-icon" />Samples
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatSampleCount(recording.sampleCount ?? 0)}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <Download size={13} className="text-icon shrink-0" />
-          <span className="font-mono">{formatBytes(recording.sizeBytes)}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <Download size={10} className="text-icon" />Size
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatBytes(recording.sizeBytes ?? 0)}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <FrequencyIcon size={13} className="text-icon shrink-0" />
-          <span className="font-mono">{formatFrequency(recording.dominantFrequency)}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <FrequencyIcon size={10} className="text-icon" />Dominant
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatFrequency(recording.dominantFrequency ?? 0)}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <Gauge size={13} className="text-icon shrink-0" />
-          <span className="font-mono">{formatBitDepth(recording.bitDepth)}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <Activity size={10} className="text-icon" />High Freq
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatFrequency(recording.frequencyHigh ?? 0)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <Activity size={10} className="text-icon" />Low Freq
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatFrequency(recording.frequencyLow ?? 0)}</span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide flex items-center gap-1">
+            <Gauge size={10} className="text-icon" />Bit Depth
+          </span>
+          <span className="text-xs font-mono text-foreground">{formatBitDepth(recording.bitDepth ?? 0)}</span>
         </div>
       </div>
 
@@ -281,6 +305,7 @@ export function Session(): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<TabType>("recordings");
   const [recordingsOffset, setRecordingsOffset] = React.useState(0);
   const [recordingsLimit] = React.useState(10);
+  const [moreMenuOpen, setMoreMenuOpen] = React.useState(false);
 
   const {
     data: sessionData,
@@ -313,6 +338,7 @@ export function Session(): React.ReactElement {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+  const editButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const session = sessionData?.session;
   const parentSession = parentSessionData?.parentSession;
@@ -454,7 +480,7 @@ export function Session(): React.ReactElement {
       if (!session) return;
       try {
         await updateSession({
-          variables: { id: session.id, name, description },
+          variables: { id: session.id, input: { name, description } },
         });
         setEditDialogOpen(false);
         refetchSession();
@@ -489,34 +515,34 @@ export function Session(): React.ReactElement {
 
   return (
     <div className="w-full min-h-screen bg-bg-primary">
-      <header className="px-6 py-4 bg-bg-secondary border-b border-border-subtle">
-        <div className="flex items-center justify-between gap-6">
+      <header className="px-4 py-3 md:px-6 md:py-4 bg-bg-secondary border-b border-border-subtle pl-14 sm:pl-12 md:pl-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/")}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-bg-tertiary transition-all"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-bg-tertiary transition-all shrink-0 -ml-2 sm:ml-0"
             >
               <ArrowLeft size={18} className="text-text-secondary" />
             </button>
             {isLoading ? (
               <div className="space-y-1">
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-32 md:w-48" />
+                <Skeleton className="h-4 w-24 md:w-32" />
               </div>
-            ) : (
-              <div>
+            ) : session ? (
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-semibold text-foreground">
-                    {session?.name || `Session ${sessionId?.slice(0, 8)}`}
+                  <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
+                    {session.name || `Session ${sessionId?.slice(0, 8)}`}
                   </h1>
-                  {!session?.endedAt && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-neutral-500/20 border border-neutral-500/30 text-neutral-400 rounded">
+                  {!session.endedAt && (
+                    <span className="px-2 py-0.5 text-xs font-medium bg-neutral-500/20 border border-neutral-500/30 text-neutral-400 rounded shrink-0">
                       Live
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-1.5">
-                  {session?.startedAt && (
+                  {session.startedAt && (
                     <>
                       <span className="text-xs text-text-secondary">
                         {formatSessionDate(session.startedAt)}
@@ -527,32 +553,37 @@ export function Session(): React.ReactElement {
                     </>
                   )}
                 </div>
+                {session.description && (
+                  <p className="text-sm text-text-secondary mt-2 max-w-md">
+                    {session.description}
+                  </p>
+                )}
               </div>
-            )}
+            ) : null}
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             <button
               onClick={handleOpenOscilloscope}
               disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
+              className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
             >
-              <Activity size={14} />
               Open Oscilloscope
             </button>
             {!session?.endedAt && (
               <button
                 onClick={handleEnd}
                 disabled={isLoading || isEnding}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
+                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
               >
-                <Square size={14} />
                 End Session
               </button>
             )}
+            {/* Desktop: Edit and Delete buttons - hidden on mobile */}
             <button
+              ref={editButtonRef}
               onClick={handleOpenEdit}
               disabled={isLoading || isDeleting || isUpdating}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
             >
               <Edit3 size={14} />
               Edit
@@ -560,33 +591,74 @@ export function Session(): React.ReactElement {
             <button
               onClick={handleDelete}
               disabled={isLoading || isDeleting}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-destructive hover:text-destructive"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-destructive hover:text-destructive"
             >
               <Trash2 size={14} />
               Delete
             </button>
+            {/* Mobile: More menu button */}
+            <div className="relative sm:hidden">
+              <button
+                onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-bg-tertiary transition-all"
+              >
+                <MoreVertical size={18} className="text-text-secondary" />
+              </button>
+              {moreMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setMoreMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-bg-elevated border border-border rounded-lg shadow-lg z-20">
+                    <button
+                      onClick={() => {
+                        handleOpenEdit();
+                        setMoreMenuOpen(false);
+                      }}
+                      disabled={isLoading || isDeleting || isUpdating}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-colors"
+                    >
+                      <Edit3 size={14} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDelete();
+                        setMoreMenuOpen(false);
+                      }}
+                      disabled={isLoading || isDeleting}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {}
       {parentSession && (
-        <div className="mx-6 mt-4 p-4 bg-icon/10 border border-icon/30 rounded-xl">
-          <div className="flex items-center justify-between">
+        <div className="mx-4 md:mx-6 mt-4 p-4 bg-icon/10 border border-icon/30 rounded-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Radio size={16} className="text-icon" />
-              <div>
+              <Radio size={16} className="text-icon shrink-0" />
+              <div className="min-w-0">
                 <span className="text-xs text-text-tertiary uppercase tracking-wide">
                   Parent Session
                 </span>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-foreground truncate">
                   {parentSession.name || `Session ${parentSession.id?.slice(0, 8)}`}
                 </p>
               </div>
             </div>
             <button
               onClick={() => navigate(`/session/${parentSession.id}`)}
-              className="px-3 py-1.5 text-xs font-medium bg-icon/20 hover:bg-icon/30 border border-icon/40 rounded-md transition-all text-text-secondary"
+              className="px-3 py-1.5 text-xs font-medium bg-icon/20 hover:bg-icon/30 border border-icon/40 rounded-md transition-all text-text-secondary shrink-0"
             >
               View Parent
             </button>
@@ -596,9 +668,9 @@ export function Session(): React.ReactElement {
 
       {}
       {!session?.isSubSession && subSessions.length > 0 && (
-        <div className="mx-6 mt-4 p-3 bg-icon/10 border border-icon/30 rounded-xl flex items-center gap-2">
-          <Radio size={14} className="text-icon animate-pulse" />
-          <span className="text-xs text-text-secondary">
+        <div className="mx-4 md:mx-6 mt-4 p-3 bg-icon/10 border border-icon/30 rounded-xl flex items-center gap-2">
+          <Radio size={14} className="text-icon animate-pulse shrink-0" />
+          <span className="text-xs text-text-secondary flex-1 min-w-0 truncate">
             {subSessions.length} live capture{subSessions.length > 1 ? "s" : ""} in progress
           </span>
           <button
@@ -606,72 +678,97 @@ export function Session(): React.ReactElement {
               refetchSubSessions();
               refetchSession();
             }}
-            className="ml-auto px-2 py-0.5 text-xs bg-icon/20 hover:bg-icon/30 rounded transition-all text-text-secondary"
+            className="px-2 py-0.5 text-xs bg-icon/20 hover:bg-icon/30 rounded transition-all text-text-secondary shrink-0"
           >
             Refresh
           </button>
         </div>
       )}
 
-      <div className="mx-6 mt-6 p-5 bg-gradient-to-br from-bg-secondary to-bg-tertiary border-2 border-icon rounded-xl">
-        <div className="grid grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-text-tertiary uppercase tracking-wide">
-              Session ID
-            </span>
-            <span className="text-sm font-medium text-foreground font-mono">{sessionId}</span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-text-tertiary uppercase tracking-wide">Started</span>
-            <span className="text-sm font-medium text-foreground">
-              {session?.startedAt ? formatTimestampRelative(session.startedAt) : "-"}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-text-tertiary uppercase tracking-wide">
-              Last Activity
-            </span>
-            <span className="text-sm font-medium text-foreground">
-              {session?.endedAt
-                ? "Ended"
-                : session?.durationSeconds
-                  ? formatDuration(session.durationSeconds)
-                  : "Active"}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-text-tertiary uppercase tracking-wide">Status</span>
-            <span className="text-sm font-medium text-foreground">
-              {session?.endedAt ? "Ended" : session?.isOscilloscopeOpen ? "Active" : "Idle"}
-            </span>
+      {isLoading ? (
+        <div className="mx-4 md:mx-6 mt-6 p-4 md:p-5 bg-gradient-to-br from-bg-secondary to-bg-tertiary rounded-xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-
-      <main className="p-6">
-        <div className="grid grid-cols-4 gap-2 mb-6 p-1 bg-bg-secondary rounded-xl">
-          {[
-            { icon: FileAudio, label: "Recordings", value: recordingsTotal.toString() },
-            { icon: Clock, label: "Total Duration", value: formatDuration(totalDurationMs / 1000) },
-            { icon: Database, label: "Storage Used", value: formatBytes(totalStorageBytes) },
-            {
-              icon: Activity,
-              label: "Oscilloscope Time",
-              value: formatDuration((session?.oscilloscopeDurationMs || 0) / 1000),
-            },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="flex flex-col items-center justify-center gap-1 px-4 py-5 bg-bg-tertiary rounded-lg transition-all hover:bg-bg-hover"
-            >
-              <stat.icon size={16} className="text-icon mb-1" />
-              <span className="text-xl font-bold text-foreground font-mono">{stat.value}</span>
-              <span className="text-[10px] text-text-tertiary uppercase tracking-wide">
-                {stat.label}
+      ) : (
+        <div className="mx-4 md:mx-6 mt-6 p-4 md:p-5 bg-gradient-to-br from-bg-secondary to-bg-tertiary rounded-xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">
+                Session ID
+              </span>
+              <span className="text-xs md:text-sm font-medium text-foreground font-mono truncate">{sessionId?.slice(0, 8)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">Started</span>
+              <span className="text-xs md:text-sm font-medium text-foreground truncate">
+                {session?.startedAt ? formatTimestampRelative(session.startedAt) : "-"}
               </span>
             </div>
-          ))}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">
+                Last Activity
+              </span>
+              <span className="text-xs md:text-sm font-medium text-foreground truncate">
+                {session?.endedAt
+                  ? "Ended"
+                  : session?.durationSeconds
+                    ? formatDuration(session.durationSeconds)
+                    : "Active"}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] md:text-[11px] text-text-tertiary uppercase tracking-wide">Status</span>
+              <span className="text-xs md:text-sm font-medium text-foreground">
+                {session?.endedAt ? "Ended" : session?.isOscilloscopeOpen ? "Active" : "Idle"}
+              </span>
+            </div>
+          </div>
         </div>
+      )}
+
+      <main className="px-4 md:px-6 py-6">
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 p-1 bg-bg-secondary rounded-xl">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col items-center justify-center gap-1 px-2 md:px-4 py-4 md:py-5 bg-bg-tertiary rounded-lg">
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 p-1 bg-bg-secondary rounded-xl">
+            {[
+              { icon: FileAudio, label: "Recordings", value: recordingsTotal.toString() },
+              { icon: Clock, label: "Total Duration", value: formatDuration(totalDurationMs / 1000) },
+              { icon: Database, label: "Storage Used", value: formatBytes(totalStorageBytes ?? 0) },
+              {
+                icon: Activity,
+                label: "Oscilloscope Time",
+                value: formatDuration((session?.oscilloscopeDurationMs || 0) / 1000),
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col items-center justify-center gap-1 px-2 md:px-4 py-4 md:py-5 bg-bg-tertiary rounded-lg transition-all hover:bg-bg-hover"
+              >
+                <stat.icon size={14} md:size={16} className="text-icon mb-1" />
+                <span className="text-base md:text-xl font-bold text-foreground font-mono">{stat.value}</span>
+                <span className="text-[9px] md:text-[10px] text-text-tertiary uppercase tracking-wide text-center leading-tight">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="flex gap-1 mb-6 p-1 bg-bg-secondary rounded-xl">
           {[
@@ -681,14 +778,14 @@ export function Session(): React.ReactElement {
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-5 rounded-lg transition-all ${
+              className={`flex-1 flex items-center justify-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-4 md:py-5 rounded-lg transition-all ${
                 activeTab === item.key
                   ? "bg-bg-tertiary text-foreground"
                   : "text-text-secondary hover:text-foreground"
               }`}
             >
-              <span className="text-sm font-medium">{item.label}</span>
-              <span className="text-xs font-mono opacity-60">({item.count})</span>
+              <span className="text-xs md:text-sm font-medium truncate">{item.label}</span>
+              <span className="text-xs font-mono opacity-60 shrink-0">({item.count})</span>
             </button>
           ))}
         </div>
@@ -782,7 +879,7 @@ export function Session(): React.ReactElement {
         isOpen={editDialogOpen}
         sessionId={sessionId || ""}
         sessionName={session?.name || ""}
-        sessionDescription={session?.description}
+        sessionDescription={session?.description ?? ""}
         onClose={() => setEditDialogOpen(false)}
         onSave={handleSaveSession}
         onDelete={handleDeleteFromEdit}

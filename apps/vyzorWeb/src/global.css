@@ -118,4 +118,14 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
+
+  /* Remove white focus rings from interactive elements */
+  *:focus {
+    outline: none;
+  }
+  
+  *:focus-visible {
+    outline: none;
+    ring: 0;
+  }
 }

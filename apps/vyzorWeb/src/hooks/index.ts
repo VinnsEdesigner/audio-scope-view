@@ -86,7 +86,7 @@ export { useIsMobile, useIsTablet } from "./use-mobile";
 export { useTheme } from "./use-theme";
 
 export { useUIStore, useAudioStore } from "../store";
-export type { WaveformColor, SessionMode } from "../store";
+export type { WaveformColor, SessionMode, SystemAudioInfo, MediaDevice } from "../store";
 
 export { useToast } from "./use-toast";
 

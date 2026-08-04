@@ -157,7 +157,7 @@ export function exportToCSV(options: ExportCSVOptions): string {
  * Options for streaming CSV export
  */
 export interface StreamingCSVExportOptions {
-  sampleRate: number;
+  sampleRate?: number;
   chunkSize?: number;
   delimiter?: string;
   filename?: string;

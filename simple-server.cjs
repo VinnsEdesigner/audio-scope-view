@@ -1,10 +1,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { WebSocketServer } = require('/workspace/project/audio-scope-view/node_modules/ws');
 
 const WEB_DIR = path.join(__dirname, 'apps/vyzorWeb/dist/client');
 const API_DIR = path.join(__dirname, 'packages/api-client/dist');
 const GRAPHQL_SERVER = 'http://127.0.0.1:8080';
+const WS_SERVER = 'ws://127.0.0.1:8080';
 const BOOTSTRAP_KEY = process.env.BOOTSTRAP_KEY;
 
 const mimeTypes = {
@@ -161,7 +163,79 @@ function serveFile(filePath, res) {
   });
 }
 
+// WebSocket proxy
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  const url = request.url;
+  console.log(`[WS UPGRADE] ${url}`);
+  
+  if (url.startsWith('/ws')) {
+    // Proxy WebSocket to Rust server
+    const targetUrl = `${WS_SERVER}${url}`;
+    console.log(`  -> Proxying WebSocket to: ${targetUrl}`);
+    
+    const proxyReq = http.request({
+      method: 'GET',
+      headers: {
+        ...request.headers,
+        'Host': '127.0.0.1:8080',
+        'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
+        'Upgrade': 'websocket',
+        'Connection': 'Upgrade',
+      },
+      path: url,
+      host: '127.0.0.1',
+    }, (proxyRes) => {
+      console.log(`  -> Proxy response status: ${proxyRes.statusCode}`);
+    });
+    
+    proxyReq.on('error', (err) => {
+      console.log(`  -> WebSocket proxy error: ${err.message}`);
+      socket.destroy();
+    });
+    
+    proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
+      // Handle WebSocket upgrade response
+      const headers = proxyRes.headers;
+      const key = request.headers['sec-websocket-key'];
+      const version = request.headers['sec-websocket-version'];
+      
+      // Build upgrade response manually
+      const respHeaders = [
+        'HTTP/1.1 101 Switching Protocols',
+        `Upgrade: websocket`,
+        `Connection: Upgrade`,
+        `Sec-WebSocket-Accept: ${headers['sec-websocket-accept'] || ''}`,
+        ``,
+        ``
+      ].join('\r\n');
+      
+      socket.write(respHeaders);
+      
+      // Pipe proxy socket to client socket
+      proxySocket.pipe(socket);
+      socket.pipe(proxySocket);
+      
+      proxySocket.on('error', (err) => {
+        console.log(`  -> Proxy socket error: ${err.message}`);
+        socket.destroy();
+      });
+      
+      socket.on('error', (err) => {
+        console.log(`  -> Client socket error: ${err.message}`);
+        proxySocket.destroy();
+      });
+    });
+    
+    proxyReq.end();
+  } else {
+    socket.destroy();
+  }
+});
+
 const PORT = process.env.PORT || 3003;
 server.listen(PORT, () => console.log(`\nServer running on http://localhost:${PORT}`));
 console.log(`Serving web from: ${WEB_DIR}`);
 console.log(`Serving API client from: ${API_DIR}\n`);
+console.log(`WebSocket proxy enabled for /ws endpoint\n`);

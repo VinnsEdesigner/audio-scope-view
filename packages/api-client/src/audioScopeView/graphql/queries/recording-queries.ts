@@ -123,7 +123,7 @@ export const GET_RECENT_RECORDINGS = gql`
 `;
 
 export const SESSION_WITH_STATUS_FIELDS = gql`
-  fragment SessionWithStatusFields on SessionWithStatusOutput {
+  fragment SessionWithStatusFields on RecordingSessionWithStatusOutput {
     id
     name
     startedAt

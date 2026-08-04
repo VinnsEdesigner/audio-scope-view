@@ -63,9 +63,9 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
             : undefined;
 
   const filter = {
-    time_range: timeRangeFilter,
-    session_id: sessionId,
-    is_pinned: pinnedOnly ? true : undefined,
+    timeRange: sessionId ? undefined : timeRangeFilter,
+    sessionId: sessionId,
+    isPinned: pinnedOnly ? true : undefined,
   };
 
   return useQuery(GET_RECORDINGS, {
@@ -74,7 +74,7 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
       limit,
       offset,
     },
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
   });
 }
 

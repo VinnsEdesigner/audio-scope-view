@@ -45,7 +45,7 @@ export function RenameDialog({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           data-rename-input
-          className="w-full px-3 py-2 bg-[#18181b] border border-white/10 rounded-md text-white placeholder:text-[#a1a1aa] focus:outline-none focus:ring-2 focus:ring-[#52525b]"
+          className="w-full px-3 py-2 bg-[#18181b] border border-white/10 rounded-md text-white placeholder:text-[#a1a1aa] focus:outline-none"
           autoFocus
         />
         <div className="flex justify-end gap-2 mt-4">
