@@ -21,7 +21,7 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 http = "1"
 
 # GraphQL
-async-graphql = { version = "7.2", features = ["chrono"] }
+async-graphql = { version = "7.2", features = ["chrono", "camel-case"] }
 async-graphql-axum = "7.2"
 
 # Async runtime

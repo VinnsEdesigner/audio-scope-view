@@ -284,6 +284,7 @@ export function DialogMicRecording({
       return;
     }
 
+    setIsSaving(true);
     const captured = stopCapture();
 
     if (captured.length > 0) {
@@ -308,6 +309,7 @@ export function DialogMicRecording({
       }
     } else {
       showToast({ message: "Nothing captured — recording not saved", type: "warning" });
+      setIsSaving(false);
     }
   };
 
@@ -483,7 +485,17 @@ export function DialogMicRecording({
       </div>
 
       <DialogFooter className="flex gap-2">
-        {recordingState === "idle" ? (
+        {isSaving ? (
+          <>
+            <button
+              disabled
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm text-white h-9 px-4 py-2 flex-1"
+            >
+              <span className="animate-spin mr-2">⏳</span>
+              Saving...
+            </button>
+          </>
+        ) : recordingState === "idle" ? (
           <>
             <button
               onClick={handleClose}
