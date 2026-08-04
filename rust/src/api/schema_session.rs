@@ -227,7 +227,16 @@ impl SessionQuery {
                 .get_recording_count_for_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            results.push(SessionOutput::from_session_with_count(session, count as i64));
+            let sub_session_count = context
+                .session_service
+                .count_sub_sessions(&session.id)
+                .await
+                .unwrap_or(0) as i32;
+            results.push(SessionOutput::from_session_full(
+                session,
+                count as i64,
+                sub_session_count,
+            ));
         }
         results
     }
@@ -249,7 +258,17 @@ impl SessionQuery {
             .await
             .unwrap_or(0);
 
-        Some(SessionOutput::from_session_with_count(session, count as i64))
+        let sub_session_count = context
+            .session_service
+            .count_sub_sessions(&session.id)
+            .await
+            .unwrap_or(0) as i32;
+
+        Some(SessionOutput::from_session_full(
+            session,
+            count as i64,
+            sub_session_count,
+        ))
     }
 
     async fn session_count(&self, ctx: &Context<'_>) -> i32 {
