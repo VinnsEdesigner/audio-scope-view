@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useUIStore, type WaveformColor } from "@/store";
+import { computeSpectrum, toDecibels, triggeredWindow } from "@/lib/scope-dsp";
 
 const WAVEFORM_COLORS: Record<WaveformColor, string> = {
   cyan: "#22d3ee",
@@ -14,15 +15,33 @@ interface ScopeCanvasProperties {
   waveformData: number[];
   isCapturing?: boolean;
   isPaused?: boolean;
+  /** Full-resolution frame used for triggering and spectrum analysis. */
+  analysisFrame?: Float32Array;
+  sampleRate?: number;
   forwardedRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
 export function ScopeCanvas({
   waveformData,
   isPaused = false,
+  analysisFrame,
+  sampleRate = 48_000,
   forwardedRef,
 }: ScopeCanvasProperties) {
-  const { showGrid, glow, autoScale, invert, waveformColor, verticalGain } = useUIStore();
+  const {
+    showGrid,
+    glow,
+    autoScale,
+    invert,
+    waveformColor,
+    verticalGain,
+    scopeView,
+    triggerEnabled,
+    triggerEdge,
+    triggerLevel,
+    triggerMode,
+    triggerHoldoff,
+  } = useUIStore();
 
   const internalCanvasReference = React.useRef<HTMLCanvasElement>(null);
   const containerReference = React.useRef<HTMLDivElement>(null);
@@ -34,16 +53,36 @@ export function ScopeCanvas({
     waveformDataReference.current = waveformData;
   }, [waveformData]);
 
-  const settingsReference = React.useRef({
+  const analysisFrameReference = React.useRef(analysisFrame);
+  React.useEffect(() => {
+    analysisFrameReference.current = analysisFrame;
+  }, [analysisFrame]);
+
+  const settings = {
     glow,
     autoScale,
     invert,
     waveformColor,
     verticalGain,
-  });
+    scopeView,
+    triggerEnabled,
+    triggerEdge,
+    triggerLevel,
+    triggerMode,
+    triggerHoldoff,
+    sampleRate,
+    isPaused,
+  };
+  const settingsReference = React.useRef(settings);
+  settingsReference.current = settings;
+
+  /** Last successfully triggered frame — held in "normal"/"single" mode. */
+  const heldFrameReference = React.useRef<number[]>([]);
+  const singleArmedReference = React.useRef(true);
+
   React.useEffect(() => {
-    settingsReference.current = { glow, autoScale, invert, waveformColor, verticalGain };
-  }, [glow, autoScale, invert, waveformColor, verticalGain]);
+    if (triggerMode === "single") singleArmedReference.current = true;
+  }, [triggerMode, triggerEnabled, triggerLevel, triggerEdge]);
 
   const isFrozen = isPaused;
 
@@ -78,11 +117,87 @@ export function ScopeCanvas({
       context.fillStyle = "#111820";
       context.fillRect(0, 0, width, height);
 
-      const waveformData = waveformDataReference.current;
-      const { glow, autoScale, invert, waveformColor, verticalGain } = settingsReference.current;
-      const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
+      const {
+        glow,
+        autoScale,
+        invert,
+        waveformColor,
+        verticalGain,
+        scopeView,
+        triggerEnabled,
+        triggerEdge,
+        triggerLevel,
+        triggerMode,
+        triggerHoldoff,
+        sampleRate,
+        isPaused,
+      } = settingsReference.current;
 
-      if (waveformData.length > 0) {
+      const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
+      const liveFrame = waveformDataReference.current;
+      const fullFrame = analysisFrameReference.current;
+
+      if (scopeView === "spectrum") {
+        drawSpectrum({
+          context,
+          width,
+          height,
+          color: waveformColorValue,
+          glow,
+          data: fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame,
+          sampleRate,
+        });
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+
+      // ---- Trigger --------------------------------------------------------
+      let frame: number[] = liveFrame;
+
+      if (triggerEnabled && !isPaused && liveFrame.length > 0) {
+        const source = fullFrame && fullFrame.length > liveFrame.length ? fullFrame : liveFrame;
+        const windowSize = Math.min(liveFrame.length, source.length);
+        const armed = triggerMode !== "single" || singleArmedReference.current;
+
+        const aligned = armed
+          ? triggeredWindow(source, windowSize, {
+              edge: triggerEdge,
+              level: triggerLevel,
+              holdoff: triggerHoldoff,
+            })
+          : undefined;
+
+        if (aligned) {
+          frame = aligned;
+          heldFrameReference.current = aligned;
+          if (triggerMode === "single") singleArmedReference.current = false;
+        } else if (triggerMode === "auto") {
+          frame = liveFrame;
+        } else {
+          frame = heldFrameReference.current;
+        }
+      } else if (isPaused) {
+        frame = heldFrameReference.current.length > 0 ? heldFrameReference.current : liveFrame;
+      }
+
+      const centerY = height / 2;
+      const fullScale = (height / 2) * 0.9;
+
+      // ---- Trigger level marker ------------------------------------------
+      if (triggerEnabled) {
+        const levelY = centerY - triggerLevel * fullScale;
+        context.save();
+        context.strokeStyle = "rgba(255,255,255,0.35)";
+        context.setLineDash([4, 4]);
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(0, levelY);
+        context.lineTo(width, levelY);
+        context.stroke();
+        context.restore();
+      }
+
+      if (frame.length > 1) {
         context.save();
 
         if (glow) {
@@ -101,17 +216,19 @@ export function ScopeCanvas({
         context.lineJoin = "round";
         context.lineCap = "round";
 
-        const centerY = height / 2;
-
-        let scale = verticalGain;
+        let pixelsPerUnit = fullScale * verticalGain;
         if (autoScale) {
-          const maxValue = Math.max(...waveformData.map((v: number) => Math.abs(v)), 0.01);
-          scale = ((height / 2) * 0.8 * verticalGain) / maxValue;
+          let maxValue = 0.01;
+          for (const value of frame) {
+            const absolute = Math.abs(value);
+            if (absolute > maxValue) maxValue = absolute;
+          }
+          pixelsPerUnit = (fullScale * verticalGain) / maxValue;
         }
 
-        for (let index = 0; index < waveformData.length; index++) {
-          const x = (index / (waveformData.length - 1)) * width;
-          const y = centerY + waveformData[index] * scale;
+        for (let index = 0; index < frame.length; index++) {
+          const x = (index / (frame.length - 1)) * width;
+          const y = centerY - frame[index] * pixelsPerUnit;
 
           if (index === 0) {
             context.moveTo(x, y);
