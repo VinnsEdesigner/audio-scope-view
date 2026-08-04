@@ -196,7 +196,7 @@ export function DialogMicRecording({
     volumeLevel,
     peakLevel,
     waveformData,
-    sampleRate: _localSampleRate,
+    sampleRate: capturedSampleRate,
     duration,
     samples,
     error,
@@ -301,7 +301,7 @@ export function DialogMicRecording({
               sessionId: activeSessionId,
               name: recordingName || `Recording ${new Date().toLocaleString()}`,
               samples: [...captured],
-              sampleRate: globalSampleRate,
+              sampleRate: Math.round(capturedSampleRate || globalSampleRate),
             },
           },
         });
