@@ -185,7 +185,9 @@ impl SqliteSessionRepository {
     }
 
     pub async fn count_sessions(&self) -> DomainErrorResult<u32> {
-        let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM sessions")
+        let row: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM sessions WHERE is_sub_session = FALSE",
+        )
             .fetch_one(&self.pool)
             .await
             .map_err(map_sqlx_err)?;
