@@ -12,7 +12,6 @@ const WAVEFORM_COLORS: Record<WaveformColor, string> = {
 };
 
 interface ScopeCanvasProperties {
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   waveformData: number[];
   isCapturing?: boolean;
   isPaused?: boolean;
