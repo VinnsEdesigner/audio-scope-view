@@ -38,6 +38,8 @@ target/
 .dev.vars
 
 # Editor directories and files
+*.png
+!images/*.png
 .vscode/*
 !.vscode/extensions.json
 .idea
