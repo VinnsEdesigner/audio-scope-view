@@ -1,6 +1,5 @@
 export {
   useSessions,
-  useActiveSessions,
   useSessionCount,
   useSessionDetail,
   useStartSession,

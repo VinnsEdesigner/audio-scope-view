@@ -4,7 +4,7 @@ import { SETTINGS_FIELDS } from "../queries/settings-queries";
 export const CREATE_SETTINGS = gql`
   ${SETTINGS_FIELDS}
   mutation CreateSettings($sessionId: String!) {
-    createSettings(sessionId: $sessionId) {
+    create_settings(sessionId: $sessionId) {
       ...SettingsFields
     }
   }
@@ -23,7 +23,7 @@ export const UPDATE_SETTINGS = gql`
     $showMeasurements: Boolean
     $inputDevice: String
   ) {
-    updateSettings(
+    update_settings(
       sessionId: $sessionId
       timeScale: $timeScale
       voltageScale: $voltageScale
@@ -41,6 +41,6 @@ export const UPDATE_SETTINGS = gql`
 
 export const DELETE_SETTINGS = gql`
   mutation DeleteSettings($sessionId: String!) {
-    deleteSettings(sessionId: $sessionId)
+    delete_settings(sessionId: $sessionId)
   }
 `;

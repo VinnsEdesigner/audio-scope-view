@@ -2,7 +2,7 @@ import { gql } from "@apollo/client";
 
 export const CREATE_WAVEFORM = gql`
   mutation CreateWaveform($input: CreateWaveformInput!) {
-    createWaveform(input: $input) {
+    create_waveform(input: $input) {
       id
       sessionId
       sampleCount
@@ -16,6 +16,6 @@ export const CREATE_WAVEFORM = gql`
 
 export const DELETE_WAVEFORMS = gql`
   mutation DeleteWaveforms($sessionId: String!) {
-    deleteWaveforms(sessionId: $sessionId)
+    delete_waveforms(sessionId: $sessionId)
   }
 `;

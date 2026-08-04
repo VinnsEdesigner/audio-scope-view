@@ -4,7 +4,7 @@ import { RECORDING_FIELDS } from "../queries/recording-queries";
 export const RENAME_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation RenameRecording($id: String!, $name: String!) {
-    renameRecording(id: $id, name: $name) {
+    rename_recording(id: $id, name: $name) {
       ...RecordingFields
     }
   }
@@ -13,7 +13,7 @@ export const RENAME_RECORDING = gql`
 export const PIN_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation PinRecording($id: String!, $isPinned: Boolean!) {
-    pinRecording(id: $id, isPinned: $isPinned) {
+    pin_recording(id: $id, isPinned: $isPinned) {
       ...RecordingFields
     }
   }
@@ -21,14 +21,14 @@ export const PIN_RECORDING = gql`
 
 export const DELETE_RECORDING = gql`
   mutation DeleteRecording($id: String!) {
-    deleteRecording(id: $id)
+    delete_recording(id: $id)
   }
 `;
 
 export const START_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation StartRecording($sessionId: String!, $name: String) {
-    startRecording(sessionId: $sessionId, name: $name) {
+    start_recording(sessionId: $sessionId, name: $name) {
       ...RecordingFields
     }
   }
@@ -37,7 +37,7 @@ export const START_RECORDING = gql`
 export const STOP_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation StopRecording($id: String!) {
-    stopRecording(id: $id) {
+    stop_recording(id: $id) {
       ...RecordingFields
     }
   }
@@ -46,7 +46,7 @@ export const STOP_RECORDING = gql`
 export const PAUSE_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation PauseRecording($id: String!) {
-    pauseRecording(id: $id) {
+    pause_recording(id: $id) {
       ...RecordingFields
     }
   }
@@ -55,7 +55,7 @@ export const PAUSE_RECORDING = gql`
 export const RESUME_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation ResumeRecording($id: String!) {
-    resumeRecording(id: $id) {
+    resume_recording(id: $id) {
       ...RecordingFields
     }
   }
@@ -63,12 +63,12 @@ export const RESUME_RECORDING = gql`
 
 export const DELETE_RECORDINGS = gql`
   mutation DeleteRecordings($ids: [String!]!) {
-    deleteRecordings(ids: $ids)
+    delete_recordings(ids: $ids)
   }
 `;
 
 export const PIN_RECORDINGS = gql`
   mutation PinRecordings($ids: [String!]!, $pinned: Boolean!) {
-    pinRecordings(ids: $ids, pinned: $pinned)
+    pin_recordings(ids: $ids, pinned: $pinned)
   }
 `;

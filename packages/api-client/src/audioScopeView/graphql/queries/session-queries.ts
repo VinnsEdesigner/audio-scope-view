@@ -28,17 +28,11 @@ export const GET_SESSIONS_BY_ID = gql`
   }
 `;
 
-export const GET_ACTIVE_SESSIONS = gql`
-  ${SESSION_FIELDS}
-  query GetActiveSessions {
-    activeSessions {
-      ...SessionFields
-    }
-  }
-`;
+// Note: active_sessions_with_status is defined in recording-queries.ts
+// This query is deprecated - use GET_ACTIVE_SESSIONS_WITH_STATUS instead
 
 export const GET_SESSION_COUNT = gql`
   query GetSessionCount {
-    sessionCount
+    session_count
   }
 `;
