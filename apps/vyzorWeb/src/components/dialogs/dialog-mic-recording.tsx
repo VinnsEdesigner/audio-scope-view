@@ -91,11 +91,16 @@ function WaveformCanvas({
 
       if (waveformData.length > 0) {
         const centerY = height / 2;
+        const fullScale = centerY * 0.9;
 
-        let scale = 1;
+        let scale = fullScale;
         if (autoScale) {
-          const maxValue = Math.max(...waveformData.map((v) => Math.abs(v)), 0.01);
-          scale = (centerY * 0.8) / maxValue;
+          let maxValue = 0.01;
+          for (const value of waveformData) {
+            const absolute = Math.abs(value);
+            if (absolute > maxValue) maxValue = absolute;
+          }
+          scale = fullScale / maxValue;
         }
 
         context.save();
@@ -118,7 +123,7 @@ function WaveformCanvas({
 
         for (let index = 0; index < waveformData.length; index++) {
           const x = (index / (waveformData.length - 1)) * width;
-          const y = centerY + waveformData[index] * scale;
+          const y = centerY - waveformData[index] * scale;
 
           if (index === 0) {
             context.moveTo(x, y);
@@ -303,7 +308,10 @@ export function DialogMicRecording({
         showToast({ message: "Recording saved successfully!", type: "success" });
         onClose();
       } catch {
-        showToast({ message: "Failed to save recording", type: "error" });
+      } catch (saveError) {
+        const reason = saveError instanceof Error ? saveError.message : "Unknown error";
+        console.error("Failed to save recording:", saveError);
+        showToast({ message: `Failed to save recording: ${reason}`, type: "error" });
       } finally {
         setIsSaving(false);
       }
