@@ -3,7 +3,7 @@
  *
  * Removes:
  * - Single-line comments: //, //! ///
- * - Multi-line comments: /星 ... 星/
+ * - Multi-line comments: slash-star ... star-slash
  *
  * Usage: ./remove_verbose_comments <directory> [extension]
  */

@@ -1,8 +1,6 @@
-//! API tests for scope operations
 
 use async_graphql::InputObject;
 
-// Re-export input types for testing
 #[derive(Debug, InputObject)]
 struct TestCreateScopeInput {
     name: String,
@@ -31,7 +29,7 @@ mod tests {
             sample_rate: Some(44100),
             buffer_size: Some(1024),
         };
-        
+
         assert_eq!(input.name, "Test Scope");
         assert!(input.description.is_some());
         assert_eq!(input.sample_rate, Some(44100));
@@ -46,7 +44,7 @@ mod tests {
             sample_rate: None,
             buffer_size: None,
         };
-        
+
         assert_eq!(input.name, Some("Updated Name".to_string()));
         assert!(input.description.is_none());
         assert!(input.sample_rate.is_none());
@@ -61,7 +59,7 @@ mod tests {
             sample_rate: None,
             buffer_size: None,
         };
-        
+
         assert_eq!(input.name, "Minimal Scope");
         assert!(input.description.is_none());
         assert!(input.sample_rate.is_none());

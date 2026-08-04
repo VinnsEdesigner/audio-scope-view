@@ -9,8 +9,7 @@ pub struct MockAudioCapture {
     is_capturing: bool,
     sample_rate: u32,
     phase: f64,
-    frequency: f64, // Hz
-    amplitude: f32,
+    frequency: f64,     amplitude: f32,
     noise_level: f32,
 }
 
@@ -20,8 +19,7 @@ impl MockAudioCapture {
             is_capturing: false,
             sample_rate: 44100,
             phase: 0.0,
-            frequency: 440.0, // A4 note
-            amplitude: 0.5,
+            frequency: 440.0,             amplitude: 0.5,
             noise_level: 0.02,
         }
     }
@@ -76,8 +74,7 @@ impl Default for MockAudioCapture {
 impl AudioCapture for MockAudioCapture {
     async fn start(&mut self, _device_id: Option<&str>) -> DomainResult<()> {
         self.is_capturing = true;
-        self.phase = 0.0; // Reset phase when starting
-        Ok(())
+        self.phase = 0.0;         Ok(())
     }
 
     async fn stop(&mut self) -> DomainResult<()> {

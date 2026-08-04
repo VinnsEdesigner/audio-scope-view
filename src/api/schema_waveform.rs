@@ -119,8 +119,7 @@ impl WaveformQuery {
                             WaveformOutput {
                                 id: w.id,
                                 session_id: w.session_id,
-                                samples: vec![], // Empty when not requested
-                                sample_count: w.samples.len() as i32,
+                                samples: vec![],                                 sample_count: w.samples.len() as i32,
                                 timestamp: w.timestamp.to_rfc3339(),
                                 duration_ms: w.duration_ms,
                                 peak_amplitude: w.peak_amplitude,

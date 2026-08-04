@@ -11,8 +11,7 @@ use crate::domain::{Waveform, error_domain::DomainError};
 struct WaveformRow {
     id: String,
     session_id: String,
-    samples: String, // JSON array
-    sample_count: i32,
+    samples: String,     sample_count: i32,
     timestamp: String,
     duration_ms: f64,
     peak_amplitude: f32,
@@ -80,7 +79,7 @@ impl SqliteWaveformRepository {
         sqlx::query(
             r#"
             INSERT INTO waveforms (
-                id, session_id, samples, sample_count, timestamp, 
+                id, session_id, samples, sample_count, timestamp,
                 duration_ms, peak_amplitude, rms_amplitude, created_at
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -122,9 +121,9 @@ impl SqliteWaveformRepository {
     ) -> Result<Vec<Waveform>, DomainError> {
         let rows: Vec<WaveformRow> = sqlx::query_as(
             r#"
-            SELECT * FROM waveforms 
-            WHERE session_id = ? 
-            ORDER BY timestamp DESC 
+            SELECT * FROM waveforms
+            WHERE session_id = ?
+            ORDER BY timestamp DESC
             LIMIT ? OFFSET ?
             "#,
         )
@@ -176,12 +175,12 @@ impl SqliteWaveformRepository {
     pub async fn get_statistics(&self, session_id: &str) -> Result<WaveformStatistics, DomainError> {
         let row: Option<WaveformStatsRow> = sqlx::query_as(
             r#"
-            SELECT 
+            SELECT
                 COUNT(*) as total_count,
                 SUM(sample_count) as total_samples,
                 AVG(peak_amplitude) as avg_peak,
                 AVG(rms_amplitude) as avg_rms
-            FROM waveforms 
+            FROM waveforms
             WHERE session_id = ?
             "#,
         )

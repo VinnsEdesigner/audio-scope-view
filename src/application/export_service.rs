@@ -89,10 +89,10 @@ impl ExportService {
 
     pub fn export_csv(&self, waveform: &Waveform) -> DomainResult<Vec<u8>> {
         let mut buffer = Vec::new();
-        
+
         writeln!(&mut buffer, "index,timestamp_ms,sample")
             .map_err(|e| crate::domain::DomainError::InvalidOperation { message: e.to_string() })?;
-        
+
         let start_ns = waveform.timestamp.timestamp_nanos_opt().unwrap_or(0) as f64;
         let sample_period_ns = 1_000_000_000.0 / self.default_sample_rate as f64;
 
@@ -120,7 +120,7 @@ impl ExportService {
 
         let json = serde_json::to_string_pretty(&export)
             .map_err(|e| crate::domain::DomainError::InvalidOperation { message: e.to_string() })?;
-        
+
         Ok(json.into_bytes())
     }
 }

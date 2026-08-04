@@ -68,7 +68,7 @@ impl SessionService {
             .await
             .map_err(AppError::Domain)?
             .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
-        
+
         session.end();
         self.repository
             .update_session(&session)
@@ -114,7 +114,7 @@ impl SessionService {
         if let Some(active_session) = self.repository.find_active_session().await.map_err(AppError::Domain)? {
             return Ok(active_session);
         }
-        
+
         self.create_session().await
     }
 
@@ -167,7 +167,7 @@ impl SessionService {
             .await
             .map_err(AppError::Domain)?
             .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
-        
+
         session.open_oscilloscope();
         self.repository
             .update_session(&session)
@@ -182,7 +182,7 @@ impl SessionService {
             .await
             .map_err(AppError::Domain)?
             .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
-        
+
         session.close_oscilloscope();
         self.repository
             .update_session(&session)

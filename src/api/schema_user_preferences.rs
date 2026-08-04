@@ -21,15 +21,15 @@ impl UserPreferencesQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let prefs_id = "default-user";
-        
+
         let prefs = context
             .user_preferences_repository
             .get_or_create(prefs_id)
             .await
             .ok()?;
-        
+
         Some(UserPreferencesOutput {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
@@ -41,16 +41,16 @@ impl UserPreferencesQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let prefs_id = "default-user";
-        
+
         let prefs = context
             .user_preferences_repository
             .get(prefs_id)
             .await
             .ok()
             .flatten()?;
-        
+
         prefs.last_used_session_id
     }
 }
@@ -68,9 +68,9 @@ impl UserPreferencesMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let prefs_id = "default-user";
-        
+
         let mut prefs = match context
             .user_preferences_repository
             .get_or_create(prefs_id)
@@ -79,9 +79,9 @@ impl UserPreferencesMutation {
             Ok(p) => p,
             Err(_) => return None,
         };
-        
+
         prefs.update_last_used_session(Some(session_id));
-        
+
         if context
             .user_preferences_repository
             .save(&prefs)
@@ -90,7 +90,7 @@ impl UserPreferencesMutation {
         {
             return None;
         }
-        
+
         Some(UserPreferencesOutput {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
@@ -106,9 +106,9 @@ impl UserPreferencesMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let prefs_id = "default-user";
-        
+
         let mut prefs = match context
             .user_preferences_repository
             .get_or_create(prefs_id)
@@ -117,9 +117,9 @@ impl UserPreferencesMutation {
             Ok(p) => p,
             Err(_) => return None,
         };
-        
+
         prefs.update_auto_select(auto_select);
-        
+
         if context
             .user_preferences_repository
             .save(&prefs)
@@ -128,7 +128,7 @@ impl UserPreferencesMutation {
         {
             return None;
         }
-        
+
         Some(UserPreferencesOutput {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,
@@ -145,9 +145,9 @@ impl UserPreferencesMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let prefs_id = "default-user";
-        
+
         let mut prefs = match context
             .user_preferences_repository
             .get_or_create(prefs_id)
@@ -156,14 +156,14 @@ impl UserPreferencesMutation {
             Ok(p) => p,
             Err(_) => return None,
         };
-        
+
         if let Some(session_id) = last_used_session_id {
             prefs.update_last_used_session(Some(session_id));
         }
         if let Some(auto_select) = auto_select_last_session {
             prefs.update_auto_select(auto_select);
         }
-        
+
         if context
             .user_preferences_repository
             .save(&prefs)
@@ -172,7 +172,7 @@ impl UserPreferencesMutation {
         {
             return None;
         }
-        
+
         Some(UserPreferencesOutput {
             id: prefs.id,
             last_used_session_id: prefs.last_used_session_id,

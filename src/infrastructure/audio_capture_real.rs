@@ -12,8 +12,7 @@ use crate::domain::{DomainError, DomainResult};
 
 const DEFAULT_BUFFER_SIZE: usize = 44100 * 2;
 
-const MAX_BUFFER_SIZE: usize = 44100 * 60; // 1 minute max
-
+const MAX_BUFFER_SIZE: usize = 44100 * 60;
 #[derive(Debug, Clone)]
 pub enum CaptureError {
     DeviceDisconnected,
@@ -44,8 +43,7 @@ struct AudioRingBuffer {
 
 impl AudioRingBuffer {
     fn new(capacity: usize) -> Self {
-        let capacity = capacity.next_power_of_two(); // Ensure power of 2 for fast modulo
-        Self {
+        let capacity = capacity.next_power_of_two();         Self {
             buffer: Mutex::new(vec![0.0f32; capacity]),
             write_pos: AtomicUsize::new(0),
             read_pos: AtomicUsize::new(0),
@@ -56,55 +54,54 @@ impl AudioRingBuffer {
     fn push(&self, data: &[f32]) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         let available = if write_pos >= read_pos {
             self.capacity - (write_pos - read_pos)
         } else {
             read_pos - write_pos
         };
-        
-        let to_write = data.len().min(available.saturating_sub(1)); // Keep one slot empty
-        if to_write == 0 {
+
+        let to_write = data.len().min(available.saturating_sub(1));         if to_write == 0 {
             return 0;
         }
-        
+
         let mut_wpos = self.write_pos.load(Ordering::SeqCst);
         let mut buffer = self.buffer.lock().unwrap();
         for (i, &sample) in data.iter().take(to_write).enumerate() {
             buffer[(mut_wpos + i) & (self.capacity - 1)] = sample;
         }
-        
+
         self.write_pos.store((mut_wpos + to_write) & (self.capacity - 1), Ordering::SeqCst);
-        
+
         to_write
     }
 
     fn drain(&self, output: &mut [f32]) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let mut read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         let available = if write_pos >= read_pos {
             write_pos - read_pos
         } else {
             self.capacity - read_pos + write_pos
         };
-        
+
         let to_read = output.len().min(available);
-        
+
         let buffer = self.buffer.lock().unwrap();
         for i in 0..to_read {
             output[i] = buffer[(read_pos + i) & (self.capacity - 1)];
         }
-        
+
         self.read_pos.store((read_pos + to_read) & (self.capacity - 1), Ordering::SeqCst);
-        
+
         to_read
     }
 
     fn len(&self) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         if write_pos >= read_pos {
             write_pos - read_pos
         } else {
@@ -124,13 +121,13 @@ impl AudioRingBuffer {
     fn has_overflow(&self) -> bool {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         let available = if write_pos >= read_pos {
             write_pos - read_pos
         } else {
             self.capacity - read_pos + write_pos
         };
-        
+
         available >= self.capacity - 1
     }
 }
@@ -315,7 +312,7 @@ impl RealAudioCapture {
     ) -> DomainResult<Stream> {
         let sample_format = config.sample_format();
         let stream_config: cpal::StreamConfig = config.clone().into();
-        
+
         let build_result = match sample_format {
             SampleFormat::F32 => {
                 let buffer = buffer.clone();
@@ -479,11 +476,11 @@ impl AudioCapture for RealAudioCapture {
         }
 
         self.state.stop_signal.store(true, Ordering::SeqCst);
-        
+
         *self.stream.lock().unwrap() = None;
 
         self.state.running.store(false, Ordering::SeqCst);
-        
+
         let dropped = self.state.get_dropped_count();
         if dropped > 0 {
             tracing::warn!("Audio capture stopped with {} dropped samples", dropped);
@@ -496,7 +493,7 @@ impl AudioCapture for RealAudioCapture {
     async fn pause(&mut self) -> DomainResult<()> {
         if let Ok(mut stream_guard) = self.stream.lock() {
             if let Some(ref stream) = *stream_guard {
-                stream.pause().map_err(|e| 
+                stream.pause().map_err(|e|
                     DomainError::capture_error(format!("Failed to pause: {}", e))
                 )?;
             }
@@ -507,7 +504,7 @@ impl AudioCapture for RealAudioCapture {
     async fn resume(&mut self) -> DomainResult<()> {
         if let Ok(mut stream_guard) = self.stream.lock() {
             if let Some(ref stream) = *stream_guard {
-                stream.play().map_err(|e| 
+                stream.play().map_err(|e|
                     DomainError::capture_error(format!("Failed to resume: {}", e))
                 )?;
             }
@@ -530,7 +527,7 @@ impl AudioCapture for RealAudioCapture {
         }
 
         let count = self.state.buffer.drain(buffer);
-        
+
         for sample in buffer[count..].iter_mut() {
             *sample = 0.0;
         }
@@ -561,11 +558,11 @@ mod tests {
     #[test]
     fn test_ring_buffer_basic() {
         let buffer = AudioRingBuffer::new(16);
-        
+
         let data = [1.0, 2.0, 3.0, 4.0];
         let written = buffer.push(&data);
         assert_eq!(written, 4);
-        
+
         let mut output = [0.0f32; 4];
         let read = buffer.drain(&mut output);
         assert_eq!(read, 4);
@@ -575,11 +572,10 @@ mod tests {
     #[test]
     fn test_ring_buffer_wrap() {
         let buffer = AudioRingBuffer::new(8);
-        
+
         let data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
         let written = buffer.push(&data);
-        assert_eq!(written, 9); // One slot kept empty
-        
+        assert_eq!(written, 9);
         let mut output = [0.0f32; 16];
         let read = buffer.drain(&mut output);
         assert_eq!(read, 9);

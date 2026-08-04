@@ -7,7 +7,7 @@ use super::{
     schema_dsp::{DspMutationRoot, DspQueryRoot},
     schema_export::{
         ApiKeyMutationRoot, ApiKeyQueryRoot,
-        BatchCaptureMutationRoot, 
+        BatchCaptureMutationRoot,
         ExportQueryRoot, SimulationMutationRoot, SimulationQueryRoot
     },
     schema_recording::{RecordingMutation, RecordingQuery},
@@ -20,12 +20,12 @@ use super::{
 
 #[derive(MergedObject, Default)]
 pub struct Query(
-    SessionQuery, 
-    SettingsQuery, 
-    DashboardQuery, 
-    WaveformQuery, 
+    SessionQuery,
+    SettingsQuery,
+    DashboardQuery,
+    WaveformQuery,
     RecordingQuery,
-    ExportQueryRoot, 
+    ExportQueryRoot,
     SimulationQueryRoot,
     ApiKeyQueryRoot,
     AudioInputQueryRoot,
@@ -35,11 +35,11 @@ pub struct Query(
 
 #[derive(MergedObject, Default)]
 pub struct Mutation(
-    SessionMutation, 
-    SettingsMutation, 
-    WaveformMutation, 
+    SessionMutation,
+    SettingsMutation,
+    WaveformMutation,
     RecordingMutation,
-    BatchCaptureMutationRoot, 
+    BatchCaptureMutationRoot,
     SimulationMutationRoot,
     ApiKeyMutationRoot,
     AudioInputMutationRoot,

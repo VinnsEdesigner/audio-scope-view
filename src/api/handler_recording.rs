@@ -33,13 +33,12 @@ pub async fn get_recording_samples(
     Query(params): Query<SampleRangeParams>,
 ) -> impl IntoResponse {
     info!("REQUEST: GET /api/recordings/{}/samples", recording_id);
-    
+
     const DEFAULT_CHUNK_SIZE: usize = 100_000;
-    const MAX_CHUNK_SIZE: usize = 500_000; // ~2MB max
-    
+    const MAX_CHUNK_SIZE: usize = 500_000;
     let start = params.start.unwrap_or(0);
     let end = params.end.unwrap_or(DEFAULT_CHUNK_SIZE).min(MAX_CHUNK_SIZE);
-    
+
     if start >= end {
         return (
             axum::http::StatusCode::BAD_REQUEST,
@@ -48,7 +47,7 @@ pub async fn get_recording_samples(
             })),
         ).into_response();
     }
-    
+
     let recording = match state.recording_service.get(&recording_id).await {
         Ok(Some(r)) => r,
         Ok(None) => {
@@ -71,12 +70,12 @@ pub async fn get_recording_samples(
             ).into_response();
         }
     };
-    
+
     let total_samples = recording.samples.len();
-    
+
     let clamped_start = start.min(total_samples);
     let clamped_end = end.min(total_samples);
-    
+
     if clamped_start >= clamped_end {
         info!("RESPONSE: 200 OK (empty range)");
         return (
@@ -90,9 +89,9 @@ pub async fn get_recording_samples(
             }),
         ).into_response();
     }
-    
+
     let samples: Vec<f32> = recording.samples[clamped_start..clamped_end].to_vec();
-    
+
     info!("RESPONSE: 200 OK ({} samples)", samples.len());
     (
         axum::http::StatusCode::OK,
@@ -112,13 +111,11 @@ pub async fn stream_recording_pcm(
     Query(params): Query<SampleRangeParams>,
 ) -> Response {
     info!("REQUEST: GET /api/recordings/{}/stream (PCM streaming)", recording_id);
-    
-    const DEFAULT_CHUNK_SIZE: usize = 44_100; // ~1 second of audio at 44.1kHz (~176KB)
-    const MAX_CHUNK_SIZE: usize = 176_400; // ~4 seconds max per request
-    
+
+    const DEFAULT_CHUNK_SIZE: usize = 44_100;     const MAX_CHUNK_SIZE: usize = 176_400;
     let start = params.start.unwrap_or(0);
     let end = params.end.unwrap_or(DEFAULT_CHUNK_SIZE).min(MAX_CHUNK_SIZE);
-    
+
     if start >= end {
         return (
             axum::http::StatusCode::BAD_REQUEST,
@@ -127,7 +124,7 @@ pub async fn stream_recording_pcm(
             })),
         ).into_response();
     }
-    
+
     let recording = match state.recording_service.get(&recording_id).await {
         Ok(Some(r)) => r,
         Ok(None) => {
@@ -149,12 +146,12 @@ pub async fn stream_recording_pcm(
             ).into_response();
         }
     };
-    
+
     let total_samples = recording.samples.len();
-    
+
     let clamped_start = start.min(total_samples);
     let clamped_end = end.min(total_samples);
-    
+
     if clamped_start >= clamped_end {
         let body = Body::empty();
         return (
@@ -170,17 +167,16 @@ pub async fn stream_recording_pcm(
             body,
         ).into_response();
     }
-    
+
     let samples_slice = &recording.samples[clamped_start..clamped_end];
-    let byte_count = samples_slice.len() * 4; // 4 bytes per f32
-    
+    let byte_count = samples_slice.len() * 4;
     let mut bytes = Vec::with_capacity(byte_count);
     for &sample in samples_slice {
         bytes.extend_from_slice(&sample.to_le_bytes());
     }
-    
+
     info!("RESPONSE: 200 OK ({} bytes of PCM data)", byte_count);
-    
+
     (
         axum::http::StatusCode::OK,
         [
@@ -191,8 +187,7 @@ pub async fn stream_recording_pcm(
             ("X-End-Sample", &clamped_end.to_string()),
             ("X-Total-Samples", &total_samples.to_string()),
             ("X-Chunk-Size", &samples_slice.len().to_string()),
-            ("Accept-Ranges", "none"), // We handle chunking ourselves
-        ],
+            ("Accept-Ranges", "none"),         ],
         Body::from(Bytes::from(bytes)),
     ).into_response()
 }
@@ -211,7 +206,7 @@ pub async fn get_recording_metadata(
     Path(recording_id): Path<String>,
 ) -> impl IntoResponse {
     info!("REQUEST: GET /api/recordings/{}/metadata", recording_id);
-    
+
     let recording = match state.recording_service.get(&recording_id).await {
         Ok(Some(r)) => r,
         Ok(None) => {
@@ -234,13 +229,12 @@ pub async fn get_recording_metadata(
             ).into_response();
         }
     };
-    
+
     let sample_rate = if recording.duration_ms > 0.0 {
         (recording.samples.len() as f64 / recording.duration_ms * 1000.0) as u32
     } else {
-        44100 // default
-    };
-    
+        44100     };
+
     info!("RESPONSE: 200 OK");
     (
         axum::http::StatusCode::OK,

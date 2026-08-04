@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_new_user_preferences() {
         let prefs = UserPreferences::new("prefs-1".to_string());
-        
+
         assert_eq!(prefs.id, "prefs-1");
         assert!(prefs.user_id.is_none());
         assert!(prefs.last_used_session_id.is_none());
@@ -66,7 +66,7 @@ mod tests {
     fn test_with_last_used_session() {
         let prefs = UserPreferences::new("prefs-1".to_string())
             .with_last_used_session(Some("session-123".to_string()));
-        
+
         assert_eq!(prefs.last_used_session_id, Some("session-123".to_string()));
     }
 
@@ -74,7 +74,7 @@ mod tests {
     fn test_with_auto_select() {
         let prefs = UserPreferences::new("prefs-1".to_string())
             .with_auto_select(false);
-        
+
         assert!(!prefs.auto_select_last_session);
     }
 }

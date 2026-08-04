@@ -30,8 +30,7 @@ use crate::shared::constants::{GRAPHQL_PATH, GRAPHQL_PLAYGROUND_PATH, HEALTH_PAT
 
 pub struct ApiKeyAuth {
     pub key_info: Option<ApiKey>,
-    pub is_system_client: bool,  // True if verified via bootstrap key (AES256 hash match)
-}
+    pub is_system_client: bool,  }
 
 pub struct AppState {
     pub graphql_schema: async_graphql::Schema<
@@ -44,9 +43,7 @@ pub struct AppState {
     pub simulation_service: Arc<SimulationService>,
     pub batch_capture_service: Arc<BatchCaptureService>,
     pub recording_service: Arc<RecordingService>,
-    pub bootstrap_key_hash: [u8; 32],  // SHA256 hash of the bootstrap key (used for verification)
-    pub key_store: Arc<ApiKeyStore>,    // User-created API keys
-}
+    pub bootstrap_key_hash: [u8; 32],      pub key_store: Arc<ApiKeyStore>,    }
 
 async fn extract_auth_header(
     req: http::Request<Body>,
@@ -57,18 +54,17 @@ async fn extract_auth_header(
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
-    
+
     let mut req = req;
     req.extensions_mut().insert(auth_header);
-    
+
     next.run(req).await
 }
 
 fn derive_verification_key(bootstrap_key: &str) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(bootstrap_key.as_bytes());
-    hasher.update(b"audio-scope-view-system-verification"); // Domain separation
-    hasher.finalize().into()
+    hasher.update(b"audio-scope-view-system-verification");     hasher.finalize().into()
 }
 
 fn verify_bootstrap_key(provided_key: &str, expected_hash: &[u8; 32]) -> bool {
@@ -104,7 +100,7 @@ impl AppState {
 
         let schema = build_schema();
         let ws_state = Arc::new(WsState::new());
-        
+
         let bootstrap_key_hash = derive_verification_key(&bootstrap_key);
 
         Self {
@@ -140,8 +136,7 @@ impl AppState {
         }
 
         if verify_bootstrap_key(key, &self.bootstrap_key_hash) {
-            return (None, true);  // System client, no specific API key
-        }
+            return (None, true);          }
 
         (None, false)
     }
@@ -153,11 +148,11 @@ async fn graphql_handler(
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let mut request = req.into_inner();
-    
+
     info!("REQUEST: POST /graphql");
-    
+
     let (api_key_info, is_system_client) = state.validate_api_key(auth_header.as_deref()).await;
-    
+
     if api_key_info.is_none() && !is_system_client {
         info!("AUTH: FAILED - invalid or missing API key");
         let resp = async_graphql::Response::from_errors(
@@ -168,14 +163,14 @@ async fn graphql_handler(
         );
         return resp.into();
     }
-    
+
     let auth_type = if is_system_client {
         "bootstrap_key"
     } else {
         api_key_info.as_ref().map(|k| k.name.as_str()).unwrap_or("unknown")
     };
     info!("AUTH: OK - {}", auth_type);
-    
+
     request = request.data(state.clone());
     request = request.data(state.context.clone());
     request = request.data(state.ws_state.clone());
@@ -218,8 +213,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let graphql_router = Router::new()
         .route(GRAPHQL_PATH, post(graphql_handler))
         .route(GRAPHQL_PLAYGROUND_PATH, get(playground_handler))
-        .layer(auth_middleware)  // Apply auth extraction middleware
-        .with_state(state.clone());
+        .layer(auth_middleware)          .with_state(state.clone());
 
     let graphql_ws_router = Router::new()
         .route_service("/ws", graphql_subscription);
@@ -245,8 +239,7 @@ pub async fn start_server(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind(address).await?;
 
-    info!("Server listening on http://{}", address);
-
+    info!("Server listening on http:
     axum::serve(listener, build_router(state)).await?;
 
     Ok(())

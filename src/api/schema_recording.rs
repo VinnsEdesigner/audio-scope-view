@@ -168,7 +168,7 @@ impl RecordingSummaryOutput {
             is_pinned: recording.is_pinned,
         }
     }
-    
+
     pub fn from_summary(summary: RecordingSummary, session_name: String) -> Self {
         Self {
             id: summary.id,
@@ -274,8 +274,7 @@ pub struct SessionListResultOutput {
 #[derive(Debug, InputObject)]
 pub struct RecordingFilterInput {
     pub session_id: Option<String>,
-    pub time_range: Option<String>, // "today", "last_week", "last_month", "all_time"
-    pub is_pinned: Option<bool>,
+    pub time_range: Option<String>,     pub is_pinned: Option<bool>,
     pub search_query: Option<String>,
 }
 

@@ -73,8 +73,7 @@ impl DashboardService {
             .collect();
 
         let summary = DashboardSummary::new(time_range)
-            .with_scope_stats(total_sessions, 0) // sessions don't have "active" status
-            .with_capture_stats(total_waveforms)
+            .with_scope_stats(total_sessions, 0)             .with_capture_stats(total_waveforms)
             .with_waveform_stats(total_waveforms, total_samples, avg_peak, avg_rms)
             .with_recent_sessions(recent_sessions);
 

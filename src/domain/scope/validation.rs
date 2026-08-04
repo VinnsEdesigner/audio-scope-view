@@ -7,15 +7,15 @@ use crate::domain::_shared::domain_validation::{
 
 pub fn validate_create_params(params: &CreateScopeParams) -> DomainResult<()> {
     validate_name(&params.name)?;
-    
+
     if let Some(rate) = params.sample_rate {
         validate_sample_rate(rate)?;
     }
-    
+
     if let Some(size) = params.buffer_size {
         validate_buffer_size(size)?;
     }
-    
+
     Ok(())
 }
 
@@ -23,15 +23,15 @@ pub fn validate_update_params(params: &UpdateScopeParams) -> DomainResult<()> {
     if let Some(ref name) = params.name {
         validate_name(name)?;
     }
-    
+
     if let Some(rate) = params.sample_rate {
         validate_sample_rate(rate)?;
     }
-    
+
     if let Some(size) = params.buffer_size {
         validate_buffer_size(size)?;
     }
-    
+
     Ok(())
 }
 

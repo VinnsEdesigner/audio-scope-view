@@ -63,11 +63,7 @@ pub struct AnalysisResult {
     pub dc_offset: f32,
     pub dominant_frequency: f32,
     pub fundamental_frequency: f32,
-    pub thd: f32,          // Total Harmonic Distortion (as ratio, multiply by 100 for %)
-    pub thdn: f32,         // THD + Noise (as ratio)
-    pub snr: f32,          // Signal-to-Noise Ratio in dB
-    pub crest_factor: f32,  // Peak/RMS ratio
-    pub signal_energy: f32,
+    pub thd: f32,              pub thdn: f32,             pub snr: f32,              pub crest_factor: f32,      pub signal_energy: f32,
     pub noise_energy: f32,
     pub harmonics: Vec<HarmonicComponent>,
 }
@@ -82,13 +78,13 @@ impl SubscriptionRoot {
         session_id: String,
     ) -> impl Stream<Item = Result<WaveformData, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
-        
+
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
         if let Some(state) = ws_state {
             let mut subs = state.waveform_subscribers.write().await;
             subs.insert(session_id.clone(), tx);
         }
-        
+
         BroadcastStream::new(rx)
             .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
@@ -99,13 +95,13 @@ impl SubscriptionRoot {
         session_id: String,
     ) -> impl Stream<Item = Result<SpectrumData, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
-        
+
         let (tx, rx) = broadcast::channel::<SpectrumData>(100);
         if let Some(state) = ws_state {
             let mut subs = state.spectrum_subscribers.write().await;
             subs.insert(session_id.clone(), tx);
         }
-        
+
         BroadcastStream::new(rx)
             .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
@@ -116,13 +112,13 @@ impl SubscriptionRoot {
         session_id: String,
     ) -> impl Stream<Item = Result<AudioStats, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
-        
+
         let (tx, rx) = broadcast::channel::<AudioStats>(50);
         if let Some(state) = ws_state {
             let mut subs = state.stats_subscribers.write().await;
             subs.insert(session_id.clone(), tx);
         }
-        
+
         BroadcastStream::new(rx)
             .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
@@ -133,13 +129,13 @@ impl SubscriptionRoot {
         session_id: String,
     ) -> impl Stream<Item = Result<AnalysisResult, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
-        
+
         let (tx, rx) = broadcast::channel::<AnalysisResult>(100);
         if let Some(state) = ws_state {
             let mut subs = state.analysis_subscribers.write().await;
             subs.insert(session_id.clone(), tx);
         }
-        
+
         BroadcastStream::new(rx)
             .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
@@ -149,13 +145,13 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
     ) -> impl Stream<Item = Result<WaveformData, async_graphql::Error>> + 'static {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
-        
+
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
         if let Some(state) = ws_state {
             let mut subs = state.all_waveform_subscribers.write().await;
             subs.push(tx);
         }
-        
+
         BroadcastStream::new(rx)
             .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }

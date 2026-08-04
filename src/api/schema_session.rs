@@ -162,11 +162,7 @@ pub struct UpdateSessionDspInput {
 
 #[derive(Debug, InputObject)]
 pub struct CaptureSettingsInput {
-    pub frequency: Option<f64>,   // Hz, default 440
-    pub amplitude: Option<f32>,   // 0.0-1.0, default 0.5
-    pub noise_level: Option<f32>, // 0.0-1.0, default 0.02
-    pub duration_ms: Option<u32>, // Capture duration in ms, default 100
-}
+    pub frequency: Option<f64>,       pub amplitude: Option<f32>,       pub noise_level: Option<f32>,     pub duration_ms: Option<u32>, }
 
 #[derive(Default)]
 pub struct SessionQuery;
@@ -234,7 +230,7 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let sessions = context
             .session_service
             .list(100, 0)
@@ -288,7 +284,7 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let parent_opt = context
             .session_service
             .get_parent_session(&sub_session_id)
@@ -317,11 +313,10 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
-        let total_limit = 1000u32; // For calculating has_more
-
+        let total_limit = 1000u32;
         let sessions = context
             .session_service
             .list(total_limit, 0)
@@ -330,14 +325,14 @@ impl SessionQuery {
 
         let total = sessions.len() as i64;
         let mut sessions_with_status = Vec::new();
-        
+
         for session in sessions.into_iter().skip(offset as usize).take(limit as usize) {
             let count = context
                 .recording_service
                 .get_recording_count_for_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            
+
             sessions_with_status.push(SessionWithStatusOutput {
                 id: session.id.clone(),
                 name: format!("Session {}", &session.id[..8]),
@@ -360,7 +355,7 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let sessions = context
             .session_service
             .list(100, 0)
@@ -368,14 +363,14 @@ impl SessionQuery {
             .unwrap_or_default();
 
         let mut results = Vec::new();
-        
+
         for session in sessions.into_iter().filter(|s| s.is_active()) {
             let count = context
                 .recording_service
                 .get_recording_count_for_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            
+
             results.push(SessionWithStatusOutput {
                 id: session.id.clone(),
                 name: format!("Session {}", &session.id[..8]),
@@ -384,7 +379,7 @@ impl SessionQuery {
                 recording_count: count as i64,
             });
         }
-        
+
         results
     }
 
@@ -392,7 +387,7 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        
+
         let sessions = context
             .session_service
             .list(1000, 0)
@@ -431,13 +426,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .create_session()
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create session: {:?}", e)))?;
-            
+
         Ok(SessionOutput::from(session))
     }
 
@@ -449,13 +444,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .create_named_session(input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create named session: {:?}", e)))?;
-            
+
         Ok(SessionOutput::from(session))
     }
 
@@ -467,13 +462,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .create_sub_session(&parent_id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create sub-session: {:?}", e)))?;
-            
+
         Ok(SessionOutput::from(session))
     }
 
@@ -486,19 +481,19 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .update_session_metadata(&id, input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to update session: {:?}", e)))?;
-        
+
         let count = context
             .recording_service
             .get_recording_count_for_scope(&session.id)
             .await
             .unwrap_or(0) as i64;
-            
+
         Ok(Some(SessionOutput::from_session_with_count(session, count)))
     }
 
@@ -506,13 +501,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .get_or_create_active_session()
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get or create session: {:?}", e)))?;
-            
+
         Ok(SessionOutput::from(session))
     }
 
@@ -520,13 +515,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .end_session(&id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to end session: {:?}", e)))?;
-        
+
         Ok(Some(SessionOutput::from(session)))
     }
 
@@ -534,13 +529,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         context
             .session_service
             .heartbeat(&id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to send heartbeat: {:?}", e)))?;
-        
+
         Ok(true)
     }
 
@@ -548,7 +543,7 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         context
             .session_service
             .delete(&id)
@@ -560,13 +555,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .open_oscilloscope(&session_id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to open oscilloscope: {:?}", e)))?;
-        
+
         Ok(Some(SessionOutput::from(session)))
     }
 
@@ -574,13 +569,13 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
-        
+
         let session = context
             .session_service
             .close_oscilloscope(&session_id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to close oscilloscope: {:?}", e)))?;
-        
+
         Ok(Some(SessionOutput::from(session)))
     }
 
@@ -609,8 +604,7 @@ impl SessionMutation {
         });
 
         let mut capture = MockAudioCapture::new()
-            .with_sample_rate(44100) // Default sample rate for session
-            .with_frequency(capture_settings.frequency.unwrap_or(440.0))
+            .with_sample_rate(44100)             .with_frequency(capture_settings.frequency.unwrap_or(440.0))
             .with_amplitude(capture_settings.amplitude.unwrap_or(0.5))
             .with_noise(capture_settings.noise_level.unwrap_or(0.02));
 

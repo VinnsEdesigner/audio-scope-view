@@ -108,7 +108,7 @@ impl SpectrogramData {
 
                 let magnitude = self.magnitudes[time_idx][freq_idx];
                 let normalized = ((magnitude - min_mag) / range * 255.0) as u8;
-                
+
                 let r = normalized;
                 let g = normalized.saturating_sub(50);
                 let b = normalized.saturating_sub(100);

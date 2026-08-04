@@ -17,11 +17,11 @@ impl Waveform {
     pub fn new(id: String, session_id: String, samples: Vec<f32>, sample_rate: u32) -> Self {
         let now = Utc::now();
         let duration_ms = (samples.len() as f64 / sample_rate as f64) * 1000.0;
-        
+
         let peak_amplitude = samples.iter()
             .map(|s| s.abs())
             .fold(0.0f32, |a, b| a.max(b));
-        
+
         let sum_squares: f32 = samples.iter()
             .map(|s| s * s)
             .sum();

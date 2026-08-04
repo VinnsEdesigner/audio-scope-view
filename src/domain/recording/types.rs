@@ -94,8 +94,7 @@ impl Recording {
             dominant_frequency: analysis.dominant_frequency,
             frequency_high: freq_high,
             frequency_low: freq_low,
-            bit_depth: 32, // f32 is 32-bit float
-            is_pinned: false,
+            bit_depth: 32,             is_pinned: false,
         }
     }
 

@@ -20,8 +20,7 @@ impl Waveform {
     pub fn new(id: String, session_id: String, samples: Vec<f32>, timestamp: DateTime<Utc>) -> Self {
         let peak_amplitude = Self::calculate_peak(&samples);
         let rms_amplitude = Self::calculate_rms(&samples);
-        let duration_ms = samples.len() as f64 / 44.1; // Assuming 44100 Hz sample rate
-
+        let duration_ms = samples.len() as f64 / 44.1;
         Self {
             id,
             session_id,

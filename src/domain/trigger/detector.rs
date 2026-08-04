@@ -167,7 +167,7 @@ impl TriggerDetector {
                 self.state.is_triggered = true;
                 self.state.triggered_at = Some(i);
                 self.state.holdoff_counter = self.config.holdoff_samples;
-                
+
                 let timestamp_ms = i as f64 / sample_rate as f64 * 1000.0;
                 return Some(TriggerEvent::Triggered { sample_index: i, timestamp_ms });
             }

@@ -9,10 +9,10 @@ pub type DomainResult<T> = Result<T, DomainError>;
 #[allow(async_fn_in_trait)]
 pub trait UserPreferencesRepository: Send + Sync {
     async fn get(&self, id: &str) -> DomainResult<Option<UserPreferences>>;
-    
+
     async fn get_or_create(&self, id: &str) -> DomainResult<UserPreferences>;
-    
+
     async fn save(&self, preferences: &UserPreferences) -> DomainResult<()>;
-    
+
     async fn delete(&self, id: &str) -> DomainResult<bool>;
 }

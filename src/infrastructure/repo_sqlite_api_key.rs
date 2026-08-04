@@ -29,8 +29,7 @@ impl TryFrom<ApiKeyRow> for ApiKey {
     fn try_from(row: ApiKeyRow) -> Result<Self, Self::Error> {
         Ok(Self {
             id: row.id,
-            key: String::new(), // Key is not stored, only hash
-            name: row.name,
+            key: String::new(),             name: row.name,
             created_at: parse_datetime(&row.created_at)?,
             expires_at: row.expires_at.and_then(|s| parse_datetime(&s).ok()),
             rate_limit_per_minute: row.rate_limit_per_minute as u32,
@@ -60,7 +59,7 @@ fn format_datetime(time: std::time::SystemTime) -> String {
 fn hash_key(key: &str) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    
+
     let mut hasher = DefaultHasher::new();
     key.hash(&mut hasher);
     format!("{:x}", hasher.finish())
@@ -77,7 +76,7 @@ impl SqliteApiKeyRepository {
 
     pub async fn save(&self, api_key: &ApiKey) -> AppResult<()> {
         let key_hash = hash_key(&api_key.key);
-        
+
         sqlx::query(
             r#"
             INSERT INTO api_keys (id, key_hash, name, rate_limit_per_minute, expires_at, last_used_at, created_at)
@@ -94,7 +93,7 @@ impl SqliteApiKeyRepository {
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::database(&format!("Failed to save API key: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -114,13 +113,13 @@ impl SqliteApiKeyRepository {
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::database(&format!("Failed to update API key: {}", e)))?;
-        
+
         Ok(())
     }
 
     pub async fn find_by_key(&self, key: &str) -> AppResult<Option<ApiKey>> {
         let key_hash = hash_key(key);
-        
+
         let row: Option<ApiKeyRow> = sqlx::query_as(
             "SELECT * FROM api_keys WHERE key_hash = ?"
         )
@@ -173,8 +172,7 @@ impl SqliteApiKeyRepository {
             .map(|row| {
                 let api_key = ApiKey {
                     id: row.id.clone(),
-                    key: String::new(), // Key is not stored, only hash
-                    name: row.name.clone(),
+                    key: String::new(),                     name: row.name.clone(),
                     created_at: parse_datetime(&row.created_at)?,
                     expires_at: row.expires_at.and_then(|s| parse_datetime(&s).ok()),
                     rate_limit_per_minute: row.rate_limit_per_minute as u32,
@@ -194,7 +192,7 @@ impl SqliteApiKeyRepository {
             .execute(&self.pool)
             .await
             .map_err(|e| AppError::database(&format!("Failed to delete API key: {}", e)))?;
-        
+
         Ok(result.rows_affected() > 0)
     }
 
@@ -206,7 +204,7 @@ impl SqliteApiKeyRepository {
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::database(&format!("Failed to update last_used_at: {}", e)))?;
-        
+
         Ok(())
     }
 
@@ -218,7 +216,7 @@ impl SqliteApiKeyRepository {
         .execute(&self.pool)
         .await
         .map_err(|e| AppError::database(&format!("Failed to delete expired API keys: {}", e)))?;
-        
+
         Ok(result.rows_affected())
     }
 }

@@ -58,7 +58,7 @@ impl SimulationService {
 
     pub async fn start_simulation(&self, config: SimulationConfig) -> DomainResult<bool> {
         let mut state = self.state.write().await;
-        
+
         if state.is_running {
             return Ok(false);
         }
@@ -103,25 +103,25 @@ impl SimulationService {
 
     pub async fn get_next_waveform(&self) -> DomainResult<Option<Waveform>> {
         let state = self.state.read().await;
-        
+
         if !state.is_running || state.is_paused {
             return Ok(None);
         }
 
         let cache = self.waveform_cache.read().await;
-        
+
         if cache.is_empty() {
             return Ok(None);
         }
 
         let waveform = cache.get(state.waveform_index).cloned();
-        
+
         Ok(waveform)
     }
 
     pub async fn advance(&self, config: &SimulationConfig) -> DomainResult<bool> {
         let mut state = self.state.write().await;
-        
+
         if !state.is_running {
             return Ok(false);
         }

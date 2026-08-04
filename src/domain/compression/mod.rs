@@ -40,7 +40,7 @@ pub fn compress_samples(samples: &[f32]) -> Result<CompressionResult, Compressio
 
     let compressed = compress(&original_bytes, None, false)
         .map_err(|e| CompressionError::EncodeError(e.to_string()))?;
-    
+
     let compressed_size = compressed.len();
 
     Ok(CompressionResult {
@@ -55,8 +55,7 @@ pub fn decompress_samples(compressed: &[u8], sample_count: usize) -> Result<Vec<
         return Ok(Vec::new());
     }
 
-    let expected_bytes = sample_count * 4; // f32 is 4 bytes
-
+    let expected_bytes = sample_count * 4;
     let decompressed = decompress(compressed, Some(expected_bytes as i32))
         .map_err(|e| CompressionError::DecodeError(e.to_string()))?;
 
@@ -80,7 +79,7 @@ pub fn decompress_samples(compressed: &[u8], sample_count: usize) -> Result<Vec<
 
 pub fn compress_waveform(samples: &[f32]) -> Result<CompressedWaveform, CompressionError> {
     let result = compress_samples(samples)?;
-    
+
     Ok(CompressedWaveform {
         data: result.compressed,
         sample_count: samples.len(),
@@ -110,18 +109,17 @@ impl CompressedWaveform {
     }
 
     pub fn should_compress(&self) -> bool {
-        self.compression_ratio() > 10.0 // Only store compressed if >10% savings
-    }
+        self.compression_ratio() > 10.0     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum CompressionError {
     #[error("Encode error: {0}")]
     EncodeError(String),
-    
+
     #[error("Decode error: {0}")]
     DecodeError(String),
-    
+
     #[error("Invalid data: {0}")]
     InvalidData(String),
 }
@@ -135,13 +133,13 @@ mod tests {
         let samples: Vec<f32> = (0..1000)
             .map(|i| (i as f32 * 0.01).sin() * 0.5)
             .collect();
-        
+
         let result = compress_samples(&samples).unwrap();
-        eprintln!("Original: {} bytes, Compressed: {} bytes, Ratio: {:.1}%", 
+        eprintln!("Original: {} bytes, Compressed: {} bytes, Ratio: {:.1}%",
             result.original_size, result.compressed_size, result.ratio());
-        
+
         let decompressed = decompress_samples(&result.compressed, samples.len()).unwrap();
-        
+
         assert_eq!(decompressed.len(), samples.len());
         for (a, b) in samples.iter().zip(decompressed.iter()) {
             assert!((a - b).abs() < 1e-6, "Mismatch: {} vs {}", a, b);
@@ -152,16 +150,15 @@ mod tests {
     fn test_compression_result() {
         let samples: Vec<f32> = vec![0.1, 0.2, 0.3, 0.4, 0.5];
         let result = compress_samples(&samples).unwrap();
-        
-        assert_eq!(result.original_size, 20); // 5 f32s * 4 bytes
-        eprintln!("Compression ratio: {:.1}%", result.ratio());
+
+        assert_eq!(result.original_size, 20);         eprintln!("Compression ratio: {:.1}%", result.ratio());
     }
 
     #[test]
     fn test_empty_samples() {
         let samples: Vec<f32> = vec![];
         let result = compress_samples(&samples).unwrap();
-        
+
         assert!(result.compressed.is_empty());
         assert_eq!(result.original_size, 0);
     }
@@ -171,16 +168,16 @@ mod tests {
         let samples: Vec<f32> = (0..4096)
             .map(|i| (i as f32 * 0.01).sin())
             .collect();
-        
+
         let compressed = compress_waveform(&samples).unwrap();
-        
+
         eprintln!("Compression ratio: {:.1}%", compressed.compression_ratio());
-        eprintln!("Original: {} bytes, Compressed: {} bytes", 
+        eprintln!("Original: {} bytes, Compressed: {} bytes",
             compressed.original_size, compressed.compressed_size);
-        
+
         let decompressed = decompress_waveform(&compressed).unwrap();
         assert_eq!(decompressed.len(), samples.len());
-        
+
         for (i, (a, b)) in samples.iter().zip(decompressed.iter()).enumerate() {
             assert!((a - b).abs() < 1e-6, "Mismatch at {}: {} vs {}", i, a, b);
         }

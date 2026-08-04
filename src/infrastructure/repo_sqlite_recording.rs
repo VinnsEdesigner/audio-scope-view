@@ -13,8 +13,7 @@ struct RecordingRow {
     id: String,
     session_id: String,
     name: String,
-    samples: String, // JSON array
-    sample_count: i32,
+    samples: String,     sample_count: i32,
     sample_rate: i32,
     timestamp: String,
     duration_ms: f64,
@@ -31,8 +30,7 @@ struct RecordingRow {
     bit_depth: i32,
     is_pinned: bool,
     created_at: String,
-    waveform_overview: Option<String>, // JSON array of f32 (min-max pairs)
-}
+    waveform_overview: Option<String>, }
 
 #[derive(Debug, Clone, FromRow)]
 pub struct RecordingMetadataRow {
@@ -68,7 +66,7 @@ impl TryFrom<RecordingMetadataRow> for RecordingMetadata {
             .map(|json| serde_json::from_str(&json))
             .transpose()
             .map_err(|e| DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e)))?;
-        
+
         Ok(RecordingMetadata {
             id: row.id,
             session_id: row.session_id,
@@ -129,14 +127,14 @@ impl TryFrom<RecordingRow> for Recording {
 impl From<Recording> for RecordingRow {
     fn from(recording: Recording) -> Self {
         let samples_json = serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
-        
+
         let waveform_overview = if recording.samples.is_empty() {
             None
         } else {
             let overview = create_waveform_overview(&recording.samples, 1000);
             Some(serde_json::to_string(&overview).unwrap_or_else(|_| "[]".to_string()))
         };
-        
+
         Self {
             id: recording.id,
             session_id: recording.session_id,
@@ -220,8 +218,8 @@ impl SqliteRecordingRepository {
         sqlx::query(
             r#"
             INSERT INTO recordings (
-                id, session_id, name, samples, sample_count, sample_rate, timestamp, 
-                duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
+                id, session_id, name, samples, sample_count, sample_rate, timestamp,
+                duration_ms, size_bytes, peak_amplitude, rms_amplitude,
                 is_pinned, created_at, waveform_overview
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -263,8 +261,8 @@ impl SqliteRecordingRepository {
     pub async fn find_metadata_by_id(&self, id: &str) -> Result<Option<RecordingMetadata>, DomainError> {
         let row: Option<RecordingMetadataRow> = sqlx::query_as(
             r#"
-            SELECT id, session_id, name, sample_count, timestamp, 
-                   duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
+            SELECT id, session_id, name, sample_count, timestamp,
+                   duration_ms, size_bytes, peak_amplitude, rms_amplitude,
                    is_pinned, created_at, waveform_overview
             FROM recordings WHERE id = ?
             "#,
@@ -379,8 +377,8 @@ impl SqliteRecordingRepository {
     pub async fn get_recent(&self, limit: u32) -> Result<Vec<RecordingSummary>, DomainError> {
         let rows: Vec<RecordingRow> = sqlx::query_as(
             r#"
-            SELECT * FROM recordings 
-            ORDER BY is_pinned DESC, timestamp DESC 
+            SELECT * FROM recordings
+            ORDER BY is_pinned DESC, timestamp DESC
             LIMIT ?
             "#,
         )
@@ -418,7 +416,7 @@ impl SqliteRecordingRepository {
     pub async fn update(&self, recording: &Recording) -> Result<(), DomainError> {
         sqlx::query(
             r#"
-            UPDATE recordings SET 
+            UPDATE recordings SET
                 name = ?, is_pinned = ?
             WHERE id = ?
             "#,
@@ -488,7 +486,7 @@ impl SqliteRecordingRepository {
 
         let sql = format!(
             r#"
-            SELECT 
+            SELECT
                 COUNT(*) as total_recordings,
                 COALESCE(SUM(size_bytes), 0) as total_size_bytes,
                 COALESCE(SUM(duration_ms), 0) as total_duration_ms,
@@ -499,7 +497,7 @@ impl SqliteRecordingRepository {
         );
 
         let mut query = sqlx::query_as::<_, RecordingStatsRow>(&sql);
-        
+
         if let Some(sid) = session_id {
             query = query.bind(sid);
         }
@@ -536,7 +534,7 @@ impl SqliteRecordingRepository {
         };
 
         let mut query = sqlx::query_as::<_, RecordingStatsRow>(sql);
-        
+
         if let Some(sid) = session_id {
             query = query.bind(sid);
         }

@@ -93,7 +93,7 @@ impl ExportQueryRoot {
         format: ExportFormat,
     ) -> async_graphql::Result<ExportResult> {
         let context = ctx.data_unchecked::<GraphqlContext>();
-        
+
         let waveform = context.waveform_service.get(&waveform_id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get waveform: {}", e)))?
@@ -171,7 +171,7 @@ impl BatchCaptureMutationRoot {
         input: BatchCaptureInput,
     ) -> async_graphql::Result<BatchCaptureResult> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        
+
         let settings = BatchCaptureSettings {
             session_id: input.session_id,
             count: input.count,
@@ -203,7 +203,7 @@ impl SimulationMutationRoot {
         config: SimulationConfigInput,
     ) -> async_graphql::Result<bool> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        
+
         let sim_config = crate::application::simulation_service::SimulationConfig {
             waveform_ids: config.waveform_ids,
             loop_enabled: config.loop_enabled,
@@ -263,8 +263,7 @@ fn opt_system_time_to_epoch_secs(time: Option<std::time::SystemTime>) -> Option<
 #[derive(Debug, Clone, SimpleObject)]
 pub struct ApiKeyCreated {
     pub id: String,
-    pub key: String,  // Only shown once at creation!
-    pub name: String,
+    pub key: String,      pub name: String,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
@@ -298,7 +297,7 @@ impl ApiKeyQueryRoot {
     async fn api_keys(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<ApiKeyInfo>> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         let keys = key_store.list_keys().await;
-        
+
         Ok(keys.into_iter().map(|k| ApiKeyInfo {
             id: k.id,
             name: k.name,
@@ -312,7 +311,7 @@ impl ApiKeyQueryRoot {
 
     async fn api_key(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<Option<ApiKeyInfo>> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
+
         if let Some(k) = key_store.get_key_info(&id).await {
             let is_valid = k.expires_at.is_none_or(|exp| exp > std::time::SystemTime::now());
             Ok(Some(ApiKeyInfo {
@@ -331,7 +330,7 @@ impl ApiKeyQueryRoot {
 
     async fn verify_api_key(&self, ctx: &Context<'_>, key: String) -> async_graphql::Result<ApiKeyVerifyResult> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
+
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
         if verify_bootstrap_key(&key, &app_state.bootstrap_key_hash) {
             return Ok(ApiKeyVerifyResult {
@@ -342,7 +341,7 @@ impl ApiKeyQueryRoot {
                 expires_at: None,
             });
         }
-        
+
         if let Some(api_key) = key_store.validate(&key).await {
             return Ok(ApiKeyVerifyResult {
                 valid: true,
@@ -352,7 +351,7 @@ impl ApiKeyQueryRoot {
                 expires_at: opt_system_time_to_epoch_secs(api_key.expires_at),
             });
         }
-        
+
         Ok(ApiKeyVerifyResult {
             valid: false,
             key_id: None,
@@ -374,7 +373,7 @@ impl ApiKeyMutationRoot {
         input: CreateApiKeyInput,
     ) -> async_graphql::Result<ApiKeyCreated> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
+
         let api_key = if let Some(hours) = input.expires_in_hours {
             let duration = std::time::Duration::from_secs((hours as u64) * 3600);
             key_store.create_key_with_expiry(input.name, duration).await
@@ -388,8 +387,7 @@ impl ApiKeyMutationRoot {
 
         Ok(ApiKeyCreated {
             id: api_key.id,
-            key: api_key.key, // Only returned here once!
-            name: api_key.name,
+            key: api_key.key,             name: api_key.name,
         })
     }
 
@@ -400,20 +398,20 @@ impl ApiKeyMutationRoot {
         input: UpdateApiKeyInput,
     ) -> async_graphql::Result<bool> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
+
         if let Some(ref name) = input.name {
             key_store.update_key_name(&id, name).await;
         }
-        
+
         if let Some(limit) = input.rate_limit_per_minute {
             key_store.update_key_rate_limit(&id, limit as u32).await;
         }
-        
+
         if let Some(hours) = input.expires_in_hours {
             let duration = std::time::Duration::from_secs((hours as u64) * 3600);
             key_store.update_key_expiry(&id, duration).await;
         }
-        
+
         Ok(true)
     }
 

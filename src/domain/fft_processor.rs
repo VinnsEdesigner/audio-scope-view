@@ -233,9 +233,7 @@ mod tests {
     #[test]
     fn test_fft_sine_wave() {
         let sample_rate = 44100.0;
-        let frequency = 440.0; // A4 note
-        let duration = 0.01; // 10ms
-        let n = (sample_rate * duration) as usize;
+        let frequency = 440.0;         let duration = 0.01;         let n = (sample_rate * duration) as usize;
 
         let samples: Vec<f32> = (0..n)
             .map(|i| {

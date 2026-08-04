@@ -96,10 +96,8 @@ impl Default for WsConfig {
         Self {
             ping_interval_secs: 30,
             channel_size: 256,
-            max_message_size: 1024 * 1024, // 1MB
-            compression_enabled: true,
-            compression_threshold: 1024, // Compress if > 1KB
-        }
+            max_message_size: 1024 * 1024,             compression_enabled: true,
+            compression_threshold: 1024,         }
     }
 }
 
@@ -169,21 +167,20 @@ impl WsState {
 
     pub(crate) async fn add_to_live_buffer(&self, session_id: &str, samples: Vec<f32>, timestamp: i64, sample_rate: u32) {
         let mut buffers = self.live_waveform_buffers.write().await;
-        
+
         let buffer = buffers.entry(session_id.to_string()).or_insert_with(|| {
             LiveWaveformBuffer {
                 chunks: Vec::new(),
-                max_chunks: 100, // Keep ~100 chunks (~10 seconds at 100ms intervals)
-                session_id: session_id.to_string(),
+                max_chunks: 100,                 session_id: session_id.to_string(),
             }
         });
-        
+
         buffer.chunks.push(WaveformChunk {
             samples,
             timestamp,
             sample_rate,
         });
-        
+
         while buffer.chunks.len() > buffer.max_chunks {
             buffer.chunks.remove(0);
         }
@@ -247,7 +244,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>, config: WsConfig)
         async move {
             let mut sender = sender;
             let mut ping_interval = interval(Duration::from_secs(config.ping_interval_secs));
-            
+
             loop {
                 tokio::select! {
                     Some(msg) = rx.recv() => {
@@ -293,7 +290,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>, config: WsConfig)
     let _ = tx.send(welcome).await;
 
     let _client = WsClient::new();
-    
+
     let mut running = true;
     let sender_task = Some(sender_task);
     while running {
@@ -330,12 +327,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>, config: WsConfig)
                     }
                 }
             }
-            _ = async { 
+            _ = async {
                 if let Some(ref task) = sender_task {
                     if task.is_finished() {
                         return;
                     }
-                    let _ = task; 
+                    let _ = task;
                 }
                 futures_util::future::pending().await
             } => {
@@ -372,7 +369,7 @@ async fn handle_client_message(
                         client.subscribed_sessions.push(session_id);
                     }
             }
-            
+
             let response = OutgoingMessage::Subscribed {
                 session_id: session_id_clone.clone(),
                 stream_type: "waveform".to_string(),
@@ -380,7 +377,7 @@ async fn handle_client_message(
             let _ = sender.send(response).await;
             debug!("Client {} subscribed to waveform: {}", client_id, session_id_clone);
         }
-        
+
         WsMessage::Unsubscribe { session_id } => {
             let session_id_clone = session_id.clone();
             {
@@ -389,7 +386,7 @@ async fn handle_client_message(
                     client.subscribed_sessions.retain(|s| s != &session_id);
                 }
             }
-            
+
             let response = OutgoingMessage::Unsubscribed {
                 session_id: session_id_clone.clone(),
                 stream_type: "waveform".to_string(),
@@ -397,7 +394,7 @@ async fn handle_client_message(
             let _ = sender.send(response).await;
             debug!("Client {} unsubscribed from waveform: {}", client_id, session_id_clone);
         }
-        
+
         WsMessage::SubscribeSpectrum { session_id } => {
             let session_id_clone = session_id.clone();
             {
@@ -407,7 +404,7 @@ async fn handle_client_message(
                         client.subscribed_spectrum.push(session_id);
                     }
             }
-            
+
             let response = OutgoingMessage::Subscribed {
                 session_id: session_id_clone.clone(),
                 stream_type: "spectrum".to_string(),
@@ -415,7 +412,7 @@ async fn handle_client_message(
             let _ = sender.send(response).await;
             debug!("Client {} subscribed to spectrum: {}", client_id, session_id_clone);
         }
-        
+
         WsMessage::UnsubscribeSpectrum { session_id } => {
             let session_id_clone = session_id.clone();
             {
@@ -424,7 +421,7 @@ async fn handle_client_message(
                     client.subscribed_spectrum.retain(|s| s != &session_id);
                 }
             }
-            
+
             let response = OutgoingMessage::Unsubscribed {
                 session_id: session_id_clone.clone(),
                 stream_type: "spectrum".to_string(),
@@ -432,21 +429,19 @@ async fn handle_client_message(
             let _ = sender.send(response).await;
             debug!("Client {} unsubscribed from spectrum: {}", client_id, session_id_clone);
         }
-        
+
         WsMessage::WaveformData {
             session_id,
             samples,
             timestamp,
             sample_rate,
-            peak_amplitude: _,  // Ignored - server calculates own values
-            rms_amplitude: _,  // Ignored - server calculates own values
-        } => {
+            peak_amplitude: _,              rms_amplitude: _,          } => {
             let sample_rate_f = sample_rate as f32;
-            
+
             let waveform_analysis = crate::domain::measurements::analyze_waveform(&samples, sample_rate_f);
-            
+
             let harmonic_analysis = crate::domain::measurements::analyze_harmonics(&samples, sample_rate_f);
-            
+
             let harmonics: Vec<crate::api::schema_subscription::HarmonicComponent> = harmonic_analysis
                 .harmonics
                 .iter()
@@ -458,7 +453,7 @@ async fn handle_client_message(
                     phase: h.phase,
                 })
                 .collect();
-            
+
             let analysis_data = crate::api::schema_subscription::AnalysisResult {
                 session_id: session_id.clone(),
                 timestamp,
@@ -477,9 +472,9 @@ async fn handle_client_message(
                 harmonics,
             };
             state.broadcast_to_graphql_analysis(&session_id, analysis_data).await;
-            
+
             state.add_to_live_buffer(&session_id, samples.clone(), timestamp, sample_rate).await;
-            
+
             debug!(
                 "Received waveform data from client {} for session {}: {} samples, freq={:.1}Hz, thd={:.2}%, thdn={:.2}%",
                 client_id,
@@ -490,7 +485,7 @@ async fn handle_client_message(
                 harmonic_analysis.thdn * 100.0
             );
         }
-        
+
         WsMessage::AnalysisData {
             session_id,
             peak_amplitude,
@@ -506,16 +501,14 @@ async fn handle_client_message(
                 peak_amplitude,
                 rms_amplitude,
                 dominant_frequency,
-                thd: 0.0, // THD not sent from client
-                snr: 0.0, // SNR not sent from client
-                timestamp: chrono::Utc::now().timestamp_millis(),
+                thd: 0.0,                 snr: 0.0,                 timestamp: chrono::Utc::now().timestamp_millis(),
             };
-            
+
             let clients = state.clients.read().await;
             if let Some(client) = clients.get(client_id) {
                 let _ = client.sender.send(analysis).await;
             }
-            
+
             debug!(
                 "Received analysis data from client {} for session {}: peak={}, rms={}, freq={}",
                 client_id,
@@ -525,14 +518,14 @@ async fn handle_client_message(
                 dominant_frequency
             );
         }
-        
+
         WsMessage::Ping => {
             let response = OutgoingMessage::Pong;
             let _ = sender.send(response).await;
         }
-        
+
         WsMessage::Pong => {}
-        
+
         WsMessage::EnableCompression { enabled, threshold } => {
             {
                 let mut clients = state.clients.write().await;
@@ -540,14 +533,14 @@ async fn handle_client_message(
                     client.compression_enabled = enabled;
                 }
             }
-            
+
             let _ = threshold;
-            
+
             let response = OutgoingMessage::CompressionStatus { enabled };
             let _ = sender.send(response).await;
             debug!("Client {} compression enabled: {}", client_id, enabled);
         }
-        
+
         WsMessage::Error { message } => {
             warn!("Client {} error: {}", client_id, message);
             let response = OutgoingMessage::Error {
@@ -574,7 +567,7 @@ pub async fn broadcast_waveform(
 ) {
     let config = &state.config;
     let session_id_owned = session_id.to_string();
-    
+
     let use_compression = config.compression_enabled && samples.len() * 4 > config.compression_threshold;
     let compressed_data = if use_compression {
         compress_waveform(&samples).ok()
@@ -586,7 +579,7 @@ pub async fn broadcast_waveform(
     for (client_id, client) in clients.iter() {
         if client.is_subscribed_to_waveform(session_id) {
             debug!("Broadcasting waveform to subscribed client {}", client_id);
-            
+
             let msg = match (&compressed_data, client.compression_enabled) {
                 (Some(comp), true) => {
                     OutgoingMessage::CompressedWaveform {
@@ -686,13 +679,13 @@ mod tests {
     async fn test_client_subscription() {
         let state = WsState::new();
         let client_id = "test-client".to_string();
-        
+
         let (tx, _rx) = mpsc::channel(10);
         {
             let mut clients = state.clients.write().await;
             clients.insert(client_id.clone(), ClientConnection::new(client_id.clone(), tx));
         }
-        
+
         {
             let clients = state.clients.read().await;
             let client = clients.get(&client_id).unwrap();

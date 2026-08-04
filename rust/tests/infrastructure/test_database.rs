@@ -1,4 +1,3 @@
-//! Infrastructure tests for database operations
 
 #[cfg(test)]
 mod tests {
@@ -16,7 +15,7 @@ mod tests {
             (2, "create_settings"),
             (3, "create_waveforms"),
         ];
-        
+
         for (version, name) in migrations {
             assert!(version > 0);
             assert!(!name.is_empty());
@@ -25,15 +24,14 @@ mod tests {
 
     #[test]
     fn test_scope_row_serialization() {
-        // Test that scope data can be serialized to/from database rows
-        let row_data = serde_json::json!({
+                let row_data = serde_json::json!({
             "id": "test-123",
             "name": "Test Scope",
             "sample_rate": 44100,
             "buffer_size": 1024,
             "is_active": true
         });
-        
+
         assert_eq!(row_data["id"], "test-123");
         assert_eq!(row_data["sample_rate"], 44100);
     }
@@ -49,7 +47,7 @@ mod tests {
             "trigger_mode": "auto",
             "trigger_edge": "rising"
         });
-        
+
         assert_eq!(row_data["trigger_mode"], "auto");
         assert_eq!(row_data["trigger_edge"], "rising");
     }

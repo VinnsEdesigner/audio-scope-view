@@ -91,8 +91,7 @@ impl StreamStats {
 
     fn record_samples(&mut self, count: usize) {
         self.samples_captured += count as u64;
-        self.bytes_captured += count as u64 * 4; // f32 = 4 bytes
-        self.last_update = Some(Instant::now());
+        self.bytes_captured += count as u64 * 4;         self.last_update = Some(Instant::now());
     }
 
     fn record_buffer(&mut self) {
@@ -242,7 +241,7 @@ impl AudioStreamManager {
 
     pub async fn init_capture(&self) -> crate::domain::DomainResult<()> {
         let backend = *self.backend_type.read().unwrap();
-        
+
         let capture: Box<dyn AudioCaptureBackend> = match backend {
             AudioBackendType::Mock => {
                 info!("Initializing mock audio capture backend");
@@ -366,7 +365,7 @@ impl AudioStreamManager {
 
     pub async fn read_and_process(&self) -> crate::domain::DomainResult<usize> {
         let mut buffer = vec![0.0f32; 4096];
-        
+
         let sample_rate = {
             let capture_guard = self.capture.read().unwrap();
             match capture_guard.as_ref() {
@@ -381,7 +380,7 @@ impl AudioStreamManager {
                 if !capture.is_capturing() {
                     return Ok(0);
                 }
-                
+
                 let samples_read = capture.read_samples(&mut buffer).await?;
                 if samples_read == 0 {
                     return Ok(0);
@@ -400,21 +399,21 @@ impl AudioStreamManager {
             let mut session_stats = session.stats.clone();
             session_stats.record_samples(buffer.len());
             session_stats.record_buffer();
-            
+
             if let Some(start) = session.capture_start {
                 session_stats.capture_duration_ms = start.elapsed().as_millis() as u64;
             }
 
             if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
                 let timestamp_ms = chrono::Utc::now().timestamp_millis();
-                
+
                 let event = AudioStreamEvent::Waveform {
                     session_id: session_id.clone(),
                     samples: buffer.clone(),
                     timestamp_ms,
                     sample_rate,
                 };
-                
+
                 if sender.send(event).await.is_err() {
                     warn!("Failed to send waveform event for session {}", session_id);
                 }
@@ -524,27 +523,27 @@ mod tests {
     #[tokio::test]
     async fn test_session_registration() {
         let manager = AudioStreamManager::new();
-        
+
         let config = StreamConfig {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
-        
+
         manager.register_session(config.clone()).unwrap();
         assert!(manager.get_session_config("test-session").is_some());
-        
+
         assert!(manager.register_session(config).is_err());
     }
 
     #[tokio::test]
     async fn test_session_unregistration() {
         let manager = AudioStreamManager::new();
-        
+
         let config = StreamConfig {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
-        
+
         manager.register_session(config).unwrap();
         assert!(manager.unregister_session("test-session"));
         assert!(!manager.unregister_session("nonexistent"));
@@ -554,13 +553,13 @@ mod tests {
     async fn test_capture_lifecycle() {
         let manager = AudioStreamManager::new();
         manager.init_capture().await.unwrap();
-        
+
         let config = StreamConfig {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
         manager.register_session(config).unwrap();
-        
+
         assert!(!manager.is_any_capturing());
     }
 }

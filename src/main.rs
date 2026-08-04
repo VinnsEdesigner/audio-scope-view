@@ -38,15 +38,15 @@ async fn audio_event_processor(
 ) {
     while let Some(event) = event_receiver.recv().await {
         match event {
-            AudioStreamEvent::Waveform { 
-                session_id, 
-                samples, 
-                timestamp_ms, 
-                sample_rate 
+            AudioStreamEvent::Waveform {
+                session_id,
+                samples,
+                timestamp_ms,
+                sample_rate
             } => {
                 let peak = samples.iter().fold(0.0f32, |max, &s| max.max(s.abs()));
                 let rms = (samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
-                
+
                 let waveform_data = WaveformData {
                     session_id: session_id.clone(),
                     samples: samples.clone(),
@@ -55,14 +55,14 @@ async fn audio_event_processor(
                     peak_amplitude: peak,
                     rms_amplitude: rms,
                 };
-                
+
                 ws_state.broadcast_to_graphql_waveform(&session_id, waveform_data).await;
             }
-            AudioStreamEvent::Spectrum { 
-                session_id, 
-                frequencies, 
-                magnitudes, 
-                timestamp_ms 
+            AudioStreamEvent::Spectrum {
+                session_id,
+                frequencies,
+                magnitudes,
+                timestamp_ms
             } => {
                 let spectrum_data = SpectrumData {
                     session_id: session_id.clone(),
@@ -70,7 +70,7 @@ async fn audio_event_processor(
                     magnitudes: magnitudes.clone(),
                     timestamp: timestamp_ms,
                 };
-                
+
                 ws_state.broadcast_to_graphql_spectrum(&session_id, spectrum_data).await;
             }
             AudioStreamEvent::DeviceDisconnected { session_id, reason } => {
@@ -87,7 +87,7 @@ async fn audio_event_processor(
             }
         }
     }
-    
+
     warn!("Audio event processor stopped");
 }
 
@@ -97,28 +97,26 @@ async fn stats_reporter(
     interval_secs: u64,
 ) {
     let mut ticker = interval(Duration::from_secs(interval_secs));
-    
+
     loop {
         ticker.tick().await;
-        
+
         let active_sessions = stream_manager.active_sessions();
-        
+
         for session_id in active_sessions {
             if let Some(stats) = stream_manager.get_session_stats(&session_id) {
                 let samples_per_second = stats.samples_captured
                     .checked_mul(1000)
                     .and_then(|v| v.checked_div(stats.capture_duration_ms))
                     .unwrap_or(0) as u32;
-                
+
                 let audio_stats = AudioStats {
                     session_id: session_id.clone(),
                     samples_per_second,
-                    dropped_samples: stats.errors, // Use errors as proxy for dropped
-                    buffer_fill_percent: 0.0, // Not tracked in StreamStats
-                    capture_duration_ms: stats.capture_duration_ms,
+                    dropped_samples: stats.errors,                     buffer_fill_percent: 0.0,                     capture_duration_ms: stats.capture_duration_ms,
                     is_capturing: stream_manager.is_any_capturing(),
                 };
-                
+
                 ws_state.broadcast_to_graphql_stats(&session_id, audio_stats).await;
             }
         }
@@ -190,7 +188,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(devices) => {
             for device in &devices {
                 let default_marker = if device.is_default { " [DEFAULT]" } else { "" };
-                info!("Audio device: {} ({} ch, {} Hz){}", 
+                info!("Audio device: {} ({} ch, {} Hz){}",
                     device.name, device.channels, device.sample_rate, default_marker);
             }
         }
@@ -230,9 +228,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
 
     let address = config.server_address();
-    info!("GraphQL endpoint: http://{}/graphql", address);
-    info!("Health: http://{}/health", address);
-    
+    info!("GraphQL endpoint: http:    info!("Health: http:
     if let Err(e) = start_server(&address, state).await {
         error!("Server error: {}", e);
     }
