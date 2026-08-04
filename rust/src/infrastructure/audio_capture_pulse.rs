@@ -4,7 +4,6 @@ use crate::domain::DomainResult;
 use crate::domain::trait_audio_capture::{AudioCapture, AudioDevice};
 use async_trait::async_trait;
 
-/// PulseAudio capture - stub implementation
 pub struct PulseAudioCapture {
     is_capturing: bool,
     sample_rate: u32,
@@ -18,7 +17,6 @@ impl PulseAudioCapture {
         }
     }
 
-    /// Get the current sample rate
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
@@ -63,7 +61,6 @@ impl AudioCapture for PulseAudioCapture {
             }
             return Ok(buffer.len() as u32);
         }
-        // Stub: return silence
         for sample in buffer.iter_mut() {
             *sample = 0.0;
         }

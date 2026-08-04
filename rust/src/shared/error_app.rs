@@ -1,9 +1,7 @@
 #![allow(dead_code)]
-//! Application error types
 
 use thiserror::Error;
 
-/// Application-level errors
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Configuration error: {0}")]
@@ -57,5 +55,4 @@ impl AppError {
     }
 }
 
-/// Result type alias for application operations
 pub type AppResult<T> = Result<T, AppError>;

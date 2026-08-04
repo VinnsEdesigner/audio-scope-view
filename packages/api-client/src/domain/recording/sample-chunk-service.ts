@@ -120,7 +120,7 @@ export class SampleChunkService {
     recordingId: string,
     startMs: number,
     endMs: number,
-    sampleRate: number = 44100,
+    sampleRate: number = 44_100,
   ): Promise<SampleChunkResponse> {
     const startSample = Math.floor((startMs / 1000) * sampleRate);
     const endSample = Math.ceil((endMs / 1000) * sampleRate);

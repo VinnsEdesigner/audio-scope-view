@@ -1,8 +1,6 @@
-//! Dashboard-specific domain errors
 
 use crate::domain::_shared::domain_errors::DomainError;
 
-/// Error types specific to dashboard operations
 #[derive(Debug, Clone)]
 pub enum DashboardError {
     SummaryGenerationFailed(String),

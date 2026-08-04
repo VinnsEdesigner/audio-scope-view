@@ -1,4 +1,3 @@
-//! Settings feature domain module
 
 pub mod types;
 pub mod validation;

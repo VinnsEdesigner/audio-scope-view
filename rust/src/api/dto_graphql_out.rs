@@ -1,9 +1,7 @@
 #![allow(dead_code)]
-//! GraphQL output DTOs - Response types to clients
 
 use async_graphql::SimpleObject;
 
-/// Pagination info for list responses
 #[derive(Debug, SimpleObject)]
 pub struct PageInfo {
     pub total: u32,
@@ -23,7 +21,6 @@ impl PageInfo {
     }
 }
 
-/// Scope output DTO
 #[derive(Debug, SimpleObject)]
 pub struct ScopeOutput {
     pub id: String,
@@ -36,14 +33,12 @@ pub struct ScopeOutput {
     pub updated_at: String,
 }
 
-/// Paginated scopes result
 #[derive(Debug, SimpleObject)]
 pub struct ScopesResult {
     pub items: Vec<ScopeOutput>,
     pub page_info: PageInfo,
 }
 
-/// Settings output DTO
 #[derive(Debug, SimpleObject)]
 pub struct SettingsOutput {
     pub id: String,
@@ -65,7 +60,6 @@ pub struct SettingsOutput {
     pub updated_at: String,
 }
 
-/// Waveform data output DTO
 #[derive(Debug, SimpleObject)]
 pub struct WaveformOutput {
     pub id: String,
@@ -77,7 +71,6 @@ pub struct WaveformOutput {
     pub rms_amplitude: f32,
 }
 
-/// Real-time waveform stream data
 #[derive(Debug, SimpleObject)]
 pub struct WaveformStreamOutput {
     pub scope_id: String,
@@ -88,7 +81,6 @@ pub struct WaveformStreamOutput {
     pub rms_amplitude: f32,
 }
 
-/// Recent scope info for dashboard
 #[derive(Debug, SimpleObject)]
 pub struct RecentScopeOutput {
     pub id: String,
@@ -98,7 +90,6 @@ pub struct RecentScopeOutput {
     pub is_active: bool,
 }
 
-/// Dashboard summary output DTO
 #[derive(Debug, SimpleObject)]
 pub struct DashboardSummaryOutput {
     pub total_scopes: u32,
@@ -113,7 +104,6 @@ pub struct DashboardSummaryOutput {
     pub recent_scopes: Vec<RecentScopeOutput>,
 }
 
-/// Health check output
 #[derive(Debug, SimpleObject)]
 pub struct HealthOutput {
     pub status: String,
@@ -122,7 +112,6 @@ pub struct HealthOutput {
     pub database_connected: bool,
 }
 
-/// Audio device info output
 #[derive(Debug, SimpleObject)]
 pub struct AudioDeviceOutput {
     pub id: String,
@@ -132,7 +121,6 @@ pub struct AudioDeviceOutput {
     pub is_default: bool,
 }
 
-/// Capture state output
 #[derive(Debug, SimpleObject)]
 pub struct CaptureStateOutput {
     pub scope_id: String,
@@ -142,7 +130,6 @@ pub struct CaptureStateOutput {
     pub duration_seconds: Option<f64>,
 }
 
-/// Operation result for mutations
 #[derive(Debug, SimpleObject)]
 pub struct OperationResult {
     pub success: bool,

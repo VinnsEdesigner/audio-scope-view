@@ -1,58 +1,36 @@
-//! Audio Measurements - THD, SNR, and other audio metrics
 
 #![allow(dead_code)]
 #![allow(clippy::manual_clamp)]
 
-/// Audio waveform analysis results
 #[derive(Debug, Clone, Default)]
 pub struct WaveformAnalysis {
-    /// Peak amplitude (0 to 1)
     pub peak_amplitude: f32,
-    /// RMS amplitude (0 to 1)
     pub rms_amplitude: f32,
-    /// Dominant/peak frequency in Hz
     pub dominant_frequency: f32,
-    /// Total Harmonic Distortion (0 to 1, displayed as %)
     pub thd: f32,
-    /// Signal-to-Noise Ratio in dB
     pub snr: f32,
-    /// Crest factor (peak/rms ratio)
     pub crest_factor: f32,
-    /// DC offset (average)
     pub dc_offset: f32,
 }
 
-/// Frequency component in harmonic analysis
 #[derive(Debug, Clone)]
 pub struct FrequencyComponent {
-    /// Frequency in Hz
     pub frequency: f32,
-    /// Magnitude/amplitude
     pub magnitude: f32,
-    /// Harmonic number (1 = fundamental)
     pub harmonic: u32,
-    /// Phase in radians
     pub phase: f32,
 }
 
-/// Harmonic analysis result
 #[derive(Debug, Clone)]
 pub struct HarmonicAnalysis {
-    /// Fundamental frequency
     pub fundamental: FrequencyComponent,
-    /// Harmonic components
     pub harmonics: Vec<FrequencyComponent>,
-    /// THD calculated from harmonics
     pub thd: f32,
-    /// THD+N (Total Harmonic Distortion + Noise)
     pub thdn: f32,
-    /// Signal energy
     pub signal_energy: f32,
-    /// Noise energy
     pub noise_energy: f32,
 }
 
-/// Analyze a waveform and compute all measurements
 pub fn analyze_waveform(samples: &[f32], sample_rate: f32) -> WaveformAnalysis {
     if samples.is_empty() {
         return WaveformAnalysis::default();
@@ -81,7 +59,6 @@ pub fn analyze_waveform(samples: &[f32], sample_rate: f32) -> WaveformAnalysis {
     }
 }
 
-/// Find peak (maximum absolute) amplitude
 pub fn find_peak_amplitude(samples: &[f32]) -> f32 {
     samples
         .iter()
@@ -89,7 +66,12 @@ pub fn find_peak_amplitude(samples: &[f32]) -> f32 {
         .fold(0.0f32, |max, x| if x > max { x } else { max })
 }
 
-/// Compute RMS (Root Mean Square) amplitude
+pub fn find_negative_peak_amplitude(samples: &[f32]) -> f32 {
+    samples
+        .iter()
+        .fold(0.0f32, |min, &x| if x < min { x } else { min })
+}
+
 pub fn compute_rms(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
@@ -100,7 +82,6 @@ pub fn compute_rms(samples: &[f32]) -> f32 {
     mean_square.sqrt()
 }
 
-/// Compute DC offset (average)
 pub fn compute_dc_offset(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
@@ -108,7 +89,6 @@ pub fn compute_dc_offset(samples: &[f32]) -> f32 {
     samples.iter().sum::<f32>() / samples.len() as f32
 }
 
-/// Zero crossing rate (useful for frequency estimation)
 pub fn zero_crossing_rate(samples: &[f32]) -> f32 {
     if samples.len() < 2 {
         return 0.0;
@@ -124,14 +104,12 @@ pub fn zero_crossing_rate(samples: &[f32]) -> f32 {
     crossings as f32 / (samples.len() - 1) as f32
 }
 
-/// Estimate dominant frequency using zero-crossing method
 pub fn estimate_dominant_frequency(samples: &[f32], sample_rate: f32) -> f32 {
     let zcr = zero_crossing_rate(samples);
     let freq = zcr * sample_rate / 2.0;
     freq.max(20.0).min(sample_rate / 2.0)
 }
 
-/// Estimate THD and SNR from waveform
 pub fn estimate_thd_snr(samples: &[f32], _rms: f32) -> (f32, f32) {
     if samples.is_empty() {
         return (0.0, 100.0);
@@ -179,7 +157,6 @@ fn compute_harmonic_ratio(samples: &[f32]) -> f32 {
     (1.0_f32 - flatness).max(0.0_f32).min(1.0_f32)
 }
 
-/// Perform detailed harmonic analysis using FFT
 #[allow(dead_code)]
 pub fn analyze_harmonics(samples: &[f32], sample_rate: f32) -> HarmonicAnalysis {
     use super::fft_processor::{FftProcessor, WindowType};
@@ -280,14 +257,83 @@ pub fn analyze_harmonics(samples: &[f32], sample_rate: f32) -> HarmonicAnalysis 
     }
 }
 
-/// Format THD as percentage string
 pub fn format_thd(thd: f32) -> String {
     format!("{:.2}%", thd)
 }
 
-/// Format SNR as dB string
 pub fn format_snr(snr: f32) -> String {
     format!("{:.1} dB", snr)
+}
+
+
+const DBFS_REFERENCE: f32 = 1.0;
+
+pub fn amplitude_to_db(amplitude: f32) -> f32 {
+    if amplitude <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * amplitude.log10()
+    }
+}
+
+pub fn db_to_amplitude(db: f32) -> f32 {
+    if db == f32::NEG_INFINITY {
+        0.0
+    } else {
+        10.0_f32.powf(db / 20.0)
+    }
+}
+
+pub fn peak_to_dbfs(peak_amplitude: f32) -> f32 {
+    if peak_amplitude <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * (peak_amplitude / DBFS_REFERENCE).log10()
+    }
+}
+
+pub fn rms_to_dbfs(rms_amplitude: f32) -> f32 {
+    if rms_amplitude <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * (rms_amplitude / DBFS_REFERENCE).log10()
+    }
+}
+
+pub fn dbfs_to_amplitude(dbfs: f32) -> f32 {
+    db_to_amplitude(dbfs)
+}
+
+pub fn format_db(value_db: f32) -> String {
+    if value_db == f32::NEG_INFINITY {
+        "-∞ dB".to_string()
+    } else {
+        format!("{:.1} dB", value_db)
+    }
+}
+
+pub fn format_dbfs(value_dbfs: f32) -> String {
+    if value_dbfs == f32::NEG_INFINITY {
+        "-∞ dBFS".to_string()
+    } else {
+        format!("{:.1} dBFS", value_dbfs)
+    }
+}
+
+pub fn crest_factor_db(crest_factor: f32) -> f32 {
+    if crest_factor <= 0.0 {
+        f32::NEG_INFINITY
+    } else {
+        20.0 * crest_factor.log10()
+    }
+}
+
+pub fn snr_to_db(signal_amplitude: f32, noise_amplitude: f32) -> f32 {
+    if signal_amplitude <= 0.0 || noise_amplitude <= 0.0 {
+        0.0
+    } else {
+        20.0 * (signal_amplitude / noise_amplitude).log10()
+    }
 }
 
 #[cfg(test)]
@@ -297,8 +343,6 @@ mod tests {
 
     #[test]
     fn test_rms_sine_wave() {
-        // RMS of a sine wave with peak=1 should be 1/sqrt(2) ≈ 0.707
-        // Use a complete number of periods to avoid partial cycles
         let samples: Vec<f32> = (0..10000)
             .map(|i| (i as f32 * 2.0 * std::f32::consts::PI / 100.0).sin())
             .collect();
@@ -338,5 +382,59 @@ mod tests {
         let analysis = analyze_waveform(&samples, sample_rate);
         assert!((analysis.peak_amplitude - 0.8).abs() < 0.01);
         assert!((analysis.crest_factor - 1.414).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_amplitude_to_db() {
+        assert!((amplitude_to_db(1.0) - 0.0).abs() < 0.001);
+        assert!((amplitude_to_db(0.5) - (-6.0206)).abs() < 0.01);
+        let result = amplitude_to_db(0.0);
+        assert!(result.is_infinite() && result.is_sign_negative());
+    }
+
+    #[test]
+    fn test_db_to_amplitude() {
+        assert!((db_to_amplitude(0.0) - 1.0).abs() < 0.001);
+        assert!((db_to_amplitude(-6.0206) - 0.5).abs() < 0.01);
+        assert!((db_to_amplitude(f32::NEG_INFINITY) - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_peak_to_dbfs() {
+        assert!((peak_to_dbfs(1.0) - 0.0).abs() < 0.001);
+        assert!((peak_to_dbfs(0.707).abs() - 3.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_rms_to_dbfs() {
+        assert!((rms_to_dbfs(1.0) - 0.0).abs() < 0.001);
+        assert!((rms_to_dbfs(0.5) - (-6.0206)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_db_roundtrip() {
+        let original = 0.75;
+        let db = amplitude_to_db(original);
+        let recovered = db_to_amplitude(db);
+        assert!((original - recovered).abs() < 0.0001);
+
+        let original_dbfs = -12.0;
+        let amp = dbfs_to_amplitude(original_dbfs);
+        let recovered_dbfs = rms_to_dbfs(amp);
+        assert!((original_dbfs - recovered_dbfs).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_format_db() {
+        assert_eq!(format_db(0.0), "0.0 dB");
+        assert_eq!(format_db(-6.0), "-6.0 dB");
+        assert_eq!(format_db(f32::NEG_INFINITY), "-∞ dB".to_string());
+    }
+
+    #[test]
+    fn test_format_dbfs() {
+        assert_eq!(format_dbfs(0.0), "0.0 dBFS");
+        assert_eq!(format_dbfs(-3.0), "-3.0 dBFS");
+        assert_eq!(format_dbfs(f32::NEG_INFINITY), "-∞ dBFS".to_string());
     }
 }

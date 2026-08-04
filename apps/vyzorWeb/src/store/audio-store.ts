@@ -5,6 +5,7 @@ export interface MediaDevice {
   deviceId: string;
   label: string;
   kind: MediaDeviceKind;
+  groupId: string;
 }
 
 export interface ProcessedAudio {
@@ -12,6 +13,15 @@ export interface ProcessedAudio {
   sampleRate: number;
   timestamp: number;
   channels: number;
+}
+
+export interface SystemAudioInfo {
+  browserName: string;
+  browserVersion: string;
+  userAgent: string;
+  supportedSampleRates: number[];
+  defaultSampleRate: number;
+  maxChannels: number;
 }
 
 export interface AudioState {
@@ -23,6 +33,7 @@ export interface AudioState {
   devices: MediaDevice[];
   selectedDeviceId: string | undefined;
   permissionState: PermissionState;
+  systemInfo: SystemAudioInfo | undefined;
 
   sampleRate: number;
   bufferSize: number;
@@ -40,6 +51,7 @@ export interface AudioActions {
   setDevices: (devices: MediaDevice[]) => void;
   setSelectedDeviceId: (deviceId: string | undefined) => void;
   setPermissionState: (state: PermissionState) => void;
+  setSystemInfo: (info: SystemAudioInfo) => void;
 
   setSampleRate: (sampleRate: number) => void;
   setBufferSize: (bufferSize: number) => void;
@@ -59,6 +71,7 @@ const initialState: AudioState = {
   devices: [],
   selectedDeviceId: undefined,
   permissionState: "prompt",
+  systemInfo: undefined,
   sampleRate: 48_000,
   bufferSize: 512,
   audioContext: undefined,
@@ -84,6 +97,7 @@ export const useAudioStore = create<AudioStore>()(
           };
         }),
       setPermissionState: (permissionState) => set({ permissionState }),
+      setSystemInfo: (systemInfo) => set({ systemInfo }),
 
       setSampleRate: (sampleRate) => set({ sampleRate }),
       setBufferSize: (bufferSize) => set({ bufferSize }),

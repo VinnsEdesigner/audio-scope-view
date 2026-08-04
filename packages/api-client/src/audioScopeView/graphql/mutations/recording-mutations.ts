@@ -25,10 +25,17 @@ export const DELETE_RECORDING = gql`
   }
 `;
 
-export const START_RECORDING = gql`
+export interface CreateRecordingInput {
+  sessionId: string;
+  name: string;
+  samples: number[];
+  sampleRate: number;
+}
+
+export const CREATE_RECORDING = gql`
   ${RECORDING_FIELDS}
-  mutation StartRecording($sessionId: String!, $name: String) {
-    start_recording(sessionId: $sessionId, name: $name) {
+  mutation CreateRecording($input: CreateRecordingInput!) {
+    createRecording(input: $input) {
       ...RecordingFields
     }
   }

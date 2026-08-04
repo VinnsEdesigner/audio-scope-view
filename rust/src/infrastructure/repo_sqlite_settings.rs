@@ -1,4 +1,3 @@
-//! SQLite implementation of SettingsRepository
 
 #![allow(dead_code)]
 use chrono::{DateTime, Utc};
@@ -6,7 +5,6 @@ use sqlx::{FromRow, SqlitePool};
 
 use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
 
-/// Raw settings row from database
 #[derive(FromRow)]
 struct SettingsRow {
     id: String,
@@ -63,7 +61,6 @@ impl TryFrom<SettingsRow> for Settings {
     }
 }
 
-/// Parse datetime from SQLite string
 fn parse_datetime(s: &str) -> Result<DateTime<Utc>, DomainError> {
     DateTime::parse_from_rfc3339(s)
         .map(|dt| dt.with_timezone(&Utc))
@@ -73,7 +70,6 @@ fn parse_datetime(s: &str) -> Result<DateTime<Utc>, DomainError> {
         .map_err(|_| DomainError::corruption(format!("Invalid datetime format: {}", s)))
 }
 
-/// SQLite implementation of SettingsRepository
 pub struct SqliteSettingsRepository {
     pool: SqlitePool,
 }

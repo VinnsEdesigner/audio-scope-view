@@ -13,10 +13,7 @@ import {
   DELETE_RECORDING,
   PIN_RECORDINGS,
   DELETE_RECORDINGS,
-  START_RECORDING,
-  STOP_RECORDING,
-  PAUSE_RECORDING,
-  RESUME_RECORDING,
+  CREATE_RECORDING,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations/recording-mutations";
 import type { TimeRange, RecordingPreview } from "@audio-scope-view/api-client/domain/recording";
 import { transformRecordingPreview } from "@audio-scope-view/api-client/domain/recording";
@@ -30,10 +27,11 @@ export interface UseRecordingResult {
   error?: Error;
   called: boolean;
   client: ApolloClient<NormalizedCacheObject>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  refetch: (variables?: any) => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fetchMore: (variables?: any) => Promise<any>;
+
+  refetch: <T = RecordingPreview>(
+    variables?: Record<string, unknown>,
+  ) => Promise<{ data: T | undefined }>;
+  fetchMore: (variables?: Record<string, unknown>) => Promise<unknown>;
 }
 
 export interface UseRecordingsOptions {
@@ -65,9 +63,9 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
             : undefined;
 
   const filter = {
-    time_range: timeRangeFilter,
-    session_id: sessionId,
-    is_pinned: pinnedOnly ? true : undefined,
+    timeRange: sessionId ? undefined : timeRangeFilter,
+    sessionId: sessionId,
+    isPinned: pinnedOnly ? true : undefined,
   };
 
   return useQuery(GET_RECORDINGS, {
@@ -76,7 +74,7 @@ export function useRecordings(options: UseRecordingsOptions = {}) {
       limit,
       offset,
     },
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
   });
 }
 
@@ -106,9 +104,16 @@ export function useRecording(recordingId: string | undefined): UseRecordingResul
     : undefined;
 
   return {
-    ...queryResult,
     data: recording ?? undefined,
     recordingPreview: recording,
+    loading: queryResult.loading,
+    error: queryResult.error,
+    called: queryResult.called,
+    client: queryResult.client,
+    refetch: queryResult.refetch,
+    fetchMore: async (variables?: Record<string, unknown>) => {
+      return queryResult.fetchMore({ variables }) as Promise<unknown>;
+    },
   };
 }
 
@@ -150,26 +155,8 @@ export function useDeleteRecordings() {
   });
 }
 
-export function useStartRecording() {
-  return useMutation(START_RECORDING, {
+export function useCreateRecording() {
+  return useMutation(CREATE_RECORDING, {
     refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
-  });
-}
-
-export function useStopRecording() {
-  return useMutation(STOP_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
-  });
-}
-
-export function usePauseRecording() {
-  return useMutation(PAUSE_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
-  });
-}
-
-export function useResumeRecording() {
-  return useMutation(RESUME_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
   });
 }

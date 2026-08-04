@@ -18,60 +18,45 @@ use crate::infrastructure::audio_capture_real::RealAudioCapture;
 use crate::infrastructure::audio_capture_mock::MockAudioCapture;
 use crate::infrastructure::audio_capture_pulse::PulseAudioCapture;
 
-/// Message types for audio stream events
 #[derive(Debug, Clone)]
 pub enum AudioStreamEvent {
-    /// New waveform data available
     Waveform {
         session_id: String,
         samples: Vec<f32>,
         timestamp_ms: i64,
         sample_rate: u32,
     },
-    /// New spectrum data available
     Spectrum {
         session_id: String,
         frequencies: Vec<f32>,
         magnitudes: Vec<f32>,
         timestamp_ms: i64,
     },
-    /// Audio device disconnected
     DeviceDisconnected {
         session_id: String,
         reason: String,
     },
-    /// Error occurred
     Error {
         session_id: String,
         message: String,
     },
-    /// Capture started
     CaptureStarted {
         session_id: String,
         sample_rate: u32,
     },
-    /// Capture stopped
     CaptureStopped {
         session_id: String,
     },
 }
 
-/// Stream configuration
 #[derive(Debug, Clone)]
 pub struct StreamConfig {
-    /// Session ID this stream is for
     pub session_id: String,
-    /// Sample rate (0 = use default)
     pub sample_rate: u32,
-    /// Buffer size in samples
     pub buffer_size: usize,
-    /// Whether to compute spectrum
     pub enable_spectrum: bool,
-    /// FFT window type
     pub fft_window: WindowType,
-    /// FFT size (must be power of 2)
     pub fft_size: usize,
-    /// Stream update interval in ms (0 = every buffer)
     pub update_interval_ms: u64,
 }
 
@@ -89,7 +74,6 @@ impl Default for StreamConfig {
     }
 }
 
-/// Statistics for a stream
 #[derive(Debug, Clone, Default)]
 pub struct StreamStats {
     pub bytes_captured: u64,
@@ -107,8 +91,7 @@ impl StreamStats {
 
     fn record_samples(&mut self, count: usize) {
         self.samples_captured += count as u64;
-        self.bytes_captured += count as u64 * 4; // f32 = 4 bytes
-        self.last_update = Some(Instant::now());
+        self.bytes_captured += count as u64 * 4;         self.last_update = Some(Instant::now());
     }
 
     fn record_buffer(&mut self) {
@@ -120,7 +103,6 @@ impl StreamStats {
     }
 }
 
-/// Per-session audio stream state
 struct SessionStream {
     config: StreamConfig,
     stats: StreamStats,
@@ -139,24 +121,16 @@ impl SessionStream {
     }
 }
 
-/// AudioStreamManager - Central manager for all audio streams
 pub struct AudioStreamManager {
-    /// Backend audio capture implementation
     #[cfg(feature = "real-audio")]
     capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
     #[cfg(not(feature = "real-audio"))]
     capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
-    /// Per-session stream configurations
     sessions: RwLock<HashMap<String, SessionStream>>,
-    /// FFT processor for spectrum analysis
     fft: RwLock<FftProcessor>,
-    /// Event sender for broadcasting to clients
     event_sender: RwLock<Option<mpsc::Sender<AudioStreamEvent>>>,
-    /// Background task handle
     task_handle: RwLock<Option<JoinHandle<()>>>,
-    /// Master stop signal
     stop_signal: AtomicBool,
-    /// Current backend type
     backend_type: RwLock<AudioBackendType>,
 }
 
@@ -169,20 +143,13 @@ pub enum AudioBackendType {
     Real,
 }
 
-/// Trait for audio capture backends
 #[async_trait]
 pub trait AudioCaptureBackend: Send + Sync {
-    /// Start capturing audio
     async fn start(&mut self, device_id: Option<&str>) -> crate::domain::DomainResult<()>;
-    /// Stop capturing audio
     async fn stop(&mut self) -> crate::domain::DomainResult<()>;
-    /// Check if currently capturing
     fn is_capturing(&self) -> bool;
-    /// Read audio samples
     async fn read_samples(&mut self, buffer: &mut [f32]) -> crate::domain::DomainResult<u32>;
-    /// Get available devices
     async fn get_devices(&self) -> crate::domain::DomainResult<Vec<crate::domain::trait_audio_capture::AudioDevice>>;
-    /// Get current sample rate
     fn sample_rate(&self) -> u32;
 }
 
@@ -254,7 +221,6 @@ impl AudioCaptureBackend for RealAudioCapture {
 }
 
 impl AudioStreamManager {
-    /// Create a new AudioStreamManager
     pub fn new() -> Self {
         Self {
             capture: RwLock::new(None),
@@ -267,17 +233,15 @@ impl AudioStreamManager {
         }
     }
 
-    /// Create with a specific backend
     pub fn with_backend(backend: AudioBackendType) -> Self {
         let manager = Self::new();
         *manager.backend_type.write().unwrap() = backend;
         manager
     }
 
-    /// Initialize the capture backend
     pub async fn init_capture(&self) -> crate::domain::DomainResult<()> {
         let backend = *self.backend_type.read().unwrap();
-        
+
         let capture: Box<dyn AudioCaptureBackend> = match backend {
             AudioBackendType::Mock => {
                 info!("Initializing mock audio capture backend");
@@ -300,12 +264,10 @@ impl AudioStreamManager {
         Ok(())
     }
 
-    /// Set the event sender for broadcasting events
     pub fn set_event_sender(&self, sender: mpsc::Sender<AudioStreamEvent>) {
         *self.event_sender.write().unwrap() = Some(sender);
     }
 
-    /// Register a session stream configuration
     pub fn register_session(&self, config: StreamConfig) -> crate::domain::DomainResult<()> {
         let mut sessions = self.sessions.write().unwrap();
         if sessions.contains_key(&config.session_id) {
@@ -317,34 +279,28 @@ impl AudioStreamManager {
         Ok(())
     }
 
-    /// Unregister a session
     pub fn unregister_session(&self, session_id: &str) -> bool {
         let mut sessions = self.sessions.write().unwrap();
         sessions.remove(session_id).is_some()
     }
 
-    /// Get session configuration
     pub fn get_session_config(&self, session_id: &str) -> Option<StreamConfig> {
         let sessions = self.sessions.read().unwrap();
         sessions.get(session_id).map(|s| s.config.clone())
     }
 
-    /// Get session statistics
     pub fn get_session_stats(&self, session_id: &str) -> Option<StreamStats> {
         let sessions = self.sessions.read().unwrap();
         sessions.get(session_id).map(|s| s.stats.clone())
     }
 
-    /// Start capture for a specific session
     pub async fn start_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
-        // Get or create session config
         let needs_register = {
             let sessions = self.sessions.read().unwrap();
             !sessions.contains_key(session_id)
         };
 
         if needs_register {
-            // Auto-register with default config
             let config = StreamConfig {
                 session_id: session_id.to_string(),
                 ..Default::default()
@@ -352,7 +308,6 @@ impl AudioStreamManager {
             self.register_session(config)?;
         }
 
-        // Start the capture backend
         let mut capture_guard = self.capture.write().unwrap();
         if let Some(capture) = capture_guard.as_mut()
             && !capture.is_capturing() {
@@ -360,7 +315,6 @@ impl AudioStreamManager {
             }
         drop(capture_guard);
 
-        // Update session state
         let mut sessions = self.sessions.write().unwrap();
         if let Some(session) = sessions.get_mut(session_id) {
             session.running.store(true, Ordering::SeqCst);
@@ -368,7 +322,6 @@ impl AudioStreamManager {
         }
         drop(sessions);
 
-        // Send event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
             let _ = sender.send(AudioStreamEvent::CaptureStarted {
                 session_id: session_id.to_string(),
@@ -380,7 +333,6 @@ impl AudioStreamManager {
         Ok(())
     }
 
-    /// Stop capture for a specific session
     pub async fn stop_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
         let mut sessions = self.sessions.write().unwrap();
         if let Some(session) = sessions.get_mut(session_id) {
@@ -388,13 +340,11 @@ impl AudioStreamManager {
         }
         drop(sessions);
 
-        // Check if any sessions are still running
         let any_running = {
             let sessions = self.sessions.read().unwrap();
             sessions.values().any(|s| s.running.load(Ordering::SeqCst))
         };
 
-        // If no sessions running, stop the backend
         if !any_running {
             let mut capture_guard = self.capture.write().unwrap();
             if let Some(capture) = capture_guard.as_mut()
@@ -403,7 +353,6 @@ impl AudioStreamManager {
                 }
         }
 
-        // Send event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
             let _ = sender.send(AudioStreamEvent::CaptureStopped {
                 session_id: session_id.to_string(),
@@ -414,11 +363,9 @@ impl AudioStreamManager {
         Ok(())
     }
 
-    /// Read samples and process for all active sessions
     pub async fn read_and_process(&self) -> crate::domain::DomainResult<usize> {
         let mut buffer = vec![0.0f32; 4096];
-        
-        // Get sample rate from capture before processing
+
         let sample_rate = {
             let capture_guard = self.capture.read().unwrap();
             match capture_guard.as_ref() {
@@ -427,14 +374,13 @@ impl AudioStreamManager {
             }
         };
 
-        // Read samples
         {
             let mut capture_guard = self.capture.write().unwrap();
             if let Some(capture) = capture_guard.as_mut() {
                 if !capture.is_capturing() {
                     return Ok(0);
                 }
-                
+
                 let samples_read = capture.read_samples(&mut buffer).await?;
                 if samples_read == 0 {
                     return Ok(0);
@@ -442,7 +388,6 @@ impl AudioStreamManager {
             }
         }
 
-        // Process for each active session
         let sessions = self.sessions.read().unwrap();
         let mut processed = 0;
 
@@ -451,34 +396,30 @@ impl AudioStreamManager {
                 continue;
             }
 
-            // Update stats
             let mut session_stats = session.stats.clone();
             session_stats.record_samples(buffer.len());
             session_stats.record_buffer();
-            
-            // Calculate capture duration
+
             if let Some(start) = session.capture_start {
                 session_stats.capture_duration_ms = start.elapsed().as_millis() as u64;
             }
 
-            // Send waveform event
             if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
                 let timestamp_ms = chrono::Utc::now().timestamp_millis();
-                
+
                 let event = AudioStreamEvent::Waveform {
                     session_id: session_id.clone(),
                     samples: buffer.clone(),
                     timestamp_ms,
                     sample_rate,
                 };
-                
+
                 if sender.send(event).await.is_err() {
                     warn!("Failed to send waveform event for session {}", session_id);
                 }
                 processed += 1;
             }
 
-            // Compute and send spectrum if enabled
             if session.config.enable_spectrum && buffer.len() >= session.config.fft_size {
                 let mut fft = self.fft.write().unwrap();
                 let spectrum = fft.compute_spectrum(
@@ -502,13 +443,11 @@ impl AudioStreamManager {
         Ok(processed)
     }
 
-    /// Check if any session is actively capturing
     pub fn is_any_capturing(&self) -> bool {
         let sessions = self.sessions.read().unwrap();
         sessions.values().any(|s| s.running.load(Ordering::SeqCst))
     }
 
-    /// Get list of active session IDs
     pub fn active_sessions(&self) -> Vec<String> {
         let sessions = self.sessions.read().unwrap();
         sessions
@@ -518,12 +457,10 @@ impl AudioStreamManager {
             .collect()
     }
 
-    /// Get current backend type
     pub fn backend_type(&self) -> AudioBackendType {
         *self.backend_type.read().unwrap()
     }
 
-    /// List available audio devices
     pub async fn list_devices(&self) -> crate::domain::DomainResult<Vec<crate::domain::trait_audio_capture::AudioDevice>> {
         let capture_guard = self.capture.read().unwrap();
         match capture_guard.as_ref() {
@@ -532,21 +469,17 @@ impl AudioStreamManager {
         }
     }
 
-    /// Shutdown the stream manager
     pub async fn shutdown(&self) {
         info!("Shutting down AudioStreamManager");
         self.stop_signal.store(true, Ordering::SeqCst);
 
-        // Stop all captures
         if let Some(capture) = self.capture.write().unwrap().as_mut()
             && capture.is_capturing() {
                 let _ = capture.stop().await;
             }
 
-        // Clear all sessions
         self.sessions.write().unwrap().clear();
 
-        // Send shutdown event
         if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
             let _ = sender.send(AudioStreamEvent::Error {
                 session_id: "system".to_string(),
@@ -590,28 +523,27 @@ mod tests {
     #[tokio::test]
     async fn test_session_registration() {
         let manager = AudioStreamManager::new();
-        
+
         let config = StreamConfig {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
-        
+
         manager.register_session(config.clone()).unwrap();
         assert!(manager.get_session_config("test-session").is_some());
-        
-        // Duplicate registration should fail
+
         assert!(manager.register_session(config).is_err());
     }
 
     #[tokio::test]
     async fn test_session_unregistration() {
         let manager = AudioStreamManager::new();
-        
+
         let config = StreamConfig {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
-        
+
         manager.register_session(config).unwrap();
         assert!(manager.unregister_session("test-session"));
         assert!(!manager.unregister_session("nonexistent"));
@@ -621,15 +553,13 @@ mod tests {
     async fn test_capture_lifecycle() {
         let manager = AudioStreamManager::new();
         manager.init_capture().await.unwrap();
-        
-        // Register and start
+
         let config = StreamConfig {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
         manager.register_session(config).unwrap();
-        
-        // Initially not capturing
+
         assert!(!manager.is_any_capturing());
     }
 }

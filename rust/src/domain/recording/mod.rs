@@ -1,4 +1,3 @@
-//! Recording domain module
 
 pub mod errors;
 pub mod types;

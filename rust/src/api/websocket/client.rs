@@ -1,51 +1,59 @@
-//! WebSocket client connection management
 #![allow(dead_code)]
 
 use uuid::Uuid;
 
-/// Message types for WebSocket communication
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum WsMessage {
-    /// Subscribe to a scope's waveform stream
     #[serde(rename = "subscribe")]
     Subscribe { session_id: String },
-    /// Unsubscribe from a scope
     #[serde(rename = "unsubscribe")]
     Unsubscribe { session_id: String },
-    /// Request spectrum stream
     #[serde(rename = "subscribe_spectrum")]
     SubscribeSpectrum { session_id: String },
-    /// Unsubscribe from spectrum
     #[serde(rename = "unsubscribe_spectrum")]
     UnsubscribeSpectrum { session_id: String },
-    /// Ping/pong for keepalive
+    #[serde(rename = "waveform_data")]
+    WaveformData {
+        session_id: String,
+        samples: Vec<f32>,
+        timestamp: i64,
+        sample_rate: u32,
+        peak_amplitude: f32,
+        rms_amplitude: f32,
+    },
+    #[serde(rename = "analysis_data")]
+    AnalysisData {
+        session_id: String,
+        peak_amplitude: f32,
+        rms_amplitude: f32,
+        dominant_frequency: f32,
+        frequency_high: f32,
+        frequency_low: f32,
+        dc_offset: f32,
+        timestamp: i64,
+    },
     #[serde(rename = "ping")]
     Ping,
     #[serde(rename = "pong")]
     Pong,
-    /// Enable compression
     #[serde(rename = "enable_compression")]
     EnableCompression {
         enabled: bool,
         threshold: Option<usize>,
     },
-    /// Error message
     Error { message: String },
 }
 
-/// Outgoing messages to client
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(tag = "type", content = "data")]
 pub enum OutgoingMessage {
-    /// Waveform data (uncompressed)
     Waveform {
         session_id: String,
         samples: Vec<f32>,
         timestamp: i64,
         sample_rate: u32,
     },
-    /// Waveform data (LZ4 compressed)
     CompressedWaveform {
         session_id: String,
         data: Vec<u8>,
@@ -54,14 +62,12 @@ pub enum OutgoingMessage {
         timestamp: i64,
         sample_rate: u32,
     },
-    /// Spectrum data
     Spectrum {
         session_id: String,
         frequencies: Vec<f32>,
         magnitudes: Vec<f32>,
         timestamp: i64,
     },
-    /// Analysis results
     Analysis {
         session_id: String,
         peak_amplitude: f32,
@@ -71,19 +77,12 @@ pub enum OutgoingMessage {
         snr: f32,
         timestamp: i64,
     },
-    /// Subscription confirmed
     Subscribed { session_id: String, stream_type: String },
-    /// Unsubscription confirmed
     Unsubscribed { session_id: String, stream_type: String },
-    /// Pong response
     Pong,
-    /// Error message
     Error { message: String },
-    /// Connection acknowledged
     Connected { client_id: String },
-    /// Compression status
     CompressionStatus { enabled: bool },
-    /// Server info message
     ServerInfo {
         version: String,
         sample_rate: u32,
@@ -91,7 +90,6 @@ pub enum OutgoingMessage {
     },
 }
 
-/// Client connection state
 pub struct WsClient {
     pub id: String,
     pub subscribed_sessions: Vec<String>,

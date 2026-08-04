@@ -1,11 +1,9 @@
-//! Settings GraphQL schema
 
 use async_graphql::{Context, Object, SimpleObject};
 
 use crate::api::context_extractor::GraphqlContext;
 use crate::domain::{Settings, TriggerEdge, TriggerMode};
 
-/// Settings output type
 #[derive(Debug, SimpleObject)]
 pub struct SettingsOutput {
     pub id: String,
@@ -47,13 +45,11 @@ impl From<Settings> for SettingsOutput {
     }
 }
 
-/// Settings query operations
 #[derive(Default)]
 pub struct SettingsQuery;
 
 #[Object]
 impl SettingsQuery {
-    /// Get settings by scope ID
     async fn settings(&self, ctx: &Context<'_>, session_id: String) -> Option<SettingsOutput> {
         let context = ctx
             .data::<GraphqlContext>()
@@ -68,13 +64,11 @@ impl SettingsQuery {
     }
 }
 
-/// Settings mutation operations
 #[derive(Default)]
 pub struct SettingsMutation;
 
 #[Object]
 impl SettingsMutation {
-    /// Create default settings for a scope
     async fn create_settings(&self, ctx: &Context<'_>, session_id: String) -> Option<SettingsOutput> {
         let context = ctx
             .data::<GraphqlContext>()
@@ -87,7 +81,6 @@ impl SettingsMutation {
             .map(SettingsOutput::from)
     }
 
-    /// Update settings
     #[allow(clippy::too_many_arguments)]
     async fn update_settings(
         &self,
@@ -106,7 +99,6 @@ impl SettingsMutation {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        // Get or create settings
         let mut settings = context
             .settings_service
             .get_by_session(&session_id)
@@ -114,7 +106,6 @@ impl SettingsMutation {
             .ok()
             .flatten()?;
 
-        // Update fields
         if let Some(ts) = time_scale {
             settings = settings.with_time_scale(ts);
         }
@@ -144,7 +135,6 @@ impl SettingsMutation {
             settings = settings.with_input_device(Some(id));
         }
 
-        // Save and return
         context
             .settings_service
             .update(settings.clone())
@@ -153,7 +143,6 @@ impl SettingsMutation {
         Some(SettingsOutput::from(settings))
     }
 
-    /// Delete settings for a scope
     async fn delete_settings(&self, ctx: &Context<'_>, session_id: String) -> bool {
         let context = ctx
             .data::<GraphqlContext>()

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-tertiary: #28282c;
+      --bg-elevated: #2e2e33;
+      --bg-hover: #35353b;
+      --foreground: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --accent: #fb7185;
+    }
+    body {
+      font-family: 'Geist', sans-serif;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--foreground);
+    }
+    .dialog-content {
+      padding: 20px;
+    }
+    .setting-group {
+      margin-bottom: 20px;
+    }
+    .setting-group:last-child {
+      margin-bottom: 0;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+    .setting-info {
+      flex: 1;
+      margin-right: 16px;
+    }
+    .setting-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+    .setting-desc {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .toggle.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: var(--foreground);
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .toggle.active::after {
+      transform: translateX(18px);
+    }
+    .dialog-footer {
+      display: flex;
+      gap: 8px;
+      padding: 16px 20px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+    .btn:hover {
+      background: var(--bg-hover);
+      color: var(--foreground);
+    }
+    .btn-primary {
+      background: var(--bg-elevated);
+      color: var(--foreground);
+    }
+    .btn-primary:hover {
+      background: var(--bg-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <div class="dialog-header">
+      <span class="dialog-title">Session Settings</span>
+      <button class="close-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-content">
+      <div class="setting-group">
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Auto-select Last Session</div>
+            <div class="setting-desc">When enabled, automatically use the last session for recordings and live captures. When disabled, always show session selection dialog.</div>
+          </div>
+          <div class="toggle active" id="auto-select-toggle" onclick="toggleSetting(this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn">Cancel</button>
+      <button class="btn btn-primary" onclick="handleSave()">Save Changes</button>
+    </div>
+  </div>
+
+  <script>
+    let autoSelectEnabled = true;
+    
+    function toggleSetting(element) {
+      element.classList.toggle('active');
+      autoSelectEnabled = element.classList.contains('active');
+    }
+    
+    function handleSave() {
+      console.log('Session settings saved:', {
+        autoSelectLastSession: autoSelectEnabled
+      });
+      
+      let msg = 'Settings saved!\n\n';
+      msg += 'Auto-select: ' + (autoSelectEnabled ? 'Enabled' : 'Disabled');
+      
+      alert(msg);
+    }
+  </script>
+</body>
+</html>

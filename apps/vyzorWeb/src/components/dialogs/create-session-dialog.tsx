@@ -1,101 +1,131 @@
 import * as React from "react";
-import { Dialog, DialogFooter } from "../ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { useStartSession } from "../../hooks";
+import { Loader2 } from "lucide-react";
 
 interface CreateSessionDialogProperties {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: (name: string, description: string) => void;
+  isLoading?: boolean;
+  afterCreate?: (sessionId: string) => void;
 }
 
 export function CreateSessionDialog({
   isOpen,
   onClose,
-}: CreateSessionDialogProperties): React.ReactElement | undefined {
-  const { showToast } = useToast();
-  const [startSession, { loading: isLoading }] = useStartSession();
-
+  onConfirm,
+  isLoading,
+  afterCreate: _afterCreate,
+}: CreateSessionDialogProperties) {
   const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
 
   React.useEffect(() => {
-    if (isOpen && !name) {
-      const now = new Date();
-      const dateString = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const timeString = now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      setName(`Session ${dateString} ${timeString}`);
-    }
-  }, [isOpen, name]);
-
-  const handleClose = () => {
-    if (!isLoading) {
+    if (isOpen) {
       setName("");
-      onClose();
+      setDescription("");
     }
-  };
+  }, [isOpen]);
 
-  const handleCreate = async () => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      showToast({ message: "Session name is required", type: "warning" });
-      return;
+  const handleConfirm = React.useCallback(() => {
+    if (name.trim()) {
+      onConfirm(name.trim(), description.trim());
     }
+  }, [name, description, onConfirm]);
 
-    try {
-      await startSession();
-      showToast({ message: "Session started successfully!", type: "success" });
-      handleClose();
-    } catch (error) {
-      showToast({
-        message: `Failed to start session: ${error instanceof Error ? error.message : "Unknown error"}`,
-        type: "error",
-      });
-    }
-  };
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (event.key === "Escape") onClose();
+    },
+    [onClose],
+  );
 
-  if (!isOpen) return undefined;
+  if (!isOpen) return;
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Start New Session"
-      maxWidth="max-w-[480px]"
-    >
-      <div className="space-y-5">
-        {}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Session Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Enter session name"
+    <>
+      {/* Click outside to close */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[400px] overflow-hidden shadow-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+          <h2 className="text-sm font-semibold text-foreground">Create New Session</h2>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-text-secondary hover:text-foreground hover:bg-bg-tertiary transition-all"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 py-4">
+          <div className="mb-3">
+            <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
+              Session Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(event_) => setName(event_.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g., Morning Lab Testing"
+              maxLength={100}
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary focus:outline-none transition-all"
+              autoFocus
+            />
+            <div className="text-[10px] text-text-tertiary text-right mt-0.5">
+              {name.length}/100
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
+              Description (optional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(event_) => setDescription(event_.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Add a description..."
+              maxLength={500}
+              rows={2}
+              className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary resize-none focus:outline-none transition-all"
+            />
+            <div className="text-[10px] text-text-tertiary text-right mt-0.5">
+              {description.length}/500
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border-subtle">
+          <button
+            onClick={onClose}
             disabled={isLoading}
-            className="w-full px-4 py-2.5 bg-bg-primary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-50"
-          />
+            className="px-4 py-1.5 text-xs font-medium rounded-md bg-bg-tertiary text-text-secondary border border-border hover:bg-bg-hover hover:text-foreground transition-all disabled:opacity-50"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={isLoading || !name.trim()}
+            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded-md bg-bg-elevated text-foreground border border-border-hover hover:bg-bg-hover hover:border-border-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading && <Loader2 size={12} className="animate-spin" />}
+            {isLoading ? "Creating..." : "Create Session"}
+          </button>
         </div>
       </div>
-
-      <DialogFooter className="flex gap-2">
-        <button
-          onClick={handleClose}
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleCreate}
-          disabled={isLoading || !name.trim()}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-accent shadow-sm hover:bg-accent/90 text-white h-9 px-4 py-2 flex-1"
-        >
-          {isLoading ? "Starting..." : "Start Session"}
-        </button>
-      </DialogFooter>
-    </Dialog>
+    </>
   );
 }

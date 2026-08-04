@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -71,7 +73,7 @@ impl BatchCaptureService {
     ) -> DomainResult<Waveform> {
         let samples = vec![0.0f32; settings.samples_per_capture];
         let id = format!("{}_{}", settings.session_id, index);
-        
+
         let waveform = Waveform::with_duration(
             id,
             settings.session_id.clone(),
@@ -82,8 +84,8 @@ impl BatchCaptureService {
 
         self.waveform_service.save(waveform.clone())
             .await
-            .map_err(|e| crate::domain::DomainError::InvalidOperation { 
-                message: format!("Failed to save waveform: {}", e) 
+            .map_err(|e| crate::domain::DomainError::InvalidOperation {
+                message: format!("Failed to save waveform: {}", e)
             })?;
         Ok(waveform)
     }

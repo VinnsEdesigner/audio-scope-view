@@ -1,6 +1,4 @@
-//! Domain pagination utilities
 
-/// Offset-based pagination parameters
 #[derive(Debug, Clone, Default)]
 pub struct OffsetPagination {
     pub limit: u32,
@@ -24,7 +22,6 @@ impl OffsetPagination {
     }
 }
 
-/// Cursor-based pagination parameters
 #[derive(Debug, Clone)]
 pub struct CursorPagination {
     pub limit: u32,
@@ -44,7 +41,6 @@ impl CursorPagination {
     }
 }
 
-/// Generic pagination parameters
 #[derive(Debug, Clone)]
 pub struct PaginationParams {
     pub limit: u32,
@@ -92,7 +88,6 @@ impl PaginationParams {
     }
 }
 
-/// Page metadata for responses
 #[derive(Debug, Clone)]
 pub struct PageMeta {
     pub total: u32,

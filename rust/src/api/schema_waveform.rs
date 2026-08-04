@@ -1,4 +1,3 @@
-//! Waveform GraphQL schema
 
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::Utc;
@@ -6,7 +5,6 @@ use chrono::Utc;
 use crate::api::context_extractor::GraphqlContext;
 use crate::domain::Waveform;
 
-/// Waveform output type
 #[derive(Debug, SimpleObject)]
 pub struct WaveformOutput {
     pub id: String,
@@ -35,7 +33,6 @@ impl From<Waveform> for WaveformOutput {
     }
 }
 
-/// Waveform summary (without samples) for lists
 #[derive(Debug, SimpleObject)]
 pub struct WaveformSummary {
     pub id: String,
@@ -61,7 +58,6 @@ impl From<Waveform> for WaveformSummary {
     }
 }
 
-/// Waveform statistics output
 #[derive(Debug, SimpleObject)]
 pub struct WaveformStatisticsOutput {
     pub total_count: i64,
@@ -70,20 +66,17 @@ pub struct WaveformStatisticsOutput {
     pub average_rms: f32,
 }
 
-/// Input for creating a waveform manually (for testing)
 #[derive(Debug, async_graphql::InputObject)]
 pub struct CreateWaveformInput {
     pub session_id: String,
     pub samples: Vec<f32>,
 }
 
-/// Waveform query operations
 #[derive(Default)]
 pub struct WaveformQuery;
 
 #[Object]
 impl WaveformQuery {
-    /// Get waveform by ID
     async fn waveform(&self, ctx: &Context<'_>, id: String) -> Option<WaveformOutput> {
         let context = ctx
             .data::<GraphqlContext>()
@@ -97,7 +90,6 @@ impl WaveformQuery {
             .map(WaveformOutput::from)
     }
 
-    /// Get waveforms for a scope (with optional full samples)
     async fn waveforms(
         &self,
         ctx: &Context<'_>,
@@ -124,12 +116,10 @@ impl WaveformQuery {
                         if include_samples {
                             WaveformOutput::from(w)
                         } else {
-                            // Return summary without samples for performance
                             WaveformOutput {
                                 id: w.id,
                                 session_id: w.session_id,
-                                samples: vec![], // Empty when not requested
-                                sample_count: w.samples.len() as i32,
+                                samples: vec![],                                 sample_count: w.samples.len() as i32,
                                 timestamp: w.timestamp.to_rfc3339(),
                                 duration_ms: w.duration_ms,
                                 peak_amplitude: w.peak_amplitude,
@@ -142,7 +132,6 @@ impl WaveformQuery {
             .unwrap_or_default()
     }
 
-    /// Get recent waveforms for a scope
     async fn recent_waveforms(
         &self,
         ctx: &Context<'_>,
@@ -162,7 +151,6 @@ impl WaveformQuery {
             .unwrap_or_default()
     }
 
-    /// Count waveforms for a scope
     async fn waveform_count(&self, ctx: &Context<'_>, session_id: String) -> i64 {
         let context = ctx
             .data::<GraphqlContext>()
@@ -174,7 +162,6 @@ impl WaveformQuery {
             .unwrap_or(0) as i64
     }
 
-    /// Get waveform statistics for a scope
     async fn waveform_statistics(
         &self,
         ctx: &Context<'_>,
@@ -197,13 +184,11 @@ impl WaveformQuery {
     }
 }
 
-/// Waveform mutation operations
 #[derive(Default)]
 pub struct WaveformMutation;
 
 #[Object]
 impl WaveformMutation {
-    /// Create a waveform from sample data
     async fn create_waveform(
         &self,
         ctx: &Context<'_>,
@@ -213,7 +198,6 @@ impl WaveformMutation {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        // Create waveform from input
         let waveform = crate::domain::Waveform::new(
             uuid::Uuid::new_v4().to_string(),
             input.session_id,
@@ -229,7 +213,6 @@ impl WaveformMutation {
             .map(WaveformOutput::from)
     }
 
-    /// Delete all waveforms for a scope
     async fn delete_waveforms(&self, ctx: &Context<'_>, session_id: String) -> i64 {
         let context = ctx
             .data::<GraphqlContext>()

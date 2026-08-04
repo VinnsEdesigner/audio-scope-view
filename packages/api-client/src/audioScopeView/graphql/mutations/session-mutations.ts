@@ -10,6 +10,24 @@ export const START_SESSION = gql`
   }
 `;
 
+export const CREATE_NAMED_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation CreateNamedSession($input: CreateSessionInput!) {
+    createNamedSession(input: $input) {
+      ...SessionFields
+    }
+  }
+`;
+
+export const GET_OR_CREATE_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation GetOrCreateSession {
+    getOrCreateSession {
+      ...SessionFields
+    }
+  }
+`;
+
 export const END_SESSION = gql`
   mutation EndSession($id: String!) {
     end_session(id: $id) {
@@ -32,6 +50,44 @@ export const DELETE_SESSION = gql`
   }
 `;
 
+export const UPDATE_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation UpdateSession($id: String!, $input: UpdateSessionInput!) {
+    updateSession(id: $id, input: $input) {
+      ...SessionFields
+    }
+  }
+`;
+
+export const OPEN_OSCILLOSCOPE = gql`
+  mutation OpenOscilloscope($sessionId: String!) {
+    openOscilloscope(sessionId: $sessionId) {
+      id
+      isOscilloscopeOpen
+      oscilloscopeDurationMs
+    }
+  }
+`;
+
+export const CLOSE_OSCILLOSCOPE = gql`
+  mutation CloseOscilloscope($sessionId: String!) {
+    closeOscilloscope(sessionId: $sessionId) {
+      id
+      isOscilloscopeOpen
+      oscilloscopeDurationMs
+    }
+  }
+`;
+
+export const CREATE_SUB_SESSION = gql`
+  ${SESSION_FIELDS}
+  mutation CreateSubSession($parentId: String!) {
+    createSubSession(parentId: $parentId) {
+      ...SessionFields
+    }
+  }
+`;
+
 export const CAPTURE_WAVEFORM = gql`
   mutation CaptureWaveform($sessionId: String!, $settings: CaptureSettingsInput) {
     capture(session_id: $sessionId, settings: $settings) {
@@ -43,6 +99,20 @@ export const CAPTURE_WAVEFORM = gql`
       durationMs
       peakAmplitude
       rmsAmplitude
+    }
+  }
+`;
+
+export const UPDATE_SESSION_DSP = gql`
+  mutation UpdateSessionDsp($id: String!, $input: UpdateSessionDspInput!) {
+    updateSessionDsp(id: $id, input: $input) {
+      id
+      peakAmplitude
+      rmsAmplitude
+      dcOffset
+      dominantFrequency
+      frequencyHigh
+      frequencyLow
     }
   }
 `;

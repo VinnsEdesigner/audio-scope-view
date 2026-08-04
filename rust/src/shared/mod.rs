@@ -1,4 +1,3 @@
-//! Shared utilities and types
 
 #[allow(unused_imports)]
 pub mod config_struct;

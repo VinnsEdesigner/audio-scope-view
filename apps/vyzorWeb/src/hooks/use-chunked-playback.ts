@@ -10,7 +10,7 @@ export interface ChunkedPlaybackState {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  error: Error | null;
+  error: Error | undefined;
   chunksLoaded: number;
   totalChunks: number;
 }
@@ -49,8 +49,8 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
     isPlaying: false,
     currentTime: 0,
     duration: 0,
-    // eslint-disable-next-line unicorn/no-null
-    error: null,
+
+    error: undefined,
     chunksLoaded: 0,
     totalChunks: 0,
   });
@@ -78,8 +78,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
     let cancelled = false;
 
     async function loadMetadata() {
-      // eslint-disable-next-line unicorn/no-null
-      setState((s) => ({ ...s, isLoading: true, error: null }));
+      setState((s) => ({ ...s, isLoading: true, error: undefined }));
 
       try {
         const meta = await serviceReference.current.getMetadata(recordingId);
@@ -132,7 +131,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
           sourceNodeReference.current.stop();
           sourceNodeReference.current.disconnect();
         } catch {
-          /* ignore cleanup errors */
+          // Ignore errors when stopping/disconnecting
         }
         sourceNodeReference.current = undefined;
       }
@@ -205,6 +204,31 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
     [recordingId, chunkSize],
   );
 
+  const preloadAround = useCallback(
+    async (timeMs: number, radiusMs: number, sampleRate: number): Promise<void> => {
+      const samplesPerMs = sampleRate / 1000;
+      const radiusSamples = radiusMs * samplesPerMs;
+
+      const centerSample = Math.floor((timeMs / 1000) * sampleRate);
+      const startSample = Math.max(0, centerSample - radiusSamples);
+      const endSample = centerSample + radiusSamples;
+
+      const startChunk = Math.floor(startSample / chunkSize);
+      const endChunk = Math.floor(endSample / chunkSize);
+
+      const chunksToLoad: number[] = [];
+      for (let index = startChunk; index <= endChunk; index++) {
+        const chunkStart = index * chunkSize;
+        if (!loadedChunksReference.current.has(chunkStart)) {
+          chunksToLoad.push(chunkStart);
+        }
+      }
+
+      await Promise.all(chunksToLoad.map((start) => loadChunk(start)));
+    },
+    [chunkSize, loadChunk],
+  );
+
   const buildAudioBuffer = useCallback(async (): Promise<AudioBuffer | undefined> => {
     if (!audioContextReference.current || !metadataReference.current) return undefined;
 
@@ -255,7 +279,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
         sourceNodeReference.current.stop();
         sourceNodeReference.current.disconnect();
       } catch {
-        /* ignore cleanup errors */
+        // Ignore errors when stopping
       }
     }
 
@@ -293,7 +317,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
       sourceNodeReference.current.stop();
       sourceNodeReference.current.disconnect();
     } catch {
-      /* ignore cleanup errors */
+      // Ignore errors when stopping
     }
     sourceNodeReference.current = undefined;
 
@@ -306,7 +330,7 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
         sourceNodeReference.current.stop();
         sourceNodeReference.current.disconnect();
       } catch {
-        /* ignore cleanup errors */
+        // Ignore errors when stopping
       }
       sourceNodeReference.current = undefined;
     }
@@ -332,8 +356,8 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
         await play();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.isPlaying, state.duration, pause, play],
+
+    [state.isPlaying, state.duration, pause, play, preloadAround],
   );
 
   const setSpeed = useCallback((speed: number) => {
@@ -378,31 +402,6 @@ export function useChunkedPlayback(options: ChunkedPlaybackOptions): ChunkedPlay
       return new Float32Array(result);
     },
     [chunkSize],
-  );
-
-  const preloadAround = useCallback(
-    async (timeMs: number, radiusMs: number, sampleRate: number): Promise<void> => {
-      const samplesPerMs = sampleRate / 1000;
-      const radiusSamples = radiusMs * samplesPerMs;
-
-      const centerSample = Math.floor((timeMs / 1000) * sampleRate);
-      const startSample = Math.max(0, centerSample - radiusSamples);
-      const endSample = centerSample + radiusSamples;
-
-      const startChunk = Math.floor(startSample / chunkSize);
-      const endChunk = Math.floor(endSample / chunkSize);
-
-      const chunksToLoad: number[] = [];
-      for (let index = startChunk; index <= endChunk; index++) {
-        const chunkStart = index * chunkSize;
-        if (!loadedChunksReference.current.has(chunkStart)) {
-          chunksToLoad.push(chunkStart);
-        }
-      }
-
-      await Promise.all(chunksToLoad.map((start) => loadChunk(start)));
-    },
-    [chunkSize, loadChunk],
   );
 
   return {

@@ -5,6 +5,7 @@ export type {
   AudioActions,
   MediaDevice,
   ProcessedAudio,
+  SystemAudioInfo,
 } from "./audio-store";
 
 export { useWaveformStore } from "./waveform-store";

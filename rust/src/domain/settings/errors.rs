@@ -1,8 +1,6 @@
-//! Settings-specific domain errors
 
 use crate::domain::_shared::domain_errors::DomainError;
 
-/// Error types specific to settings operations
 #[derive(Debug, Clone)]
 pub enum SettingsError {
     SettingsNotFound(String),

@@ -1,8 +1,6 @@
-//! Waveform-specific domain errors
 
 use crate::domain::_shared::domain_errors::DomainError;
 
-/// Error types specific to waveform operations
 #[derive(Debug, Clone)]
 pub enum WaveformError {
     WaveformNotFound(String),

@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-//! CORS middleware configuration
 
 use tower_http::cors::{Any, CorsLayer};
 

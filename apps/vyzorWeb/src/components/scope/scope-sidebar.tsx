@@ -45,6 +45,7 @@ interface ScopeSidebarProperties {
   onOpenDisplaySettings?: () => void;
   onOpenTriggerSettings?: () => void;
   onOpenMeasurements?: () => void;
+  onOpenCalibration?: () => void;
   onOpenExport?: () => void;
   onOpenRecordingInfo?: () => void;
   onRename?: () => void;
@@ -55,6 +56,7 @@ export function ScopeSidebar({
   onOpenDisplaySettings,
   onOpenTriggerSettings,
   onOpenMeasurements,
+  onOpenCalibration,
   onOpenExport,
   onOpenRecordingInfo,
   onRename,
@@ -72,7 +74,7 @@ export function ScopeSidebar({
     { id: "display", label: "Display", icon: DisplayIcon, action: () => onOpenDisplaySettings?.() },
     { id: "trigger", label: "Trigger", icon: Target, action: () => onOpenTriggerSettings?.() },
     { id: "measure", label: "Measure", icon: Ruler, action: () => onOpenMeasurements?.() },
-    { id: "cal", label: "Cal", icon: Maximize2, action: () => {} },
+    { id: "cal", label: "Cal", icon: Maximize2, action: () => onOpenCalibration?.() },
     { id: "export", label: "Export", icon: Download, action: () => onOpenExport?.() },
   ];
 

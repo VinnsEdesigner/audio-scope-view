@@ -4,7 +4,6 @@ use crate::domain::DomainResult;
 use crate::domain::trait_audio_capture::{AudioCapture, AudioDevice};
 use async_trait::async_trait;
 
-/// ALSA audio capture - stub implementation
 pub struct AlsaAudioCapture {
     is_capturing: bool,
 }
@@ -56,7 +55,6 @@ impl AudioCapture for AlsaAudioCapture {
             }
             return Ok(buffer.len() as u32);
         }
-        // Stub: return silence
         for sample in buffer.iter_mut() {
             *sample = 0.0;
         }

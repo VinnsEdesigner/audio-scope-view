@@ -1,6 +1,3 @@
-//! Domain shared utilities
-//! 
-//! Re-exports shared domain types and utilities used across features.
 
 pub mod domain_errors;
 pub mod domain_pagination;

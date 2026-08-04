@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Sun, Moon, Monitor, Palette, Mic, MonitorCheck, Info } from "lucide-react";
+import { Sun, Moon, Monitor, Palette, Mic, MonitorCheck, Info, RefreshCw } from "lucide-react";
 import { SelectDialog } from "@/components/dialogs/select-dialog";
 import { useUIStore, useMediaDevices, useAudioSettings } from "@/hooks";
 import { useToast } from "@/hooks";
@@ -263,6 +263,8 @@ const PermissionStatus = React.memo(function PermissionStatus({
 });
 
 export function Settings(): React.ReactElement {
+  const [showDeviceInfo, setShowDeviceInfo] = React.useState(false);
+
   const {
     theme,
     setTheme,
@@ -276,7 +278,15 @@ export function Settings(): React.ReactElement {
     setWaveformColor,
   } = useUIStore();
 
-  const { devices, selectedDeviceId, setSelectedDeviceId, permissionState } = useMediaDevices();
+  const {
+    devices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    permissionState,
+    systemInfo,
+    requestPermission,
+    refreshDevices,
+  } = useMediaDevices();
   const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
   const { addToast } = useToast();
 
@@ -286,6 +296,15 @@ export function Settings(): React.ReactElement {
     },
     [addToast],
   );
+
+  const handleRequestPermission = React.useCallback(async () => {
+    await requestPermission();
+  }, [requestPermission]);
+
+  const handleRefreshDevices = React.useCallback(async () => {
+    await refreshDevices();
+    addToast("success", "Devices refreshed");
+  }, [refreshDevices, addToast]);
 
   const handleDeviceChange = React.useCallback(
     (value: string | number) => {
@@ -335,13 +354,173 @@ export function Settings(): React.ReactElement {
     <div className="w-full h-full overflow-y-auto">
       <div className="w-full px-6 py-6 sm:px-8 md:px-10 lg:px-14 xl:px-20">
         {}
-        <header className="pl-0 md:pl-12 mb-6 md:mb-8 lg:mb-12">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-            Settings
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-text-secondary">
-            Configure your audio scope preferences and appearance
-          </p>
+        <header className="pl-0 md:pl-12 mb-6 md:mb-8 lg:mb-12 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+              Settings
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-text-secondary">
+              Configure your audio scope preferences and appearance
+            </p>
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowDeviceInfo(!showDeviceInfo)}
+              className="relative z-[60] px-3 h-9 flex items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-foreground hover:bg-bg-hover transition-colors font-semibold text-sm"
+              title="Device Info"
+            >
+              more
+            </button>
+            {showDeviceInfo && (
+              <>
+                <div className="fixed inset-0 z-[55]" onClick={() => setShowDeviceInfo(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-border-subtle bg-bg-secondary shadow-lg z-[60] overflow-hidden">
+                  <div className="p-4 border-b border-border-subtle bg-bg-elevated">
+                    <h3 className="text-sm font-semibold text-foreground">Device Information</h3>
+                  </div>
+                  <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+                    {/* Browser Info */}
+                    <div>
+                      <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">
+                        Browser
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Name</span>
+                          <span className="text-foreground font-mono">
+                            {systemInfo?.browserName ?? "—"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Version</span>
+                          <span className="text-foreground font-mono">
+                            {systemInfo?.browserVersion ?? "—"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Permission Status */}
+                    <div>
+                      <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">
+                        Permission
+                      </h4>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-text-secondary">Microphone</span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "w-2 h-2 rounded-full",
+                              permissionState === "granted" && "bg-success",
+                              permissionState === "denied" && "bg-destructive",
+                              permissionState === "prompt" && "bg-warning",
+                            )}
+                          />
+                          <span className="text-sm text-foreground capitalize">
+                            {permissionState}
+                          </span>
+                        </div>
+                      </div>
+                      {permissionState !== "granted" && (
+                        <button
+                          onClick={handleRequestPermission}
+                          className="mt-2 w-full px-3 py-2 text-xs font-medium rounded-md bg-accent text-white hover:bg-accent/90 transition-colors"
+                        >
+                          Request Permission
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Audio System Info */}
+                    {systemInfo && (
+                      <div>
+                        <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-2">
+                          Audio System
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-text-secondary">Default Sample Rate</span>
+                            <span className="text-foreground font-mono">
+                              {(systemInfo.defaultSampleRate / 1000).toFixed(1)} kHz
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-text-secondary">Max Channels</span>
+                            <span className="text-foreground font-mono">
+                              {systemInfo.maxChannels}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-text-secondary">Supported Rates</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {systemInfo.supportedSampleRates.map((rate) => (
+                                <span
+                                  key={rate}
+                                  className={cn(
+                                    "px-2 py-0.5 text-xs rounded font-mono",
+                                    rate === sampleRate
+                                      ? "bg-accent text-white"
+                                      : "bg-bg-elevated text-text-secondary",
+                                  )}
+                                >
+                                  {(rate / 1000).toFixed(1)} kHz
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Devices List */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-medium text-text-tertiary uppercase tracking-wider">
+                          Input Devices ({devices.length})
+                        </h4>
+                        <button
+                          onClick={handleRefreshDevices}
+                          className="p-1 text-text-secondary hover:text-foreground transition-colors"
+                          title="Refresh devices"
+                        >
+                          <RefreshCw size={14} />
+                        </button>
+                      </div>
+                      {devices.length === 0 ? (
+                        <p className="text-sm text-text-tertiary italic">No devices found</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {devices.map((device) => (
+                            <div
+                              key={device.deviceId}
+                              className={cn(
+                                "p-2 rounded-md text-sm",
+                                device.deviceId === selectedDeviceId
+                                  ? "bg-accent/10 border border-accent/30"
+                                  : "bg-bg-elevated",
+                              )}
+                            >
+                              <div className="font-medium text-foreground truncate">
+                                {device.label}
+                              </div>
+                              <div className="text-xs text-text-tertiary font-mono mt-0.5">
+                                ID: {device.deviceId.slice(0, 16)}...
+                              </div>
+                              <div className="text-xs text-text-tertiary mt-0.5">
+                                Group: {device.groupId.slice(0, 16)}...
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </header>
 
         {}
@@ -389,7 +568,7 @@ export function Settings(): React.ReactElement {
                 options={
                   devices?.map((device) => ({
                     value: device.deviceId,
-                    label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
+                    label: device.label,
                   })) ?? []
                 }
                 placeholder={devices && devices.length > 0 ? "Select device" : "No devices found"}

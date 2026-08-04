@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Session</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #1a1a1d;
+      --bg-secondary: #212124;
+      --bg-tertiary: #28282c;
+      --bg-elevated: #2e2e33;
+      --bg-hover: #35353b;
+      --foreground: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --icon: #71717a;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .dialog {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .dialog-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--foreground);
+    }
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--foreground);
+    }
+    .dialog-content {
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .required-note {
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .required-note svg {
+      width: 18px;
+      height: 18px;
+      color: var(--icon);
+      flex-shrink: 0;
+    }
+    .required-note-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .session-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-tertiary);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .session-card:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+    }
+    .session-card.selected {
+      border-color: var(--icon);
+      background: var(--bg-hover);
+    }
+    .session-radio {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--icon);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .session-card.selected .session-radio {
+      border-color: var(--foreground);
+    }
+    .session-card.selected .session-radio::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--foreground);
+      border-radius: 50%;
+    }
+    .session-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .session-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--foreground);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .session-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .session-status {
+      padding: 4px 8px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .session-status.active {
+      background: rgba(113, 113, 122, 0.15);
+      color: var(--icon);
+    }
+    .dialog-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      color: var(--foreground);
+    }
+    .btn-primary {
+      background: var(--bg-tertiary);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+    .btn-primary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .create-link {
+      font-size: 12px;
+      color: var(--icon);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .create-link:hover {
+      color: var(--foreground);
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog">
+    <div class="dialog-header">
+      <span class="dialog-title">Select Session</span>
+      <button class="close-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="dialog-content">
+      <div class="required-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span class="required-note-text">You must select a session to continue</span>
+      </div>
+      
+      <div class="session-list">
+        <div class="session-card selected" onclick="selectSession(this, 'sess_001')">
+          <div class="session-radio"></div>
+          <div class="session-info">
+            <div class="session-name">Morning Lab Testing</div>
+            <div class="session-meta">24 recordings · 3h 45m · Started 9:00 AM</div>
+          </div>
+          <span class="session-status active">Active</span>
+        </div>
+        
+        <div class="session-card" onclick="selectSession(this, 'sess_002')">
+          <div class="session-radio"></div>
+          <div class="session-info">
+            <div class="session-name">Equipment Calibration</div>
+            <div class="session-meta">12 recordings · 1h 20m · Started yesterday</div>
+          </div>
+          <span class="session-status">Ended</span>
+        </div>
+        
+        <div class="session-card" onclick="selectSession(this, 'sess_003')">
+          <div class="session-radio"></div>
+          <div class="session-info">
+            <div class="session-name">Field Recording - Site B</div>
+            <div class="session-meta">8 recordings · 45m · Started Jan 14</div>
+          </div>
+          <span class="session-status">Ended</span>
+        </div>
+        
+        <div class="session-card" onclick="selectSession(this, 'sess_004')">
+          <div class="session-radio"></div>
+          <div class="session-info">
+            <div class="session-name">Microphone Comparison Test</div>
+            <div class="session-meta">5 recordings · 30m · Started Jan 13</div>
+          </div>
+          <span class="session-status">Ended</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dialog-footer">
+      <a href="dialog-session-create.html" class="create-link">+ Create New Session</a>
+      <div class="btn-group">
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-primary" onclick="handleSelect()">Select Session</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedSessionId = 'sess_001';
+    
+    function selectSession(element, sessionId) {
+      document.querySelectorAll('.session-card').forEach(card => card.classList.remove('selected'));
+      element.classList.add('selected');
+      selectedSessionId = sessionId;
+    }
+    
+    function handleSelect() {
+      console.log('Selected session:', selectedSessionId);
+      alert('Session selected: ' + selectedSessionId);
+    }
+  </script>
+</body>
+</html>

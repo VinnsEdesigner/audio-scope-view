@@ -3,13 +3,13 @@ import { Outlet } from "react-router-dom";
 import { useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
 import { TamaguiProvider, Theme } from "tamagui";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { TopNav } from "./components/layout/top-nav";
 import { ToastProvider } from "./components/ui/toast";
 import { NavigationLoader } from "./components/ui/navigation-loader";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import { Spinner } from "./components/ui/spinner";
+import { SessionSelectionProvider } from "./contexts/session-selection-context";
 
 const seoData = {
   "@context": "https://schema.org",
@@ -28,27 +28,25 @@ const seoData = {
 };
 
 function AppShell() {
-  const [isLoading, setIsLoading] = useState(true);
+  const _isInitializing = useUIStore((state) => state.isInitializing);
+  const setInitializing = useUIStore((state) => state.setInitializing);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 10_000);
+    // Simulate app initialization (replace with actual initialization logic)
+    // For production, this should be replaced with actual app readiness checks
+    const timer = setTimeout(() => {
+      setInitializing(false);
+    }, 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [setInitializing]);
 
   return (
     <div className="flex flex-1 h-screen bg-bg-primary">
-      {isLoading ? (
-        <div className="flex flex-1 items-center justify-center">
-          <Spinner className="w-12 h-12 md:w-20 md:h-20" size={48} />
-        </div>
-      ) : (
-        <>
-          <TopNav />
-          <div className="flex flex-col flex-1 overflow-hidden bg-bg-primary min-h-0">
-            <Outlet />
-          </div>
-        </>
-      )}
+      {/* Always show TopNav - loading bar overlays it */}
+      <TopNav />
+      <div className="flex flex-col flex-1 overflow-hidden bg-bg-primary min-h-0">
+        <Outlet />
+      </div>
     </div>
   );
 }
@@ -74,7 +72,9 @@ function ThemedApp() {
 
   return (
     <Theme name={resolvedTheme}>
-      <AppShell />
+      <SessionSelectionProvider>
+        <AppShell />
+      </SessionSelectionProvider>
     </Theme>
   );
 }

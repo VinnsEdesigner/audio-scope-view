@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-//! Settings service - Business logic for settings operations
 
 use crate::domain::{Settings, error_domain::DomainError};
 use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;
@@ -7,7 +6,6 @@ use crate::infrastructure::repo_sqlite_settings::SqliteSettingsRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
-/// Settings service for managing scope settings
 pub struct SettingsService {
     settings_repository: Arc<SqliteSettingsRepository>,
     session_repository: Arc<SqliteSessionRepository>,
@@ -24,7 +22,6 @@ impl SettingsService {
         }
     }
 
-    /// Create default settings for a session
     pub async fn create_for_session(&self, session_id: &str) -> AppResult<Settings> {
         let _session = self
             .session_repository
@@ -43,7 +40,6 @@ impl SettingsService {
         Ok(settings)
     }
 
-    /// Get settings by session ID
     pub async fn get_by_session(&self, session_id: &str) -> AppResult<Option<Settings>> {
         self.settings_repository
             .find_by_session_id(session_id)
@@ -51,7 +47,6 @@ impl SettingsService {
             .map_err(AppError::Domain)
     }
 
-    /// Get settings by ID
     pub async fn get(&self, id: &str) -> AppResult<Option<Settings>> {
         self.settings_repository
             .find_by_id(id)
@@ -59,7 +54,6 @@ impl SettingsService {
             .map_err(AppError::Domain)
     }
 
-    /// Update settings
     pub async fn update(&self, settings: Settings) -> AppResult<()> {
         self.settings_repository
             .update(&settings)
@@ -67,7 +61,6 @@ impl SettingsService {
             .map_err(AppError::Domain)
     }
 
-    /// Delete settings for a session
     pub async fn delete_by_session(&self, session_id: &str) -> AppResult<bool> {
         self.settings_repository
             .delete_by_session_id(session_id)

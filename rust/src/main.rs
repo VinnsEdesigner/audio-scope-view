@@ -28,26 +28,25 @@ use infrastructure::{
     repo_sqlite_settings::SqliteSettingsRepository, repo_sqlite_waveform::SqliteWaveformRepository,
     repo_sqlite_recording::SqliteRecordingRepository,
     repo_sqlite_api_key::SqliteApiKeyRepository,
+    repo_sqlite_user_preferences::SqliteUserPreferencesRepository,
     AudioStreamEvent, AudioStreamManager,
 };
 
-/// Audio event processing task
 async fn audio_event_processor(
     mut event_receiver: mpsc::Receiver<AudioStreamEvent>,
     ws_state: Arc<api::websocket::handler::WsState>,
 ) {
     while let Some(event) = event_receiver.recv().await {
         match event {
-            AudioStreamEvent::Waveform { 
-                session_id, 
-                samples, 
-                timestamp_ms, 
-                sample_rate 
+            AudioStreamEvent::Waveform {
+                session_id,
+                samples,
+                timestamp_ms,
+                sample_rate
             } => {
-                // Calculate amplitude metrics
                 let peak = samples.iter().fold(0.0f32, |max, &s| max.max(s.abs()));
                 let rms = (samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
-                
+
                 let waveform_data = WaveformData {
                     session_id: session_id.clone(),
                     samples: samples.clone(),
@@ -56,15 +55,14 @@ async fn audio_event_processor(
                     peak_amplitude: peak,
                     rms_amplitude: rms,
                 };
-                
-                // Broadcast to GraphQL subscribers (waveform_subscribe)
+
                 ws_state.broadcast_to_graphql_waveform(&session_id, waveform_data).await;
             }
-            AudioStreamEvent::Spectrum { 
-                session_id, 
-                frequencies, 
-                magnitudes, 
-                timestamp_ms 
+            AudioStreamEvent::Spectrum {
+                session_id,
+                frequencies,
+                magnitudes,
+                timestamp_ms
             } => {
                 let spectrum_data = SpectrumData {
                     session_id: session_id.clone(),
@@ -72,8 +70,7 @@ async fn audio_event_processor(
                     magnitudes: magnitudes.clone(),
                     timestamp: timestamp_ms,
                 };
-                
-                // Broadcast to GraphQL subscribers
+
                 ws_state.broadcast_to_graphql_spectrum(&session_id, spectrum_data).await;
             }
             AudioStreamEvent::DeviceDisconnected { session_id, reason } => {
@@ -90,40 +87,36 @@ async fn audio_event_processor(
             }
         }
     }
-    
+
     warn!("Audio event processor stopped");
 }
 
-/// Statistics reporting task
 async fn stats_reporter(
     stream_manager: Arc<AudioStreamManager>,
     ws_state: Arc<api::websocket::handler::WsState>,
     interval_secs: u64,
 ) {
     let mut ticker = interval(Duration::from_secs(interval_secs));
-    
+
     loop {
         ticker.tick().await;
-        
+
         let active_sessions = stream_manager.active_sessions();
-        
+
         for session_id in active_sessions {
             if let Some(stats) = stream_manager.get_session_stats(&session_id) {
-                // Calculate samples per second from captured samples and duration
                 let samples_per_second = stats.samples_captured
                     .checked_mul(1000)
                     .and_then(|v| v.checked_div(stats.capture_duration_ms))
                     .unwrap_or(0) as u32;
-                
+
                 let audio_stats = AudioStats {
                     session_id: session_id.clone(),
                     samples_per_second,
-                    dropped_samples: stats.errors, // Use errors as proxy for dropped
-                    buffer_fill_percent: 0.0, // Not tracked in StreamStats
-                    capture_duration_ms: stats.capture_duration_ms,
+                    dropped_samples: stats.errors,                     buffer_fill_percent: 0.0,                     capture_duration_ms: stats.capture_duration_ms,
                     is_capturing: stream_manager.is_any_capturing(),
                 };
-                
+
                 ws_state.broadcast_to_graphql_stats(&session_id, audio_stats).await;
             }
         }
@@ -132,7 +125,6 @@ async fn stats_reporter(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize logging
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -143,11 +135,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting Audio Scope View Server...");
 
-    // Load configuration
     let config = AppConfig::load().unwrap_or_default();
 
-    // BOOTSTRAP_KEY check MUST be first - server cannot start without it
-    // Priority: BOOTSTRAP_KEY env var > APP__SECURITY__BOOTSTRAP_KEY config
     let bootstrap_key = std::env::var("BOOTSTRAP_KEY")
         .ok()
         .filter(|k| !k.is_empty())
@@ -163,20 +152,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    // Initialize database
     let db = DatabaseConnection::new(&config.database.url).await?;
 
-    // Run migrations
     run_migrations(db.pool()).await?;
 
-    // Create repositories
     let scope_repo = Arc::new(SqliteSessionRepository::new(db.pool().clone()));
     let settings_repo = Arc::new(SqliteSettingsRepository::new(db.pool().clone()));
     let waveform_repo = Arc::new(SqliteWaveformRepository::new(db.pool().clone()));
     let recording_repo = Arc::new(SqliteRecordingRepository::new(db.pool().clone()));
     let api_key_repo = Arc::new(SqliteApiKeyRepository::new(db.pool().clone()));
+    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(db.pool().clone()));
 
-    // Create services
     let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
     let settings_service = Arc::new(SettingsService::new(
         settings_repo.clone(),
@@ -194,18 +180,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let simulation_service = Arc::new(SimulationService::new(waveform_service.clone()));
     let batch_capture_service = Arc::new(BatchCaptureService::new(waveform_service.clone()));
 
-    // Create WebSocket state (shared between HTTP and audio tasks)
     let ws_state = Arc::new(api::websocket::handler::WsState::new());
 
-    // Create audio stream manager
     let audio_manager = Arc::new(AudioStreamManager::new());
     info!("Audio backend: {:?}", audio_manager.backend_type());
-    // List available audio devices
     match audio_manager.list_devices().await {
         Ok(devices) => {
             for device in &devices {
                 let default_marker = if device.is_default { " [DEFAULT]" } else { "" };
-                info!("Audio device: {} ({} ch, {} Hz){}", 
+                info!("Audio device: {} ({} ch, {} Hz){}",
                     device.name, device.channels, device.sample_rate, default_marker);
             }
         }
@@ -214,28 +197,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Create channel for audio events
     let (event_tx, event_rx) = mpsc::channel::<AudioStreamEvent>(100);
     audio_manager.set_event_sender(event_tx);
 
-    // Spawn audio event processor
     let ws_state_clone = ws_state.clone();
     let _processor_handle = tokio::spawn(async move {
         audio_event_processor(event_rx, ws_state_clone).await;
     });
 
-    // Spawn stats reporter
     let audio_manager_clone = audio_manager.clone();
     let ws_state_stats = ws_state.clone();
     let _stats_handle = tokio::spawn(async move {
         stats_reporter(audio_manager_clone, ws_state_stats, 1).await;
     });
 
-    // Create API key store for user-managed keys with database persistence
     let key_store = Arc::new(ApiKeyStore::with_repository(api_key_repo.clone()));
     key_store.load_from_database().await;
 
-    // Create application state
     let state = Arc::new(AppState::new(
         scope_service,
         settings_service,
@@ -246,18 +224,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         batch_capture_service,
         bootstrap_key,
         key_store,
+        user_prefs_repo,
     ));
 
-    // Start server
     let address = config.server_address();
     info!("GraphQL endpoint: http://{}/graphql", address);
     info!("Health: http://{}/health", address);
-    
     if let Err(e) = start_server(&address, state).await {
         error!("Server error: {}", e);
     }
 
-    // Cleanup
     audio_manager.shutdown().await;
     _processor_handle.abort();
     _stats_handle.abort();

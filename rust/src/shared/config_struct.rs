@@ -1,4 +1,3 @@
-//! Application configuration struct
 
 #![allow(dead_code)]
 #[derive(Debug, Clone)]

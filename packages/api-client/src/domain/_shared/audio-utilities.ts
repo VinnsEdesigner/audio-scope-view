@@ -153,6 +153,181 @@ export function exportToCSV(options: ExportCSVOptions): string {
   return lines.join("\n");
 }
 
+/**
+ * Options for streaming CSV export
+ */
+export interface StreamingCSVExportOptions {
+  sampleRate?: number;
+  chunkSize?: number;
+  delimiter?: string;
+  filename?: string;
+  onProgress?: (processed: number, total: number) => void;
+}
+
+/**
+ * Creates an async generator that yields sample chunks for CSV export
+ */
+export async function* createSampleChunkGenerator(
+  chunkService: {
+    streamChunks: (
+      recordingId: string,
+      chunkSize?: number,
+    ) => AsyncGenerator<{ samples: number[] }>;
+  },
+  recordingId: string,
+  chunkSize: number = 100_000,
+): AsyncGenerator<number[], void, unknown> {
+  for await (const chunk of chunkService.streamChunks(recordingId, chunkSize)) {
+    yield chunk.samples;
+  }
+}
+
+/**
+ * Stream CSV export using Fetch API with ReadableStream
+ * This avoids loading the entire file into memory
+ */
+export async function streamCSVExport(
+  recordingId: string,
+  sampleRate: number,
+  totalSamples: number,
+  chunkService: {
+    streamChunks: (
+      recordingId: string,
+      chunkSize?: number,
+    ) => AsyncGenerator<{ samples: number[] }>;
+  },
+  options: StreamingCSVExportOptions = {},
+): Promise<void> {
+  const {
+    delimiter = ",",
+    filename = `recording_${recordingId}_${Date.now()}.csv`,
+    onProgress,
+  } = options;
+
+  if (typeof document === "undefined") {
+    throw new TypeError("streamCSVExport can only be called in a browser environment");
+  }
+
+  // Create a ReadableStream to generate the CSV data
+  const csvStream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const chunkSize = 100_000;
+      let processedSamples = 0;
+      let globalIndex = 0;
+      const timeStep = 1 / sampleRate;
+
+      // Write header
+      controller.enqueue(encoder.encode(`index${delimiter}time(s)${delimiter}value\n`));
+
+      try {
+        for await (const chunk of chunkService.streamChunks(recordingId, chunkSize)) {
+          const lines: string[] = [];
+
+          for (const sample of chunk.samples) {
+            const time = (globalIndex * timeStep).toFixed(9);
+            lines.push(`${globalIndex}${delimiter}${time}${delimiter}${sample.toFixed(9)}`);
+            globalIndex++;
+          }
+
+          processedSamples += chunk.samples.length;
+
+          // Write chunk as a single string for efficiency
+          controller.enqueue(encoder.encode(lines.join("\n") + "\n"));
+
+          // Report progress
+          if (onProgress) {
+            onProgress(processedSamples, totalSamples);
+          }
+        }
+
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+
+  // Use fetch to stream the download
+  const response = new Response(csvStream, {
+    headers: {
+      "Content-Type": "text/csv;charset=utf-8;",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Simple in-memory CSV export for smaller datasets
+ * Falls back to this if streaming is not available
+ */
+export async function exportCSVInMemory(
+  chunkService: {
+    streamChunks: (
+      recordingId: string,
+      chunkSize?: number,
+    ) => AsyncGenerator<{ samples: number[] }>;
+  },
+  recordingId: string,
+  sampleRate: number,
+  options: StreamingCSVExportOptions = {},
+): Promise<void> {
+  const {
+    delimiter = ",",
+    filename = `recording_${recordingId}_${Date.now()}.csv`,
+    onProgress,
+  } = options;
+
+  if (typeof document === "undefined") {
+    throw new TypeError("exportCSVInMemory can only be called in a browser environment");
+  }
+
+  const chunks: string[] = [];
+  chunks.push(`index${delimiter}time(s)${delimiter}value\n`);
+
+  let processedSamples = 0;
+  let globalIndex = 0;
+  const timeStep = 1 / sampleRate;
+  const chunkSize = 100_000;
+  let batchLines: string[] = [];
+
+  for await (const chunk of chunkService.streamChunks(recordingId, chunkSize)) {
+    for (const sample of chunk.samples) {
+      const time = (globalIndex * timeStep).toFixed(9);
+      batchLines.push(`${globalIndex}${delimiter}${time}${delimiter}${sample.toFixed(9)}`);
+      globalIndex++;
+
+      if (batchLines.length >= 10_000) {
+        chunks.push(batchLines.join("\n") + "\n");
+        batchLines = [];
+      }
+    }
+
+    processedSamples += chunk.samples.length;
+    if (onProgress) {
+      onProgress(processedSamples, globalIndex);
+    }
+  }
+
+  // Add remaining lines
+  if (batchLines.length > 0) {
+    chunks.push(batchLines.join("\n") + "\n");
+  }
+
+  const csvContent = chunks.join("");
+  downloadFile(csvContent, filename, "text/csv;charset=utf-8;");
+}
+
 export function downloadFile(content: string, filename: string, mimeType: string): void {
   if (typeof document === "undefined") {
     throw new TypeError("downloadFile can only be called in a browser environment");
@@ -183,4 +358,75 @@ export function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string)
   document.body.append(link);
   link.click();
   link.remove();
+}
+
+export function formatSampleRate(hz: number): string {
+  if (hz >= 1000) {
+    return `${(hz / 1000).toFixed(1)} kHz`;
+  }
+  return `${hz.toFixed(0)} Hz`;
+}
+
+export function formatFrequency(hz: number): string {
+  if (hz >= 1000) {
+    return `${(hz / 1000).toFixed(1)} kHz`;
+  }
+  if (hz < 1) {
+    return `~0 Hz`;
+  }
+  return `${hz.toFixed(0)} Hz`;
+}
+
+export function formatSampleCount(count: number): string {
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(1)}M`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+}
+
+export function formatBitDepth(bits: number): string {
+  return `${bits}-bit`;
+}
+
+export function formatDCOffset(volts: number): string {
+  const sign = volts >= 0 ? "+" : "";
+  return `${sign}${volts.toFixed(2)} V`;
+}
+
+export function formatDecibel(decibel: number): string {
+  const sign = decibel >= 0 ? "+" : "";
+  return `${sign}${decibel.toFixed(1)} dB`;
+}
+
+export function formatDecibelRange(
+  minDecibel: number,
+  maxDecibel: number,
+  peakDecibel: number,
+): { min: string; max: string; peak: string } {
+  return {
+    min: `${minDecibel.toFixed(0)} dB`,
+    max: `${maxDecibel.toFixed(0)} dB`,
+    peak: formatDecibel(peakDecibel),
+  };
+}
+
+export function formatSessionDate(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function formatSessionTime(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }

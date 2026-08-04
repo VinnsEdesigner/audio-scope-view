@@ -1,8 +1,6 @@
-//! Scope-specific domain errors
 
 use crate::domain::_shared::domain_errors::DomainError;
 
-/// Error types specific to scope operations
 #[derive(Debug, Clone)]
 pub enum ScopeError {
     ScopeNotFound(String),

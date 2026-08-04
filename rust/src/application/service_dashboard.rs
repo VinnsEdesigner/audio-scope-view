@@ -1,4 +1,3 @@
-//! Dashboard service - Aggregated dashboard data
 
 use crate::domain::entity_dashboard_summary::{DashboardSummary, RecentScope};
 use crate::domain::valueobject_timerange::TimeRange;
@@ -7,7 +6,6 @@ use crate::infrastructure::repo_sqlite_waveform::SqliteWaveformRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
-/// Dashboard service for aggregated data
 pub struct DashboardService {
     session_repository: Arc<SqliteSessionRepository>,
     waveform_repository: Arc<SqliteWaveformRepository>,
@@ -24,7 +22,6 @@ impl DashboardService {
         }
     }
 
-    /// Get dashboard summary with session statistics
     pub async fn get_summary(&self, time_range: TimeRange) -> AppResult<DashboardSummary> {
         let total_sessions = self
             .session_repository
@@ -32,14 +29,12 @@ impl DashboardService {
             .await
             .map_err(AppError::Domain)?;
 
-        // Get recent sessions
         let recent_sessions = self
             .session_repository
             .find_all_sessions(5, 0)
             .await
             .map_err(AppError::Domain)?;
 
-        // For now, aggregate waveform stats across all sessions
         let mut total_waveforms: u64 = 0;
         let mut total_samples: u64 = 0;
         let mut total_peak: f32 = 0.0;
@@ -57,7 +52,6 @@ impl DashboardService {
             total_rms += stats.average_rms;
         }
 
-        // Calculate averages
         let session_count = recent_sessions.len() as u32;
         let avg_peak = if session_count > 0 {
             total_peak / session_count as f32
@@ -70,7 +64,6 @@ impl DashboardService {
             0.0
         };
 
-        // Convert sessions to RecentScope format for compatibility
         let recent_sessions = recent_sessions
             .into_iter()
             .map(|s| {
@@ -80,15 +73,13 @@ impl DashboardService {
             .collect();
 
         let summary = DashboardSummary::new(time_range)
-            .with_scope_stats(total_sessions, 0) // sessions don't have "active" status
-            .with_capture_stats(total_waveforms)
+            .with_scope_stats(total_sessions, 0)             .with_capture_stats(total_waveforms)
             .with_waveform_stats(total_waveforms, total_samples, avg_peak, avg_rms)
             .with_recent_sessions(recent_sessions);
 
         Ok(summary)
     }
 
-    /// Get recent sessions (as RecentScope for compatibility)
     pub async fn get_recent_sessions(&self, limit: u32) -> AppResult<Vec<RecentScope>> {
         let sessions = self
             .session_repository

@@ -1,8 +1,6 @@
-//! Domain validation utilities
 
 use super::domain_errors::{DomainError, DomainResult};
 
-/// Validation error with field information
 #[derive(Debug, Clone)]
 pub struct ValidationError {
     pub field: String,
@@ -22,7 +20,6 @@ impl ValidationError {
     }
 }
 
-/// Validate a non-empty ID string
 pub fn validate_id(id: &str) -> DomainResult<()> {
     if id.is_empty() {
         return Err(DomainError::validation("ID cannot be empty"));
@@ -33,7 +30,6 @@ pub fn validate_id(id: &str) -> DomainResult<()> {
     Ok(())
 }
 
-/// Validate a resource name
 pub fn validate_name(name: &str) -> DomainResult<()> {
     if name.is_empty() {
         return Err(DomainError::validation("Name cannot be empty"));
@@ -47,7 +43,6 @@ pub fn validate_name(name: &str) -> DomainResult<()> {
     Ok(())
 }
 
-/// Validate sample rate is within acceptable range
 pub fn validate_sample_rate(rate: u32) -> DomainResult<()> {
     if rate < 8000 {
         return Err(DomainError::validation("Sample rate must be at least 8000 Hz"));
@@ -58,7 +53,6 @@ pub fn validate_sample_rate(rate: u32) -> DomainResult<()> {
     Ok(())
 }
 
-/// Validate buffer size is within acceptable range
 pub fn validate_buffer_size(size: u32) -> DomainResult<()> {
     if size < 64 {
         return Err(DomainError::validation("Buffer size must be at least 64 samples"));
@@ -72,7 +66,6 @@ pub fn validate_buffer_size(size: u32) -> DomainResult<()> {
     Ok(())
 }
 
-/// Validate time scale is within acceptable range
 pub fn validate_time_scale(scale: f64) -> DomainResult<()> {
     if scale <= 0.0 {
         return Err(DomainError::validation("Time scale must be positive"));
@@ -83,7 +76,6 @@ pub fn validate_time_scale(scale: f64) -> DomainResult<()> {
     Ok(())
 }
 
-/// Validate voltage scale is within acceptable range
 pub fn validate_voltage_scale(scale: f64) -> DomainResult<()> {
     if scale <= 0.0 {
         return Err(DomainError::validation("Voltage scale must be positive"));
@@ -94,7 +86,6 @@ pub fn validate_voltage_scale(scale: f64) -> DomainResult<()> {
     Ok(())
 }
 
-/// Validate trigger level is within voltage range
 pub fn validate_trigger_level(level: f64, voltage_range: f64) -> DomainResult<()> {
     if level.abs() > voltage_range {
         return Err(DomainError::validation(format!(
@@ -105,7 +96,6 @@ pub fn validate_trigger_level(level: f64, voltage_range: f64) -> DomainResult<()
     Ok(())
 }
 
-/// Validate a collection of samples
 pub fn validate_samples(samples: &[f32]) -> DomainResult<()> {
     if samples.is_empty() {
         return Err(DomainError::validation("Samples collection cannot be empty"));

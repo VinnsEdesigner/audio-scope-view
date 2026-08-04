@@ -1,4 +1,3 @@
-//! Application configuration loader
 
 #![allow(dead_code)]
 use config::{Config, ConfigError, File};
@@ -6,7 +5,6 @@ use serde::Deserialize;
 
 use crate::shared::error_app::{AppError, AppResult};
 
-/// Application configuration
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub server: ServerConfig,
@@ -74,7 +72,6 @@ impl Default for SecurityConfig {
 }
 
 impl AppConfig {
-    /// Load configuration from file and environment
     pub fn load() -> AppResult<Self> {
         let config = Config::builder()
             .add_source(File::with_name("config").required(false))
@@ -88,7 +85,6 @@ impl AppConfig {
             .map_err(|e: ConfigError| AppError::config(&e.to_string()))
     }
 
-    /// Load with explicit config path
     pub fn load_from(path: &str) -> AppResult<Self> {
         let config = Config::builder()
             .add_source(File::with_name(path).required(false))
@@ -101,7 +97,6 @@ impl AppConfig {
             .map_err(|e: ConfigError| AppError::config(&e.to_string()))
     }
 
-    /// Get server address
     pub fn server_address(&self) -> String {
         format!("{}:{}", self.server.host, self.server.port)
     }

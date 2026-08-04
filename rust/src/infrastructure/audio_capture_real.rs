@@ -10,22 +10,14 @@ use cpal::{Device, SampleFormat, Stream};
 use crate::domain::trait_audio_capture::{AudioCapture, AudioDevice};
 use crate::domain::{DomainError, DomainResult};
 
-/// Default buffer size in samples (~1 second at 44.1kHz)
 const DEFAULT_BUFFER_SIZE: usize = 44100 * 2;
 
-/// Maximum buffer size (prevents memory exhaustion)
-const MAX_BUFFER_SIZE: usize = 44100 * 60; // 1 minute max
-
-/// Error types for audio capture
+const MAX_BUFFER_SIZE: usize = 44100 * 60;
 #[derive(Debug, Clone)]
 pub enum CaptureError {
-    /// Device disconnected
     DeviceDisconnected,
-    /// Buffer overflow (data being dropped)
     BufferOverflow,
-    /// Stream error
     StreamError(String),
-    /// Thread panicked
     ThreadPanicked,
 }
 
@@ -42,8 +34,6 @@ impl std::fmt::Display for CaptureError {
 
 impl std::error::Error for CaptureError {}
 
-/// Thread-safe ring buffer for audio samples
-/// Uses atomics for position tracking and Mutex for buffer access
 struct AudioRingBuffer {
     buffer: Mutex<Vec<f32>>,
     write_pos: AtomicUsize,
@@ -53,8 +43,7 @@ struct AudioRingBuffer {
 
 impl AudioRingBuffer {
     fn new(capacity: usize) -> Self {
-        let capacity = capacity.next_power_of_two(); // Ensure power of 2 for fast modulo
-        Self {
+        let capacity = capacity.next_power_of_two();         Self {
             buffer: Mutex::new(vec![0.0f32; capacity]),
             write_pos: AtomicUsize::new(0),
             read_pos: AtomicUsize::new(0),
@@ -62,66 +51,57 @@ impl AudioRingBuffer {
         }
     }
 
-    /// Push samples into the buffer
-    /// Returns number of samples actually written (may be less if buffer is full)
     fn push(&self, data: &[f32]) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-        
-        // Calculate available space
+
         let available = if write_pos >= read_pos {
             self.capacity - (write_pos - read_pos)
         } else {
             read_pos - write_pos
         };
-        
-        let to_write = data.len().min(available.saturating_sub(1)); // Keep one slot empty
-        if to_write == 0 {
+
+        let to_write = data.len().min(available.saturating_sub(1));         if to_write == 0 {
             return 0;
         }
-        
+
         let mut_wpos = self.write_pos.load(Ordering::SeqCst);
         let mut buffer = self.buffer.lock().unwrap();
         for (i, &sample) in data.iter().take(to_write).enumerate() {
             buffer[(mut_wpos + i) & (self.capacity - 1)] = sample;
         }
-        
-        // Memory barrier to ensure data is written before updating position
+
         self.write_pos.store((mut_wpos + to_write) & (self.capacity - 1), Ordering::SeqCst);
-        
+
         to_write
     }
 
-    /// Drain samples from the buffer into the provided slice
-    /// Returns number of samples actually read
     fn drain(&self, output: &mut [f32]) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let mut read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         let available = if write_pos >= read_pos {
             write_pos - read_pos
         } else {
             self.capacity - read_pos + write_pos
         };
-        
+
         let to_read = output.len().min(available);
-        
+
         let buffer = self.buffer.lock().unwrap();
         for i in 0..to_read {
             output[i] = buffer[(read_pos + i) & (self.capacity - 1)];
         }
-        
-        // Memory barrier
+
         self.read_pos.store((read_pos + to_read) & (self.capacity - 1), Ordering::SeqCst);
-        
+
         to_read
     }
 
-    /// Get number of samples currently in buffer
     fn len(&self) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         if write_pos >= read_pos {
             write_pos - read_pos
         } else {
@@ -129,33 +109,29 @@ impl AudioRingBuffer {
         }
     }
 
-    /// Check if buffer is empty
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Clear the buffer
     fn clear(&self) {
         self.write_pos.store(0, Ordering::SeqCst);
         self.read_pos.store(0, Ordering::SeqCst);
     }
 
-    /// Check if buffer has overflowed (data was lost)
     fn has_overflow(&self) -> bool {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-        
+
         let available = if write_pos >= read_pos {
             write_pos - read_pos
         } else {
             self.capacity - read_pos + write_pos
         };
-        
+
         available >= self.capacity - 1
     }
 }
 
-/// Capture state shared between main thread and capture thread
 struct CaptureState {
     buffer: Arc<AudioRingBuffer>,
     stop_signal: Arc<AtomicBool>,
@@ -195,7 +171,6 @@ impl CaptureState {
     }
 }
 
-/// Real audio capture using cpal
 pub struct RealAudioCapture {
     device_id: Option<String>,
     sample_rate: u32,
@@ -207,12 +182,10 @@ pub struct RealAudioCapture {
 }
 
 impl RealAudioCapture {
-    /// Create a new RealAudioCapture with the default input device
     pub fn new() -> DomainResult<Self> {
         Self::with_buffer_size(DEFAULT_BUFFER_SIZE)
     }
 
-    /// Create with custom buffer size
     pub fn with_buffer_size(buffer_size: usize) -> DomainResult<Self> {
         let host = cpal::default_host();
         let device = host
@@ -243,12 +216,10 @@ impl RealAudioCapture {
         })
     }
 
-    /// Create with a specific device ID
     pub fn with_device(device_id: &str) -> DomainResult<Self> {
         Self::with_device_and_buffer(device_id, DEFAULT_BUFFER_SIZE)
     }
 
-    /// Create with specific device and buffer size
     pub fn with_device_and_buffer(device_id: &str, buffer_size: usize) -> DomainResult<Self> {
         let host = cpal::default_host();
 
@@ -277,17 +248,14 @@ impl RealAudioCapture {
         })
     }
 
-    /// Get the current sample rate
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
-    /// Get the number of channels
     pub fn channels(&self) -> u32 {
         self.channels
     }
 
-    /// List all available input devices
     pub fn list_devices() -> Vec<AudioDevice> {
         let host = cpal::default_host();
         let default_device = host.default_input_device();
@@ -344,7 +312,7 @@ impl RealAudioCapture {
     ) -> DomainResult<Stream> {
         let sample_format = config.sample_format();
         let stream_config: cpal::StreamConfig = config.clone().into();
-        
+
         let build_result = match sample_format {
             SampleFormat::F32 => {
                 let buffer = buffer.clone();
@@ -425,7 +393,6 @@ impl RealAudioCapture {
         build_result.map_err(|e| DomainError::capture_error(format!("Failed to build stream: {}", e)))
     }
 
-    /// Check for any errors from the capture thread
     fn check_errors(&self) {
         if let Ok(receiver) = self.error_receiver.lock() {
             if let Some(rx) = receiver.as_ref() {
@@ -436,7 +403,6 @@ impl RealAudioCapture {
         }
     }
 
-    /// Get statistics about dropped samples
     pub fn get_dropped_samples(&self) -> usize {
         self.state.get_dropped_count()
     }
@@ -450,7 +416,6 @@ impl Default for RealAudioCapture {
 
 impl Drop for RealAudioCapture {
     fn drop(&mut self) {
-        // Signal stop and drop the stream
         self.state.stop_signal.store(true, Ordering::SeqCst);
         if let Ok(mut stream_guard) = self.stream.lock() {
             stream_guard.take();
@@ -468,7 +433,6 @@ impl AudioCapture for RealAudioCapture {
             return Ok(());
         }
 
-        // Check for any pending errors
         self.check_errors();
 
         self.state.buffer.clear();
@@ -512,12 +476,11 @@ impl AudioCapture for RealAudioCapture {
         }
 
         self.state.stop_signal.store(true, Ordering::SeqCst);
-        
-        // Drop the stream to stop capture
+
         *self.stream.lock().unwrap() = None;
 
         self.state.running.store(false, Ordering::SeqCst);
-        
+
         let dropped = self.state.get_dropped_count();
         if dropped > 0 {
             tracing::warn!("Audio capture stopped with {} dropped samples", dropped);
@@ -530,7 +493,7 @@ impl AudioCapture for RealAudioCapture {
     async fn pause(&mut self) -> DomainResult<()> {
         if let Ok(mut stream_guard) = self.stream.lock() {
             if let Some(ref stream) = *stream_guard {
-                stream.pause().map_err(|e| 
+                stream.pause().map_err(|e|
                     DomainError::capture_error(format!("Failed to pause: {}", e))
                 )?;
             }
@@ -541,7 +504,7 @@ impl AudioCapture for RealAudioCapture {
     async fn resume(&mut self) -> DomainResult<()> {
         if let Ok(mut stream_guard) = self.stream.lock() {
             if let Some(ref stream) = *stream_guard {
-                stream.play().map_err(|e| 
+                stream.play().map_err(|e|
                     DomainError::capture_error(format!("Failed to resume: {}", e))
                 )?;
             }
@@ -554,7 +517,6 @@ impl AudioCapture for RealAudioCapture {
     }
 
     async fn read_samples(&mut self, buffer: &mut [f32]) -> DomainResult<u32> {
-        // Check for any errors from the capture thread
         self.check_errors();
 
         if !self.state.running.load(Ordering::SeqCst) {
@@ -565,8 +527,7 @@ impl AudioCapture for RealAudioCapture {
         }
 
         let count = self.state.buffer.drain(buffer);
-        
-        // Fill remaining with zeros if buffer was empty
+
         for sample in buffer[count..].iter_mut() {
             *sample = 0.0;
         }
@@ -579,7 +540,6 @@ impl AudioCapture for RealAudioCapture {
     }
 }
 
-/// Get the default audio host name
 pub fn get_host_name() -> String {
     #[cfg(target_os = "linux")]
     return "ALSA".to_string();
@@ -598,12 +558,11 @@ mod tests {
     #[test]
     fn test_ring_buffer_basic() {
         let buffer = AudioRingBuffer::new(16);
-        
-        // Test push and drain
+
         let data = [1.0, 2.0, 3.0, 4.0];
         let written = buffer.push(&data);
         assert_eq!(written, 4);
-        
+
         let mut output = [0.0f32; 4];
         let read = buffer.drain(&mut output);
         assert_eq!(read, 4);
@@ -613,12 +572,10 @@ mod tests {
     #[test]
     fn test_ring_buffer_wrap() {
         let buffer = AudioRingBuffer::new(8);
-        
-        // Fill beyond capacity
+
         let data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
         let written = buffer.push(&data);
-        assert_eq!(written, 9); // One slot kept empty
-        
+        assert_eq!(written, 9);
         let mut output = [0.0f32; 16];
         let read = buffer.drain(&mut output);
         assert_eq!(read, 9);

@@ -8,8 +8,6 @@ use crate::application::export_service::ExportFormat as AppExportFormat;
 use crate::application::BatchCaptureSettings;
 use crate::api::context_extractor::GraphqlContext;
 
-/// Verify if the provided key matches the expected bootstrap key
-/// Returns true if the SHA256 hash of the provided key matches the stored hash
 fn verify_bootstrap_key(provided_key: &str, expected_hash: &[u8; 32]) -> bool {
     let mut hasher = Sha256::new();
     hasher.update(provided_key.as_bytes());
@@ -95,7 +93,7 @@ impl ExportQueryRoot {
         format: ExportFormat,
     ) -> async_graphql::Result<ExportResult> {
         let context = ctx.data_unchecked::<GraphqlContext>();
-        
+
         let waveform = context.waveform_service.get(&waveform_id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get waveform: {}", e)))?
@@ -173,7 +171,7 @@ impl BatchCaptureMutationRoot {
         input: BatchCaptureInput,
     ) -> async_graphql::Result<BatchCaptureResult> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        
+
         let settings = BatchCaptureSettings {
             session_id: input.session_id,
             count: input.count,
@@ -205,7 +203,7 @@ impl SimulationMutationRoot {
         config: SimulationConfigInput,
     ) -> async_graphql::Result<bool> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        
+
         let sim_config = crate::application::simulation_service::SimulationConfig {
             waveform_ids: config.waveform_ids,
             loop_enabled: config.loop_enabled,
@@ -240,9 +238,6 @@ impl SimulationMutationRoot {
     }
 }
 
-// ============================================
-// API Key Management Types & Resolvers
-// ============================================
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct ApiKeyInfo {
@@ -255,14 +250,12 @@ pub struct ApiKeyInfo {
     pub is_valid: bool,
 }
 
-/// Convert SystemTime to Unix epoch seconds
 fn system_time_to_epoch_secs(time: std::time::SystemTime) -> i64 {
     time.duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0)
 }
 
-/// Convert Option<SystemTime> to Option<i64> (Unix epoch seconds)
 fn opt_system_time_to_epoch_secs(time: Option<std::time::SystemTime>) -> Option<i64> {
     time.map(system_time_to_epoch_secs)
 }
@@ -270,8 +263,7 @@ fn opt_system_time_to_epoch_secs(time: Option<std::time::SystemTime>) -> Option<
 #[derive(Debug, Clone, SimpleObject)]
 pub struct ApiKeyCreated {
     pub id: String,
-    pub key: String,  // Only shown once at creation!
-    pub name: String,
+    pub key: String,      pub name: String,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
@@ -302,11 +294,10 @@ pub struct ApiKeyQueryRoot;
 
 #[Object]
 impl ApiKeyQueryRoot {
-    /// List all API keys (without showing the actual key values)
     async fn api_keys(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<ApiKeyInfo>> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         let keys = key_store.list_keys().await;
-        
+
         Ok(keys.into_iter().map(|k| ApiKeyInfo {
             id: k.id,
             name: k.name,
@@ -318,10 +309,9 @@ impl ApiKeyQueryRoot {
         }).collect())
     }
 
-    /// Get info about a specific API key
     async fn api_key(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<Option<ApiKeyInfo>> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
+
         if let Some(k) = key_store.get_key_info(&id).await {
             let is_valid = k.expires_at.is_none_or(|exp| exp > std::time::SystemTime::now());
             Ok(Some(ApiKeyInfo {
@@ -338,11 +328,9 @@ impl ApiKeyQueryRoot {
         }
     }
 
-    /// Verify an API key is valid (does NOT mark as used)
     async fn verify_api_key(&self, ctx: &Context<'_>, key: String) -> async_graphql::Result<ApiKeyVerifyResult> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
-        // Check if it's the bootstrap key (using hash verification)
+
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
         if verify_bootstrap_key(&key, &app_state.bootstrap_key_hash) {
             return Ok(ApiKeyVerifyResult {
@@ -353,8 +341,7 @@ impl ApiKeyQueryRoot {
                 expires_at: None,
             });
         }
-        
-        // Try user API keys
+
         if let Some(api_key) = key_store.validate(&key).await {
             return Ok(ApiKeyVerifyResult {
                 valid: true,
@@ -364,7 +351,7 @@ impl ApiKeyQueryRoot {
                 expires_at: opt_system_time_to_epoch_secs(api_key.expires_at),
             });
         }
-        
+
         Ok(ApiKeyVerifyResult {
             valid: false,
             key_id: None,
@@ -380,14 +367,13 @@ pub struct ApiKeyMutationRoot;
 
 #[Object]
 impl ApiKeyMutationRoot {
-    /// Create a new API key - the key is only shown once!
     async fn create_api_key(
         &self,
         ctx: &Context<'_>,
         input: CreateApiKeyInput,
     ) -> async_graphql::Result<ApiKeyCreated> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
+
         let api_key = if let Some(hours) = input.expires_in_hours {
             let duration = std::time::Duration::from_secs((hours as u64) * 3600);
             key_store.create_key_with_expiry(input.name, duration).await
@@ -395,19 +381,16 @@ impl ApiKeyMutationRoot {
             key_store.create_key(input.name).await
         };
 
-        // Apply custom rate limit if specified
         if let Some(limit) = input.rate_limit_per_minute {
             key_store.update_key_rate_limit(&api_key.id, limit as u32).await;
         }
 
         Ok(ApiKeyCreated {
             id: api_key.id,
-            key: api_key.key, // Only returned here once!
-            name: api_key.name,
+            key: api_key.key,             name: api_key.name,
         })
     }
 
-    /// Update an API key (name, rate limit, expiry)
     async fn update_api_key(
         &self,
         ctx: &Context<'_>,
@@ -415,27 +398,23 @@ impl ApiKeyMutationRoot {
         input: UpdateApiKeyInput,
     ) -> async_graphql::Result<bool> {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
-        
-        // Update name if specified
+
         if let Some(ref name) = input.name {
             key_store.update_key_name(&id, name).await;
         }
-        
-        // Update rate limit if specified
+
         if let Some(limit) = input.rate_limit_per_minute {
             key_store.update_key_rate_limit(&id, limit as u32).await;
         }
-        
-        // Update expiry if specified
+
         if let Some(hours) = input.expires_in_hours {
             let duration = std::time::Duration::from_secs((hours as u64) * 3600);
             key_store.update_key_expiry(&id, duration).await;
         }
-        
+
         Ok(true)
     }
 
-    /// Delete/Revoke an API key
     async fn delete_api_key(
         &self,
         ctx: &Context<'_>,

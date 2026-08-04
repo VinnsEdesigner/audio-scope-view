@@ -1,39 +1,27 @@
-//! Waveform domain types
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Waveform entity
-/// 
-/// Represents a captured waveform with its metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Waveform {
-    /// Unique identifier
     pub id: String,
-    /// Associated scope ID
     pub session_id: String,
-    /// Audio samples as 32-bit floats
     pub samples: Vec<f32>,
-    /// Capture timestamp
     pub timestamp: DateTime<Utc>,
-    /// Duration in milliseconds
     pub duration_ms: f64,
-    /// Peak amplitude
     pub peak_amplitude: f32,
-    /// RMS amplitude
     pub rms_amplitude: f32,
 }
 
 impl Waveform {
-    /// Create a new waveform from samples
     pub fn new(id: String, session_id: String, samples: Vec<f32>, sample_rate: u32) -> Self {
         let now = Utc::now();
         let duration_ms = (samples.len() as f64 / sample_rate as f64) * 1000.0;
-        
+
         let peak_amplitude = samples.iter()
             .map(|s| s.abs())
             .fold(0.0f32, |a, b| a.max(b));
-        
+
         let sum_squares: f32 = samples.iter()
             .map(|s| s * s)
             .sum();
@@ -50,23 +38,19 @@ impl Waveform {
         }
     }
 
-    /// Get the number of samples
     pub fn sample_count(&self) -> usize {
         self.samples.len()
     }
 
-    /// Check if waveform is empty
     pub fn is_empty(&self) -> bool {
         self.samples.is_empty()
     }
 
-    /// Calculate the time step between samples
     pub fn time_step(&self, sample_rate: u32) -> f64 {
         1.0 / sample_rate as f64
     }
 }
 
-/// Waveform statistics
 #[derive(Debug, Clone, Default)]
 pub struct WaveformStatistics {
     pub total_count: u64,
@@ -77,7 +61,6 @@ pub struct WaveformStatistics {
     pub max_peak: f32,
 }
 
-/// Waveform filter parameters
 #[derive(Debug, Clone)]
 pub struct WaveformFilter {
     pub session_id: Option<String>,

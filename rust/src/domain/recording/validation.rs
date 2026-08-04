@@ -1,23 +1,19 @@
-//! Recording domain validation
+
+#![allow(dead_code)]
 
 use super::errors::RecordingError;
 use super::Recording;
 
-/// Maximum recording name length
 const MAX_NAME_LENGTH: usize = 255;
 
-/// Maximum recording size (100 MB)
 const MAX_RECORDING_SIZE: u64 = 100 * 1024 * 1024;
 
-/// Maximum recording duration (1 hour)
 const MAX_DURATION_MS: f64 = 3600.0 * 1000.0;
 
-/// Recording validator
 #[derive(Debug, Default)]
 pub struct RecordingValidator;
 
 impl RecordingValidator {
-    /// Validate a recording name
     pub fn validate_name(name: &str) -> Result<(), RecordingError> {
         let trimmed = name.trim();
 
@@ -36,7 +32,6 @@ impl RecordingValidator {
         Ok(())
     }
 
-    /// Validate recording size
     pub fn validate_size(size_bytes: u64) -> Result<(), RecordingError> {
         if size_bytes > MAX_RECORDING_SIZE {
             return Err(RecordingError::TooLarge(size_bytes, MAX_RECORDING_SIZE));
@@ -44,7 +39,6 @@ impl RecordingValidator {
         Ok(())
     }
 
-    /// Validate recording duration
     pub fn validate_duration(duration_ms: f64) -> Result<(), RecordingError> {
         if duration_ms <= 0.0 {
             return Err(RecordingError::InvalidDuration(duration_ms));
@@ -55,7 +49,6 @@ impl RecordingValidator {
         Ok(())
     }
 
-    /// Validate a recording entity
     pub fn validate(recording: &Recording) -> Result<(), RecordingError> {
         Self::validate_name(&recording.name)?;
         Self::validate_size(recording.size_bytes)?;

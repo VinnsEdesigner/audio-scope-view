@@ -1,4 +1,3 @@
-//! FFT Processor - Fast Fourier Transform for frequency analysis
 
 #![allow(dead_code)]
 #![allow(clippy::manual_clamp, clippy::needless_range_loop)]
@@ -7,7 +6,6 @@ use num_complex::Complex;
 use rustfft::FftPlanner;
 use std::f32::consts::PI;
 
-/// Window type for FFT preprocessing
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WindowType {
     Rectangular,
@@ -17,7 +15,6 @@ pub enum WindowType {
     Blackman,
 }
 
-/// Apply window function to samples
 pub fn apply_window(samples: &[f32], window_type: WindowType) -> Vec<f32> {
     let n = samples.len();
     let mut result = Vec::with_capacity(n);
@@ -38,51 +35,40 @@ pub fn apply_window(samples: &[f32], window_type: WindowType) -> Vec<f32> {
     result
 }
 
-/// FFT Processor for computing spectrum from audio samples
 pub struct FftProcessor {
     planner: FftPlanner<f32>,
 }
 
 impl FftProcessor {
-    /// Create a new FFT processor
     pub fn new() -> Self {
         Self {
             planner: FftPlanner::new(),
         }
     }
 
-    /// Compute FFT and return frequency magnitudes
-    /// Returns magnitudes in dB (normalized)
     pub fn compute_magnitudes(&mut self, samples: &[f32], _sample_rate: f32) -> Vec<f32> {
         let n = samples.len();
         if n == 0 {
             return Vec::new();
         }
 
-        // Pad to next power of 2 if needed
         let size = n.next_power_of_two();
         let mut padded = samples.to_vec();
         padded.resize(size, 0.0);
 
-        // Apply window
         let windowed = apply_window(&padded, WindowType::Hann);
 
-        // Prepare input: convert to complex numbers
         let mut input: Vec<Complex<f32>> = windowed.iter().map(|&x| Complex::new(x, 0.0)).collect();
 
-        // Create FFT planner for this size
         let fft = self.planner.plan_fft_forward(size);
 
-        // Execute FFT
         fft.process(&mut input);
 
-        // Compute magnitudes (only first half - positive frequencies)
         let half = size / 2;
         let mut magnitudes = Vec::with_capacity(half);
 
         for i in 0..half {
             let mag = input[i].norm() / (size as f32).sqrt();
-            // Convert to dB, with floor at -100 dB
             let db = 20.0 * (mag.max(1e-10_f32)).log10();
             magnitudes.push(db.max(-100.0));
         }
@@ -90,7 +76,6 @@ impl FftProcessor {
         magnitudes
     }
 
-    /// Find peak frequency in the spectrum
     #[allow(dead_code)]
     pub fn find_peak_frequency(
         &mut self,
@@ -124,7 +109,6 @@ impl FftProcessor {
         Some((peak_freq, max_mag))
     }
 
-    /// Compute full spectrum with frequency bins
     pub fn compute_spectrum(
         &mut self,
         samples: &[f32],
@@ -139,16 +123,13 @@ impl FftProcessor {
         let size = n.next_power_of_two();
         let freq_resolution = sample_rate / size as f32;
 
-        // Apply window and prepare input
         let windowed = apply_window(samples, window);
         let mut input: Vec<Complex<f32>> = windowed.iter().map(|&x| Complex::new(x, 0.0)).collect();
         input.resize(size, Complex::new(0.0, 0.0));
 
-        // Execute FFT
         let fft = self.planner.plan_fft_forward(size);
         fft.process(&mut input);
 
-        // Build spectrum (only positive frequencies)
         let half = size / 2;
         let mut frequencies = Vec::with_capacity(half);
         let mut magnitudes_db = Vec::with_capacity(half);
@@ -197,22 +178,14 @@ impl std::fmt::Debug for FftProcessor {
     }
 }
 
-/// Spectrum data from FFT analysis
 #[derive(Debug, Clone)]
 pub struct Spectrum {
-    /// Frequency bins in Hz
     pub frequencies: Vec<f32>,
-    /// Magnitude in dB
     pub magnitudes_db: Vec<f32>,
-    /// Phase in radians (optional)
     pub phases: Option<Vec<f32>>,
-    /// Peak frequency in Hz
     pub peak_frequency: f32,
-    /// Peak magnitude in dB
     pub peak_magnitude_db: f32,
-    /// Sample rate used for computation
     pub sample_rate: f32,
-    /// Original window size
     pub window_size: usize,
 }
 
@@ -231,7 +204,6 @@ impl Default for Spectrum {
 }
 
 impl Spectrum {
-    /// Get linear magnitudes (not in dB)
     pub fn linear_magnitudes(&self) -> Vec<f32> {
         self.magnitudes_db
             .iter()
@@ -239,7 +211,6 @@ impl Spectrum {
             .collect()
     }
 
-    /// Normalize magnitudes to 0-1 range
     pub fn normalized_magnitudes(&self) -> Vec<f32> {
         if self.magnitudes_db.is_empty() {
             return Vec::new();
@@ -262,11 +233,8 @@ mod tests {
     #[test]
     fn test_fft_sine_wave() {
         let sample_rate = 44100.0;
-        let frequency = 440.0; // A4 note
-        let duration = 0.01; // 10ms
-        let n = (sample_rate * duration) as usize;
+        let frequency = 440.0;         let duration = 0.01;         let n = (sample_rate * duration) as usize;
 
-        // Generate sine wave
         let samples: Vec<f32> = (0..n)
             .map(|i| {
                 let t = i as f32 / sample_rate;
@@ -277,7 +245,6 @@ mod tests {
         let mut processor = FftProcessor::new();
         let spectrum = processor.compute_spectrum(&samples, sample_rate, WindowType::Hann);
 
-        // Check peak frequency is close to 440 Hz
         assert!(
             (spectrum.peak_frequency - frequency).abs() < 50.0,
             "Peak frequency {} should be close to {}",
@@ -295,10 +262,8 @@ mod tests {
         let hamming = apply_window(&samples, WindowType::Hamming);
         let blackman = apply_window(&samples, WindowType::Blackman);
 
-        // Rectangular should be all 1.0
         assert!(rect.iter().all(|&x| (x - 1.0).abs() < 1e-6));
 
-        // Others should vary
         assert!(hann.iter().any(|&x| x < 1.0));
         assert!(hamming.iter().any(|&x| x < 1.0));
         assert!(blackman.iter().any(|&x| x < 1.0));

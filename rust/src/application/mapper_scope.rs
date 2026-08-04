@@ -1,9 +1,7 @@
 #![allow(dead_code)]
-//! Session mapper - Transform domain types to GraphQL types
 
 use crate::domain::{Session, Settings};
 
-/// GraphQL output type for Session
 #[derive(Debug, Clone)]
 pub struct SessionOutput {
     pub id: String,
@@ -23,7 +21,6 @@ impl From<Session> for SessionOutput {
     }
 }
 
-/// GraphQL output type for Settings
 #[derive(Debug, Clone)]
 pub struct SettingsOutput {
     pub id: String,

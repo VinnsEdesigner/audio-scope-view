@@ -10,6 +10,13 @@ export interface Recording {
   sizeBytes: number;
   peakAmplitude: number;
   rmsAmplitude: number;
+  peakDb: number;
+  rmsDb: number;
+  dcOffset: number;
+  dominantFrequency: number;
+  frequencyHigh: number;
+  frequencyLow: number;
+  bitDepth: number;
   isPinned: boolean;
   isRecording: boolean;
 
@@ -27,6 +34,13 @@ export interface RecordingPreview {
   sizeBytes: number;
   peakAmplitude: number;
   rmsAmplitude: number;
+  peakDb: number;
+  rmsDb: number;
+  dcOffset: number;
+  dominantFrequency: number;
+  frequencyHigh: number;
+  frequencyLow: number;
+  bitDepth: number;
   isPinned: boolean;
   isRecording: boolean;
 
@@ -38,9 +52,21 @@ export interface RecordingSummary {
   sessionId: string;
   sessionName: string;
   name: string;
+  sampleRate: number;
+  sampleCount: number;
   timestamp: Date;
   durationMs: number;
   sizeBytes: number;
+  peakAmplitude: number;
+  rmsAmplitude: number;
+  peakDb: number;
+  rmsDb: number;
+  peakNegativeDb: number;
+  dcOffset: number;
+  dominantFrequency: number;
+  frequencyHigh: number;
+  frequencyLow: number;
+  bitDepth: number;
   isPinned: boolean;
 }
 
@@ -112,6 +138,13 @@ export interface RecordingServer {
   sizeBytes: number;
   peakAmplitude: number;
   rmsAmplitude: number;
+  peakDb: number;
+  rmsDb: number;
+  dcOffset: number;
+  dominantFrequency: number;
+  frequencyHigh: number;
+  frequencyLow: number;
+  bitDepth: number;
   isPinned: boolean;
   isRecording: boolean;
 
@@ -129,6 +162,13 @@ export interface RecordingPreviewServer {
   sizeBytes: number;
   peakAmplitude: number;
   rmsAmplitude: number;
+  peakDb: number;
+  rmsDb: number;
+  dcOffset: number;
+  dominantFrequency: number;
+  frequencyHigh: number;
+  frequencyLow: number;
+  bitDepth: number;
   isPinned: boolean;
   isRecording: boolean;
 
@@ -140,9 +180,21 @@ export interface RecordingSummaryServer {
   sessionId: string;
   sessionName: string;
   name: string;
+  sampleRate: number;
+  sampleCount: number;
   timestamp: string;
   durationMs: number;
   sizeBytes: number;
+  peakAmplitude: number;
+  rmsAmplitude: number;
+  peakDb: number;
+  rmsDb: number;
+  peakNegativeDb: number;
+  dcOffset: number;
+  dominantFrequency: number;
+  frequencyHigh: number;
+  frequencyLow: number;
+  bitDepth: number;
   isPinned: boolean;
 }
 
@@ -162,7 +214,7 @@ export interface RecordingStatsServer {
 export interface SessionWithStatusServer {
   id: string;
   name: string;
-  createdAt: string;
+  startedAt: string;
   status: string;
   recordingCount: number;
 }

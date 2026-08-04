@@ -69,12 +69,6 @@ function createInitialState(): AudioAnalyzerState {
   };
 }
 
-/**
- * The microphone is a single hardware resource, so the analyzer is a module-level
- * singleton store. Every component that calls `useAudioAnalyzer` observes the exact
- * same capture state (previously each call site created an isolated instance, so the
- * top bar / bottom readouts / dialogs never reflected the running capture).
- */
 let state: AudioAnalyzerState = createInitialState();
 const listeners = new Set<() => void>();
 
@@ -109,12 +103,11 @@ let options: Required<Omit<UseAudioAnalyzerOptions, "deviceId" | "desiredSampleR
 };
 
 function mergeOptions(next: UseAudioAnalyzerOptions) {
-  const merged = { ...options };
+  const merged: typeof options = { ...options };
   for (const key of Object.keys(next) as (keyof UseAudioAnalyzerOptions)[]) {
     const value = next[key];
     if (value !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (merged as any)[key] = value;
+      (merged as Record<string, unknown>)[key] = value;
     }
   }
   options = merged;
@@ -267,7 +260,9 @@ function discardCapture() {
   emit();
 }
 
-export function useAudioAnalyzer(hookOptions: UseAudioAnalyzerOptions = {}): UseAudioAnalyzerReturn {
+export function useAudioAnalyzer(
+  hookOptions: UseAudioAnalyzerOptions = {},
+): UseAudioAnalyzerReturn {
   mergeOptions(hookOptions);
 
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

@@ -1,11 +1,9 @@
-//! Dashboard GraphQL schema
 
 use async_graphql::{Context, Object, SimpleObject};
 
 use crate::api::context_extractor::GraphqlContext;
 use crate::domain::valueobject_timerange::TimeRange;
 
-/// Dashboard summary output
 #[derive(Debug, SimpleObject)]
 pub struct DashboardSummaryOutput {
     pub time_range: String,
@@ -20,7 +18,6 @@ pub struct DashboardSummaryOutput {
     pub recent_sessions: Vec<RecentScopeOutput>,
 }
 
-/// Recent scope output
 #[derive(Debug, SimpleObject)]
 pub struct RecentScopeOutput {
     pub id: String,
@@ -29,13 +26,11 @@ pub struct RecentScopeOutput {
     pub waveform_count: i32,
 }
 
-/// Dashboard query operations
 #[derive(Default)]
 pub struct DashboardQuery;
 
 #[Object]
 impl DashboardQuery {
-    /// Get dashboard summary
     async fn dashboard_summary(
         &self,
         ctx: &Context<'_>,
@@ -78,7 +73,6 @@ impl DashboardQuery {
         })
     }
 
-    /// Get recent scopes
     async fn recent_sessions(&self, ctx: &Context<'_>, limit: Option<i32>) -> Vec<RecentScopeOutput> {
         let context = ctx
             .data::<GraphqlContext>()

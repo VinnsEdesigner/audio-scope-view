@@ -146,7 +146,7 @@ fn generate_square(freq: f64, amp: f32, duty_cycle: f32, _phase: f64, sample_rat
     let mut samples = Vec::with_capacity(n);
     let period = sample_rate / freq;
     let duty_samples = (period * duty_cycle as f64) as usize;
-    
+
     for i in 0..n {
         let pos = (i % period as usize) as f64;
         let value: f32 = if pos < duty_samples as f64 { amp } else { -amp };
@@ -158,7 +158,7 @@ fn generate_square(freq: f64, amp: f32, duty_cycle: f32, _phase: f64, sample_rat
 fn generate_sawtooth(freq: f64, amp: f32, phase: f64, sample_rate: f64, n: usize) -> Vec<f32> {
     let mut samples = Vec::with_capacity(n);
     let period = sample_rate / freq;
-    
+
     for i in 0..n {
         let t = i as f64 / period;
         let value = (2.0 * (t + phase / (2.0 * PI)).rem_euclid(1.0) - 1.0) as f32 * amp;
@@ -170,7 +170,7 @@ fn generate_sawtooth(freq: f64, amp: f32, phase: f64, sample_rate: f64, n: usize
 fn generate_triangle(freq: f64, amp: f32, phase: f64, sample_rate: f64, n: usize) -> Vec<f32> {
     let mut samples = Vec::with_capacity(n);
     let period = sample_rate / freq;
-    
+
     for i in 0..n {
         let t = (i as f64 / period + phase / (2.0 * PI)).rem_euclid(1.0);
         let value = if t < 0.5 {
@@ -186,7 +186,7 @@ fn generate_triangle(freq: f64, amp: f32, phase: f64, sample_rate: f64, n: usize
 fn generate_noise(noise_type: &NoiseType, amp: f32, n: usize) -> Vec<f32> {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    
+
     match noise_type {
         NoiseType::White => {
             (0..n).map(|_| rng.gen_range(-amp..amp)).collect()
@@ -196,7 +196,7 @@ fn generate_noise(noise_type: &NoiseType, amp: f32, n: usize) -> Vec<f32> {
             let mut pink: Vec<f64> = vec![0.0; n];
             let mut b0 = 0.0f64; let mut b1 = 0.0f64; let mut b2 = 0.0f64;
             let mut b3 = 0.0f64; let mut b4 = 0.0f64; let mut b5 = 0.0f64; let mut b6 = 0.0f64;
-            
+
             for (i, sample) in white.iter().enumerate() {
                 b0 = 0.99886 * b0 + sample * 0.0555179;
                 b1 = 0.99332 * b1 + sample * 0.0750759;
@@ -269,7 +269,7 @@ fn generate_impulse(freq: f64, amp: f32, sample_rate: f64, n: usize) -> Vec<f32>
 fn generate_multi_tone(freqs: &[f64], amps: &[f32], phase: f64, sample_rate: f64, n: usize) -> Vec<f32> {
     let mut samples = vec![0.0f32; n];
     let num_tones = freqs.len().min(amps.len());
-    
+
     for (i, sample) in samples.iter_mut().enumerate().take(n) {
         let t = i as f64 / sample_rate;
         let mut value = 0.0f32;

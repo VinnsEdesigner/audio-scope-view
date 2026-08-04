@@ -1,13 +1,14 @@
 import * as React from "react";
 import { Dialog, DialogFooter } from "../ui/dialog";
 import { SelectDialog } from "./select-dialog";
-import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save } from "lucide-react";
+import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   useMediaDevices,
-  useStartRecording,
+  useCreateRecording,
   useAudioAnalyzer,
   useUIStore,
+  useAudioStore,
   formatDuration,
   type WaveformColor,
 } from "../../hooks";
@@ -174,13 +175,14 @@ interface DialogMicRecordingProperties {
 export function DialogMicRecording({
   isOpen,
   onClose,
-  sessionId = "default",
+  sessionId,
   _scopeName,
 }: DialogMicRecordingProperties): React.ReactElement {
   const { showToast } = useToast();
   const { devices, selectedDeviceId, setSelectedDeviceId, hasPermission, requestPermission } =
     useMediaDevices();
-  const [startRecording] = useStartRecording();
+  const [createRecording] = useCreateRecording();
+  const globalSampleRate = useAudioStore((state) => state.sampleRate);
 
   const { waveformColor, showGrid, smoothWaveform, glow, autoScale, invert } = useUIStore();
 
@@ -189,7 +191,7 @@ export function DialogMicRecording({
     volumeLevel,
     peakLevel,
     waveformData,
-    sampleRate,
+    sampleRate: _localSampleRate,
     duration,
     samples,
     error,
@@ -204,6 +206,45 @@ export function DialogMicRecording({
   });
 
   const [recordingName, setRecordingName] = React.useState("");
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  const wasOpenReference = React.useRef(false);
+
+  // Session is passed explicitly from parent
+  const activeSessionId = sessionId;
+
+  // Effects for permission and cleanup - must be called unconditionally
+  React.useEffect(() => {
+    if (isOpen && !hasPermission) {
+      requestPermission();
+    }
+  }, [isOpen, hasPermission, requestPermission]);
+
+  React.useEffect(() => {
+    if (isOpen && !recordingName) {
+      const now = new Date();
+      const dateString = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const timeString = now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      setRecordingName(`Recording ${dateString} ${timeString}`);
+    }
+  }, [isOpen, recordingName]);
+
+  React.useEffect(() => {
+    if (wasOpenReference.current && !isOpen) {
+      discardCapture();
+    }
+    wasOpenReference.current = isOpen;
+  }, [isOpen, discardCapture]);
+
+  // Don't render anything if no sessionId is provided
+  // Parent should handle session selection before opening this dialog
+  if (!sessionId) {
+    return <></>;
+  }
 
   const inputDevices = Array.isArray(devices) ? devices.filter((d) => d.kind === "audioinput") : [];
 
@@ -228,19 +269,6 @@ export function DialogMicRecording({
     return "#22c55e";
   };
 
-  React.useEffect(() => {
-    if (isOpen && !recordingName) {
-      const now = new Date();
-      const dateString = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const timeString = now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      setRecordingName(`Recording ${dateString} ${timeString}`);
-    }
-  }, [isOpen, recordingName]);
-
   const handleStartCapture = async () => {
     if (error) {
       showToast({ message: error.message, type: "error" });
@@ -251,19 +279,32 @@ export function DialogMicRecording({
   };
 
   const stopAndSave = async () => {
+    if (!activeSessionId) {
+      showToast({ message: "No active session — please try again", type: "warning" });
+      return;
+    }
+
     const captured = stopCapture();
 
-    if (captured.length > 0 && sessionId) {
+    if (captured.length > 0) {
+      setIsSaving(true);
       try {
-        await startRecording({
+        await createRecording({
           variables: {
-            sessionId,
-            name: recordingName || `Recording ${new Date().toLocaleString()}`,
+            input: {
+              sessionId: activeSessionId,
+              name: recordingName || `Recording ${new Date().toLocaleString()}`,
+              samples: [...captured],
+              sampleRate: globalSampleRate,
+            },
           },
         });
         showToast({ message: "Recording saved successfully!", type: "success" });
+        onClose();
       } catch {
         showToast({ message: "Failed to save recording", type: "error" });
+      } finally {
+        setIsSaving(false);
       }
     } else {
       showToast({ message: "Nothing captured — recording not saved", type: "warning" });
@@ -274,20 +315,6 @@ export function DialogMicRecording({
     discardCapture();
     showToast({ message: "Recording discarded", type: "warning" });
   };
-
-  React.useEffect(() => {
-    if (isOpen && !hasPermission) {
-      requestPermission();
-    }
-  }, [isOpen, hasPermission, requestPermission]);
-
-  const wasOpenReference = React.useRef(false);
-  React.useEffect(() => {
-    if (wasOpenReference.current && !isOpen) {
-      discardCapture();
-    }
-    wasOpenReference.current = isOpen;
-  }, [isOpen, discardCapture]);
 
   const handleClose = () => {
     if (recordingState === "idle") {
@@ -335,7 +362,7 @@ export function DialogMicRecording({
               value={recordingName}
               onChange={(event_) => setRecordingName(event_.target.value)}
               placeholder="Enter recording name"
-              className="w-full px-4 py-2.5 bg-bg-primary border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+              className="w-full px-4 py-2.5 bg-bg-primary border border-border rounded-lg text-sm text-foreground focus:outline-none"
             />
           </div>
         )}
@@ -347,7 +374,7 @@ export function DialogMicRecording({
             value={selectedDeviceId ?? ""}
             options={inputDevices.map((device) => ({
               value: device.deviceId,
-              label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
+              label: device.label,
             }))}
             placeholder={inputDevices.length > 0 ? "Select device" : "No devices found"}
             onChange={(value) => setSelectedDeviceId(String(value) || undefined)}
@@ -430,7 +457,7 @@ export function DialogMicRecording({
         <div className="grid grid-cols-4 gap-2">
           <div className="text-center p-2 bg-bg-elevated rounded-lg">
             <div className="text-sm font-semibold font-mono text-foreground">
-              {(sampleRate / 1000).toFixed(1)}
+              {(globalSampleRate / 1000).toFixed(1)}
             </div>
             <div className="text-[10px] text-text-tertiary uppercase">kHz</div>
           </div>
@@ -502,10 +529,12 @@ export function DialogMicRecording({
               )}
               <button
                 onClick={stopAndSave}
+                disabled={isSaving}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
               >
-                <Save size={16} />
-                Save
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {!isSaving && <Save size={16} />}
+                {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </>

@@ -1,6 +1,3 @@
-//! Application layer - Business logic orchestration
-//!
-//! Services that coordinate between API and domain layers
 
 pub mod batch_capture;
 pub mod export_service;

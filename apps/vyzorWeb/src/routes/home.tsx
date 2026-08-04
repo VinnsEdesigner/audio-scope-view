@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileAudio,
+  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -20,11 +21,19 @@ import {
   usePinRecording,
   useDeleteRecording,
   useRenameRecording,
+  useLastUsedSession,
+  useCreateNamedSession,
+  useSessionSettings,
   formatBytes,
   formatTimestampRelative,
 } from "../hooks";
 import type { RecordingSummary, SessionWithStatus } from "../hooks";
 import { DialogMicRecording } from "../components/dialogs/dialog-mic-recording";
+import {
+  SelectSessionDialog,
+  CreateSessionDialog,
+  SessionSettingsDialog,
+} from "../components/dialogs";
 import { useToast } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -40,9 +49,33 @@ export function Home(): React.ReactElement {
   const [renamingId, setRenamingId] = React.useState<string | undefined>();
   const [renameValue, setRenameValue] = React.useState("");
 
+  // Session dialog state
+  const [selectDialogOpen, setSelectDialogOpen] = React.useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [selectedSessionId, setSelectedSessionId] = React.useState<string | undefined>();
+  const [cameFromSelectDialog, setCameFromSelectDialog] = React.useState(false);
+  const [pendingDestination, setPendingDestination] = React.useState<
+    "record" | "oscilloscope" | undefined
+  >();
+
   const { data: stats, loading: statsLoading } = useRecordingStats();
   const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
-  const { sessions, counts } = useHomePageSessions();
+  const { sessions, counts, loading: sessionsLoading } = useHomePageSessions();
+
+  const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
+    useLastUsedSession();
+  const [createNamedSession, { loading: isCreating }] = useCreateNamedSession();
+  const {
+    autoSelectLastSession,
+    autoCloseTimeoutSecs,
+    updateAllPreferences,
+    isLoading: isSettingsLoading,
+  } = useSessionSettings();
+
+  // Combined loading state - wait for session data before making decisions
+  const isLoadingSessionData = sessionsLoading || isLoadingSession;
 
   const [pinRecording] = usePinRecording();
   const [deleteRecording] = useDeleteRecording();
@@ -151,8 +184,83 @@ export function Home(): React.ReactElement {
     setRenameValue("");
   };
 
+  // Session handlers
+  const handleMicClick = () => {
+    // Skip if still loading session data - prevent race condition
+    if (isLoadingSessionData) {
+      return;
+    }
+
+    // Check if auto-select is enabled and we have a last used session
+    if (shouldAutoSelect && lastUsedSession) {
+      // Auto-select: proceed directly with last used session
+      setSelectedSessionId(lastUsedSession.id);
+      setIsMicDialogOpen(true);
+    } else if (sessions.length > 0) {
+      // Sessions exist: show selection dialog
+      setSelectedSessionId(undefined);
+      setSelectDialogOpen(true);
+    } else {
+      // No sessions: show create dialog
+      setSelectedSessionId(undefined);
+      setPendingDestination("record");
+      setCreateDialogOpen(true);
+    }
+  };
+
+  const handleSessionSelect = async (sessionId: string) => {
+    await markSessionAsUsed(sessionId);
+    setSelectedSessionId(sessionId);
+    setSelectDialogOpen(false);
+    setIsMicDialogOpen(true);
+  };
+
+  const handleCreateSession = async (name: string, description: string) => {
+    try {
+      const result = await createNamedSession({ variables: { input: { name, description } } });
+      const newSession = result.data?.createNamedSession;
+      if (newSession) {
+        await markSessionAsUsed(newSession.id);
+        setSelectedSessionId(newSession.id);
+        setCreateDialogOpen(false);
+
+        // Only redirect if we had a pending destination
+        if (pendingDestination === "record") {
+          setIsMicDialogOpen(true);
+        }
+        // For oscilloscope, the user would need to navigate explicitly
+
+        showToast({ message: `Session "${name}" created`, type: "success" });
+
+        // Clear pending destination
+        setPendingDestination(undefined);
+      }
+    } catch (error) {
+      showToast({
+        message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
+        type: "error",
+      });
+    }
+  };
+
+  const handleSaveSettings = async (autoSelect: boolean, autoCloseTimeoutSecs: number | null) => {
+    try {
+      await updateAllPreferences(autoSelect, autoCloseTimeoutSecs);
+      setSettingsDialogOpen(false);
+      setDropdownOpen(false);
+    } catch (error) {
+      showToast({
+        message: `Failed to save settings: ${error instanceof Error ? error.message : "Unknown error"}`,
+        type: "error",
+      });
+    }
+  };
+
   React.useEffect(() => {
-    const handleClick = () => setOpenMenuId(undefined);
+    const handleClick = () => {
+      setOpenMenuId(undefined);
+      setDropdownOpen(false);
+    };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
@@ -162,8 +270,8 @@ export function Home(): React.ReactElement {
   return (
     <div className="w-full min-h-screen bg-bg-primary overflow-y-auto">
       {}
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 md:px-8 md:py-4 pl-0 md:pl-16 border-b border-border-subtle bg-black gap-3">
-        <div className="ml-0 md:ml-10">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 md:px-8 md:py-4 pl-14 sm:pl-12 md:pl-16 border-b border-border-subtle bg-black gap-3">
+        <div className="ml-0 md:ml-0">
           {isLoading ? (
             <>
               <Skeleton className="h-8 w-24 mb-2 md:h-10 md:w-32" />
@@ -184,16 +292,63 @@ export function Home(): React.ReactElement {
             <>
               <Skeleton className="w-10 h-10 rounded-lg" />
               <Skeleton className="w-10 h-10 rounded-lg" />
+              <Skeleton className="w-10 h-10 rounded-lg" />
             </>
           ) : (
             <>
+              {/* Create Session Button */}
               <button
-                onClick={() => setIsMicDialogOpen(true)}
+                onClick={() => {
+                  setPendingDestination(undefined);
+                  setCreateDialogOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 rounded-lg transition-colors text-white font-semibold"
+                title="Create Session"
+              >
+                <Plus size={16} />
+                Create Session
+              </button>
+
+              {/* Session Actions Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={(event_) => {
+                    event_.stopPropagation();
+                    setDropdownOpen(!dropdownOpen);
+                  }}
+                  className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+                  title="More Session Options"
+                >
+                  <MoreVertical size={18} className="text-text-secondary" />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50">
+                    <button
+                      onClick={(event_) => {
+                        event_.stopPropagation();
+                        setSettingsDialogOpen(true);
+                        setDropdownOpen(false);
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                    >
+                      <SettingsIcon size={14} />
+                      Session Settings
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Mic Button */}
+              <button
+                onClick={handleMicClick}
                 className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
                 title="Test Microphone"
               >
                 <Mic size={18} className="text-text-secondary" />
               </button>
+
+              {/* App Settings Button */}
               <button
                 onClick={() => navigate("/settings")}
                 className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
@@ -532,14 +687,15 @@ export function Home(): React.ReactElement {
                   sessions.map((session: SessionWithStatus) => (
                     <div
                       key={session.id}
-                      className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg"
+                      className="group flex items-center gap-3 p-3 bg-bg-elevated rounded-lg cursor-pointer transition-all hover:bg-bg-hover"
+                      onClick={() => navigate(`/session/${session.id}`)}
                     >
                       <div className="w-9 h-9 flex items-center justify-center bg-bg-primary rounded-lg">
                         <Radio size={16} className="text-text-secondary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate">
-                          Session {session.id}
+                          {session.name || `Session ${session.id.slice(0, 8)}`}
                         </div>
                         <div className="text-xs text-text-tertiary mt-0.5">
                           {session.recordingCount} recordings • Started{" "}
@@ -571,7 +727,52 @@ export function Home(): React.ReactElement {
       </main>
 
       {}
-      <DialogMicRecording isOpen={isMicDialogOpen} onClose={() => setIsMicDialogOpen(false)} />
+      <DialogMicRecording
+        isOpen={isMicDialogOpen}
+        onClose={() => setIsMicDialogOpen(false)}
+        sessionId={selectedSessionId}
+      />
+
+      {/* Select Session Dialog */}
+      <SelectSessionDialog
+        isOpen={selectDialogOpen}
+        sessions={sessions}
+        selectedSessionId={selectedSessionId}
+        onClose={() => setSelectDialogOpen(false)}
+        onSelect={handleSessionSelect}
+        onCreateNew={() => {
+          setCameFromSelectDialog(true);
+          setSelectDialogOpen(false);
+          setPendingDestination("record");
+          setCreateDialogOpen(true);
+        }}
+        isLoading={sessionsLoading}
+      />
+
+      {/* Create Session Dialog */}
+      <CreateSessionDialog
+        isOpen={createDialogOpen}
+        onClose={() => {
+          setCreateDialogOpen(false);
+          if (cameFromSelectDialog) {
+            setSelectDialogOpen(true);
+            setCameFromSelectDialog(false);
+          }
+          setPendingDestination(undefined);
+        }}
+        onConfirm={handleCreateSession}
+        isLoading={isCreating}
+      />
+
+      {/* Session Settings Dialog */}
+      <SessionSettingsDialog
+        isOpen={settingsDialogOpen}
+        autoSelectLastSession={autoSelectLastSession}
+        autoCloseTimeoutSecs={autoCloseTimeoutSecs}
+        onClose={() => setSettingsDialogOpen(false)}
+        onSave={handleSaveSettings}
+        isLoading={isSettingsLoading}
+      />
     </div>
   );
 }

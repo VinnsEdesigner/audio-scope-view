@@ -1,8 +1,6 @@
-//! Recording domain errors
 
 use thiserror::Error;
 
-/// Recording domain errors
 #[derive(Error, Debug)]
 pub enum RecordingError {
     #[error("Recording not found: {0}")]

@@ -1,4 +1,3 @@
-//! SQLite implementation of RecordingRepository
 
 #![allow(dead_code)]
 
@@ -9,36 +8,50 @@ use sqlx::{FromRow, SqlitePool};
 use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, TimeRange};
 use crate::domain::error_domain::DomainError;
 
-/// Raw recording row from database
 #[derive(FromRow)]
 struct RecordingRow {
     id: String,
     session_id: String,
     name: String,
-    samples: String, // JSON array
-    sample_count: i32,
+    samples: String,     sample_count: i32,
+    sample_rate: i32,
     timestamp: String,
     duration_ms: f64,
     size_bytes: i64,
     peak_amplitude: f32,
     rms_amplitude: f32,
+    peak_db: f32,
+    rms_db: f32,
+    peak_negative_db: f32,
+    dc_offset: f32,
+    dominant_frequency: f32,
+    frequency_high: f32,
+    frequency_low: f32,
+    bit_depth: i32,
     is_pinned: bool,
     created_at: String,
-    waveform_overview: Option<String>, // JSON array of f32 (min-max pairs)
-}
+    waveform_overview: Option<String>, }
 
-/// Recording metadata row (without samples)
 #[derive(Debug, Clone, FromRow)]
 pub struct RecordingMetadataRow {
     pub id: String,
     pub session_id: String,
     pub name: String,
     pub sample_count: i32,
+    pub sample_rate: i32,
     pub timestamp: String,
     pub duration_ms: f64,
     pub size_bytes: i64,
     pub peak_amplitude: f32,
     pub rms_amplitude: f32,
+    pub peak_db: f32,
+    pub rms_db: f32,
+    pub peak_negative_db: f32,
+    pub dc_offset: f32,
+    pub dominant_frequency: f32,
+    pub frequency_high: f32,
+    pub frequency_low: f32,
+    pub bit_depth: i32,
     pub is_pinned: bool,
     pub created_at: String,
     pub waveform_overview: Option<String>,
@@ -53,17 +66,26 @@ impl TryFrom<RecordingMetadataRow> for RecordingMetadata {
             .map(|json| serde_json::from_str(&json))
             .transpose()
             .map_err(|e| DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e)))?;
-        
+
         Ok(RecordingMetadata {
             id: row.id,
             session_id: row.session_id,
             name: row.name,
             sample_count: row.sample_count as usize,
+            sample_rate: row.sample_rate as u32,
             timestamp,
             duration_ms: row.duration_ms,
             size_bytes: row.size_bytes as u64,
             peak_amplitude: row.peak_amplitude,
             rms_amplitude: row.rms_amplitude,
+            peak_db: row.peak_db,
+            rms_db: row.rms_db,
+            peak_negative_db: row.peak_negative_db,
+            dc_offset: row.dc_offset,
+            dominant_frequency: row.dominant_frequency,
+            frequency_high: row.frequency_high,
+            frequency_low: row.frequency_low,
+            bit_depth: row.bit_depth as u8,
             is_pinned: row.is_pinned,
             waveform_overview,
         })
@@ -83,11 +105,20 @@ impl TryFrom<RecordingRow> for Recording {
             session_id: row.session_id,
             name: row.name,
             samples,
+            sample_rate: row.sample_rate as u32,
             timestamp,
             duration_ms: row.duration_ms,
             size_bytes: row.size_bytes as u64,
             peak_amplitude: row.peak_amplitude,
             rms_amplitude: row.rms_amplitude,
+            peak_db: row.peak_db,
+            rms_db: row.rms_db,
+            peak_negative_db: row.peak_negative_db,
+            dc_offset: row.dc_offset,
+            dominant_frequency: row.dominant_frequency,
+            frequency_high: row.frequency_high,
+            frequency_low: row.frequency_low,
+            bit_depth: row.bit_depth as u8,
             is_pinned: row.is_pinned,
         })
     }
@@ -96,26 +127,34 @@ impl TryFrom<RecordingRow> for Recording {
 impl From<Recording> for RecordingRow {
     fn from(recording: Recording) -> Self {
         let samples_json = serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
-        
-        // Compute waveform overview from samples (min-max downsampling)
+
         let waveform_overview = if recording.samples.is_empty() {
             None
         } else {
             let overview = create_waveform_overview(&recording.samples, 1000);
             Some(serde_json::to_string(&overview).unwrap_or_else(|_| "[]".to_string()))
         };
-        
+
         Self {
             id: recording.id,
             session_id: recording.session_id,
             name: recording.name,
             samples: samples_json,
             sample_count: recording.samples.len() as i32,
+            sample_rate: recording.sample_rate as i32,
             timestamp: recording.timestamp.to_rfc3339(),
             duration_ms: recording.duration_ms,
             size_bytes: recording.size_bytes as i64,
             peak_amplitude: recording.peak_amplitude,
             rms_amplitude: recording.rms_amplitude,
+            peak_db: recording.peak_db,
+            rms_db: recording.rms_db,
+            peak_negative_db: recording.peak_negative_db,
+            dc_offset: recording.dc_offset,
+            dominant_frequency: recording.dominant_frequency,
+            frequency_high: recording.frequency_high,
+            frequency_low: recording.frequency_low,
+            bit_depth: recording.bit_depth as i32,
             is_pinned: recording.is_pinned,
             created_at: Utc::now().to_rfc3339(),
             waveform_overview,
@@ -123,7 +162,6 @@ impl From<Recording> for RecordingRow {
     }
 }
 
-/// Create a downsampled waveform overview for storage
 fn create_waveform_overview(samples: &[f32], max_points: usize) -> Vec<f32> {
     if samples.is_empty() {
         return vec![];
@@ -140,7 +178,6 @@ fn create_waveform_overview(samples: &[f32], max_points: usize) -> Vec<f32> {
         if chunk.is_empty() {
             break;
         }
-        // Find min and max in this chunk
         let mut min_val = f32::MAX;
         let mut max_val = f32::MIN;
         for &sample in chunk {
@@ -151,7 +188,6 @@ fn create_waveform_overview(samples: &[f32], max_points: usize) -> Vec<f32> {
         overview.push(max_val);
     }
 
-    // If we're over the limit, truncate
     if overview.len() > max_points * 2 {
         overview.truncate(max_points * 2);
     }
@@ -159,7 +195,6 @@ fn create_waveform_overview(samples: &[f32], max_points: usize) -> Vec<f32> {
     overview
 }
 
-/// Parse datetime from SQLite string
 fn parse_datetime(s: &str) -> Result<DateTime<Utc>, DomainError> {
     DateTime::parse_from_rfc3339(s)
         .map(|dt| dt.with_timezone(&Utc))
@@ -169,7 +204,6 @@ fn parse_datetime(s: &str) -> Result<DateTime<Utc>, DomainError> {
         .map_err(|_| DomainError::corruption(format!("Invalid datetime format: {}", s)))
 }
 
-/// SQLite implementation of RecordingRepository
 pub struct SqliteRecordingRepository {
     pool: SqlitePool,
 }
@@ -184,11 +218,11 @@ impl SqliteRecordingRepository {
         sqlx::query(
             r#"
             INSERT INTO recordings (
-                id, session_id, name, samples, sample_count, timestamp, 
-                duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
+                id, session_id, name, samples, sample_count, sample_rate, timestamp,
+                duration_ms, size_bytes, peak_amplitude, rms_amplitude,
                 is_pinned, created_at, waveform_overview
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&row.id)
@@ -196,6 +230,7 @@ impl SqliteRecordingRepository {
         .bind(&row.name)
         .bind(&row.samples)
         .bind(row.sample_count)
+        .bind(row.sample_rate)
         .bind(&row.timestamp)
         .bind(row.duration_ms)
         .bind(row.size_bytes)
@@ -223,13 +258,11 @@ impl SqliteRecordingRepository {
         }
     }
 
-    /// Get recording metadata without loading samples
-    /// This is much faster for preview/list views
     pub async fn find_metadata_by_id(&self, id: &str) -> Result<Option<RecordingMetadata>, DomainError> {
         let row: Option<RecordingMetadataRow> = sqlx::query_as(
             r#"
-            SELECT id, session_id, name, sample_count, timestamp, 
-                   duration_ms, size_bytes, peak_amplitude, rms_amplitude, 
+            SELECT id, session_id, name, sample_count, timestamp,
+                   duration_ms, size_bytes, peak_amplitude, rms_amplitude,
                    is_pinned, created_at, waveform_overview
             FROM recordings WHERE id = ?
             "#,
@@ -251,7 +284,6 @@ impl SqliteRecordingRepository {
         limit: u32,
         offset: u32,
     ) -> Result<(Vec<RecordingSummary>, u64, bool), DomainError> {
-        // Build query dynamically
         let (where_clause, params): (String, Vec<String>) = if let Some(f) = filter {
             let mut clauses = vec![];
             let mut params = vec![];
@@ -286,7 +318,6 @@ impl SqliteRecordingRepository {
             (String::new(), vec![])
         };
 
-        // Count query
         let count_sql = format!("SELECT COUNT(*) FROM recordings{}", where_clause);
         let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql);
         for param in &params {
@@ -297,7 +328,6 @@ impl SqliteRecordingRepository {
             .await
             .map_err(map_sqlx_err)?;
 
-        // Main query
         let main_sql = format!(
             "SELECT * FROM recordings{} ORDER BY is_pinned DESC, timestamp DESC LIMIT ? OFFSET ?",
             where_clause
@@ -321,11 +351,20 @@ impl SqliteRecordingRepository {
                     id: r.id,
                     session_id: r.session_id,
                     name: r.name,
+                    sample_rate: r.sample_rate as u32,
                     timestamp: parse_datetime(&r.timestamp)?,
                     duration_ms: r.duration_ms,
                     size_bytes: r.size_bytes as u64,
                     peak_amplitude: r.peak_amplitude,
                     rms_amplitude: r.rms_amplitude,
+                    peak_db: r.peak_db,
+                    rms_db: r.rms_db,
+                    peak_negative_db: r.peak_negative_db,
+                    dc_offset: r.dc_offset,
+                    dominant_frequency: r.dominant_frequency,
+                    frequency_high: r.frequency_high,
+                    frequency_low: r.frequency_low,
+                    bit_depth: r.bit_depth as u8,
                     is_pinned: r.is_pinned,
                 })
             })
@@ -338,8 +377,8 @@ impl SqliteRecordingRepository {
     pub async fn get_recent(&self, limit: u32) -> Result<Vec<RecordingSummary>, DomainError> {
         let rows: Vec<RecordingRow> = sqlx::query_as(
             r#"
-            SELECT * FROM recordings 
-            ORDER BY is_pinned DESC, timestamp DESC 
+            SELECT * FROM recordings
+            ORDER BY is_pinned DESC, timestamp DESC
             LIMIT ?
             "#,
         )
@@ -354,11 +393,20 @@ impl SqliteRecordingRepository {
                     id: r.id,
                     session_id: r.session_id,
                     name: r.name,
+                    sample_rate: r.sample_rate as u32,
                     timestamp: parse_datetime(&r.timestamp)?,
                     duration_ms: r.duration_ms,
                     size_bytes: r.size_bytes as u64,
                     peak_amplitude: r.peak_amplitude,
                     rms_amplitude: r.rms_amplitude,
+                    peak_db: r.peak_db,
+                    rms_db: r.rms_db,
+                    peak_negative_db: r.peak_negative_db,
+                    dc_offset: r.dc_offset,
+                    dominant_frequency: r.dominant_frequency,
+                    frequency_high: r.frequency_high,
+                    frequency_low: r.frequency_low,
+                    bit_depth: r.bit_depth as u8,
                     is_pinned: r.is_pinned,
                 })
             })
@@ -368,7 +416,7 @@ impl SqliteRecordingRepository {
     pub async fn update(&self, recording: &Recording) -> Result<(), DomainError> {
         sqlx::query(
             r#"
-            UPDATE recordings SET 
+            UPDATE recordings SET
                 name = ?, is_pinned = ?
             WHERE id = ?
             "#,
@@ -421,7 +469,6 @@ impl SqliteRecordingRepository {
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> Result<RecordingStats, DomainError> {
-        // Build query dynamically
         let mut where_clause = String::new();
         let (start_time, _) = if let Some(range) = time_range {
             let bounds = get_time_range_bounds(range);
@@ -439,7 +486,7 @@ impl SqliteRecordingRepository {
 
         let sql = format!(
             r#"
-            SELECT 
+            SELECT
                 COUNT(*) as total_recordings,
                 COALESCE(SUM(size_bytes), 0) as total_size_bytes,
                 COALESCE(SUM(duration_ms), 0) as total_duration_ms,
@@ -450,7 +497,7 @@ impl SqliteRecordingRepository {
         );
 
         let mut query = sqlx::query_as::<_, RecordingStatsRow>(&sql);
-        
+
         if let Some(sid) = session_id {
             query = query.bind(sid);
         }
@@ -487,7 +534,7 @@ impl SqliteRecordingRepository {
         };
 
         let mut query = sqlx::query_as::<_, RecordingStatsRow>(sql);
-        
+
         if let Some(sid) = session_id {
             query = query.bind(sid);
         }
