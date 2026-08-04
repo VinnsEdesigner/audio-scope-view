@@ -307,7 +307,6 @@ export function DialogMicRecording({
         });
         showToast({ message: "Recording saved successfully!", type: "success" });
         onClose();
-      } catch {
       } catch (saveError) {
         const reason = saveError instanceof Error ? saveError.message : "Unknown error";
         console.error("Failed to save recording:", saveError);
