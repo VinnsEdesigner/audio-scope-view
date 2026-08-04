@@ -216,7 +216,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(limit, offset)
+            .list_main_sessions(limit, offset)
             .await
             .unwrap_or_default();
 
@@ -266,7 +266,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(100, 0)
+            .list_main_sessions(100, 0)
             .await
             .unwrap_or_default();
 
@@ -352,7 +352,7 @@ impl SessionQuery {
         let total_limit = 1000u32;
         let sessions = context
             .session_service
-            .list(total_limit, 0)
+            .list_main_sessions(total_limit, 0)
             .await
             .unwrap_or_default();
 
@@ -391,7 +391,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(100, 0)
+            .list_main_sessions(100, 0)
             .await
             .unwrap_or_default();
 
@@ -423,7 +423,7 @@ impl SessionQuery {
 
         let sessions = context
             .session_service
-            .list(1000, 0)
+            .list_main_sessions(1000, 0)
             .await
             .unwrap_or_default();
 
