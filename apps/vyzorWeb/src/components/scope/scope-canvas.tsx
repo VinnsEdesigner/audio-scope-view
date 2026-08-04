@@ -21,6 +21,65 @@ interface ScopeCanvasProperties {
   forwardedRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
+interface DrawSpectrumOptions {
+  context: CanvasRenderingContext2D;
+  width: number;
+  height: number;
+  color: string;
+  glow: boolean;
+  data: ArrayLike<number>;
+  sampleRate: number;
+}
+
+function drawSpectrum({
+  context,
+  width,
+  height,
+  color,
+  glow,
+  data,
+  sampleRate,
+}: DrawSpectrumOptions): void {
+  if (!data || data.length < 8) return;
+
+  const { magnitudes, binHz } = computeSpectrum(data, sampleRate);
+  if (magnitudes.length === 0) return;
+
+  const maxFrequency = Math.min(sampleRate / 2, 20_000);
+  const maxBin = Math.max(1, Math.min(magnitudes.length - 1, Math.floor(maxFrequency / binHz)));
+  const floorDb = -80;
+
+  context.save();
+  if (glow) {
+    context.shadowColor = color;
+    context.shadowBlur = 8;
+  }
+
+  const barWidth = Math.max(1, width / maxBin);
+  context.fillStyle = color;
+
+  for (let bin = 1; bin <= maxBin; bin++) {
+    const db = toDecibels(magnitudes[bin], floorDb);
+    const normalized = (db - floorDb) / -floorDb;
+    const barHeight = Math.max(0, normalized) * (height - 18);
+    const x = ((bin - 1) / maxBin) * width;
+    context.fillRect(x, height - 18 - barHeight, barWidth, barHeight);
+  }
+  context.restore();
+
+  // Frequency axis labels
+  context.save();
+  context.fillStyle = "rgba(255,255,255,0.5)";
+  context.font = "10px ui-monospace, monospace";
+  for (let step = 0; step <= 4; step++) {
+    const ratio = step / 4;
+    const frequency = ratio * maxBin * binHz;
+    const label = frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
+    context.fillText(label, Math.min(width - 22, ratio * width + 2), height - 5);
+  }
+  context.restore();
+}
+
 export function ScopeCanvas({
   waveformData,
   isPaused = false,
