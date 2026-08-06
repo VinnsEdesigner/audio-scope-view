@@ -3,13 +3,15 @@ import { Outlet } from "react-router-dom";
 import { useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
 import { TamaguiProvider, Theme } from "tamagui";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { TopNav } from "./components/layout/top-nav";
+import { StickyHeader } from "./components/layout/sticky-header";
 import { ToastProvider } from "./components/ui/toast";
 import { NavigationLoader } from "./components/ui/navigation-loader";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { SessionSelectionProvider } from "./contexts/session-selection-context";
+import { HeaderContext } from "./contexts/header-context";
 
 const seoData = {
   "@context": "https://schema.org",
@@ -31,6 +33,14 @@ function AppShell() {
   const _isInitializing = useUIStore((state) => state.isInitializing);
   const setInitializing = useUIStore((state) => state.setInitializing);
 
+  // Header context state
+  const [headerContent, setHeaderContent] = useState({
+    title: "",
+    subtitle: undefined as React.ReactNode | undefined,
+    badge: undefined as React.ReactNode | undefined,
+    actions: undefined as React.ReactNode | undefined,
+  });
+
   useEffect(() => {
     // Simulate app initialization (replace with actual initialization logic)
     // For production, this should be replaced with actual app readiness checks
@@ -41,13 +51,16 @@ function AppShell() {
   }, [setInitializing]);
 
   return (
-    <div className="flex flex-1 h-screen bg-bg-primary">
-      {/* Always show TopNav - loading bar overlays it */}
-      <TopNav />
-      <div className="flex flex-col flex-1 overflow-hidden bg-bg-primary min-h-0">
-        <Outlet />
+    <HeaderContext.Provider value={{ content: headerContent, setContent: setHeaderContent }}>
+      <div className="flex flex-1 h-screen bg-bg-primary">
+        {/* Always show TopNav - loading bar overlays it */}
+        <TopNav />
+        <div className="flex flex-col flex-1 overflow-hidden bg-bg-primary min-h-0">
+          <StickyHeader />
+          <Outlet />
+        </div>
       </div>
-    </div>
+    </HeaderContext.Provider>
   );
 }
 
