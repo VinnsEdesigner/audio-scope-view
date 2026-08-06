@@ -5,7 +5,7 @@ import { useHeader } from "@/contexts/header-context";
 
 const isHomePage = (pathname: string) => pathname === "/";
 
-export function StickyHeader(): React.ReactElement | null {
+export function StickyHeader(): React.ReactElement | undefined {
   const { content } = useHeader();
   const location = useLocation();
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export function StickyHeader(): React.ReactElement | null {
 
   // Don't render if no title is set
   if (!content.title) {
-    return null;
+    return undefined;
   }
 
   const handleNavClick = () => {
@@ -48,23 +48,15 @@ export function StickyHeader(): React.ReactElement | null {
               {content.title}
             </h1>
             {content.subtitle && (
-              <p className="text-sm text-text-secondary truncate">
-                {content.subtitle}
-              </p>
+              <p className="text-sm text-text-secondary truncate">{content.subtitle}</p>
             )}
           </div>
-          {content.badge && (
-            <div className="flex-shrink-0">
-              {content.badge}
-            </div>
-          )}
+          {content.badge && <div className="flex-shrink-0">{content.badge}</div>}
         </div>
 
         {/* Right side - Actions */}
         {content.actions && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {content.actions}
-          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">{content.actions}</div>
         )}
       </div>
     </div>

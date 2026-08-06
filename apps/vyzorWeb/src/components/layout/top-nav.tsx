@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Settings, Key, Home, Monitor } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Settings, Key, Home, Monitor } from "lucide-react";
 import { useSessionSelection } from "../../contexts/session-selection-context";
 
 interface NavItem {
@@ -22,21 +22,15 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Settings", href: "/settings", icon: <Settings size={18} /> },
 ];
 
-interface TopNavProperties {
-  className?: string;
-}
-
-export function TopNav({ className = "" }: TopNavProperties): React.ReactElement {
+export function TopNav(): React.ReactElement {
   const location = useLocation();
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
   const { openOscilloscopeSession } = useSessionSelection();
-  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
 
   // Listen for toggle-menu event from StickyHeader
   React.useEffect(() => {
     const handleToggleMenu = () => {
-      setIsOpen((prev) => !prev);
+      setIsOpen((previous) => !previous);
     };
     document.addEventListener("toggle-menu", handleToggleMenu);
     return () => document.removeEventListener("toggle-menu", handleToggleMenu);
@@ -73,14 +67,13 @@ export function TopNav({ className = "" }: TopNavProperties): React.ReactElement
     <>
       {/* Hidden menu toggle button - triggered by StickyHeader */}
       <button
-        ref={menuButtonRef}
         onClick={toggleMenu}
         className="hidden"
         aria-label="Toggle menu"
         aria-expanded={isOpen}
       />
 
-      {/* Navigation Menu - only show when home page */}
+      {/* Navigation Menu - only show when open */}
       {isOpen && (
         <>
           {/* Backdrop */}

@@ -11,7 +11,7 @@ import { NavigationLoader } from "./components/ui/navigation-loader";
 import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graphql";
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { SessionSelectionProvider } from "./contexts/session-selection-context";
-import { HeaderContext } from "./contexts/header-context";
+import { HeaderContext, type HeaderContent } from "./contexts/header-context";
 
 const seoData = {
   "@context": "https://schema.org",
@@ -34,12 +34,14 @@ function AppShell() {
   const setInitializing = useUIStore((state) => state.setInitializing);
 
   // Header context state
-  const [headerContent, setHeaderContent] = useState({
+  const [headerContent, setHeaderContent] = useState<HeaderContent>({
     title: "",
-    subtitle: undefined as React.ReactNode | undefined,
-    badge: undefined as React.ReactNode | undefined,
-    actions: undefined as React.ReactNode | undefined,
   });
+
+  // Wrap setHeaderContent to match the expected HeaderContext signature
+  const handleSetContent = (content: HeaderContent) => {
+    setHeaderContent(content);
+  };
 
   useEffect(() => {
     // Simulate app initialization (replace with actual initialization logic)
@@ -51,7 +53,7 @@ function AppShell() {
   }, [setInitializing]);
 
   return (
-    <HeaderContext.Provider value={{ content: headerContent, setContent: setHeaderContent }}>
+    <HeaderContext.Provider value={{ content: headerContent, setContent: handleSetContent }}>
       <div className="flex flex-1 h-screen bg-bg-primary">
         {/* Always show TopNav - loading bar overlays it */}
         <TopNav />
