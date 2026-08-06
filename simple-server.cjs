@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { WebSocketServer } = require('/workspace/project/81145c695ffb44f48219ae5b557bb8ec/audio-scope-view/node_modules/ws');
+const { WebSocketServer } = require('ws');
 
 const WEB_DIR = path.join(__dirname, 'apps/vyzorWeb/dist/client');
 const API_DIR = path.join(__dirname, 'packages/api-client/dist');
