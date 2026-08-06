@@ -5,15 +5,18 @@ export interface SpinnerProperties {
   className?: string;
 }
 
-export function Spinner({ size = 16, className = "" }: SpinnerProperties): React.ReactElement {
-  const borderWidth = Math.max(2, Math.round(size / 8));
+export function Spinner({ size, className = "" }: SpinnerProperties): React.ReactElement {
+  // Responsive default size: smaller on mobile, larger on desktop
+  const defaultSize = size ?? (globalThis.window?.innerWidth < 640 ? 32 : 48);
+  const actualSize = size ?? defaultSize;
+  const borderWidth = Math.max(2, Math.round(actualSize / 8));
 
   return (
     <div
       role="status"
       aria-label="Loading"
       className={`relative inline-flex items-center justify-center ${className}`}
-      style={className ? undefined : { width: size, height: size }}
+      style={className ? undefined : { width: actualSize, height: actualSize }}
     >
       <style>{`
         @keyframes block-spin {
@@ -21,11 +24,11 @@ export function Spinner({ size = 16, className = "" }: SpinnerProperties): React
           100% { transform: rotate(360deg); }
         }
         .animate-block-spin {
-          animation: block-spin 2s linear infinite;
+          animation: block-spin 1.5s linear infinite;
         }
       `}</style>
       <div
-        className="absolute inset-0 rounded border-2 border-white animate-block-spin"
+        className="absolute inset-0 rounded-full border-2 border-current animate-block-spin"
         style={{ borderWidth }}
       />
     </div>

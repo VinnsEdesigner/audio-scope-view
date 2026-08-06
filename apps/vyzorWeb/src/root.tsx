@@ -48,7 +48,7 @@ function AppShell() {
     // For production, this should be replaced with actual app readiness checks
     const timer = setTimeout(() => {
       setInitializing(false);
-    }, 3000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [setInitializing]);
 
