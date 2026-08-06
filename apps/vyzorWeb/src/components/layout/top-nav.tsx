@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Menu, Settings, Key, Home, Monitor } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, Settings, Key, Home, Monitor, ArrowLeft } from "lucide-react";
 import { useSessionSelection } from "../../contexts/session-selection-context";
 
 interface NavItem {
@@ -26,10 +26,14 @@ interface TopNavProperties {
   className?: string;
 }
 
+const isHomePage = (pathname: string) => pathname === "/";
+
 export function TopNav({ className = "" }: TopNavProperties): React.ReactElement {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
   const { openOscilloscopeSession } = useSessionSelection();
+  const isHome = isHomePage(location.pathname);
 
   React.useEffect(() => {
     setIsOpen(false);
@@ -58,20 +62,34 @@ export function TopNav({ className = "" }: TopNavProperties): React.ReactElement
     }
   };
 
+  const handleBackClick = () => {
+    navigate("/");
+  };
+
   return (
     <>
-      {/* Menu Toggle Button */}
-      <button
-        onClick={toggleMenu}
-        className={`fixed top-4 left-4 z-50 w-12 h-12 rounded-xl bg-bg-secondary/90 backdrop-blur-md border border-border-subtle shadow-lg flex items-center justify-center hover:bg-bg-hover hover:border-border-default transition-all ${className}`}
-        aria-label="Toggle menu"
-        aria-expanded={isOpen}
-      >
-        <Menu size={20} className="text-foreground" />
-      </button>
+      {/* Menu Toggle Button - only show hamburger on home page */}
+      {isHome ? (
+        <button
+          onClick={toggleMenu}
+          className={`fixed top-4 left-4 z-50 w-12 h-12 rounded-xl bg-bg-secondary/90 backdrop-blur-md border border-border-subtle shadow-lg flex items-center justify-center hover:bg-bg-hover hover:border-border-default transition-all ${className}`}
+          aria-label="Toggle menu"
+          aria-expanded={isOpen}
+        >
+          <Menu size={20} className="text-foreground" />
+        </button>
+      ) : (
+        <button
+          onClick={handleBackClick}
+          className={`fixed top-4 left-4 z-50 w-12 h-12 rounded-xl bg-bg-secondary/90 backdrop-blur-md border border-border-subtle shadow-lg flex items-center justify-center hover:bg-bg-hover hover:border-border-default transition-all ${className}`}
+          aria-label="Go back"
+        >
+          <ArrowLeft size={20} className="text-foreground font-bold" />
+        </button>
+      )}
 
-      {/* Navigation Menu */}
-      {isOpen && (
+      {/* Navigation Menu - only show when home page */}
+      {isHome && isOpen && (
         <>
           {/* Backdrop */}
           <div

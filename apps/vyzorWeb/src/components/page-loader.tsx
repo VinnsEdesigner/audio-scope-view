@@ -1,3 +1,5 @@
+import { Spinner } from "./ui/spinner";
+
 export function PageLoader() {
   return (
     <div
@@ -6,10 +8,9 @@ export function PageLoader() {
         alignItems: "center",
         justifyContent: "center",
         height: "100vh",
-        color: "#666",
       }}
     >
-      Loading...
+      <Spinner size={42} />
     </div>
   );
 }

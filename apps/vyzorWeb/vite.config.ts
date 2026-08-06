@@ -18,8 +18,6 @@ export default defineConfig(({ command, mode }) => {
 
     define: {
       "process.env.NODE_ENV": JSON.stringify(mode === "production" ? "production" : "development"),
-      "process.env.TAMAGUI_TARGET": JSON.stringify("web"),
-      "process.env": "{}",
     },
 
     resolve: {
@@ -31,7 +29,12 @@ export default defineConfig(({ command, mode }) => {
         "@audio-scope-view/tamagui": resolve(__dirname, "../../packages/tamagui/src"),
         "@audio-scope-view/api-client": resolve(__dirname, "../../packages/api-client/src"),
         "@audio-scope-view/tailwind": resolve(__dirname, "../../packages/tailwind/src"),
+        "tamagui": resolve(__dirname, "./node_modules/tamagui"),
       },
+    },
+
+    optimizeDeps: {
+      include: ["tamagui", "@tamagui/core", "@audio-scope-view/tamagui"],
     },
 
     build: isSsrBuild
@@ -67,8 +70,11 @@ export default defineConfig(({ command, mode }) => {
             input: {
               main: resolve(__dirname, "index.html"),
             },
+            output: {
+              inlineDynamicImports: true, // Bundle everything to avoid circular dependency issues
+            },
           },
-          chunkSizeWarningLimit: 800,
+          chunkSizeWarningLimit: 1500,
         },
 
     ssr: {

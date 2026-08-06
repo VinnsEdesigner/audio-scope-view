@@ -56,7 +56,7 @@ export function triggeredWindow(
   if (index === -1) return undefined;
 
   const start = Math.min(index, searchLimit);
-  const out: number[] = new Array(size);
+  const out: number[] = Array.from({ length: size });
   for (let offset = 0; offset < size; offset++) out[offset] = data[start + offset] ?? 0;
   return out;
 }
@@ -65,7 +65,7 @@ export function resampleTo(data: ArrayLike<number>, points: number): number[] {
   if (data.length === 0) return [];
   if (data.length === points) return [...(data as unknown as number[])];
 
-  const out: number[] = new Array(points);
+  const out: number[] = Array.from({ length: points });
   const step = data.length / points;
   for (let index = 0; index < points; index++) {
     out[index] = data[Math.min(data.length - 1, Math.floor(index * step))];
@@ -85,13 +85,13 @@ function nextPowerOfTwo(value: number): number {
 function fft(re: Float32Array, im: Float32Array): void {
   const n = re.length;
 
-  for (let i = 1, j = 0; i < n; i++) {
+  for (let index = 1, index_ = 0; index < n; index++) {
     let bit = n >> 1;
-    for (; j & bit; bit >>= 1) j ^= bit;
-    j ^= bit;
-    if (i < j) {
-      [re[i], re[j]] = [re[j], re[i]];
-      [im[i], im[j]] = [im[j], im[i]];
+    for (; index_ & bit; bit >>= 1) index_ ^= bit;
+    index_ ^= bit;
+    if (index < index_) {
+      [re[index], re[index_]] = [re[index_], re[index]];
+      [im[index], im[index_]] = [im[index_], im[index]];
     }
   }
 
@@ -101,23 +101,23 @@ function fft(re: Float32Array, im: Float32Array): void {
     const wIm = Math.sin(angle);
 
     for (let start = 0; start < n; start += length) {
-      let curRe = 1;
-      let curIm = 0;
+      let currentRe = 1;
+      let currentIm = 0;
 
       for (let k = 0; k < length / 2; k++) {
         const aRe = re[start + k];
         const aIm = im[start + k];
-        const bRe = re[start + k + length / 2] * curRe - im[start + k + length / 2] * curIm;
-        const bIm = re[start + k + length / 2] * curIm + im[start + k + length / 2] * curRe;
+        const bRe = re[start + k + length / 2] * currentRe - im[start + k + length / 2] * currentIm;
+        const bIm = re[start + k + length / 2] * currentIm + im[start + k + length / 2] * currentRe;
 
         re[start + k] = aRe + bRe;
         im[start + k] = aIm + bIm;
         re[start + k + length / 2] = aRe - bRe;
         im[start + k + length / 2] = aIm - bIm;
 
-        const nextRe = curRe * wRe - curIm * wIm;
-        curIm = curRe * wIm + curIm * wRe;
-        curRe = nextRe;
+        const nextRe = currentRe * wRe - currentIm * wIm;
+        currentIm = currentRe * wIm + currentIm * wRe;
+        currentRe = nextRe;
       }
     }
   }

@@ -111,7 +111,7 @@ export function useGetOrCreateSession() {
   });
 }
 
-export function useEndSession() {
+export function useEndSession(options?: { onSessionEnded?: () => void }) {
   return useMutation(END_SESSION, {
     refetchQueries: [
       { query: GET_SESSIONS },
@@ -119,6 +119,10 @@ export function useEndSession() {
       { query: GET_ACTIVE_SESSIONS_WITH_STATUS },
       { query: GET_SESSION_STATUS_COUNTS },
     ],
+    onCompleted: () => {
+      // Call the optional callback if provided
+      options?.onSessionEnded?.();
+    },
   });
 }
 

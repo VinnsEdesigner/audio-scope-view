@@ -6,7 +6,7 @@ describe("Apollo queries", () => {
   it("should export session queries", () => {
     expect(queries.GET_SESSIONS).toBeDefined();
     expect(queries.GET_SESSIONS_BY_ID).toBeDefined();
-    expect(queries.GET_ACTIVE_SESSIONS).toBeDefined();
+    expect(queries.GET_ACTIVE_SESSIONS_WITH_STATUS).toBeDefined();
     expect(queries.GET_SESSION_COUNT).toBeDefined();
   });
 

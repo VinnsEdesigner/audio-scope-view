@@ -4,7 +4,7 @@ import { SESSION_FIELDS } from "../queries/session-queries";
 export const START_SESSION = gql`
   ${SESSION_FIELDS}
   mutation StartSession {
-    create_session {
+    createSession {
       ...SessionFields
     }
   }
@@ -30,7 +30,7 @@ export const GET_OR_CREATE_SESSION = gql`
 
 export const END_SESSION = gql`
   mutation EndSession($id: String!) {
-    end_session(id: $id) {
+    endSession(id: $id) {
       ...SessionFields
     }
   }
@@ -38,7 +38,7 @@ export const END_SESSION = gql`
 
 export const SESSION_HEARTBEAT = gql`
   mutation SessionHeartbeat($id: String!) {
-    session_heartbeat(id: $id) {
+    sessionHeartbeat(id: $id) {
       ...SessionFields
     }
   }
@@ -46,7 +46,7 @@ export const SESSION_HEARTBEAT = gql`
 
 export const DELETE_SESSION = gql`
   mutation DeleteSession($id: String!) {
-    delete_session(id: $id)
+    deleteSession(id: $id)
   }
 `;
 
@@ -90,7 +90,7 @@ export const CREATE_SUB_SESSION = gql`
 
 export const CAPTURE_WAVEFORM = gql`
   mutation CaptureWaveform($sessionId: String!, $settings: CaptureSettingsInput) {
-    capture(session_id: $sessionId, settings: $settings) {
+    capture(sessionId: $sessionId, settings: $settings) {
       id
       sessionId
       samples

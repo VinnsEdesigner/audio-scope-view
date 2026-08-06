@@ -7,16 +7,43 @@ import {
 import { useAudioAnalyzer } from "./use-audio-analyzer";
 
 export function useExport() {
-  const { samples, sampleRate, waveformData } = useAudioAnalyzer();
+  const { samples, sampleRate, waveformData, analysisFrame } = useAudioAnalyzer();
+
+  // Determine what data is available for export
+  const hasFullSamples = samples.length > 0;
+  const hasLiveData = analysisFrame.length > 0 || waveformData.length > 0;
+  const hasData = hasFullSamples || hasLiveData;
+
+  // Use full samples if available, otherwise use live analysis frame or waveform data
+  const getExportData = useCallback((): { samples: Float32Array; source: string } | undefined => {
+    if (hasFullSamples) {
+      return { samples, source: "captured" };
+    }
+    if (analysisFrame.length > 0) {
+      return { samples: analysisFrame, source: "live" };
+    }
+    if (waveformData.length > 0) {
+      // Convert waveform data to Float32Array for export
+      return { samples: Float32Array.from(waveformData), source: "waveform" };
+    }
+    return undefined;
+  }, [samples, analysisFrame, waveformData, hasFullSamples]);
+
+  const getSampleCount = (): number => {
+    if (hasFullSamples) return samples.length;
+    if (analysisFrame.length > 0) return analysisFrame.length;
+    return waveformData.length;
+  };
 
   const exportCSV = useCallback(() => {
-    if (samples.length === 0) {
+    const exportData = getExportData();
+    if (!exportData) {
       return { success: false, error: "No samples to export" };
     }
 
     try {
       const csvContent = exportToCSV({
-        samples,
+        samples: exportData.samples,
         sampleRate,
         includeHeader: true,
         delimiter: ",",
@@ -32,7 +59,7 @@ export function useExport() {
       const message = error instanceof Error ? error.message : "Failed to export CSV";
       return { success: false, error: message };
     }
-  }, [samples, sampleRate]);
+  }, [getExportData, sampleRate]);
 
   const exportSnapshotPNG = useCallback((canvas: HTMLCanvasElement | null) => {
     if (!canvas) {
@@ -52,13 +79,11 @@ export function useExport() {
     }
   }, []);
 
-  const hasData = samples.length > 0 || waveformData.length > 0;
-
   return {
     exportCSV,
     exportSnapshotPNG,
     hasData,
-    sampleCount: samples.length,
+    sampleCount: getSampleCount(),
     sampleRate,
   };
 }

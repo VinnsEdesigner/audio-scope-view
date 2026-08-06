@@ -17,7 +17,14 @@ export type {
 } from "./waveform-store";
 
 export { useUIStore } from "./ui-store";
-export type { UIStore, UIState, UIActions, WaveformColor, SessionMode, TriggerMode } from "./ui-store";
+export type {
+  UIStore,
+  UIState,
+  UIActions,
+  WaveformColor,
+  SessionMode,
+  TriggerMode,
+} from "./ui-store";
 
 export { useApiKeyStore } from "./api-key-store";
 export type { ApiKeyStore, ApiKeyState, ApiKeyActions } from "./api-key-store";

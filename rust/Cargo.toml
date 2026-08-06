@@ -21,7 +21,7 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 http = "1"
 
 # GraphQL
-async-graphql = { version = "7.2", features = ["chrono", "camel-case"] }
+async-graphql = { version = "7.2", features = ["chrono"] }
 async-graphql-axum = "7.2"
 
 # Async runtime
@@ -31,7 +31,7 @@ tokio-util = { version = "0.7", features = ["codec"] }
 async-trait = "0.1"
 
 # Database
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls", "migrate", "chrono"] }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls", "migrate", "chrono", "tls-rustls"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

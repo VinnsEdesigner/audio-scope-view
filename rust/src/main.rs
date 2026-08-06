@@ -137,6 +137,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = AppConfig::load().unwrap_or_default();
 
+    // Create data directory for local SQLite development
+    if config.database.url.starts_with("sqlite:") && !config.database.url.contains(":memory:") {
+        if let Some(path) = config.database.url.strip_prefix("sqlite:") {
+            let db_path = path.split('?').next().unwrap_or(path);
+            if let Some(parent) = std::path::Path::new(db_path).parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent).ok();
+                    info!("Ensured data directory exists: {:?}", parent);
+                }
+            }
+        }
+    }
+
     let bootstrap_key = std::env::var("BOOTSTRAP_KEY")
         .ok()
         .filter(|k| !k.is_empty())

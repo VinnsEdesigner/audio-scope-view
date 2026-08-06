@@ -12,10 +12,13 @@ import {
   useScopeCapture,
   useHomePageSessions,
   useLastUsedSession,
+  useSessionDetail,
   type ScopeCaptureDspMetrics,
   type AnalysisUpdate,
 } from "@/hooks";
+import { useSessionSelection } from "@/contexts/session-selection-context";
 import { useUIStore } from "@/store";
+import { useHeader } from "@/contexts/header-context";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
 import { CalibrationDialog } from "@/components/dialogs";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
@@ -41,17 +44,40 @@ export function ScopePage(): React.ReactElement {
 
   // Session selection state - these are now handled by SessionSelectionProvider on home page
 
-  const { sessions, loading: sessionsLoading } = useHomePageSessions();
-  const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
+  const { sessions } = useHomePageSessions();
+  const { lastUsedSession, lastUsedSessionId, markSessionAsUsed, isLastUsedSessionActive } =
     useLastUsedSession();
 
-  // Combined loading state - wait for both session queries before making navigation decisions
-  const isLoadingSessionData = sessionsLoading || isLoadingSession;
+  // Validate the sessionId from URL directly with server query
+  // This ensures we catch deleted/invalid sessions even when cache is stale
+  const { data: sessionDetailData, loading: sessionDetailLoading } = useSessionDetail(sessionId);
+
+  // Use SessionSelectionContext for proper dialog handling
+  const { state: sessionSelectionState, openOscilloscopeSession } = useSessionSelection();
+
+  // Track if we have a valid session for live mode
+  const [hasValidSession, setHasValidSession] = React.useState(false);
+
+  // Helper to check if a session is active (no endedAt date)
+  const isSessionActive = React.useCallback(
+    (sessionId: string | null | undefined): boolean => {
+      if (!sessionId) return false;
+      // Check if session exists in active sessions list
+      return sessions.some((s: { id: string }) => s.id === sessionId);
+    },
+    [sessions],
+  );
 
   const [serverAnalysis, setServerAnalysis] = React.useState<AnalysisUpdate | undefined>();
 
+  // Local audio analyzer metrics for fallback display when server data isn't available yet
+  const localAnalysisReference = React.useRef<AnalysisUpdate | undefined>(undefined);
+
   const handleAnalysisUpdate = React.useCallback((data: AnalysisUpdate) => {
     setServerAnalysis(data);
+
+    // Also update local ref for fallback
+    localAnalysisReference.current = data;
 
     console.debug("Server analysis:", data);
   }, []);
@@ -70,38 +96,74 @@ export function ScopePage(): React.ReactElement {
   React.useEffect(() => {
     // Only handle when we're trying to use live mode (not playback)
     if (!isPlaybackMode) {
-      // Skip if still loading data - prevent race condition
-      if (isLoadingSessionData) {
+      // If sessionDetailLoading, wait for the server query to complete
+      // This prevents flashing the dialog during initial load
+      if (sessionDetailLoading && sessionId) {
         return;
       }
 
-      // Check if sessionId is valid (exists in sessions list)
-      const sessionExists = sessionId
-        ? sessions.some((s: { id: string }) => s.id === sessionId)
-        : false;
+      // Check if sessionId is valid using server-validated data
+      // sessionDetailData will be undefined if session doesn't exist or was deleted
+      const serverSession = sessionDetailData?.session;
+      const sessionExistsOnServer = serverSession !== undefined;
+      const sessionIsActiveOnServer = sessionExistsOnServer && serverSession?.endedAt === undefined;
 
-      if (!sessionId || !sessionExists) {
-        // No sessionId or session doesn't exist
-        if (shouldAutoSelect && lastUsedSession) {
-          // Auto-select: update URL with last used session
-          setSearchParameters({ sessionId: lastUsedSession.id });
+      if (sessionId && sessionExistsOnServer && sessionIsActiveOnServer) {
+        // We have a valid active session from server - show the oscilloscope UI
+        setHasValidSession(true);
+      } else if (sessionId && (!sessionExistsOnServer || !sessionIsActiveOnServer)) {
+        // We have a sessionId in URL but it's not valid on the server
+        // This can happen when:
+        // 1. The session was deleted
+        // 2. The session was ended
+        // 3. The session data hasn't been fetched yet
+        // Clear the invalid sessionId from URL and show the session selection dialog
+        setHasValidSession(false);
+        setSearchParameters({});
+        openOscilloscopeSession();
+      } else {
+        // No sessionId in URL - try to auto-select
+        setHasValidSession(false);
+
+        // Don't show dialog if we're in the middle of navigating to scope with a specific session
+        // This prevents the dialog from appearing when we just created a session
+        if (sessionSelectionState === "navigating_to_scope") {
+          return;
+        }
+
+        // Get the session ID to use for auto-select
+        const autoSelectSessionId = lastUsedSession?.id ?? lastUsedSessionId;
+
+        // Verify the session actually exists in the active sessions list
+        // This handles the case where sessions were deleted but the activeSessions
+        // query hasn't refetched yet (stale cache)
+        const sessionExistsInList = autoSelectSessionId
+          ? sessions.some((s: { id: string }) => s.id === autoSelectSessionId)
+          : false;
+
+        // Only auto-select if we have a session ID AND it's in the active sessions list
+        // This prevents using a deleted session that might still appear as "active" in stale cache
+        if (autoSelectSessionId && sessionExistsInList) {
+          setSearchParameters({ sessionId: autoSelectSessionId });
         } else {
-          // Auto-select disabled or no sessions available
-          // Redirect to home - let SessionSelectionProvider handle showing the dialog
-          // This prevents the "flash" of oscilloscope UI before dialog appears
-          navigate("/");
+          // No valid session ID available - show the appropriate dialog
+          openOscilloscopeSession();
         }
       }
     }
   }, [
     isPlaybackMode,
     sessionId,
+    sessionDetailData,
+    sessionDetailLoading,
     sessions,
-    shouldAutoSelect,
     lastUsedSession,
-    isLoadingSessionData,
+    lastUsedSessionId,
+    isLastUsedSessionActive,
+    isSessionActive,
     setSearchParameters,
-    navigate,
+    openOscilloscopeSession,
+    sessionSelectionState,
   ]);
 
   const _handleSessionSelect = React.useCallback(
@@ -131,6 +193,65 @@ export function ScopePage(): React.ReactElement {
     fftSize: bufferSize,
   });
   const audioAnalyzer = testMode ? mockAnalyzer : realAnalyzer;
+
+  // Build fallback analysis from local audio analyzer when server data is unavailable
+  const buildLocalAnalysis = React.useCallback((): AnalysisUpdate | undefined => {
+    if (audioAnalyzer.recordingState === "idle" || audioAnalyzer.analysisFrame.length === 0) {
+      return undefined;
+    }
+
+    // Calculate local metrics from the audio analyzer data
+    const frame = audioAnalyzer.analysisFrame;
+    const analyzerSampleRate = audioAnalyzer.sampleRate;
+
+    // Calculate peak amplitude
+    let peak = 0;
+    for (const sample of frame) {
+      const abs = Math.abs(sample);
+      if (abs > peak) peak = abs;
+    }
+
+    // Calculate RMS
+    let sumSquares = 0;
+    for (const sample of frame) {
+      sumSquares += sample * sample;
+    }
+    const rms = Math.sqrt(sumSquares / frame.length);
+
+    // Calculate DC offset
+    let sum = 0;
+    for (const sample of frame) {
+      sum += sample;
+    }
+    const dcOffset = sum / frame.length;
+
+    // Calculate crest factor
+    const crestFactor = rms > 0 ? peak / rms : 0;
+
+    return {
+      sessionId: sessionId ?? "",
+      timestamp: Date.now(),
+      sampleRate: analyzerSampleRate || 48_000,
+      peakAmplitude: peak,
+      rmsAmplitude: rms,
+      dcOffset,
+      dominantFrequency: audioAnalyzer.frequency,
+      fundamentalFrequency: audioAnalyzer.frequency,
+      thd: 0,
+      thdn: 0,
+      snr: 0,
+      crestFactor,
+      signalEnergy: 0,
+      noiseEnergy: 0,
+      harmonics: [],
+    };
+  }, [
+    audioAnalyzer.analysisFrame,
+    audioAnalyzer.sampleRate,
+    audioAnalyzer.frequency,
+    audioAnalyzer.recordingState,
+    sessionId,
+  ]);
 
   const {
     data: recordingData,
@@ -287,9 +408,25 @@ export function ScopePage(): React.ReactElement {
   const isCapturing = !isPlaybackMode && audioAnalyzer.isCapturing;
   const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
 
+  // Use server analysis when available, otherwise fall back to local analysis
+  const analysisData = serverAnalysis ?? (isCapturing ? buildLocalAnalysis() : undefined);
+
   const scopeName = "Oscilloscope";
   const recordingName = recordingData?.name;
 
+  // Set header content
+  const { setContent } = useHeader();
+  const title = isPlaybackMode ? recordingName || "Recording" : scopeName;
+  const subtitle = isPlaybackMode ? "Playback" : "Live";
+
+  React.useEffect(() => {
+    setContent({
+      title,
+      subtitle,
+    });
+  }, [setContent, title, subtitle]);
+
+  // Show loading state only for playback mode while loading recording data
   const isLoading = isPlaybackMode && recordingLoading;
 
   const error = isPlaybackMode ? recordingError : undefined;
@@ -488,6 +625,17 @@ export function ScopePage(): React.ReactElement {
 
     return () => clearInterval(updateInterval);
   }, [isStreaming]);
+
+  // Don't render oscilloscope UI if in live mode without a valid session
+  // The SessionSelectionContext will handle showing the dialog
+  // Just show a minimal loading indicator while waiting
+  if (!isPlaybackMode && !hasValidSession) {
+    return (
+      <div className="flex w-full h-screen bg-bg-primary text-foreground items-center justify-center">
+        <Spinner size={48} />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -715,7 +863,7 @@ export function ScopePage(): React.ReactElement {
         <CalibrationDialog
           isOpen={calibrationDialogOpen}
           onClose={handleCloseCalibration}
-          analysisData={serverAnalysis ?? undefined}
+          analysisData={analysisData}
           isCapturing={scopeCapture.isCapturing}
         />
       </AnchoredDialog>

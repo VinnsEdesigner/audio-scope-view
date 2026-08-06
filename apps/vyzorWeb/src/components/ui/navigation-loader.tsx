@@ -33,7 +33,7 @@ export function NavigationLoader(): React.ReactElement {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[9999] h-1 bg-bg-primary/50 pointer-events-none">
-      <div className="h-full bg-accent animate-[loading-bar_0.8s_ease-in-out_infinite]" />
+      <div className="h-full bg-gray-400 animate-[loading-bar_0.8s_ease-in-out_infinite]" />
       <style>{`
  @keyframes loading-bar {
  0% {

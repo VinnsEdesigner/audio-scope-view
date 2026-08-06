@@ -114,7 +114,7 @@ export function InlineSelect({
           ref={dropdownReference}
           className="absolute z-50 mt-1 bg-bg-secondary border border-border-subtle rounded-md shadow-lg overflow-hidden"
         >
-          <div className="max-h-60 overflow-y-auto py-1">
+          <div className="max-h-96 overflow-y-auto py-1">
             {options.length === 0 ? (
               <div className="px-3 py-2 text-sm text-text-tertiary">No options available</div>
             ) : (

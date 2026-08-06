@@ -15,3 +15,4 @@ export { CreateSessionDialog } from "./create-session-dialog";
 export { SelectSessionDialog } from "./select-session-dialog";
 export { EditSessionDialog } from "./edit-session-dialog";
 export { SessionSettingsDialog } from "./session-settings-dialog";
+export { ConfirmDialog } from "./confirm-dialog";

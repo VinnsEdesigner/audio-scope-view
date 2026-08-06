@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ApolloError } from "@apollo/client";
 import { Dialog, DialogFooter } from "../ui/dialog";
 import { SelectDialog } from "./select-dialog";
 import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save, Loader2 } from "lucide-react";
@@ -17,6 +18,42 @@ const SMOOTHING_VALUE = {
   smooth: 0.8,
   normal: 0.3,
 };
+
+// Helper to extract a user-friendly error message from Apollo errors
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof ApolloError) {
+    // Try GraphQL errors first
+    if (error.graphQLErrors.length > 0) {
+      // Get the first meaningful GraphQL error message
+      for (const gqlError of error.graphQLErrors) {
+        const message = gqlError.message;
+        // Skip generic messages
+        if (
+          message &&
+          !message.includes("UNCAUGHT_ERROR") &&
+          !message.includes("INTERNAL_SERVER_ERROR")
+        ) {
+          return message;
+        }
+      }
+      // If all were generic, return the first one
+      return error.graphQLErrors[0].message;
+    }
+    // Then try network error
+    if (error.networkError) {
+      const networkMessage = error.networkError.message;
+      if (networkMessage) {
+        return `Network error: ${networkMessage}`;
+      }
+    }
+    // Fall back to the Apollo error message
+    return error.message || "Unknown GraphQL error";
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "Unknown error";
+}
 
 const WAVEFORM_COLORS: Record<WaveformColor, string> = {
   cyan: "#22d3ee",
@@ -212,6 +249,9 @@ export function DialogMicRecording({
 
   const [recordingName, setRecordingName] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
+  // Track stopped-but-not-saved state to allow retry save or resume
+  const [stoppedSamples, setStoppedSamples] = React.useState<Float32Array | undefined>();
+  const [stoppedDuration, setStoppedDuration] = React.useState(0);
 
   const wasOpenReference = React.useRef(false);
 
@@ -253,17 +293,22 @@ export function DialogMicRecording({
 
   const inputDevices = Array.isArray(devices) ? devices.filter((d) => d.kind === "audioinput") : [];
 
+  const isStoppedNotSaved = stoppedSamples !== undefined;
+
   const getStatusLabel = () => {
+    if (isStoppedNotSaved) return "Stopped";
     if (recordingState === "recording") return "Recording";
     if (recordingState === "paused") return "Paused";
     return "Preview";
   };
   const getStatusColor = () => {
+    if (isStoppedNotSaved) return "bg-accent";
     if (recordingState === "recording") return "bg-destructive animate-pulse";
     if (recordingState === "paused") return "bg-warning";
     return "bg-text-tertiary";
   };
   const getStatusText = () => {
+    if (isStoppedNotSaved) return "Stopped";
     if (recordingState === "recording") return "Recording";
     if (recordingState === "paused") return "Paused";
     return "Ready";
@@ -293,7 +338,6 @@ export function DialogMicRecording({
     const captured = stopCapture();
 
     if (captured.length > 0) {
-      setIsSaving(true);
       try {
         await createRecording({
           variables: {
@@ -306,27 +350,83 @@ export function DialogMicRecording({
           },
         });
         showToast({ message: "Recording saved successfully!", type: "success" });
+        setStoppedSamples(undefined);
+        setStoppedDuration(0);
         onClose();
       } catch (saveError) {
-        const reason = saveError instanceof Error ? saveError.message : "Unknown error";
+        const reason = extractErrorMessage(saveError);
         console.error("Failed to save recording:", saveError);
-        showToast({ message: `Failed to save recording: ${reason}`, type: "error" });
-      } finally {
+        // Preserve samples and duration so user can retry or resume
+        setStoppedSamples(captured);
+        setStoppedDuration(duration);
+        showToast({ message: `Save failed: ${reason}`, type: "error" });
         setIsSaving(false);
       }
     } else {
       showToast({ message: "Nothing captured — recording not saved", type: "warning" });
+      setStoppedSamples(undefined);
+      setStoppedDuration(0);
       setIsSaving(false);
     }
   };
 
   const handleDiscard = () => {
     discardCapture();
+    setStoppedSamples(undefined);
+    setStoppedDuration(0);
     showToast({ message: "Recording discarded", type: "warning" });
   };
 
+  // Resume from a stopped-but-not-saved state
+  const handleResumeFromStopped = () => {
+    setStoppedSamples(undefined);
+    setStoppedDuration(0);
+    resumeCapture();
+  };
+
+  // Retry save with preserved samples
+  const handleRetrySave = async () => {
+    if (!stoppedSamples || stoppedSamples.length === 0) {
+      showToast({ message: "No recording to save", type: "warning" });
+      return;
+    }
+
+    if (!activeSessionId) {
+      showToast({ message: "No active session — please try again", type: "warning" });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await createRecording({
+        variables: {
+          input: {
+            sessionId: activeSessionId,
+            name: recordingName || `Recording ${new Date().toLocaleString()}`,
+            samples: [...stoppedSamples],
+            sampleRate: Math.round(capturedSampleRate || globalSampleRate),
+          },
+        },
+      });
+      showToast({ message: "Recording saved successfully!", type: "success" });
+      setStoppedSamples(undefined);
+      setStoppedDuration(0);
+      onClose();
+    } catch (saveError) {
+      const reason = extractErrorMessage(saveError);
+      console.error("Failed to save recording:", saveError);
+      showToast({ message: `Save failed: ${reason}`, type: "error" });
+      setIsSaving(false);
+    }
+  };
+
   const handleClose = () => {
-    if (recordingState === "idle") {
+    if (stoppedSamples !== undefined) {
+      if (confirm("You have an unsaved recording. Do you want to discard it?")) {
+        handleDiscard();
+        onClose();
+      }
+    } else if (recordingState === "idle") {
       onClose();
     } else {
       if (confirm("You have an active recording. Do you want to discard it?")) {
@@ -343,11 +443,11 @@ export function DialogMicRecording({
         <div className="flex items-center gap-3 p-4 bg-bg-elevated rounded-lg border border-border-subtle">
           <div
             className={`w-9 h-9 flex items-center justify-center rounded-md ${
-              hasPermission ? "bg-success/10" : "bg-destructive/10"
+              hasPermission ? "bg-gray-500/10" : "bg-destructive/10"
             }`}
           >
             {hasPermission ? (
-              <CheckCircle2 size={18} className="text-success" />
+              <CheckCircle2 size={18} className="text-gray-400" />
             ) : (
               <AlertCircle size={18} className="text-destructive" />
             )}
@@ -399,9 +499,9 @@ export function DialogMicRecording({
               {getStatusLabel()}
             </span>
             <div className="flex items-center gap-3">
-              {recordingState !== "idle" && (
+              {(recordingState !== "idle" || stoppedSamples !== undefined) && (
                 <span className="text-lg font-mono font-bold text-accent">
-                  {formatDuration(duration)}
+                  {formatDuration(stoppedSamples === undefined ? duration : stoppedDuration)}
                 </span>
               )}
               <span className="flex items-center gap-1.5 text-xs">
@@ -484,7 +584,11 @@ export function DialogMicRecording({
           </div>
           <div className="text-center p-2 bg-bg-elevated rounded-lg">
             <div className="text-sm font-semibold font-mono text-foreground">
-              {recordingState === "idle" ? 0 : Math.round(samples.length / 10)}
+              {recordingState === "idle"
+                ? stoppedSamples
+                  ? Math.round(stoppedSamples.length / 10)
+                  : 0
+                : Math.round(samples.length / 10)}
             </div>
             <div className="text-[10px] text-text-tertiary uppercase">KB</div>
           </div>
@@ -519,7 +623,7 @@ export function DialogMicRecording({
               Start Recording
             </button>
           </>
-        ) : (
+        ) : stoppedSamples === undefined ? (
           <>
             <button
               onClick={handleDiscard}
@@ -548,6 +652,35 @@ export function DialogMicRecording({
               )}
               <button
                 onClick={stopAndSave}
+                disabled={isSaving}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
+              >
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {!isSaving && <Save size={16} />}
+                {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </>
+        ) : (
+          // Stopped but not saved state - show retry save, resume, or discard
+          <>
+            <button
+              onClick={handleDiscard}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
+            >
+              <Trash2 size={16} />
+              Discard
+            </button>
+            <div className="flex-1 flex gap-2">
+              <button
+                onClick={handleResumeFromStopped}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2 flex-1"
+              >
+                <Play size={16} />
+                Resume
+              </button>
+              <button
+                onClick={handleRetrySave}
                 disabled={isSaving}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none cursor-pointer border border-border bg-transparent shadow-sm hover:bg-bg-hover text-white h-9 px-4 py-2"
               >

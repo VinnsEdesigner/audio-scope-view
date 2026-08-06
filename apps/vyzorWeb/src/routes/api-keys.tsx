@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Copy, Pencil, Trash2, Key, MoreVertical, Gauge } from "lucide-react";
 import { useToast } from "@/hooks";
 import { useApiKeys, type ApiKey } from "@/hooks/use-api-keys";
+import { useHeader } from "@/contexts/header-context";
 import {
   DeleteApiKeyDialog,
   CreateApiKeyDialog,
@@ -42,6 +43,7 @@ function ApiKeysCard({
 }
 
 export function ApiKeys() {
+  const { setContent } = useHeader();
   const { data, loading: isLoading, error } = useApiKeys();
   const apiKeys = data?.apiKeys;
   const { showToast } = useToast();
@@ -117,6 +119,22 @@ export function ApiKeys() {
     setCreateDialogOpen(true);
   };
 
+  // Set header content after handleCreateClick is defined
+  useEffect(() => {
+    setContent({
+      title: "API Keys",
+      actions: (
+        <button
+          onClick={handleCreateClick}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 rounded-lg transition-colors text-white font-semibold"
+        >
+          <Plus size={16} />
+          <span className="hidden sm:inline">Create API Key</span>
+        </button>
+      ),
+    });
+  }, [setContent]);
+
   const handleCreated = (result: { id: string; key: string; name: string }) => {
     setCreateDialogOpen(false);
     setCreatedKey(result);
@@ -133,26 +151,7 @@ export function ApiKeys() {
   };
 
   return (
-    <div className="w-full min-h-screen">
-      <div className="w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12 xl:px-16">
-        <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pl-12 mb-6 sm:mb-10">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-              API Keys
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-text-tertiary">
-              Manage your API keys for external access to audio scopes
-            </p>
-          </div>
-          <button
-            onClick={handleCreateClick}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer bg-bg-elevated border border-border-subtle hover:bg-bg-hover text-foreground h-9 px-4 py-2"
-          >
-            <Plus size={16} />
-            Create API Key
-          </button>
-        </header>
-
+    <div className="w-full min-h-screen bg-black">
         {isLoading ? (
           <ApiKeysCard className="overflow-visible">
             <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
@@ -419,7 +418,6 @@ export function ApiKeys() {
             </div>
           </ApiKeysCard>
         )}
-      </div>
 
       <DeleteApiKeyDialog
         isOpen={deleteDialogOpen}

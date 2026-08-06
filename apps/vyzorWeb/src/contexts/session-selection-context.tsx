@@ -3,8 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { useLastUsedSession, useCreateNamedSession, useHomePageSessions } from "../hooks";
 import { useToast } from "../hooks";
 import { SelectSessionDialog, CreateSessionDialog } from "../components/dialogs";
+import type { Session } from "@audio-scope-view/api-client/domain";
+
+export type SessionSelectionState =
+  | "idle"
+  | "loading"
+  | "auto_selecting"
+  | "showing_select_dialog"
+  | "showing_create_dialog"
+  | "navigating_to_scope";
 
 export interface SessionSelectionContextValue {
+  state: SessionSelectionState;
   openOscilloscopeSession: () => void;
   selectSessionForRecording: (onSelect: (sessionId: string) => void) => void;
   selectedSessionId: string | undefined;
@@ -18,6 +28,13 @@ export interface SessionSelectionContextValue {
 const SessionSelectionContext = React.createContext<SessionSelectionContextValue | undefined>(
   undefined,
 );
+
+// Helper to check if a session is active (no endedAt date)
+// Note: isLastUsedSessionActive is a more comprehensive check that includes
+// whether the session is in the active sessions list
+function isSessionActive(session: Session | undefined): boolean {
+  return session?.endedAt === undefined;
+}
 
 export function useSessionSelection(): SessionSelectionContextValue {
   const context = React.useContext(SessionSelectionContext);
@@ -37,8 +54,13 @@ export function SessionSelectionProvider({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { sessions, loading: sessionsLoading } = useHomePageSessions();
-  const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
-    useLastUsedSession();
+  const {
+    shouldAutoSelect,
+    lastUsedSession,
+    markSessionAsUsed,
+    isLoadingSession,
+    isLastUsedSessionActive,
+  } = useLastUsedSession();
   const [createNamedSession, { loading: isCreating }] = useCreateNamedSession();
 
   const [selectDialogOpen, setSelectDialogOpen] = React.useState(false);
@@ -47,18 +69,65 @@ export function SessionSelectionProvider({
   const [pendingSessionCallback, setPendingSessionCallback] = React.useState<
     ((sessionId: string) => void) | undefined
   >();
+  // Track if we should return to home when dialog is closed (for oscilloscope navigation)
+  const [returnToHomeOnClose, setReturnToHomeOnClose] = React.useState(false);
+
+  // Track if we just navigated to scope with a specific sessionId (prevents dialog on mount)
+  const [justNavigatedToScope, setJustNavigatedToScope] = React.useState(false);
+  const [justNavigatedSessionId, setJustNavigatedSessionId] = React.useState<string | undefined>();
 
   // Combined loading state - wait for session data before making decisions
   const isLoadingSessionData = sessionsLoading || isLoadingSession;
 
+  // Derive the current state for the state machine
+  const currentState: SessionSelectionState = React.useMemo(() => {
+    if (isLoadingSessionData) {
+      return "loading";
+    }
+    if (justNavigatedToScope && justNavigatedSessionId) {
+      return "navigating_to_scope";
+    }
+    if (selectDialogOpen) {
+      return "showing_select_dialog";
+    }
+    if (createDialogOpen) {
+      return "showing_create_dialog";
+    }
+    return "idle";
+  }, [
+    isLoadingSessionData,
+    justNavigatedToScope,
+    justNavigatedSessionId,
+    selectDialogOpen,
+    createDialogOpen,
+  ]);
+
   const openOscilloscopeSession = React.useCallback(() => {
+    // Clear the just-navigated flag when explicitly opening session selection
+    setJustNavigatedToScope(false);
+    setJustNavigatedSessionId(undefined);
+
     // Skip if still loading session data - prevent race condition
     if (isLoadingSessionData) {
       return;
     }
 
-    if (shouldAutoSelect && lastUsedSession) {
+    // Set flag so we return to home if user cancels
+    setReturnToHomeOnClose(true);
+
+    // Auto-select is enabled when:
+    // 1. User has auto-select enabled (shouldAutoSelect)
+    // 2. We have a last used session
+    // 3. The session is active (no endedAt AND in active sessions list)
+    const canAutoSelect =
+      shouldAutoSelect &&
+      lastUsedSession &&
+      isSessionActive(lastUsedSession) &&
+      isLastUsedSessionActive;
+
+    if (canAutoSelect) {
       // Auto-select: proceed directly
+      setReturnToHomeOnClose(false);
       navigate(`/oscilloscope?sessionId=${lastUsedSession.id}`);
     } else if (sessions.length > 0) {
       // Show selection dialog
@@ -67,10 +136,21 @@ export function SessionSelectionProvider({
       // No sessions: show create dialog
       setCreateDialogOpen(true);
     }
-  }, [shouldAutoSelect, lastUsedSession, sessions.length, navigate, isLoadingSessionData]);
+  }, [
+    shouldAutoSelect,
+    lastUsedSession,
+    isLastUsedSessionActive,
+    sessions.length,
+    navigate,
+    isLoadingSessionData,
+  ]);
 
   const selectSessionForRecording = React.useCallback(
     (onSelect: (sessionId: string) => void) => {
+      // Clear the just-navigated flag
+      setJustNavigatedToScope(false);
+      setJustNavigatedSessionId(undefined);
+
       // Skip if still loading session data - prevent race condition
       if (isLoadingSessionData) {
         return;
@@ -78,7 +158,17 @@ export function SessionSelectionProvider({
 
       setPendingSessionCallback(() => onSelect);
 
-      if (shouldAutoSelect && lastUsedSession) {
+      // Auto-select is enabled when:
+      // 1. User has auto-select enabled (shouldAutoSelect)
+      // 2. We have a last used session
+      // 3. The session is active (no endedAt AND in active sessions list)
+      const canAutoSelect =
+        shouldAutoSelect &&
+        lastUsedSession &&
+        isSessionActive(lastUsedSession) &&
+        isLastUsedSessionActive;
+
+      if (canAutoSelect) {
         // Auto-select: call the callback directly
         onSelect(lastUsedSession.id);
       } else if (sessions.length > 0) {
@@ -89,13 +179,25 @@ export function SessionSelectionProvider({
         setCreateDialogOpen(true);
       }
     },
-    [shouldAutoSelect, lastUsedSession, sessions.length, isLoadingSessionData],
+    [
+      shouldAutoSelect,
+      lastUsedSession,
+      isLastUsedSessionActive,
+      sessions.length,
+      isLoadingSessionData,
+    ],
   );
 
   const handleSessionSelect = React.useCallback(
     async (sessionId: string) => {
       await markSessionAsUsed(sessionId);
       setSelectDialogOpen(false);
+      setReturnToHomeOnClose(false); // Reset flag on success
+
+      // Mark that we're navigating to scope with a specific session
+      setJustNavigatedToScope(true);
+      setJustNavigatedSessionId(sessionId);
+
       if (pendingSessionCallback) {
         pendingSessionCallback(sessionId);
         setPendingSessionCallback(undefined);
@@ -114,6 +216,12 @@ export function SessionSelectionProvider({
         if (newSession) {
           await markSessionAsUsed(newSession.id);
           setCreateDialogOpen(false);
+          setReturnToHomeOnClose(false); // Reset flag on success
+
+          // Mark that we're navigating to scope with this newly created session
+          setJustNavigatedToScope(true);
+          setJustNavigatedSessionId(newSession.id);
+
           if (pendingSessionCallback) {
             pendingSessionCallback(newSession.id);
             setPendingSessionCallback(undefined);
@@ -137,10 +245,28 @@ export function SessionSelectionProvider({
     setSelectDialogOpen(false);
     setCreateDialogOpen(false);
     setPendingSessionCallback(undefined);
+    // Clear the just-navigated flag when closing dialogs
+    setJustNavigatedToScope(false);
+    setJustNavigatedSessionId(undefined);
+    // If we're in oscilloscope session mode (not recording mode), return to home
+    if (returnToHomeOnClose) {
+      setReturnToHomeOnClose(false);
+      navigate("/");
+    }
+  }, [returnToHomeOnClose, navigate]);
+
+  // Reset just-navigated state when we detect we've left the scope page
+  // This is checked by seeing if we're not on a scope URL
+  React.useEffect(() => {
+    if (!globalThis.location.pathname.includes("/oscilloscope")) {
+      setJustNavigatedToScope(false);
+      setJustNavigatedSessionId(undefined);
+    }
   }, []);
 
   const value = React.useMemo(
     () => ({
+      state: currentState,
       openOscilloscopeSession,
       selectSessionForRecording,
       selectedSessionId: lastUsedSession?.id,
@@ -151,6 +277,7 @@ export function SessionSelectionProvider({
       closeDialogs,
     }),
     [
+      currentState,
       openOscilloscopeSession,
       selectSessionForRecording,
       lastUsedSession,

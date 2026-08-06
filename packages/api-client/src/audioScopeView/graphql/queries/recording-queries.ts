@@ -96,7 +96,7 @@ export const GET_RECORDING_PREVIEW = gql`
     waveformOverview
   }
   query GetRecordingPreview($id: String!) {
-    recording_preview(id: $id) {
+    recordingPreview(id: $id) {
       ...RecordingPreviewFields
     }
   }
@@ -104,7 +104,7 @@ export const GET_RECORDING_PREVIEW = gql`
 
 export const GET_RECORDING_STATS = gql`
   query GetRecordingStats($sessionId: String, $timeRange: String) {
-    recording_stats(sessionId: $sessionId, timeRange: $timeRange) {
+    recordingStats(sessionId: $sessionId, timeRange: $timeRange) {
       totalRecordings
       totalSizeBytes
       totalDurationMs
@@ -116,7 +116,7 @@ export const GET_RECORDING_STATS = gql`
 export const GET_RECENT_RECORDINGS = gql`
   ${RECORDING_SUMMARY_FIELDS}
   query GetRecentRecordings($limit: Int) {
-    recent_recordings(limit: $limit) {
+    recentRecordings(limit: $limit) {
       ...RecordingSummaryFields
     }
   }
@@ -135,7 +135,7 @@ export const SESSION_WITH_STATUS_FIELDS = gql`
 export const GET_SESSIONS_WITH_STATUS = gql`
   ${SESSION_WITH_STATUS_FIELDS}
   query GetSessionsWithStatus($limit: Int, $offset: Int) {
-    sessions_with_status(limit: $limit, offset: $offset) {
+    sessionsWithStatus(limit: $limit, offset: $offset) {
       sessions {
         ...SessionWithStatusFields
       }
@@ -148,7 +148,7 @@ export const GET_SESSIONS_WITH_STATUS = gql`
 export const GET_ACTIVE_SESSIONS_WITH_STATUS = gql`
   ${SESSION_WITH_STATUS_FIELDS}
   query GetActiveSessionsWithStatus {
-    active_sessions_with_status {
+    activeSessionsWithStatus {
       ...SessionWithStatusFields
     }
   }
@@ -156,7 +156,7 @@ export const GET_ACTIVE_SESSIONS_WITH_STATUS = gql`
 
 export const GET_SESSION_STATUS_COUNTS = gql`
   query GetSessionStatusCounts {
-    session_status_counts {
+    sessionStatusCounts {
       liveCount
       pausedCount
       offlineCount

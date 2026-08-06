@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useHeader } from "@/contexts/header-context";
 import {
   useRecordingStats,
   useRecentRecordings,
@@ -40,6 +41,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function Home(): React.ReactElement {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { setContent } = useHeader();
 
   const [isMicDialogOpen, setIsMicDialogOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"recordings" | "sessions">("recordings");
@@ -59,6 +61,77 @@ export function Home(): React.ReactElement {
   const [pendingDestination, setPendingDestination] = React.useState<
     "record" | "oscilloscope" | undefined
   >();
+
+  // Set header content
+  React.useEffect(() => {
+    setContent({
+      title: "Home",
+      actions: (
+        <>
+          {/* Create Session Button */}
+          <button
+            onClick={() => {
+              setPendingDestination(undefined);
+              setCreateDialogOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 rounded-lg transition-colors text-white font-semibold"
+            title="Create Session"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Create Session</span>
+          </button>
+
+          {/* Session Actions Dropdown */}
+          <div className="relative">
+            <button
+              onClick={(event_) => {
+                event_.stopPropagation();
+                setDropdownOpen(!dropdownOpen);
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+              title="More Session Options"
+            >
+              <MoreVertical size={18} className="text-text-secondary" />
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50">
+                <button
+                  onClick={(event_) => {
+                    event_.stopPropagation();
+                    setSettingsDialogOpen(true);
+                    setDropdownOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                >
+                  <SettingsIcon size={14} />
+                  Session Settings
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mic Button */}
+          <button
+            onClick={handleMicClick}
+            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+            title="Test Microphone"
+          >
+            <Mic size={18} className="text-text-secondary" />
+          </button>
+
+          {/* App Settings Button */}
+          <button
+            onClick={() => navigate("/settings")}
+            className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
+            title="Settings"
+          >
+            <SettingsIcon size={18} className="text-text-secondary" />
+          </button>
+        </>
+      ),
+    });
+  }, [setContent, handleMicClick, navigate, setCreateDialogOpen, setPendingDestination, dropdownOpen, setDropdownOpen, setSettingsDialogOpen]);
 
   const { data: stats, loading: statsLoading } = useRecordingStats();
   const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
@@ -268,101 +341,7 @@ export function Home(): React.ReactElement {
   const isLoading = statsLoading || recordingsLoading;
 
   return (
-    <div className="w-full min-h-screen bg-bg-primary overflow-y-auto">
-      {}
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 md:px-8 md:py-4 pl-14 sm:pl-12 md:pl-16 border-b border-border-subtle bg-black gap-3">
-        <div className="ml-0 md:ml-0">
-          {isLoading ? (
-            <>
-              <Skeleton className="h-8 w-24 mb-2 md:h-10 md:w-32" />
-              <Skeleton className="h-4 w-48 md:h-5 md:w-96" />
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl md:text-4xl font-semibold text-white tracking-tight">Home</h1>
-              <p className="text-sm md:text-lg text-gray-400">
-                Track, view, manage, and analyze your captured audio waveforms, with live waveforms,
-                recorded traces, and detailed signal measurements
-              </p>
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          {isLoading ? (
-            <>
-              <Skeleton className="w-10 h-10 rounded-lg" />
-              <Skeleton className="w-10 h-10 rounded-lg" />
-              <Skeleton className="w-10 h-10 rounded-lg" />
-            </>
-          ) : (
-            <>
-              {/* Create Session Button */}
-              <button
-                onClick={() => {
-                  setPendingDestination(undefined);
-                  setCreateDialogOpen(true);
-                }}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 rounded-lg transition-colors text-white font-semibold"
-                title="Create Session"
-              >
-                <Plus size={16} />
-                Create Session
-              </button>
-
-              {/* Session Actions Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={(event_) => {
-                    event_.stopPropagation();
-                    setDropdownOpen(!dropdownOpen);
-                  }}
-                  className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-                  title="More Session Options"
-                >
-                  <MoreVertical size={18} className="text-text-secondary" />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50">
-                    <button
-                      onClick={(event_) => {
-                        event_.stopPropagation();
-                        setSettingsDialogOpen(true);
-                        setDropdownOpen(false);
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
-                    >
-                      <SettingsIcon size={14} />
-                      Session Settings
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Mic Button */}
-              <button
-                onClick={handleMicClick}
-                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-                title="Test Microphone"
-              >
-                <Mic size={18} className="text-text-secondary" />
-              </button>
-
-              {/* App Settings Button */}
-              <button
-                onClick={() => navigate("/settings")}
-                className="w-10 h-10 flex items-center justify-center bg-bg-elevated hover:bg-bg-hover border border-border-subtle rounded-lg transition-colors"
-                title="Settings"
-              >
-                <SettingsIcon size={18} className="text-text-secondary" />
-              </button>
-            </>
-          )}
-        </div>
-      </header>
-
-      {}
-      <main className="p-4 md:p-6 lg:p-8 flex flex-col gap-4 md:gap-6 bg-black">
+    <div className="w-full bg-black">
         {}
         <div className="bg-yellow-800 rounded-xl p-4 md:p-5">
           <div className="flex items-start justify-between mb-4">
@@ -724,9 +703,7 @@ export function Home(): React.ReactElement {
             )}
           </div>
         </div>
-      </main>
 
-      {}
       <DialogMicRecording
         isOpen={isMicDialogOpen}
         onClose={() => setIsMicDialogOpen(false)}

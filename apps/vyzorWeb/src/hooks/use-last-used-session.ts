@@ -4,9 +4,7 @@ import {
   GET_SESSIONS,
   GET_USER_PREFERENCES,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries";
-import {
-  GET_ACTIVE_SESSIONS_WITH_STATUS,
-} from "@audio-scope-view/api-client/audioScopeView/graphql/queries/recording-queries";
+import { GET_ACTIVE_SESSIONS_WITH_STATUS } from "@audio-scope-view/api-client/audioScopeView/graphql/queries/recording-queries";
 import { SET_LAST_USED_SESSION } from "@audio-scope-view/api-client/audioScopeView/graphql/mutations";
 import type { Session } from "@audio-scope-view/api-client/domain";
 import { DEFAULT_AUTO_CLOSE_TIMEOUT_SECS } from "./use-session-settings";
@@ -50,21 +48,29 @@ export function useLastUsedSession() {
       ? (lastUsedSessionData.sessions.find((s: Session) => s.id === lastUsedSessionId) ?? undefined)
       : undefined;
 
-  const { data: activeSessionsData, loading: isLoadingActive } = useQuery(GET_ACTIVE_SESSIONS_WITH_STATUS, {
-    fetchPolicy: "cache-and-network",
-  });
+  const { data: activeSessionsData, loading: isLoadingActive } = useQuery(
+    GET_ACTIVE_SESSIONS_WITH_STATUS,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
 
   const activeSessions = activeSessionsData?.activeSessionsWithStatus ?? [];
+
+  // Check if the last used session is active
+  const isLastUsedSessionActive = lastUsedSessionId
+    ? activeSessions.some((s: { id: string }) => s.id === lastUsedSessionId)
+    : false;
 
   const markSessionAsUsed = useCallback(
     async (sessionId: string) => {
       await setLastUsedSessionMutation({
         variables: { sessionId },
       });
-      // Wait for refetch to complete before proceeding
-      await refetchPrefs();
+      // Refetch both prefs and sessions so lastUsedSession is immediately available
+      await Promise.all([refetchPrefs(), refetchSessions()]);
     },
-    [setLastUsedSessionMutation, refetchPrefs],
+    [setLastUsedSessionMutation, refetchPrefs, refetchSessions],
   );
 
   const clearLastUsedSession = useCallback(async () => {
@@ -81,8 +87,11 @@ export function useLastUsedSession() {
     lastUsedSession,
     activeSessions,
 
+    // shouldAutoSelect: auto-select enabled AND we have a last used session
+    // The scope-page will handle cases where the session doesn't exist or is inactive
     shouldAutoSelect: autoSelectLastSession && !!lastUsedSessionId,
     hasLastUsedSession: !!lastUsedSessionId,
+    isLastUsedSessionActive,
     autoCloseTimeoutSecs,
 
     isLoadingPrefs,

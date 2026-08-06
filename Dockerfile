@@ -26,7 +26,6 @@ RUN apt-get update && apt-get install -y curl ca-certificates && \
 COPY --from=frontend-builder /app/apps/vyzorWeb/dist ./apps/vyzorWeb/dist
 COPY --from=frontend-builder /app/packages/api-client/dist ./packages/api-client/dist
 COPY --from=backend-builder /app/rust/target/release/audio-scope-view /usr/local/bin/
-RUN mkdir -p /app/data
 COPY rust/config.toml /app/config.toml
 COPY simple-server.cjs /app/simple-server.cjs
 ENV NODE_ENV=production

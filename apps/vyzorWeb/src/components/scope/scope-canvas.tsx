@@ -47,7 +47,7 @@ function drawSpectrum({
 
   const maxFrequency = Math.min(sampleRate / 2, 20_000);
   const maxBin = Math.max(1, Math.min(magnitudes.length - 1, Math.floor(maxFrequency / binHz)));
-  const floorDb = -80;
+  const floorDatabase = -80;
 
   context.save();
   if (glow) {
@@ -59,8 +59,8 @@ function drawSpectrum({
   context.fillStyle = color;
 
   for (let bin = 1; bin <= maxBin; bin++) {
-    const db = toDecibels(magnitudes[bin], floorDb);
-    const normalized = (db - floorDb) / -floorDb;
+    const database = toDecibels(magnitudes[bin], floorDatabase);
+    const normalized = (database - floorDatabase) / -floorDatabase;
     const barHeight = Math.max(0, normalized) * (height - 18);
     const x = ((bin - 1) / maxBin) * width;
     context.fillRect(x, height - 18 - barHeight, barWidth, barHeight);
@@ -74,7 +74,8 @@ function drawSpectrum({
   for (let step = 0; step <= 4; step++) {
     const ratio = step / 4;
     const frequency = ratio * maxBin * binHz;
-    const label = frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
+    const label =
+      frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
     context.fillText(label, Math.min(width - 22, ratio * width + 2), height - 5);
   }
   context.restore();
@@ -138,6 +139,9 @@ export function ScopeCanvas({
   /** Last successfully triggered frame — held in "normal"/"single" mode. */
   const heldFrameReference = React.useRef<number[]>([]);
   const singleArmedReference = React.useRef(true);
+
+  /** Smoothed max value for auto-scale to reduce jitter. Uses exponential moving average. */
+  const smoothedMaxValueReference = React.useRef(0.01);
 
   React.useEffect(() => {
     if (triggerMode === "single") singleArmedReference.current = true;
@@ -276,13 +280,28 @@ export function ScopeCanvas({
         context.lineCap = "round";
 
         let pixelsPerUnit = fullScale * verticalGain;
+        let frameMaxValue = 0.01;
+        for (const value of frame) {
+          const absolute = Math.abs(value);
+          if (absolute > frameMaxValue) frameMaxValue = absolute;
+        }
+
         if (autoScale) {
-          let maxValue = 0.01;
-          for (const value of frame) {
-            const absolute = Math.abs(value);
-            if (absolute > maxValue) maxValue = absolute;
-          }
-          pixelsPerUnit = (fullScale * verticalGain) / maxValue;
+          // Apply exponential moving average for smooth auto-scaling
+          // This reduces jitter when signal levels change slightly between frames
+          const alpha = 0.15; // Smoothing factor - higher = faster response, lower = smoother
+          const previousMax = smoothedMaxValueReference.current;
+          const newMax = Math.max(frameMaxValue, previousMax * 0.95); // Never let max drop below 95% of previous (peak hold)
+          smoothedMaxValueReference.current = previousMax * (1 - alpha) + newMax * alpha;
+
+          pixelsPerUnit = (fullScale * verticalGain) / smoothedMaxValueReference.current;
+        } else {
+          // When autoScale is off, ensure minimum display gain so small signals remain visible.
+          // Calculate what gain would fill 80% of the display at current verticalGain.
+          const minGainNeeded = frameMaxValue > 0 ? (fullScale * 0.8) / frameMaxValue : fullScale;
+          // Use whichever is larger: user-set verticalGain or the minimum needed to see the signal
+          const effectiveGain = Math.max(verticalGain, minGainNeeded / fullScale);
+          pixelsPerUnit = fullScale * effectiveGain;
         }
 
         for (let index = 0; index < frame.length; index++) {

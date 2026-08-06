@@ -16,14 +16,14 @@ export function Spinner({ size = 16, className = "" }: SpinnerProperties): React
       style={className ? undefined : { width: size, height: size }}
     >
       <style>{`
- @keyframes block-spin {
- 0% { transform: rotate(0deg); }
- 100% { transform: rotate(360deg); }
- }
- .animate-block-spin {
- animation: block-spin 2s linear infinite;
- }
- `}</style>
+        @keyframes block-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .animate-block-spin {
+          animation: block-spin 2s linear infinite;
+        }
+      `}</style>
       <div
         className="absolute inset-0 rounded border-2 border-white animate-block-spin"
         style={{ borderWidth }}

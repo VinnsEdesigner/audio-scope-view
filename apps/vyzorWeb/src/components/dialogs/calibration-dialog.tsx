@@ -28,10 +28,11 @@ function MetricRow({
   status = "neutral",
   description,
 }: MetricRowProperties) {
+  // All statuses use gray for a cleaner, monochrome look
   const statusColors = {
-    good: "text-green-400",
-    warning: "text-yellow-400",
-    bad: "text-red-400",
+    good: "text-gray-400",
+    warning: "text-gray-400",
+    bad: "text-gray-400",
     neutral: "text-foreground",
   };
 
@@ -153,6 +154,8 @@ export function CalibrationDialog({
   if (!isOpen) return null;
 
   const hasData = analysisData !== undefined;
+  // Show LIVE badge when capturing regardless of data source (server or local fallback)
+  const isLive = isCapturing;
 
   const peakAmplitude = analysisData?.peakAmplitude ?? 0;
   const rmsAmplitude = analysisData?.rmsAmplitude ?? 0;
@@ -173,7 +176,7 @@ export function CalibrationDialog({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle sticky top-0 bg-bg-primary z-10">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-semibold text-foreground tracking-tight">Calibration</h2>
-          {isCapturing && (
+          {isLive && (
             <span className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full text-[10px] font-medium">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
               LIVE
@@ -343,10 +346,23 @@ export function CalibrationDialog({
         ) : (
           <div className="text-center py-12">
             <Activity size={48} className="mx-auto mb-4 text-text-tertiary opacity-30" />
-            <p className="text-sm text-text-secondary">
-              Start a capture to view server-calculated DSP metrics
-            </p>
-            <p className="text-xs text-text-tertiary mt-2">Press Probe to begin analyzing audio</p>
+            {isCapturing ? (
+              <>
+                <p className="text-sm text-text-secondary">Waiting for analysis data...</p>
+                <p className="text-xs text-text-tertiary mt-2">
+                  Analysis data should appear shortly
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-text-secondary">
+                  Start a capture to view server-calculated DSP metrics
+                </p>
+                <p className="text-xs text-text-tertiary mt-2">
+                  Press Probe to begin analyzing audio
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

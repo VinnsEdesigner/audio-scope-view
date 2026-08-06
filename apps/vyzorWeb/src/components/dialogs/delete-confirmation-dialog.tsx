@@ -9,12 +9,14 @@ interface DeleteConfirmationDialogProperties {
 }
 
 export function DeleteConfirmationDialog({
-  isOpen: _isOpen,
+  isOpen,
   recordingName,
   onConfirm,
   onCancel,
   isLoading,
 }: DeleteConfirmationDialogProperties) {
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} onKeyDown={undefined} />
@@ -36,7 +38,7 @@ export function DeleteConfirmationDialog({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium bg-gray-500 hover:bg-gray-600 text-white rounded-md transition-colors disabled:opacity-50"
           >
             {isLoading ? "Deleting..." : "Delete"}
           </button>

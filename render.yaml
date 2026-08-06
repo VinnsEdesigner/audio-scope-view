@@ -20,9 +20,13 @@ services:
         fromService:
           type: web
           envVarKey: BOOTSTRAP_KEY
-      # Database URL - Render managed PostgreSQL/SQLite
+      # Database URL - Set via environment variable for Turso
+      # Example: libsql://audio-scope-view-xxx.turso.io?authToken=xxx
+      # Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Render dashboard
       - key: APP__DATABASE__URL
-        value: "sqlite:/data/audio_scope_view.db?mode=rwc"
+        fromService:
+          type: web
+          envVarKey: TURSO_DATABASE_URL
       - key: APP__SERVER__HOST
         value: "127.0.0.1"
       - key: APP__SERVER__PORT

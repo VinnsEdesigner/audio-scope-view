@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Clock,
   Radio,
   FileAudio,
@@ -16,7 +15,9 @@ import {
   Gauge,
   MoreVertical,
   FileSpreadsheet,
+  ActivitySquare,
 } from "lucide-react";
+import { useHeader } from "@/contexts/header-context";
 import {
   useSessionDetail,
   useSubSessions,
@@ -42,7 +43,7 @@ import {
 import type { SessionWithStatus, RecordingSummary, Session } from "../hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast, useRecordingExport } from "@/hooks";
-import { EditSessionDialog } from "@/components/dialogs";
+import { EditSessionDialog, DeleteConfirmationDialog, ConfirmDialog } from "@/components/dialogs";
 
 type TabType = "live-captures" | "recordings";
 
@@ -324,6 +325,7 @@ export function Session(): React.ReactElement {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { exportRecording } = useRecordingExport();
+  const { setContent } = useHeader();
 
   const [activeTab, setActiveTab] = React.useState<TabType>("recordings");
   const [recordingsOffset, setRecordingsOffset] = React.useState(0);
@@ -335,6 +337,13 @@ export function Session(): React.ReactElement {
     loading: sessionLoading,
     refetch: refetchSession,
   } = useSessionDetail(sessionId);
+
+  // Store refetchSession in a ref so it can be used in the useEndSession callback
+  const refetchSessionRef = React.useRef(refetchSession);
+  React.useEffect(() => {
+    refetchSessionRef.current = refetchSession;
+  }, [refetchSession]);
+
   const { data: parentSessionData } = useParentSession(sessionId);
   const {
     data: subSessionsData,
@@ -354,7 +363,12 @@ export function Session(): React.ReactElement {
   });
 
   const [deleteSession, { loading: isDeleting }] = useDeleteSession();
-  const [endSession, { loading: isEnding }] = useEndSession();
+  const [endSession, { loading: isEnding }] = useEndSession({
+    onSessionEnded: () => {
+      // Refetch session detail to update UI
+      refetchSessionRef.current?.();
+    },
+  });
   const [updateSession, { loading: isUpdating }] = useUpdateSession();
   const [deleteRecording] = useDeleteRecording();
   const { markSessionAsUsed } = useLastUsedSession();
@@ -362,6 +376,34 @@ export function Session(): React.ReactElement {
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const editButtonReference = React.useRef<HTMLButtonElement>(null);
+
+  // Confirmation dialog states
+  const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
+  const [confirmDialogConfig, setConfirmDialogConfig] = React.useState<
+    | {
+        title: string;
+        message: string;
+        confirmLabel?: string;
+        variant?: "danger" | "warning" | "default";
+        onConfirm: () => void;
+      }
+    | undefined
+  >();
+  const [deleteRecordingDialogOpen, setDeleteRecordingDialogOpen] = React.useState(false);
+  const [recordingToDelete, setRecordingToDelete] = React.useState<RecordingSummary | undefined>();
+  const [isDeletingRecording, setIsDeletingRecording] = React.useState(false);
+
+  // Helper to open confirm dialog
+  const openConfirmDialog = (config: {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: "danger" | "warning" | "default";
+    onConfirm: () => void;
+  }) => {
+    setConfirmDialogConfig(config);
+    setConfirmDialogOpen(true);
+  };
 
   const session = sessionData?.session;
   const parentSession = parentSessionData?.parentSession;
@@ -386,39 +428,61 @@ export function Session(): React.ReactElement {
     }
   }, [session, markSessionAsUsed]);
 
-  const handleEnd = React.useCallback(async () => {
-    if (!session) return;
-    if (!confirm("Are you sure you want to end this session?")) return;
-    try {
-      await endSession({ variables: { id: session.id } });
-      showToast({ message: "Session ended successfully", type: "success" });
-    } catch (error) {
-      showToast({
-        message: `Failed to end session: ${error instanceof Error ? error.message : "Unknown error"}`,
-        type: "error",
-      });
-    }
-  }, [session, endSession, showToast]);
-
-  const handleDelete = React.useCallback(async () => {
-    if (!session) return;
-    if (
-      !confirm(
-        `Are you sure you want to delete this session?\n\nThis will also delete all recordings and data associated with it.\n\nThis action cannot be undone.`,
-      )
-    ) {
+  const handleEnd = React.useCallback(() => {
+    const currentSession = session;
+    if (!currentSession?.id) {
+      showToast({ message: "Session not found", type: "error" });
       return;
     }
-    try {
-      await deleteSession({ variables: { id: session.id } });
-      showToast({ message: "Session deleted successfully", type: "success" });
-      navigate("/");
-    } catch (error) {
-      showToast({
-        message: `Failed to delete session: ${error instanceof Error ? error.message : "Unknown error"}`,
-        type: "error",
-      });
+    openConfirmDialog({
+      title: "End Session",
+      message: "Are you sure you want to end this session?",
+      confirmLabel: "End Session",
+      variant: "warning",
+      onConfirm: () => {
+        setConfirmDialogOpen(false);
+        const sessionIdToEnd = currentSession.id;
+        endSession({ variables: { id: sessionIdToEnd } })
+          .then(() => {
+            showToast({ message: "Session ended successfully", type: "success" });
+          })
+          .catch((error) => {
+            showToast({
+              message: `Failed to end session: ${error instanceof Error ? error.message : "Unknown error"}`,
+              type: "error",
+            });
+          });
+      },
+    });
+  }, [session, endSession, showToast]);
+
+  const handleDelete = React.useCallback(() => {
+    const currentSession = session;
+    if (!currentSession?.id) {
+      showToast({ message: "Session not found", type: "error" });
+      return;
     }
+    openConfirmDialog({
+      title: "Delete Session",
+      message: `Are you sure you want to delete this session?\n\nThis will also delete all recordings and data associated with it.\n\nThis action cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+      onConfirm: () => {
+        setConfirmDialogOpen(false);
+        const sessionIdToDelete = currentSession.id;
+        deleteSession({ variables: { id: sessionIdToDelete } })
+          .then(() => {
+            showToast({ message: "Session deleted successfully", type: "success" });
+            navigate("/");
+          })
+          .catch((error) => {
+            showToast({
+              message: `Failed to delete session: ${error instanceof Error ? error.message : "Unknown error"}`,
+              type: "error",
+            });
+          });
+      },
+    });
   }, [session, deleteSession, navigate, showToast]);
 
   const handleView = React.useCallback(
@@ -428,23 +492,35 @@ export function Session(): React.ReactElement {
     [navigate],
   );
 
-  const handleDeleteRecording = React.useCallback(
-    async (recording: RecordingSummary) => {
-      if (!confirm(`Are you sure you want to delete "${recording.name}"?`)) return;
-      showToast({ message: `Deleting ${recording.name}...`, type: "info" });
-      try {
-        await deleteRecording({ variables: { id: recording.id } });
-        showToast({ message: `${recording.name} deleted`, type: "success" });
-        refetchRecordings();
-      } catch (error) {
-        showToast({
-          message: `Failed to delete recording: ${error instanceof Error ? error.message : "Unknown error"}`,
-          type: "error",
-        });
-      }
-    },
-    [deleteRecording, refetchRecordings, showToast],
-  );
+  const handleDeleteRecording = React.useCallback((recording: RecordingSummary) => {
+    setRecordingToDelete(recording);
+    setDeleteRecordingDialogOpen(true);
+  }, []);
+
+  const confirmDeleteRecording = React.useCallback(async () => {
+    if (!recordingToDelete) return;
+    setIsDeletingRecording(true);
+    setDeleteRecordingDialogOpen(false);
+    showToast({ message: `Deleting ${recordingToDelete.name}...`, type: "info" });
+    try {
+      await deleteRecording({ variables: { id: recordingToDelete.id } });
+      showToast({ message: `${recordingToDelete.name} deleted`, type: "success" });
+      refetchRecordings();
+    } catch (error) {
+      showToast({
+        message: `Failed to delete recording: ${error instanceof Error ? error.message : "Unknown error"}`,
+        type: "error",
+      });
+    } finally {
+      setIsDeletingRecording(false);
+      setRecordingToDelete(undefined);
+    }
+  }, [recordingToDelete, deleteRecording, refetchRecordings, showToast]);
+
+  const cancelDeleteRecording = React.useCallback(() => {
+    setDeleteRecordingDialogOpen(false);
+    setRecordingToDelete(undefined);
+  }, []);
 
   const handleDownloadCsv = React.useCallback(
     async (recording: RecordingSummary) => {
@@ -536,128 +612,54 @@ export function Session(): React.ReactElement {
 
   const isLoading = sessionLoading;
 
+  // Set header content
+  React.useEffect(() => {
+    setContent({
+      title: session?.name || `Session ${sessionId?.slice(0, 8)}` || "Session",
+      subtitle: session?.startedAt ? formatSessionDate(session.startedAt) : undefined,
+      badge: !session?.endedAt ? "Live" : undefined,
+      actions: (
+        <>
+          <button
+            onClick={handleOpenOscilloscope}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
+          >
+            <ActivitySquare size={14} />
+            <span className="hidden sm:inline">Oscilloscope</span>
+          </button>
+          {!session?.endedAt && (
+            <button
+              onClick={handleEnd}
+              disabled={isLoading || isEnding}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
+            >
+              End Session
+            </button>
+          )}
+          <button
+            onClick={handleOpenEdit}
+            disabled={isLoading || isDeleting || isUpdating}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
+          >
+            <Edit3 size={14} />
+            <span className="hidden sm:inline">Edit</span>
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isLoading || isDeleting}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-destructive hover:text-destructive"
+          >
+            <Trash2 size={14} />
+            <span className="hidden sm:inline">Delete</span>
+          </button>
+        </>
+      ),
+    });
+  }, [setContent, session, sessionId, isLoading, isEnding, isDeleting, isUpdating, handleOpenOscilloscope, handleEnd, handleOpenEdit, handleDelete]);
+
   return (
     <div className="w-full min-h-screen bg-bg-primary">
-      <header className="px-4 py-3 md:px-6 md:py-4 bg-bg-secondary border-b border-border-subtle pl-14 sm:pl-12 md:pl-0">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-bg-tertiary transition-all shrink-0 -ml-2 sm:ml-0"
-            >
-              <ArrowLeft size={18} className="text-text-secondary" />
-            </button>
-            {isLoading ? (
-              <div className="space-y-1">
-                <Skeleton className="h-6 w-32 md:w-48" />
-                <Skeleton className="h-4 w-24 md:w-32" />
-              </div>
-            ) : session ? (
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
-                    {session.name || `Session ${sessionId?.slice(0, 8)}`}
-                  </h1>
-                  {!session.endedAt && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-neutral-500/20 border border-neutral-500/30 text-neutral-400 rounded shrink-0">
-                      Live
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 mt-1.5">
-                  {session.startedAt && (
-                    <>
-                      <span className="text-xs text-text-secondary">
-                        {formatSessionDate(session.startedAt)}
-                      </span>
-                      <span className="text-xs text-text-secondary">
-                        {formatSessionTime(session.startedAt)}
-                      </span>
-                    </>
-                  )}
-                </div>
-                {session.description && (
-                  <p className="text-sm text-text-secondary mt-2 max-w-md">{session.description}</p>
-                )}
-              </div>
-            ) : undefined}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={handleOpenOscilloscope}
-              disabled={isLoading}
-              className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
-            >
-              Open Oscilloscope
-            </button>
-            {!session?.endedAt && (
-              <button
-                onClick={handleEnd}
-                disabled={isLoading || isEnding}
-                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
-              >
-                End Session
-              </button>
-            )}
-            {/* Desktop: Edit and Delete buttons - hidden on mobile */}
-            <button
-              ref={editButtonReference}
-              onClick={handleOpenEdit}
-              disabled={isLoading || isDeleting || isUpdating}
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-text-secondary hover:text-foreground"
-            >
-              <Edit3 size={14} />
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={isLoading || isDeleting}
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-tertiary hover:bg-bg-hover border border-border transition-all text-destructive hover:text-destructive"
-            >
-              <Trash2 size={14} />
-              Delete
-            </button>
-            {/* Mobile: More menu button */}
-            <div className="relative sm:hidden">
-              <button
-                onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-bg-tertiary transition-all"
-              >
-                <MoreVertical size={18} className="text-text-secondary" />
-              </button>
-              {moreMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMoreMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-bg-elevated border border-border rounded-lg shadow-lg z-20">
-                    <button
-                      onClick={() => {
-                        handleOpenEdit();
-                        setMoreMenuOpen(false);
-                      }}
-                      disabled={isLoading || isDeleting || isUpdating}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover hover:text-foreground transition-colors"
-                    >
-                      <Edit3 size={14} />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleDelete();
-                        setMoreMenuOpen(false);
-                      }}
-                      disabled={isLoading || isDeleting}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
 
       {}
       {parentSession && (
@@ -917,6 +919,26 @@ export function Session(): React.ReactElement {
         onSave={handleSaveSession}
         onDelete={handleDeleteFromEdit}
         isLoading={isUpdating}
+      />
+
+      {/* Delete Recording Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteRecordingDialogOpen}
+        recordingName={recordingToDelete?.name}
+        onConfirm={confirmDeleteRecording}
+        onCancel={cancelDeleteRecording}
+        isLoading={isDeletingRecording}
+      />
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialogOpen}
+        title={confirmDialogConfig?.title || ""}
+        message={confirmDialogConfig?.message || ""}
+        confirmLabel={confirmDialogConfig?.confirmLabel}
+        variant={confirmDialogConfig?.variant || "default"}
+        onConfirm={confirmDialogConfig?.onConfirm || (() => {})}
+        onCancel={() => setConfirmDialogOpen(false)}
       />
     </div>
   );
