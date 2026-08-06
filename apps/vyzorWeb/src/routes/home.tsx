@@ -43,6 +43,7 @@ export function Home(): React.ReactElement {
   const { showToast } = useToast();
   const { setContent } = useHeader();
 
+  // UI State
   const [isMicDialogOpen, setIsMicDialogOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"recordings" | "sessions">("recordings");
   const [timeFilter, setTimeFilter] = React.useState<"all" | "today" | "week" | "month">("all");
@@ -62,7 +63,203 @@ export function Home(): React.ReactElement {
     "record" | "oscilloscope" | undefined
   >();
 
-  // Set header content
+  // Data hooks
+  const { data: stats, loading: statsLoading } = useRecordingStats();
+  const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
+  const { sessions, counts, loading: sessionsLoading } = useHomePageSessions();
+
+  const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
+    useLastUsedSession();
+  const [createNamedSession, { loading: isCreating }] = useCreateNamedSession();
+  const {
+    autoSelectLastSession,
+    autoCloseTimeoutSecs,
+    updateAllPreferences,
+    isLoading: isSettingsLoading,
+  } = useSessionSettings();
+
+  // Combined loading state - wait for session data before making decisions
+  const isLoadingSessionData = sessionsLoading || isLoadingSession;
+
+  const [pinRecording] = usePinRecording();
+  const [deleteRecording] = useDeleteRecording();
+  const [renameRecording] = useRenameRecording();
+
+  const filteredRecordings = React.useMemo(() => {
+    if (!recentData?.recentRecordings || !Array.isArray(recentData.recentRecordings)) return [];
+
+    const now = new Date();
+    return recentData.recentRecordings.filter((rec: RecordingSummary) => {
+      const recDate = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
+      switch (timeFilter) {
+        case "today": {
+          return recDate.toDateString() === now.toDateString();
+        }
+        case "week": {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return recDate >= weekAgo;
+        }
+        case "month": {
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return recDate >= monthAgo;
+        }
+        default: {
+          return true;
+        }
+      }
+    });
+  }, [recentData, timeFilter]);
+
+  const displaySessions = Array.isArray(sessions)
+    ? showAllSessions
+      ? sessions
+      : sessions.slice(0, 3)
+    : [];
+
+  // Handler functions (defined before useEffect to avoid reference errors)
+  const handleMicClick = React.useCallback(() => {
+    // Skip if still loading session data - prevent race condition
+    if (isLoadingSessionData) {
+      return;
+    }
+
+    // Check if auto-select is enabled and we have a last used session
+    if (shouldAutoSelect && lastUsedSession) {
+      // Auto-select: proceed directly with last used session
+      setSelectedSessionId(lastUsedSession.id);
+      setIsMicDialogOpen(true);
+    } else if (sessions.length > 0) {
+      // Sessions exist: show selection dialog
+      setSelectedSessionId(undefined);
+      setSelectDialogOpen(true);
+    } else {
+      // No sessions: show create dialog
+      setSelectedSessionId(undefined);
+      setPendingDestination("record");
+      setCreateDialogOpen(true);
+    }
+  }, [isLoadingSessionData, shouldAutoSelect, lastUsedSession, sessions.length]);
+
+  const handlePin = React.useCallback((id: string, isPinned: boolean) => {
+    pinRecording({ variables: { id, isPinned: !isPinned } });
+    setOpenMenuId(undefined);
+    showToast({
+      message: isPinned ? "Removing pin..." : "Pinning recording...",
+      type: "info",
+    });
+  }, [pinRecording, showToast]);
+
+  const handleDelete = React.useCallback((id: string) => {
+    if (confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
+      deleteRecording({
+        variables: { id },
+        onCompleted: () => {
+          showToast({
+            message: "Recording deleted successfully",
+            type: "success",
+          });
+        },
+        onError: (error: Error) => {
+          showToast({
+            message: `Failed to delete recording: ${error.message}`,
+            type: "error",
+          });
+        },
+      });
+      setOpenMenuId(undefined);
+    }
+  }, [deleteRecording, showToast]);
+
+  const handleRenameStart = React.useCallback((id: string, currentName: string) => {
+    setRenamingId(id);
+    setRenameValue(currentName);
+    setOpenMenuId(undefined);
+  }, []);
+
+  const handleRenameSubmit = React.useCallback((id: string) => {
+    const trimmedName = renameValue.trim();
+    if (!trimmedName) {
+      showToast({
+        message: "Recording name cannot be empty",
+        type: "warning",
+      });
+      setRenamingId(undefined);
+      setRenameValue("");
+      return;
+    }
+
+    renameRecording({
+      variables: { id, name: trimmedName },
+      onCompleted: () => {
+        showToast({
+          message: "Recording renamed successfully",
+          type: "success",
+        });
+      },
+      onError: (error: Error) => {
+        showToast({
+          message: `Failed to rename: ${error.message}`,
+          type: "error",
+        });
+      },
+    });
+    setRenamingId(undefined);
+    setRenameValue("");
+  }, [renameRecording, showToast, renameValue]);
+
+  const handleRenameCancel = React.useCallback(() => {
+    setRenamingId(undefined);
+    setRenameValue("");
+  }, []);
+
+  const handleSessionSelect = React.useCallback(async (sessionId: string) => {
+    await markSessionAsUsed(sessionId);
+    setSelectedSessionId(sessionId);
+    setSelectDialogOpen(false);
+    setIsMicDialogOpen(true);
+  }, [markSessionAsUsed]);
+
+  const handleCreateSession = React.useCallback(async (name: string, description: string) => {
+    try {
+      const result = await createNamedSession({ variables: { input: { name, description } } });
+      const newSession = result.data?.createNamedSession;
+      if (newSession) {
+        await markSessionAsUsed(newSession.id);
+        setSelectedSessionId(newSession.id);
+        setCreateDialogOpen(false);
+
+        // Only redirect if we had a pending destination
+        if (pendingDestination === "record") {
+          setIsMicDialogOpen(true);
+        }
+
+        showToast({ message: `Session "${name}" created`, type: "success" });
+
+        // Clear pending destination
+        setPendingDestination(undefined);
+      }
+    } catch (error) {
+      showToast({
+        message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
+        type: "error",
+      });
+    }
+  }, [createNamedSession, markSessionAsUsed, pendingDestination, showToast]);
+
+  const handleSaveSettings = React.useCallback(async (autoSelect: boolean, autoCloseTimeoutSecs: number | null) => {
+    try {
+      await updateAllPreferences(autoSelect, autoCloseTimeoutSecs);
+      setSettingsDialogOpen(false);
+      setDropdownOpen(false);
+    } catch (error) {
+      showToast({
+        message: `Failed to save settings: ${error instanceof Error ? error.message : "Unknown error"}`,
+        type: "error",
+      });
+    }
+  }, [updateAllPreferences, showToast]);
+
+  // Set header content (after all handlers are defined)
   React.useEffect(() => {
     setContent({
       title: "Home",
@@ -131,203 +328,7 @@ export function Home(): React.ReactElement {
         </>
       ),
     });
-  }, [setContent, handleMicClick, navigate, setCreateDialogOpen, setPendingDestination, dropdownOpen, setDropdownOpen, setSettingsDialogOpen]);
-
-  const { data: stats, loading: statsLoading } = useRecordingStats();
-  const { data: recentData, loading: recordingsLoading } = useRecentRecordings(20);
-  const { sessions, counts, loading: sessionsLoading } = useHomePageSessions();
-
-  const { shouldAutoSelect, lastUsedSession, markSessionAsUsed, isLoadingSession } =
-    useLastUsedSession();
-  const [createNamedSession, { loading: isCreating }] = useCreateNamedSession();
-  const {
-    autoSelectLastSession,
-    autoCloseTimeoutSecs,
-    updateAllPreferences,
-    isLoading: isSettingsLoading,
-  } = useSessionSettings();
-
-  // Combined loading state - wait for session data before making decisions
-  const isLoadingSessionData = sessionsLoading || isLoadingSession;
-
-  const [pinRecording] = usePinRecording();
-  const [deleteRecording] = useDeleteRecording();
-  const [renameRecording] = useRenameRecording();
-
-  const filteredRecordings = React.useMemo(() => {
-    if (!recentData?.recentRecordings || !Array.isArray(recentData.recentRecordings)) return [];
-
-    const now = new Date();
-    return recentData.recentRecordings.filter((rec: RecordingSummary) => {
-      const recDate = rec.timestamp instanceof Date ? rec.timestamp : new Date(rec.timestamp);
-      switch (timeFilter) {
-        case "today": {
-          return recDate.toDateString() === now.toDateString();
-        }
-        case "week": {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return recDate >= weekAgo;
-        }
-        case "month": {
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return recDate >= monthAgo;
-        }
-        default: {
-          return true;
-        }
-      }
-    });
-  }, [recentData, timeFilter]);
-
-  const displaySessions = Array.isArray(sessions)
-    ? showAllSessions
-      ? sessions
-      : sessions.slice(0, 3)
-    : [];
-
-  const handlePin = (id: string, isPinned: boolean) => {
-    pinRecording({ variables: { id, isPinned: !isPinned } });
-    setOpenMenuId(undefined);
-    showToast({
-      message: isPinned ? "Removing pin..." : "Pinning recording...",
-      type: "info",
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
-      deleteRecording({
-        variables: { id },
-        onCompleted: () => {
-          showToast({
-            message: "Recording deleted successfully",
-            type: "success",
-          });
-        },
-        onError: (error: Error) => {
-          showToast({
-            message: `Failed to delete recording: ${error.message}`,
-            type: "error",
-          });
-        },
-      });
-      setOpenMenuId(undefined);
-    }
-  };
-
-  const handleRenameStart = (id: string, currentName: string) => {
-    setRenamingId(id);
-    setRenameValue(currentName);
-    setOpenMenuId(undefined);
-  };
-
-  const handleRenameSubmit = (id: string) => {
-    const trimmedName = renameValue.trim();
-    if (!trimmedName) {
-      showToast({
-        message: "Recording name cannot be empty",
-        type: "warning",
-      });
-      setRenamingId(undefined);
-      setRenameValue("");
-      return;
-    }
-
-    renameRecording({
-      variables: { id, name: trimmedName },
-      onCompleted: () => {
-        showToast({
-          message: "Recording renamed successfully",
-          type: "success",
-        });
-      },
-      onError: (error: Error) => {
-        showToast({
-          message: `Failed to rename: ${error.message}`,
-          type: "error",
-        });
-      },
-    });
-    setRenamingId(undefined);
-    setRenameValue("");
-  };
-
-  const handleRenameCancel = () => {
-    setRenamingId(undefined);
-    setRenameValue("");
-  };
-
-  // Session handlers
-  const handleMicClick = () => {
-    // Skip if still loading session data - prevent race condition
-    if (isLoadingSessionData) {
-      return;
-    }
-
-    // Check if auto-select is enabled and we have a last used session
-    if (shouldAutoSelect && lastUsedSession) {
-      // Auto-select: proceed directly with last used session
-      setSelectedSessionId(lastUsedSession.id);
-      setIsMicDialogOpen(true);
-    } else if (sessions.length > 0) {
-      // Sessions exist: show selection dialog
-      setSelectedSessionId(undefined);
-      setSelectDialogOpen(true);
-    } else {
-      // No sessions: show create dialog
-      setSelectedSessionId(undefined);
-      setPendingDestination("record");
-      setCreateDialogOpen(true);
-    }
-  };
-
-  const handleSessionSelect = async (sessionId: string) => {
-    await markSessionAsUsed(sessionId);
-    setSelectedSessionId(sessionId);
-    setSelectDialogOpen(false);
-    setIsMicDialogOpen(true);
-  };
-
-  const handleCreateSession = async (name: string, description: string) => {
-    try {
-      const result = await createNamedSession({ variables: { input: { name, description } } });
-      const newSession = result.data?.createNamedSession;
-      if (newSession) {
-        await markSessionAsUsed(newSession.id);
-        setSelectedSessionId(newSession.id);
-        setCreateDialogOpen(false);
-
-        // Only redirect if we had a pending destination
-        if (pendingDestination === "record") {
-          setIsMicDialogOpen(true);
-        }
-        // For oscilloscope, the user would need to navigate explicitly
-
-        showToast({ message: `Session "${name}" created`, type: "success" });
-
-        // Clear pending destination
-        setPendingDestination(undefined);
-      }
-    } catch (error) {
-      showToast({
-        message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
-        type: "error",
-      });
-    }
-  };
-
-  const handleSaveSettings = async (autoSelect: boolean, autoCloseTimeoutSecs: number | null) => {
-    try {
-      await updateAllPreferences(autoSelect, autoCloseTimeoutSecs);
-      setSettingsDialogOpen(false);
-      setDropdownOpen(false);
-    } catch (error) {
-      showToast({
-        message: `Failed to save settings: ${error instanceof Error ? error.message : "Unknown error"}`,
-        type: "error",
-      });
-    }
-  };
+  }, [setContent, handleMicClick, navigate, dropdownOpen, setCreateDialogOpen, setPendingDestination, setSettingsDialogOpen, setDropdownOpen]);
 
   React.useEffect(() => {
     const handleClick = () => {
