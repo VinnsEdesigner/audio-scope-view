@@ -129,3 +129,13 @@
     ring: 0;
   }
 }
+
+/* Spinner animation */
+@keyframes block-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-block-spin {
+  animation: block-spin 2s linear infinite;
+}

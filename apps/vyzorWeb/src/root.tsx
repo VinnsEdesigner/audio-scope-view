@@ -12,6 +12,7 @@ import { graphqlClient } from "@audio-scope-view/api-client/audioScopeView/graph
 import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { SessionSelectionProvider } from "./contexts/session-selection-context";
 import { HeaderContext, type HeaderContent } from "./contexts/header-context";
+import { Spinner } from "./components/ui/spinner";
 
 const seoData = {
   "@context": "https://schema.org",
@@ -44,8 +45,6 @@ function AppShell() {
   };
 
   useEffect(() => {
-    // Simulate app initialization (replace with actual initialization logic)
-    // For production, this should be replaced with actual app readiness checks
     const timer = setTimeout(() => {
       setInitializing(false);
     }, 5000);
@@ -96,18 +95,37 @@ function ThemedApp() {
 
 export function Root() {
   const apolloClient = graphqlClient as unknown as ApolloClient<NormalizedCacheObject>;
+  const isInitializing = useUIStore((state) => state.isInitializing);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   return (
     <ApolloProvider client={apolloClient}>
       <TamaguiProvider config={tamaguiConfig}>
-        <NavigationLoader />
+        {!isHydrated || isInitializing ? (
+          <div
+            data-app-state="loading"
+            data-hydrated={String(isHydrated)}
+            data-initializing={String(isInitializing)}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-bg-primary"
+          >
+            <Spinner size={48} className="text-gray-400" />
+          </div>
+        ) : (
+          <div data-app-state="ready" data-hydrated={String(isHydrated)} data-initializing={String(isInitializing)}>
+            <NavigationLoader />
+            <ToastProvider>
+              <ThemedApp />
+            </ToastProvider>
+          </div>
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(seoData) }}
         />
-        <ToastProvider>
-          <ThemedApp />
-        </ToastProvider>
       </TamaguiProvider>
     </ApolloProvider>
   );

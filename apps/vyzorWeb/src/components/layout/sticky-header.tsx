@@ -27,7 +27,7 @@ export function StickyHeader(): React.ReactElement | undefined {
 
   return (
     <div className="sticky top-0 z-30 bg-bg-primary/80 backdrop-blur-md border-b border-border-subtle">
-      <div className="flex items-center justify-between px-4 py-3 md:px-6">
+      <div className="flex items-center justify-between px-4 py-3 pb-5 md:px-6">
         {/* Left side - Navigation icon + Title and subtitle */}
         <div className="flex items-center gap-3 min-w-0">
           {/* Navigation Icon - Hamburger on home, Back arrow elsewhere */}

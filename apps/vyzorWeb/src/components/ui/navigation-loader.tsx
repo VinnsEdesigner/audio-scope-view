@@ -1,7 +1,6 @@
 import { useNavigation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useUIStore } from "@/hooks";
-import { Spinner } from "./spinner";
 
 export function NavigationLoader(): React.ReactElement {
   const navigation = useNavigation();
@@ -33,16 +32,10 @@ export function NavigationLoader(): React.ReactElement {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-bg-primary/80 backdrop-blur-sm pointer-events-none">
+    <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none">
       {/* Loading bar at top */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-bg-primary/50">
+      <div className="h-1 bg-bg-primary/50">
         <div className="h-full bg-gray-400 animate-[loading-bar_0.8s_ease-in-out_infinite]" />
-      </div>
-
-      {/* Centered spinner */}
-      <div className="flex flex-col items-center gap-4">
-        <Spinner size={48} className="text-gray-400 sm:text-gray-500" />
-        <span className="text-xs sm:text-sm text-gray-500 font-medium">Loading...</span>
       </div>
 
       <style>{`

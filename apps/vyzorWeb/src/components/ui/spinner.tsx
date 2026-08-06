@@ -1,35 +1,32 @@
 import * as React from "react";
 
+/**
+ * Mini block spinner - rotating outer ring only.
+ * Standard loading indicator for all UI components.
+ */
 export interface SpinnerProperties {
   size?: number;
   className?: string;
 }
 
-export function Spinner({ size, className = "" }: SpinnerProperties): React.ReactElement {
-  // Responsive default size: smaller on mobile, larger on desktop
-  const defaultSize = size ?? (globalThis.window?.innerWidth < 640 ? 32 : 48);
-  const actualSize = size ?? defaultSize;
-  const borderWidth = Math.max(2, Math.round(actualSize / 8));
+export function Spinner({ size = 16, className = "" }: SpinnerProperties): React.ReactElement {
+  const borderWidth = Math.max(2, Math.round(size / 8));
 
   return (
     <div
       role="status"
       aria-label="Loading"
       className={`relative inline-flex items-center justify-center ${className}`}
-      style={className ? undefined : { width: actualSize, height: actualSize }}
+      style={{ width: size, height: size }}
     >
-      <style>{`
-        @keyframes block-spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .animate-block-spin {
-          animation: block-spin 1.5s linear infinite;
-        }
-      `}</style>
       <div
-        className="absolute inset-0 rounded-full border-2 border-current animate-block-spin"
-        style={{ borderWidth }}
+        className="absolute inset-0 rounded-[--radius-md] animate-block-spin"
+        style={{
+          borderWidth: `${borderWidth}px`,
+          borderStyle: "solid",
+          borderColor: "#ffffff",
+          boxSizing: "border-box",
+        }}
       />
     </div>
   );
