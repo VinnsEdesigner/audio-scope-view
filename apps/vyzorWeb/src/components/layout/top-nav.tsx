@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Settings, Key, Home, Monitor, ArrowLeft } from "lucide-react";
+import { Menu, Settings, Key, Home, Monitor } from "lucide-react";
 import { useSessionSelection } from "../../contexts/session-selection-context";
 
 interface NavItem {
@@ -26,14 +26,21 @@ interface TopNavProperties {
   className?: string;
 }
 
-const isHomePage = (pathname: string) => pathname === "/";
-
 export function TopNav({ className = "" }: TopNavProperties): React.ReactElement {
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = React.useState(false);
   const { openOscilloscopeSession } = useSessionSelection();
-  const isHome = isHomePage(location.pathname);
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+
+  // Listen for toggle-menu event from StickyHeader
+  React.useEffect(() => {
+    const handleToggleMenu = () => {
+      setIsOpen((prev) => !prev);
+    };
+    document.addEventListener("toggle-menu", handleToggleMenu);
+    return () => document.removeEventListener("toggle-menu", handleToggleMenu);
+  }, []);
 
   React.useEffect(() => {
     setIsOpen(false);
@@ -62,34 +69,19 @@ export function TopNav({ className = "" }: TopNavProperties): React.ReactElement
     }
   };
 
-  const handleBackClick = () => {
-    navigate("/");
-  };
-
   return (
     <>
-      {/* Menu Toggle Button - only show hamburger on home page */}
-      {isHome ? (
-        <button
-          onClick={toggleMenu}
-          className={`fixed top-4 left-4 z-50 w-12 h-12 rounded-xl bg-bg-secondary/90 backdrop-blur-md border border-border-subtle shadow-lg flex items-center justify-center hover:bg-bg-hover hover:border-border-default transition-all ${className}`}
-          aria-label="Toggle menu"
-          aria-expanded={isOpen}
-        >
-          <Menu size={20} className="text-foreground" />
-        </button>
-      ) : (
-        <button
-          onClick={handleBackClick}
-          className={`fixed top-4 left-4 z-50 w-12 h-12 rounded-xl bg-bg-secondary/90 backdrop-blur-md border border-border-subtle shadow-lg flex items-center justify-center hover:bg-bg-hover hover:border-border-default transition-all ${className}`}
-          aria-label="Go back"
-        >
-          <ArrowLeft size={20} className="text-foreground font-bold" />
-        </button>
-      )}
+      {/* Hidden menu toggle button - triggered by StickyHeader */}
+      <button
+        ref={menuButtonRef}
+        onClick={toggleMenu}
+        className="hidden"
+        aria-label="Toggle menu"
+        aria-expanded={isOpen}
+      />
 
       {/* Navigation Menu - only show when home page */}
-      {isHome && isOpen && (
+      {isOpen && (
         <>
           {/* Backdrop */}
           <div
