@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 import { useUIStore } from "./hooks";
 import { tamaguiConfig } from "@audio-scope-view/tamagui";
 import { TamaguiProvider, Theme } from "tamagui";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TopNav } from "./components/layout/top-nav";
 import { StickyHeader } from "./components/layout/sticky-header";
 import { ToastProvider } from "./components/ui/toast";
@@ -37,13 +37,18 @@ function AppShell() {
     title: "",
   });
 
-  // Wrap setHeaderContent to match the expected HeaderContext signature
-  const handleSetContent = (content: HeaderContent) => {
+  // Stable setter so consumers' effects don't re-run every render (infinite loop).
+  const handleSetContent = useCallback((content: HeaderContent) => {
     setHeaderContent(content);
-  };
+  }, []);
+
+  const headerValue = useMemo(
+    () => ({ content: headerContent, setContent: handleSetContent }),
+    [headerContent, handleSetContent],
+  );
 
   return (
-    <HeaderContext.Provider value={{ content: headerContent, setContent: handleSetContent }}>
+    <HeaderContext.Provider value={headerValue}>
       <div className="flex flex-1 h-screen bg-bg-primary">
         {/* Always show TopNav - loading bar overlays it */}
         <TopNav />
