@@ -32,8 +32,6 @@ const seoData = {
 
 function AppShell() {
   const _isInitializing = useUIStore((state) => state.isInitializing);
-  const setInitializing = useUIStore((state) => state.setInitializing);
-
   // Header context state
   const [headerContent, setHeaderContent] = useState<HeaderContent>({
     title: "",
@@ -43,13 +41,6 @@ function AppShell() {
   const handleSetContent = (content: HeaderContent) => {
     setHeaderContent(content);
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitializing(false);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [setInitializing]);
 
   return (
     <HeaderContext.Provider value={{ content: headerContent, setContent: handleSetContent }}>
