@@ -152,272 +152,268 @@ export function ApiKeys() {
 
   return (
     <div className="w-full min-h-screen bg-black">
-        {isLoading ? (
-          <ApiKeysCard className="overflow-visible">
-            <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Name
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Created
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Expires
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Status
-              </span>
-              <span className="sr-only">Actions</span>
-            </div>
-            <div className="divide-y divide-border-subtle">
-              {[1, 2, 3, 4].map((index) => (
+      {isLoading ? (
+        <ApiKeysCard className="overflow-visible">
+          <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Name
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Created
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Expires
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Status
+            </span>
+            <span className="sr-only">Actions</span>
+          </div>
+          <div className="divide-y divide-border-subtle">
+            {[1, 2, 3, 4].map((index) => (
+              <div
+                key={index}
+                className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5"
+              >
+                {}
+                <div className="flex items-center justify-between gap-2 md:hidden">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="w-8 h-8 rounded-md" />
+                </div>
+                {}
+                <div className="hidden md:flex flex-col gap-1 min-w-0">
+                  <Skeleton className="h-4 w-32" />
+                </div>
+                <div className="hidden md:flex items-center">
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="hidden md:flex items-center">
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="hidden md:flex items-center justify-end">
+                  <Skeleton className="h-5 w-14 rounded" />
+                </div>
+                <div className="hidden md:flex items-center justify-end">
+                  <Skeleton className="w-8 h-8 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </ApiKeysCard>
+      ) : !apiKeys || apiKeys.length === 0 ? (
+        <ApiKeysCard className="p-12 text-center">
+          <div className="w-20 h-20 bg-bg-elevated border border-border-subtle rounded-lg flex items-center justify-center mx-auto mb-6">
+            <Key className="w-10 h-10 text-text-tertiary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No API keys yet</h3>
+          <p className="text-sm text-text-tertiary mb-6 max-w-sm mx-auto">
+            Create your first API key to start integrating with external applications
+          </p>
+          <button
+            onClick={handleCreateClick}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer bg-bg-elevated border border-border-subtle hover:bg-bg-hover text-foreground h-9 px-4 py-2"
+          >
+            <Plus size={16} />
+            Create API Key
+          </button>
+        </ApiKeysCard>
+      ) : (
+        <ApiKeysCard className="overflow-visible">
+          {}
+          <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Name
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Created
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Expires
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              Status
+            </span>
+            <span className="sr-only">Actions</span>
+          </div>
+
+          <div className="divide-y divide-border-subtle">
+            {apiKeys.map((apiKey: ApiKey) => {
+              const expired = isExpired(apiKey.expiresAt);
+              const status = apiKey.isValid ? (expired ? "expired" : "active") : "revoked";
+
+              return (
                 <div
-                  key={index}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5"
+                  key={apiKey.id}
+                  className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5 hover:bg-bg-hover transition-colors overflow-visible"
                 >
                   {}
                   <div className="flex items-center justify-between gap-2 md:hidden">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="w-8 h-8 rounded-md" />
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {apiKey.name}
+                    </span>
+                    <div className="relative flex-shrink-0">
+                      <button
+                        onClick={(event_) => {
+                          event_.stopPropagation();
+                          setOpenMenuId(openMenuId === apiKey.id ? undefined : apiKey.id);
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-elevated transition-all"
+                        title="More options"
+                      >
+                        <MoreVertical size={16} className="text-text-secondary" />
+                      </button>
+                      {openMenuId === apiKey.id && (
+                        <div className="absolute right-0 top-full mt-1 w-56 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50 overflow-visible">
+                          <button
+                            onClick={(event_) => {
+                              event_.stopPropagation();
+                              handleCopy(apiKey.id);
+                              setOpenMenuId(undefined);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                          >
+                            <Copy size={14} />
+                            Copy ID
+                          </button>
+                          <button
+                            onClick={(event_) => {
+                              event_.stopPropagation();
+                              handleEditClick(apiKey);
+                              setOpenMenuId(undefined);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </button>
+                          <button
+                            onClick={(event_) => {
+                              event_.stopPropagation();
+                              handleDeleteClick(apiKey);
+                              setOpenMenuId(undefined);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                          <div className="border-t border-border-subtle my-1" />
+                          <div className="px-3 py-2">
+                            <div className="flex items-center gap-2 text-sm text-text-secondary">
+                              <Gauge size={14} className="text-text-tertiary" />
+                              <span className="font-mono">{apiKey.rateLimitPerMinute}/min</span>
+                            </div>
+                            <p className="text-xs text-text-tertiary mt-1">Rate limit per minute</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
                   {}
                   <div className="hidden md:flex flex-col gap-1 min-w-0">
-                    <Skeleton className="h-4 w-32" />
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {apiKey.name}
+                    </span>
                   </div>
+
+                  <div className="hidden md:flex items-center text-sm text-text-secondary">
+                    {formatDate(apiKey.createdAt)}
+                  </div>
+
                   <div className="hidden md:flex items-center">
-                    <Skeleton className="h-4 w-20" />
+                    <span
+                      className={cn(
+                        "text-sm",
+                        expired
+                          ? "text-destructive"
+                          : apiKey.expiresAt
+                            ? "text-text-secondary"
+                            : "text-text-tertiary",
+                      )}
+                    >
+                      {apiKey.expiresAt ? formatDate(apiKey.expiresAt) : "Never"}
+                    </span>
                   </div>
-                  <div className="hidden md:flex items-center">
-                    <Skeleton className="h-4 w-20" />
-                  </div>
+
                   <div className="hidden md:flex items-center justify-end">
-                    <Skeleton className="h-5 w-14 rounded" />
+                    <span
+                      className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                        status === "active" && "bg-text-tertiary/10 text-text-tertiary",
+                        status === "expired" && "bg-destructive/10 text-destructive",
+                        status === "revoked" && "bg-text-tertiary/10 text-text-tertiary",
+                      )}
+                    >
+                      {status}
+                    </span>
                   </div>
-                  <div className="hidden md:flex items-center justify-end">
-                    <Skeleton className="w-8 h-8 rounded-md" />
+
+                  <div className="hidden md:flex items-center justify-end overflow-visible">
+                    <div className="relative">
+                      <button
+                        onClick={(event_) => {
+                          event_.stopPropagation();
+                          setOpenMenuId(openMenuId === apiKey.id ? undefined : apiKey.id);
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-elevated transition-all"
+                        title="More options"
+                      >
+                        <MoreVertical size={16} className="text-text-secondary" />
+                      </button>
+                      {openMenuId === apiKey.id && (
+                        <div className="absolute right-0 top-full mt-1 w-56 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50 overflow-visible">
+                          <button
+                            onClick={(event_) => {
+                              event_.stopPropagation();
+                              handleCopy(apiKey.id);
+                              setOpenMenuId(undefined);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                          >
+                            <Copy size={14} />
+                            Copy ID
+                          </button>
+                          <button
+                            onClick={(event_) => {
+                              event_.stopPropagation();
+                              handleEditClick(apiKey);
+                              setOpenMenuId(undefined);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </button>
+                          <button
+                            onClick={(event_) => {
+                              event_.stopPropagation();
+                              handleDeleteClick(apiKey);
+                              setOpenMenuId(undefined);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                          <div className="border-t border-border-subtle my-1" />
+                          <div className="px-3 py-2">
+                            <div className="flex items-center gap-2 text-sm text-text-secondary">
+                              <Gauge size={14} className="text-text-tertiary" />
+                              <span className="font-mono">{apiKey.rateLimitPerMinute}/min</span>
+                            </div>
+                            <p className="text-xs text-text-tertiary mt-1">Rate limit per minute</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </ApiKeysCard>
-        ) : !apiKeys || apiKeys.length === 0 ? (
-          <ApiKeysCard className="p-12 text-center">
-            <div className="w-20 h-20 bg-bg-elevated border border-border-subtle rounded-lg flex items-center justify-center mx-auto mb-6">
-              <Key className="w-10 h-10 text-text-tertiary" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No API keys yet</h3>
-            <p className="text-sm text-text-tertiary mb-6 max-w-sm mx-auto">
-              Create your first API key to start integrating with external applications
-            </p>
-            <button
-              onClick={handleCreateClick}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer bg-bg-elevated border border-border-subtle hover:bg-bg-hover text-foreground h-9 px-4 py-2"
-            >
-              <Plus size={16} />
-              Create API Key
-            </button>
-          </ApiKeysCard>
-        ) : (
-          <ApiKeysCard className="overflow-visible">
-            {}
-            <div className="hidden md:grid grid-cols-[1fr_140px_120px_80px_40px] gap-4 px-6 py-3 bg-bg-elevated border-b border-border-subtle overflow-visible">
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Name
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Created
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Expires
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-                Status
-              </span>
-              <span className="sr-only">Actions</span>
-            </div>
-
-            <div className="divide-y divide-border-subtle">
-              {apiKeys.map((apiKey: ApiKey) => {
-                const expired = isExpired(apiKey.expiresAt);
-                const status = apiKey.isValid ? (expired ? "expired" : "active") : "revoked";
-
-                return (
-                  <div
-                    key={apiKey.id}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_140px_120px_80px_40px] gap-2 md:gap-4 px-4 md:px-6 py-4 md:py-5 hover:bg-bg-hover transition-colors overflow-visible"
-                  >
-                    {}
-                    <div className="flex items-center justify-between gap-2 md:hidden">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {apiKey.name}
-                      </span>
-                      <div className="relative flex-shrink-0">
-                        <button
-                          onClick={(event_) => {
-                            event_.stopPropagation();
-                            setOpenMenuId(openMenuId === apiKey.id ? undefined : apiKey.id);
-                          }}
-                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-elevated transition-all"
-                          title="More options"
-                        >
-                          <MoreVertical size={16} className="text-text-secondary" />
-                        </button>
-                        {openMenuId === apiKey.id && (
-                          <div className="absolute right-0 top-full mt-1 w-56 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50 overflow-visible">
-                            <button
-                              onClick={(event_) => {
-                                event_.stopPropagation();
-                                handleCopy(apiKey.id);
-                                setOpenMenuId(undefined);
-                              }}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
-                            >
-                              <Copy size={14} />
-                              Copy ID
-                            </button>
-                            <button
-                              onClick={(event_) => {
-                                event_.stopPropagation();
-                                handleEditClick(apiKey);
-                                setOpenMenuId(undefined);
-                              }}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
-                            >
-                              <Pencil size={14} />
-                              Edit
-                            </button>
-                            <button
-                              onClick={(event_) => {
-                                event_.stopPropagation();
-                                handleDeleteClick(apiKey);
-                                setOpenMenuId(undefined);
-                              }}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                            <div className="border-t border-border-subtle my-1" />
-                            <div className="px-3 py-2">
-                              <div className="flex items-center gap-2 text-sm text-text-secondary">
-                                <Gauge size={14} className="text-text-tertiary" />
-                                <span className="font-mono">{apiKey.rateLimitPerMinute}/min</span>
-                              </div>
-                              <p className="text-xs text-text-tertiary mt-1">
-                                Rate limit per minute
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {}
-                    <div className="hidden md:flex flex-col gap-1 min-w-0">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {apiKey.name}
-                      </span>
-                    </div>
-
-                    <div className="hidden md:flex items-center text-sm text-text-secondary">
-                      {formatDate(apiKey.createdAt)}
-                    </div>
-
-                    <div className="hidden md:flex items-center">
-                      <span
-                        className={cn(
-                          "text-sm",
-                          expired
-                            ? "text-destructive"
-                            : apiKey.expiresAt
-                              ? "text-text-secondary"
-                              : "text-text-tertiary",
-                        )}
-                      >
-                        {apiKey.expiresAt ? formatDate(apiKey.expiresAt) : "Never"}
-                      </span>
-                    </div>
-
-                    <div className="hidden md:flex items-center justify-end">
-                      <span
-                        className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                          status === "active" && "bg-text-tertiary/10 text-text-tertiary",
-                          status === "expired" && "bg-destructive/10 text-destructive",
-                          status === "revoked" && "bg-text-tertiary/10 text-text-tertiary",
-                        )}
-                      >
-                        {status}
-                      </span>
-                    </div>
-
-                    <div className="hidden md:flex items-center justify-end overflow-visible">
-                      <div className="relative">
-                        <button
-                          onClick={(event_) => {
-                            event_.stopPropagation();
-                            setOpenMenuId(openMenuId === apiKey.id ? undefined : apiKey.id);
-                          }}
-                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-elevated transition-all"
-                          title="More options"
-                        >
-                          <MoreVertical size={16} className="text-text-secondary" />
-                        </button>
-                        {openMenuId === apiKey.id && (
-                          <div className="absolute right-0 top-full mt-1 w-56 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-50 overflow-visible">
-                            <button
-                              onClick={(event_) => {
-                                event_.stopPropagation();
-                                handleCopy(apiKey.id);
-                                setOpenMenuId(undefined);
-                              }}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
-                            >
-                              <Copy size={14} />
-                              Copy ID
-                            </button>
-                            <button
-                              onClick={(event_) => {
-                                event_.stopPropagation();
-                                handleEditClick(apiKey);
-                                setOpenMenuId(undefined);
-                              }}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-bg-hover transition-colors"
-                            >
-                              <Pencil size={14} />
-                              Edit
-                            </button>
-                            <button
-                              onClick={(event_) => {
-                                event_.stopPropagation();
-                                handleDeleteClick(apiKey);
-                                setOpenMenuId(undefined);
-                              }}
-                              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-bg-hover transition-colors"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                            <div className="border-t border-border-subtle my-1" />
-                            <div className="px-3 py-2">
-                              <div className="flex items-center gap-2 text-sm text-text-secondary">
-                                <Gauge size={14} className="text-text-tertiary" />
-                                <span className="font-mono">{apiKey.rateLimitPerMinute}/min</span>
-                              </div>
-                              <p className="text-xs text-text-tertiary mt-1">
-                                Rate limit per minute
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ApiKeysCard>
-        )}
+              );
+            })}
+          </div>
+        </ApiKeysCard>
+      )}
 
       <DeleteApiKeyDialog
         isOpen={deleteDialogOpen}

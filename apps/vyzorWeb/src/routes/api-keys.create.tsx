@@ -1,4 +1,16 @@
+import * as React from "react";
+import { useHeader } from "@/contexts/header-context";
+
 export function CreateApiKey(): React.ReactElement {
+  const { setContent } = useHeader();
+
+  React.useEffect(() => {
+    setContent({
+      title: "Create API Key",
+      subtitle: "Generate a new API key for access",
+    });
+  }, [setContent]);
+
   return (
     <div className="w-full min-h-screen">
       <div className="w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12 xl:px-16">

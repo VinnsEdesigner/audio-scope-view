@@ -1,0 +1,24 @@
+{
+  "features": [
+    {
+      "id": "oscilloscope",
+      "title": "Real-time Oscilloscope",
+      "description": "Live waveform visualization with adjustable time scales and gain controls"
+    },
+    {
+      "id": "sessions",
+      "title": "Session Management", 
+      "description": "Organize recordings into projects with timestamps and metadata"
+    },
+    {
+      "id": "export",
+      "title": "Export Options",
+      "description": "Download recordings in WAV or MP3 format for sharing or archival"
+    },
+    {
+      "id": "database",
+      "title": "Cloud Database",
+      "description": "Powered by Turso edge database for fast, reliable data sync across devices"
+    }
+  ]
+}

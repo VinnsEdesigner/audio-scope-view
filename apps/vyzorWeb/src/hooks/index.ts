@@ -125,3 +125,13 @@ export type {
   HarmonicComponent,
   UseScopeCaptureReturn,
 } from "./use-scope-capture";
+
+export { useAboutInfo, useFeatures, useChangelog } from "./use-about";
+export type {
+  AboutInfo,
+  Feature,
+  ChangelogChange,
+  ChangelogRelease,
+  FeaturesData,
+  ChangelogData,
+} from "./use-about";

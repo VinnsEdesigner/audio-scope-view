@@ -2,6 +2,7 @@
 use async_graphql::{MergedObject, Schema};
 
 use super::{
+    schema_about::AboutQuery,
     schema_audio_input::{AudioInputMutationRoot, AudioInputQueryRoot},
     schema_dashboard::DashboardQuery,
     schema_dsp::{DspMutationRoot, DspQueryRoot},
@@ -20,6 +21,7 @@ use super::{
 
 #[derive(MergedObject, Default)]
 pub struct Query(
+    AboutQuery,
     SessionQuery,
     SettingsQuery,
     DashboardQuery,

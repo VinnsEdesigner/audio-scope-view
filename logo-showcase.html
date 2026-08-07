@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Scope View - ASV Monogram Designs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --black: #000000;
+      --rose-600: #e11d48;
+      --rose-500: #f43f5e;
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-300: #d4d4d4;
+      --gray-400: #a3a3a3;
+      --gray-500: #737373;
+      --gray-600: #525252;
+      --gray-700: #404040;
+      --gray-800: #262626;
+      --gray-900: #171717;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--black);
+      min-height: 100vh;
+      color: #ffffff;
+      padding: 60px 40px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .header h1 {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gray-500);
+    }
+
+    .color-labels {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-bottom: 60px;
+    }
+
+    .color-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+
+    .color-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+    }
+
+    .color-swatch.black {
+      background: var(--black);
+      border: 1px solid var(--gray-700);
+    }
+
+    .color-swatch.rose {
+      background: var(--rose-600);
+    }
+
+    /* Grid for designs */
+    .designs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .design-card {
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      border-radius: 8px;
+      padding: 60px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .design-card.wide {
+      grid-column: span 2;
+    }
+
+    .design-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gray-500);
+    }
+
+    .design-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--gray-600);
+      margin-top: -20px;
+    }
+
+    /* Base monogram styles */
+    .monogram-svg {
+      width: 200px;
+      height: 120px;
+    }
+
+    /* Design 1: A with wave crossbar */
+    .d1-a-wave {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+      fill: var(--rose-600);
+    }
+
+    .d1-sv {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+      fill: #ffffff;
+    }
+
+    /* Design 2: S with scope crosshairs */
+    .d2-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+    }
+
+    /* Design 3: V with audio bars */
+    .d3-av {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+      fill: #ffffff;
+    }
+
+    .d3-s {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+      fill: var(--rose-600);
+    }
+
+    /* Design 4: S with audio arc */
+    .d4-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+    }
+
+    /* Design 5: Dot accent between letters */
+    .d5-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 100px;
+      font-weight: 900;
+    }
+
+    /* Footer */
+    .footer-note {
+      text-align: center;
+      margin-top: 60px;
+      font-size: 11px;
+      color: var(--gray-600);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .designs-grid {
+        grid-template-columns: 1fr;
+      }
+      .design-card.wide {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ASV Monogram — 5 Design Concepts</h1>
+    </div>
+
+    <!-- Color palette -->
+    <div class="color-labels">
+      <div class="color-label">
+        <div class="color-swatch black"></div>
+        <span>Black — #000000</span>
+      </div>
+      <div class="color-label">
+        <div class="color-swatch rose"></div>
+        <span>Rose-600 — #e11d48</span>
+      </div>
+    </div>
+
+    <!-- Design Grid -->
+    <div class="designs-grid">
+
+      <!-- Design 1: A with Wave Crossbar -->
+      <div class="design-card">
+        <span class="design-label">Design 1</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A with wave crossbar -->
+          <text x="10" y="100" class="d1-a-wave">A</text>
+          <!-- Wave line through A -->
+          <path d="M 25 55 Q 40 45, 55 55 T 85 55" stroke="#ffffff" stroke-width="3" fill="none"/>
+          <!-- S and V in white -->
+          <text x="100" y="100" class="d1-sv">S</text>
+          <text x="185" y="100" class="d1-sv">V</text>
+        </svg>
+        <span class="design-name">Wave Crossbar in A</span>
+      </div>
+
+      <!-- Design 2: S with Scope Crosshairs -->
+      <div class="design-card">
+        <span class="design-label">Design 2</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- S in rose with crosshairs overlay -->
+          <text x="85" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- Crosshairs on S -->
+          <circle cx="135" cy="55" r="25" stroke="var(--rose-600)" stroke-width="2" fill="none" opacity="0.6"/>
+          <line x1="105" y1="55" x2="165" y2="55" stroke="var(--rose-600)" stroke-width="1.5" opacity="0.4"/>
+          <line x1="135" y1="25" x2="135" y2="85" stroke="var(--rose-600)" stroke-width="1.5" opacity="0.4"/>
+          <!-- V in white -->
+          <text x="185" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Scope Crosshairs on S</span>
+      </div>
+
+      <!-- Design 3: V with Audio Frequency Bars -->
+      <div class="design-card">
+        <span class="design-label">Design 3</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A and S in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <text x="85" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- V in rose -->
+          <text x="170" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+          <!-- Frequency bars rising from V -->
+          <rect x="185" y="85" width="6" height="15" fill="var(--rose-600)"/>
+          <rect x="195" y="75" width="6" height="25" fill="var(--rose-600)"/>
+          <rect x="205" y="65" width="6" height="35" fill="var(--rose-600)"/>
+          <rect x="215" y="70" width="6" height="30" fill="var(--rose-600)"/>
+          <rect x="225" y="80" width="6" height="20" fill="var(--rose-600)"/>
+          <rect x="235" y="88" width="6" height="12" fill="var(--rose-600)"/>
+        </svg>
+        <span class="design-name">Frequency Bars from V</span>
+      </div>
+
+      <!-- Design 4: A with Sound Wave Arc (spans 2 cols) -->
+      <div class="design-card wide">
+        <span class="design-label">Design 4</span>
+        <svg class="monogram-svg" viewBox="0 0 400 120">
+          <!-- A in rose -->
+          <text x="20" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- Sound wave arcs emanating from A -->
+          <path d="M 75 50 Q 95 30, 115 50" stroke="#ffffff" stroke-width="2.5" fill="none" opacity="0.7"/>
+          <path d="M 85 60 Q 115 30, 145 60" stroke="#ffffff" stroke-width="2.5" fill="none" opacity="0.5"/>
+          <path d="M 95 70 Q 135 30, 175 70" stroke="#ffffff" stroke-width="2.5" fill="none" opacity="0.3"/>
+          <!-- S and V in white -->
+          <text x="180" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <text x="265" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Sound Wave Arcs from A</span>
+      </div>
+
+      <!-- Design 5: S with Dot Accent -->
+      <div class="design-card">
+        <span class="design-label">Design 5</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- S in rose -->
+          <text x="85" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- Small dot accent (audio level indicator) -->
+          <circle cx="175" cy="50" r="8" fill="var(--rose-600)"/>
+          <circle cx="175" cy="50" r="14" stroke="var(--rose-600)" stroke-width="2" fill="none" opacity="0.4"/>
+          <!-- V in white -->
+          <text x="185" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Dot Accent (Audio Level)</span>
+      </div>
+
+      <!-- Design 6: V-underline -->
+      <div class="design-card">
+        <span class="design-label">Design 6</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A and S in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <text x="85" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- V in rose -->
+          <text x="170" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+          <!-- Underline accent -->
+          <rect x="175" y="108" width="60" height="4" fill="var(--rose-600)"/>
+        </svg>
+        <span class="design-name">V with Underline Accent</span>
+      </div>
+
+      <!-- NEW Designs 7-11 -->
+
+      <!-- Design 7: Viewfinder Corners on A -->
+      <div class="design-card">
+        <span class="design-label">Design 7</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A in white with viewfinder corners -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- Viewfinder corners around A -->
+          <path d="M 5 20 L 5 10 L 30 10" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <path d="M 70 10 L 95 10 L 95 20" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <path d="M 5 90 L 5 100 L 30 100" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <path d="M 70 100 L 95 100 L 95 90" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <!-- S and V in white -->
+          <text x="100" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <text x="185" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Viewfinder Corners on A</span>
+      </div>
+
+      <!-- Design 8: S with Zigzag Wave -->
+      <div class="design-card">
+        <span class="design-label">Design 8</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- S in rose -->
+          <text x="85" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- Zigzag waveform through S -->
+          <polyline points="95,55 110,40 125,70 140,35 155,60 170,45" stroke="#ffffff" stroke-width="2.5" fill="none"/>
+          <!-- V in white -->
+          <text x="185" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Zigzag Wave through S</span>
+      </div>
+
+      <!-- Design 9: V with Signal Rays -->
+      <div class="design-card">
+        <span class="design-label">Design 9</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A and S in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <text x="85" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- V in rose -->
+          <text x="170" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+          <!-- Signal rays emanating from V -->
+          <line x1="250" y1="55" x2="270" y2="40" stroke="var(--rose-600)" stroke-width="2" opacity="0.6"/>
+          <line x1="260" y1="70" x2="280" y2="65" stroke="var(--rose-600)" stroke-width="2" opacity="0.5"/>
+          <line x1="260" y1="85" x2="280" y2="90" stroke="var(--rose-600)" stroke-width="2" opacity="0.4"/>
+        </svg>
+        <span class="design-name">Signal Rays from V</span>
+      </div>
+
+      <!-- Design 10: Circle behind A (spans 2 cols) -->
+      <div class="design-card wide">
+        <span class="design-label">Design 10</span>
+        <svg class="monogram-svg" viewBox="0 0 400 120">
+          <!-- Large circle behind A -->
+          <circle cx="70" cy="60" r="55" stroke="var(--rose-600)" stroke-width="3" fill="none" opacity="0.3"/>
+          <circle cx="70" cy="60" r="45" stroke="var(--rose-600)" stroke-width="2" fill="none" opacity="0.2"/>
+          <!-- A in rose -->
+          <text x="20" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- S and V in white -->
+          <text x="130" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <text x="215" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Circle Behind A (Focus Ring)</span>
+      </div>
+
+      <!-- Design 11: A with Grid Dots -->
+      <div class="design-card">
+        <span class="design-label">Design 11</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A in white with dot grid inside -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- Dot grid pattern inside A -->
+          <circle cx="30" cy="50" r="3" fill="var(--rose-600)"/>
+          <circle cx="45" cy="50" r="3" fill="var(--rose-600)"/>
+          <circle cx="60" cy="50" r="3" fill="var(--rose-600)"/>
+          <circle cx="30" cy="65" r="3" fill="var(--rose-600)"/>
+          <circle cx="45" cy="65" r="3" fill="var(--rose-600)"/>
+          <circle cx="60" cy="65" r="3" fill="var(--rose-600)"/>
+          <!-- S and V in white -->
+          <text x="100" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <text x="185" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">Dot Grid Inside A</span>
+      </div>
+
+      <!-- Design 12: Slashed Letters -->
+      <div class="design-card">
+        <span class="design-label">Design 12</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- All letters in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <text x="85" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <text x="170" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+          <!-- Rose slash through middle -->
+          <line x1="5" y1="55" x2="260" y2="55" stroke="var(--rose-600)" stroke-width="4"/>
+          <!-- Small V accent -->
+          <polygon points="240,95 250,110 260,95 250,100" fill="var(--rose-600)"/>
+        </svg>
+        <span class="design-name">Slash Line with V Accent</span>
+      </div>
+
+      <!-- Design 13: A-S Connected -->
+      <div class="design-card">
+        <span class="design-label">Design 13</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A in rose -->
+          <text x="10" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <!-- S in white, slightly overlapping A -->
+          <text x="70" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- Connection line -->
+          <line x1="85" y1="50" x2="130" y2="50" stroke="var(--rose-600)" stroke-width="3"/>
+          <!-- V in white -->
+          <text x="185" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+        </svg>
+        <span class="design-name">A-S Connection Line</span>
+      </div>
+
+      <!-- Design 14: V with Corner Brackets -->
+      <div class="design-card">
+        <span class="design-label">Design 14</span>
+        <svg class="monogram-svg" viewBox="0 0 300 120">
+          <!-- A and S in white -->
+          <text x="10" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <text x="85" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">S</text>
+          <!-- V in rose -->
+          <text x="170" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+          <!-- Corner brackets around V -->
+          <path d="M 175 15 L 175 25 L 185 25" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <path d="M 215 25 L 225 25 L 225 15" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <path d="M 175 85 L 175 75 L 185 75" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+          <path d="M 215 75 L 225 75 L 225 85" stroke="var(--rose-600)" stroke-width="3" fill="none"/>
+        </svg>
+        <span class="design-name">Viewfinder Brackets on V</span>
+      </div>
+
+      <!-- Design 15: Gradient Fade (spans 2 cols) -->
+      <div class="design-card wide">
+        <span class="design-label">Design 15</span>
+        <svg class="monogram-svg" viewBox="0 0 400 120">
+          <!-- A to S gradient effect with opacity -->
+          <text x="20" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900">A</text>
+          <text x="95" y="100" fill="#ffffff" font-family="Inter, sans-serif" font-size="100" font-weight="900" opacity="0.7">S</text>
+          <text x="170" y="100" fill="var(--rose-600)" font-family="Inter, sans-serif" font-size="100" font-weight="900">V</text>
+          <!-- Rose glow behind V -->
+          <ellipse cx="220" cy="60" rx="60" ry="50" fill="var(--rose-600)" opacity="0.15"/>
+          <!-- Small waveform at bottom -->
+          <path d="M 20 115 Q 60 105, 100 115 T 180 115" stroke="var(--rose-600)" stroke-width="2" fill="none" opacity="0.5"/>
+        </svg>
+        <span class="design-name">Gradient Fade to Rose V</span>
+      </div>
+
+    </div>
+
+    <div class="footer-note">
+      ASV Monogram Concepts — Black & Rose-600 palette
+    </div>
+  </div>
+</body>
+</html>

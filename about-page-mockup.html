@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - Audio Scope View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Neutrals - Grays */
+      --gray-50: #fafafa;
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-300: #d4d4d4;
+      --gray-400: #a3a3a3;
+      --gray-500: #737373;
+      --gray-600: #525252;
+      --gray-700: #404040;
+      --gray-800: #262626;
+      --gray-900: #171717;
+      --black: #000000;
+      --white: #ffffff;
+      /* Rose accent */
+      --rose-600: #e11d48;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-900);
+      min-height: 100vh;
+      color: var(--white);
+      line-height: 1.6;
+    }
+
+    .page-container {
+      width: 100%;
+      padding: 40px 24px 80px;
+    }
+
+    /* Header Section */
+    .page-header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding-top: 40px;
+    }
+
+    .logo-large {
+      margin-bottom: 24px;
+    }
+
+    .logo-large svg {
+      width: 160px;
+      height: 64px;
+    }
+
+    .app-tagline {
+      font-size: 18px;
+      color: var(--gray-400);
+      font-weight: 400;
+      margin-bottom: 16px;
+    }
+
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--gray-800);
+      border: 1px solid var(--gray-700);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--gray-300);
+    }
+
+    .version-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+    }
+
+    /* Section Styling */
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gray-500);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--gray-800);
+    }
+
+    /* Card Styling */
+    .card {
+      background: var(--gray-800);
+      border: 1px solid var(--gray-700);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .card-date {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .card-content {
+      font-size: 14px;
+      color: var(--gray-400);
+      line-height: 1.7;
+    }
+
+    /* About Card */
+    .about-card {
+      text-align: center;
+      padding: 32px;
+    }
+
+    .about-card .card-content {
+      font-size: 15px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .loading-text {
+      color: var(--gray-600);
+      font-style: italic;
+    }
+
+    /* Changelog Entry Types */
+    .changelog-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .changelog-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--gray-600);
+      color: var(--gray-400);
+      background: transparent;
+    }
+
+    .changelog-version {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-300);
+      background: var(--gray-700);
+    }
+
+    /* Feature List */
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      background: var(--gray-800);
+      border: 1px solid var(--gray-700);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-700);
+      transition: background 0.2s;
+    }
+
+    .feature-item:last-child {
+      border-bottom: none;
+    }
+
+    .feature-item:hover {
+      background: var(--gray-700);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .feature-icon.oscilloscope {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+    }
+
+    .feature-icon.spectrum {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .feature-icon.radio {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    .feature-icon.sessions {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+    }
+
+    .feature-icon.export {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .feature-icon.storage {
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+      box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+    }
+
+    .feature-icon.database {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .feature-content {
+      flex: 1;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 2px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .stat-icon.recordings {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+    }
+
+    .stat-icon.sessions {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    .stat-icon.time {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+    }
+
+    .stat-icon.storage {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    .stat-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--gray-400);
+    }
+
+    .stat-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .stat-bar-bg {
+      height: 6px;
+      background: var(--gray-800);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .stat-bar-fill.recordings {
+      background: linear-gradient(90deg, #f43f5e 0%, #fb7185 100%);
+    }
+
+    .stat-bar-fill.sessions {
+      background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+    }
+
+    .stat-bar-fill.time {
+      background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+    }
+
+    .stat-bar-fill.storage {
+      background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    }
+
+    /* Links */
+    .link-list {
+      background: var(--gray-800);
+      border: 1px solid var(--gray-700);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-700);
+      text-decoration: none;
+      color: var(--gray-300);
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .link-item:last-child {
+      border-bottom: none;
+    }
+
+    .link-item:hover {
+      background: var(--gray-700);
+    }
+
+    .link-item .left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .link-item .icon {
+      width: 32px;
+      height: 32px;
+      background: var(--gray-700);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gray-400);
+    }
+
+    .link-item .arrow {
+      color: var(--gray-500);
+    }
+
+    /* Tech Stack */
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .tech-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--gray-800);
+      border: 1px solid var(--gray-700);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--gray-300);
+    }
+
+    .tech-badge .tech-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Footer */
+    .page-footer {
+      text-align: center;
+      padding-top: 40px;
+      border-top: 1px solid var(--gray-800);
+      margin-top: 60px;
+    }
+
+    .copyright {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+    }
+
+    .made-with {
+      font-size: 11px;
+      color: var(--gray-700);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      /* Stats bar is already responsive */
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    
+    <!-- Header -->
+    <div class="page-header">
+      <!-- ASV Logo -->
+      <div class="logo-large">
+        <svg viewBox="0 0 300 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="10" y="100" font-family="Inter, system-ui, sans-serif" font-size="100" font-weight="900" fill="#e11d48">A</text>
+          <path d="M 25 55 Q 40 45, 55 55 T 85 55" stroke="#ffffff" stroke-width="3" fill="none"/>
+          <text x="100" y="100" font-family="Inter, system-ui, sans-serif" font-size="100" font-weight="900" fill="#ffffff">S</text>
+          <text x="185" y="100" font-family="Inter, system-ui, sans-serif" font-size="100" font-weight="900" fill="#ffffff">V</text>
+        </svg>
+      </div>
+      <p class="app-tagline">Audio visualization and recording, reimagined</p>
+      <div class="version-badge">
+        <span class="dot"></span>
+        Version 1.4.2 (Latest)
+      </div>
+    </div>
+
+    <!-- About Section -->
+    <div class="section">
+      <h2 class="section-title">About</h2>
+      <div class="card about-card">
+        <div class="card-content" id="about-description">
+          <span class="loading-text">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="section">
+      <h2 class="section-title">Activity</h2>
+      <div class="stats-bar">
+        <div class="stat-row">
+          <div class="stat-icon recordings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="3" fill="white"/>
+              <path d="M12 5v2M12 17v2M5 12h2M17 12h2" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-header">
+              <span class="stat-label">Recordings</span>
+              <span class="stat-value">2,847</span>
+            </div>
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill recordings" style="width: 85%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-icon sessions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-header">
+              <span class="stat-label">Sessions</span>
+              <span class="stat-value">156</span>
+            </div>
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill sessions" style="width: 45%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-icon time">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" fill="none"/>
+              <path d="M12 7v5l3 3" stroke-width="2"/>
+              <circle cx="12" cy="12" r="1.5" fill="white"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-header">
+              <span class="stat-label">Total Time</span>
+              <span class="stat-value">48.3 hours</span>
+            </div>
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill time" style="width: 62%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-icon storage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15H3"/>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <div class="stat-header">
+              <span class="stat-label">Storage Used</span>
+              <span class="stat-value">12.4 GB</span>
+            </div>
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill storage" style="width: 38%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key Features -->
+    <div class="section">
+      <h2 class="section-title">Key Features</h2>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon oscilloscope">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12h4l3-9 4 18 3-9h6"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <div class="feature-title">Real-time Oscilloscope</div>
+            <div class="feature-desc" data-feature="oscilloscope">Loading...</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon sessions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <div class="feature-title">Session Management</div>
+            <div class="feature-desc" data-feature="sessions">Loading...</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon export">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+              <path d="M21 15H3"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <div class="feature-title">Export Options</div>
+            <div class="feature-desc" data-feature="export">Loading...</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon database">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 5v6c0 1.66-4.03 3-9 3s-9-1.34-9-3V5"/>
+              <path d="M21 11v6c0 1.66-4.03 3-9 3s-9-1.34-9-3v-6"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <div class="feature-title">Cloud Database</div>
+            <div class="feature-desc" data-feature="database">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Fetch all content data
+      async function loadAboutContent() {
+        try {
+          const response = await fetch('/data/about.json');
+          const data = await response.json();
+          const container = document.getElementById('about-description');
+          if (container) {
+            container.innerHTML = data.description;
+          }
+        } catch (err) {
+          console.error('Failed to load about content:', err);
+          const container = document.getElementById('about-description');
+          if (container) {
+            container.innerHTML = '<span class="loading-text">Description unavailable</span>';
+          }
+        }
+      }
+
+      async function loadFeatureDescriptions() {
+        try {
+          const response = await fetch('/data/features.json');
+          const data = await response.json();
+          data.features.forEach(feature => {
+            const el = document.querySelector(`[data-feature="${feature.id}"]`);
+            if (el) el.textContent = feature.description;
+          });
+        } catch (err) {
+          console.error('Failed to load features:', err);
+          document.querySelectorAll('.feature-desc[data-feature]').forEach(el => {
+            el.textContent = 'Description unavailable';
+          });
+        }
+      }
+
+      // Load all content on page load
+      loadAboutContent();
+      loadFeatureDescriptions();
+    </script>
+
+    <!-- Changelog -->
+    <div class="section">
+      <h2 class="section-title">What's New</h2>
+      
+      <div class="card">
+        <div class="changelog-header">
+          <span class="changelog-badge">New</span>
+          <span class="changelog-version">v1.5.0</span>
+        </div>
+        <div class="card-header">
+          <div class="card-title">Session Clipping & Markers</div>
+          <div class="card-date">Dec 15, 2024</div>
+        </div>
+        <div class="card-content">
+          Mark important moments during live recording with timestamp markers. 
+          Clip and export specific sections of your recordings without affecting the original file. 
+          Perfect for capturing and sharing the best moments of a transmission.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="changelog-header">
+          <span class="changelog-badge">Improved</span>
+          <span class="changelog-version">v1.4.2</span>
+        </div>
+        <div class="card-header">
+          <div class="card-title">Spectrum Analyzer Refresh</div>
+          <div class="card-date">Dec 8, 2024</div>
+        </div>
+        <div class="card-content">
+          Redesigned spectrum visualization with smoother animations and multiple display modes. 
+          Switch between bar, line, and fill modes. Added peak hold functionality and adjustable FFT sizes.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="changelog-header">
+          <span class="changelog-badge">Fixed</span>
+          <span class="changelog-version">v1.4.1</span>
+        </div>
+        <div class="card-header">
+          <div class="card-title">Audio Buffer Optimization</div>
+          <div class="card-date">Nov 30, 2024</div>
+        </div>
+        <div class="card-content">
+          Resolved latency issues on Android devices. Improved audio synchronization 
+          for recordings over 30 minutes. Memory usage reduced by 35% during extended monitoring sessions.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="changelog-header">
+          <span class="changelog-badge">New</span>
+          <span class="changelog-version">v1.4.0</span>
+        </div>
+        <div class="card-header">
+          <div class="card-title">Dark Mode & Themes</div>
+          <div class="card-date">Nov 22, 2024</div>
+        </div>
+        <div class="card-content">
+          Complete UI refresh with system-aware dark mode. Choose between Classic Dark, 
+          OLED Black, and Light themes. All controls and visualizations optimized for each theme.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Fetch changelog from JSON file
+      async function loadChangelog() {
+        try {
+          const response = await fetch('/data/changelog.json');
+          const data = await response.json();
+          
+          const container = document.querySelector('.changelog-container');
+          if (!container) return;
+          
+          container.innerHTML = data.releases.map(release => `
+            <div class="card">
+              <div class="changelog-header">
+                ${release.changes.map(change => 
+                  `<span class="changelog-badge">${change.type}</span>`
+                ).join('')}
+                <span class="changelog-version">${release.version}</span>
+              </div>
+              ${release.changes.map(change => `
+                <div class="card-header">
+                  <div class="card-title">${change.title}</div>
+                  <div class="card-date">${release.date}</div>
+                </div>
+                <div class="card-content">${change.description}</div>
+              `).join('')}
+            </div>
+          `).join('');
+        } catch (err) {
+          console.error('Failed to load changelog:', err);
+        }
+      }
+      loadChangelog();
+    </script>
+
+    <!-- Links -->
+    <div class="section">
+      <h2 class="section-title">Resources</h2>
+      <div class="link-list">
+        <a href="/documentation" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </span>
+            Documentation
+          </span>
+          <span class="arrow">→</span>
+        </a>
+        <a href="https://github.com/seu username/audio-scope-view" target="_blank" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+              </svg>
+            </span>
+            GitHub Repository
+          </span>
+          <span class="arrow">→</span>
+        </a>
+        <a href="/report-issue" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            Report an Issue
+          </span>
+          <span class="arrow">→</span>
+        </a>
+        <a href="/contact-support" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </span>
+            Contact Support
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Legal -->
+    <div class="section">
+      <h2 class="section-title">Legal</h2>
+      <div class="link-list">
+        <a href="/privacy-policy" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </span>
+            Privacy Policy
+          </span>
+          <span class="arrow">→</span>
+        </a>
+        <a href="/terms-of-service" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </span>
+            Terms of Service
+          </span>
+          <span class="arrow">→</span>
+        </a>
+        <a href="/licenses" class="link-item">
+          <span class="left">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </span>
+            Licenses
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="page-footer">
+      <p class="copyright">© 2024 Audio Scope View. All rights reserved.</p>
+    </div>
+
+  </div>
+</body>
+</html>

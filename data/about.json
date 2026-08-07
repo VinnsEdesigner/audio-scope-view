@@ -1,0 +1,3 @@
+{
+  "description": "<strong style=\"color: var(--white);\">Audio Scope View</strong> transforms your device's microphone into a powerful audio analysis tool. Whether you're monitoring transmissions, debugging audio equipment, or simply curious about the sounds around you — our app provides real-time oscilloscope displays and seamless recording capabilities.<br><br>Built with performance and accuracy in mind, using Web Audio API for low-latency processing and modern web technologies for a smooth, native-like experience across all your devices."
+}

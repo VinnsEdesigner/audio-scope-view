@@ -11,6 +11,14 @@ const CreateApiKey = lazy(() =>
   import("./routes/api-keys.create").then((m) => ({ default: m.CreateApiKey })),
 );
 const ScopePage = lazy(() => import("./routes/scope-page").then((m) => ({ default: m.ScopePage })));
+const About = lazy(() => import("./routes/about").then((m) => ({ default: m.About })));
+const ReportIssue = lazy(() =>
+  import("./routes/report-issue").then((m) => ({ default: m.ReportIssue })),
+);
+const ContactSupport = lazy(() =>
+  import("./routes/contact-support").then((m) => ({ default: m.ContactSupport })),
+);
+const Legal = lazy(() => import("./routes/legal").then((m) => ({ default: m.Legal })));
 
 export const router = createBrowserRouter([
   {
@@ -45,6 +53,22 @@ export const router = createBrowserRouter([
         path: "/api-keys/new",
         element: <CreateApiKey />,
       },
+      {
+        path: "/about",
+        element: <About />,
+      },
+      {
+        path: "/report-issue",
+        element: <ReportIssue />,
+      },
+      {
+        path: "/contact-support",
+        element: <ContactSupport />,
+      },
+      {
+        path: "/legal",
+        element: <Legal />,
+      },
     ],
   },
 ]);
@@ -58,5 +82,9 @@ export const routeTree = {
     { path: "/settings", element: "Settings" },
     { path: "/api-keys", element: "ApiKeys" },
     { path: "/api-keys/new", element: "CreateApiKey" },
+    { path: "/about", element: "About" },
+    { path: "/report-issue", element: "ReportIssue" },
+    { path: "/contact-support", element: "ContactSupport" },
+    { path: "/legal", element: "Legal" },
   ],
 };

@@ -38,7 +38,6 @@ import {
   formatDCOffset,
   formatDecibel,
   formatSessionDate,
-  formatSessionTime,
 } from "../hooks";
 import type { SessionWithStatus, RecordingSummary, Session } from "../hooks";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -330,7 +329,6 @@ export function Session(): React.ReactElement {
   const [activeTab, setActiveTab] = React.useState<TabType>("recordings");
   const [recordingsOffset, setRecordingsOffset] = React.useState(0);
   const [recordingsLimit] = React.useState(10);
-  const [moreMenuOpen, setMoreMenuOpen] = React.useState(false);
 
   const {
     data: sessionData,
@@ -339,9 +337,9 @@ export function Session(): React.ReactElement {
   } = useSessionDetail(sessionId);
 
   // Store refetchSession in a ref so it can be used in the useEndSession callback
-  const refetchSessionRef = React.useRef(refetchSession);
+  const refetchSessionReference = React.useRef(refetchSession);
   React.useEffect(() => {
-    refetchSessionRef.current = refetchSession;
+    refetchSessionReference.current = refetchSession;
   }, [refetchSession]);
 
   const { data: parentSessionData } = useParentSession(sessionId);
@@ -366,7 +364,7 @@ export function Session(): React.ReactElement {
   const [endSession, { loading: isEnding }] = useEndSession({
     onSessionEnded: () => {
       // Refetch session detail to update UI
-      refetchSessionRef.current?.();
+      refetchSessionReference.current?.();
     },
   });
   const [updateSession, { loading: isUpdating }] = useUpdateSession();
@@ -375,7 +373,6 @@ export function Session(): React.ReactElement {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
-  const editButtonReference = React.useRef<HTMLButtonElement>(null);
 
   // Confirmation dialog states
   const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false);
@@ -617,7 +614,7 @@ export function Session(): React.ReactElement {
     setContent({
       title: session?.name || `Session ${sessionId?.slice(0, 8)}` || "Session",
       subtitle: session?.startedAt ? formatSessionDate(session.startedAt) : undefined,
-      badge: !session?.endedAt ? "Live" : undefined,
+      badge: session?.endedAt ? undefined : "Live",
       actions: (
         <>
           <button
@@ -656,11 +653,22 @@ export function Session(): React.ReactElement {
         </>
       ),
     });
-  }, [setContent, session, sessionId, isLoading, isEnding, isDeleting, isUpdating, handleOpenOscilloscope, handleEnd, handleOpenEdit, handleDelete]);
+  }, [
+    setContent,
+    session,
+    sessionId,
+    isLoading,
+    isEnding,
+    isDeleting,
+    isUpdating,
+    handleOpenOscilloscope,
+    handleEnd,
+    handleOpenEdit,
+    handleDelete,
+  ]);
 
   return (
     <div className="w-full min-h-screen bg-bg-primary">
-
       {}
       {parentSession && (
         <div className="mx-4 md:mx-6 mt-4 p-4 bg-icon/10 border border-icon/30 rounded-xl">

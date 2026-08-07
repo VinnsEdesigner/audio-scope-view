@@ -1,0 +1,48 @@
+{
+  "releases": [
+    {
+      "version": "1.5.0",
+      "date": "December 15, 2024",
+      "changes": [
+        {
+          "type": "New",
+          "title": "Session Clipping & Markers",
+          "description": "Mark important moments during live recording with timestamp markers. Clip and export specific sections of your recordings without affecting the original file. Perfect for capturing and sharing the best moments of a transmission."
+        }
+      ]
+    },
+    {
+      "version": "1.4.2",
+      "date": "December 8, 2024",
+      "changes": [
+        {
+          "type": "Improved",
+          "title": "Spectrum Analyzer Refresh",
+          "description": "Redesigned spectrum visualization with smoother animations and multiple display modes. Switch between bar, line, and fill modes. Added peak hold functionality and adjustable FFT sizes."
+        }
+      ]
+    },
+    {
+      "version": "1.4.1",
+      "date": "November 30, 2024",
+      "changes": [
+        {
+          "type": "Fixed",
+          "title": "Audio Buffer Optimization",
+          "description": "Resolved latency issues on Android devices. Improved audio synchronization for recordings over 30 minutes. Memory usage reduced by 35% during extended monitoring sessions."
+        }
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "date": "November 22, 2024",
+      "changes": [
+        {
+          "type": "New",
+          "title": "Dark Mode & Themes",
+          "description": "Complete UI refresh with system-aware dark mode. Choose between Classic Dark, OLED Black, and Light themes. All controls and visualizations optimized for each theme."
+        }
+      ]
+    }
+  ]
+}

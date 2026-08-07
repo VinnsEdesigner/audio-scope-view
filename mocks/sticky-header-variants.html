@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sticky Header Variants - Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0b;
+      --bg-secondary: #141416;
+      --bg-elevated: #1f1f23;
+      --bg-hover: #27272a;
+      --border-subtle: #27272a;
+      --foreground: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-tertiary: #71717a;
+      --accent: #e11d48;
+      --success: #22c55e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0f0f10;
+      color: var(--foreground);
+      min-height: 100vh;
+    }
+
+    /* Scrollable showcase area */
+    .showcase {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .showcase-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .showcase-desc {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      max-width: 600px;
+    }
+
+    /* Demo sections */
+    .demo-section {
+      margin-bottom: 48px;
+    }
+
+    .demo-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+    }
+
+    /* Sticky header container */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(10, 10, 11, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* App Header - Full header with logo */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 24px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      color: var(--foreground);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .logo-a {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .logo-sv {
+      font-size: 28px;
+      font-weight: 900;
+      color: white;
+    }
+
+    .header-title-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .header-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.2;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-hover);
+      color: var(--foreground);
+    }
+
+    /* Minimal Header - Just title with back */
+    .minimal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+    }
+
+    .minimal-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Tabbed Header - Title + tabs below */
+    .tabbed-header {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabbed-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+    }
+
+    .tabbed-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 8px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(10, 10, 11, 0.5);
+    }
+
+    .tab {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--foreground);
+      background: var(--bg-hover);
+    }
+
+    .tab.active {
+      color: var(--foreground);
+      background: var(--bg-secondary);
+    }
+
+    /* Page content for context */
+    .page-content {
+      padding: 24px;
+      min-height: 400px;
+    }
+
+    .page-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .page-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .page-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .code-block {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--text-secondary);
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .app-header, .minimal-header, .tabbed-main {
+        padding: 8px 16px;
+      }
+
+      .tabbed-tabs {
+        padding: 8px 16px;
+        overflow-x: auto;
+      }
+
+      .tab {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+
+      .logo {
+        display: none;
+      }
+
+      .header-actions {
+        gap: 4px;
+      }
+    }
+
+    /* Highlight what's different */
+    .highlight-border {
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .variant-label {
+      position: absolute;
+      top: -12px;
+      left: 16px;
+      background: var(--bg-primary);
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .variant-container {
+      position: relative;
+      margin-bottom: 32px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="showcase">
+  <h1 class="showcase-title">Sticky Header Variants</h1>
+  <p class="showcase-desc">Three header variants for different page types in the app. Each variant is optimized for its use case while maintaining consistent styling.</p>
+
+  <!-- VARIANT 1: APP HEADER -->
+  <div class="demo-section">
+    <div class="demo-label">Variant 1: App Header (default)</div>
+    <div class="variant-container">
+      <span class="variant-label">For: Scope, Session, Home, Settings</span>
+      <div class="highlight-border">
+        <div class="sticky-header">
+          <div class="app-header">
+            <div class="header-left">
+              <button class="nav-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              </button>
+              <div class="logo">
+                <span class="logo-a">A</span>
+                <span class="logo-sv">SV</span>
+              </div>
+              <div class="header-title-group">
+                <span class="header-title">Morning Recording</span>
+                <span class="header-subtitle">Recording • 00:45:32</span>
+              </div>
+              <span class="badge">REC</span>
+            </div>
+            <div class="header-actions">
+              <button class="action-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </button>
+              <button class="action-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="page-content">
+          <div class="page-card">
+            <h3>Usage</h3>
+            <p>Use this header for main app pages that need full navigation and context.</p>
+            <div class="code-block">setContent({
+  variant: 'app',
+  title: "Morning Recording",
+  subtitle: "Recording • 00:45:32",
+  badge: &lt;RecordingBadge /&gt;,
+  actions: &lt;ExportButton /&gt;,
+})</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT 2: MINIMAL HEADER -->
+  <div class="demo-section">
+    <div class="demo-label">Variant 2: Minimal Header</div>
+    <div class="variant-container">
+      <span class="variant-label">For: Report Issue, Contact Support</span>
+      <div class="highlight-border">
+        <div class="sticky-header">
+          <div class="minimal-header">
+            <div class="minimal-title-group">
+              <button class="nav-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </button>
+              <div class="header-title-group">
+                <span class="header-title">Report an Issue</span>
+                <span class="header-subtitle">Found a bug? Let us know.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="page-content">
+          <div class="page-card">
+            <h3>Usage</h3>
+            <p>Use this header for simple info pages with minimal navigation needs.</p>
+            <div class="code-block">setContent({
+  variant: 'minimal',
+  title: "Report an Issue",
+  subtitle: "Found a bug? Let us know.",
+  forceBackButton: true,
+  backUrl: "/about",
+})</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT 3: TABBED HEADER -->
+  <div class="demo-section">
+    <div class="demo-label">Variant 3: Tabbed Header</div>
+    <div class="variant-container">
+      <span class="variant-label">For: Legal, About</span>
+      <div class="highlight-border">
+        <div class="sticky-header">
+          <div class="tabbed-header">
+            <div class="tabbed-main">
+              <div class="minimal-title-group">
+                <button class="nav-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="header-title-group">
+                  <span class="header-title">Legal</span>
+                </div>
+              </div>
+            </div>
+            <nav class="tabbed-tabs">
+              <a href="#privacy" class="tab active">Privacy Policy</a>
+              <a href="#terms" class="tab">Terms of Service</a>
+              <a href="#licenses" class="tab">Licenses</a>
+            </nav>
+          </div>
+        </div>
+        <div class="page-content">
+          <div class="page-card">
+            <h3>Usage</h3>
+            <p>Use this header for pages with multiple sections that need quick navigation.</p>
+            <div class="code-block">setContent({
+  variant: 'tabbed',
+  title: "Legal",
+  forceBackButton: true,
+  backUrl: "/about",
+  tabs: [
+    { id: "privacy", label: "Privacy Policy", href: "/legal#privacy" },
+    { id: "terms", label: "Terms of Service", href: "/legal#terms" },
+    { id: "licenses", label: "Licenses", href: "/legal#licenses" },
+  ],
+})</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="demo-section">
+    <div class="demo-label">Quick Comparison</div>
+    <table style="width: 100%; border-collapse: collapse; background: var(--bg-secondary); border-radius: 12px; overflow: hidden;">
+      <thead>
+        <tr style="background: var(--bg-elevated);">
+          <th style="padding: 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle);">Variant</th>
+          <th style="padding: 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle);">Logo</th>
+          <th style="padding: 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle);">Tabs</th>
+          <th style="padding: 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle);">Use Cases</th>
+        </tr>
+      </thead>
+      <tbody style="font-size: 14px;">
+        <tr>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle);"><code style="background: var(--bg-primary); padding: 2px 8px; border-radius: 4px;">app</code></td>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle); color: var(--success);">✓ Shown</td>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle); color: var(--text-tertiary);">✗</td>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Scope, Session, Home, Settings</td>
+        </tr>
+        <tr>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle);"><code style="background: var(--bg-primary); padding: 2px 8px; border-radius: 4px;">minimal</code></td>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle); color: var(--text-tertiary);">✗</td>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle); color: var(--text-tertiary);">✗</td>
+          <td style="padding: 16px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">Report Issue, Contact Support</td>
+        </tr>
+        <tr>
+          <td style="padding: 16px;"><code style="background: var(--bg-primary); padding: 2px 8px; border-radius: 4px;">tabbed</code></td>
+          <td style="padding: 16px; color: var(--text-tertiary);">✗</td>
+          <td style="padding: 16px; color: var(--success);">✓ Shown</td>
+          <td style="padding: 16px; color: var(--text-secondary);">Legal, About</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // Simple tab switching for demo
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

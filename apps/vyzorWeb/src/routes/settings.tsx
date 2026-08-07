@@ -1,11 +1,19 @@
 import * as React from "react";
-import { Sun, Moon, Monitor, Palette, Mic, MonitorCheck, Info, RefreshCw, MoreVertical } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Palette,
+  Mic,
+  MonitorCheck,
+  RefreshCw,
+  MoreVertical,
+} from "lucide-react";
 import { SelectDialog } from "@/components/dialogs/select-dialog";
 import { useUIStore, useMediaDevices, useAudioSettings } from "@/hooks";
 import { useToast } from "@/hooks";
 import { useHeader } from "@/contexts/header-context";
 import type { WaveformColor } from "@/store/ui-store";
-import { APP_VERSION } from "@audio-scope-view/api-client";
 import { cn } from "@/lib/utilities";
 
 const WAVEFORM_COLORS: readonly { readonly value: WaveformColor; readonly color: string }[] = [
@@ -417,9 +425,7 @@ export function Settings(): React.ReactElement {
                           permissionState === "prompt" && "bg-warning",
                         )}
                       />
-                      <span className="text-sm text-foreground capitalize">
-                        {permissionState}
-                      </span>
+                      <span className="text-sm text-foreground capitalize">{permissionState}</span>
                     </div>
                   </div>
                   {permissionState !== "granted" && (
@@ -447,9 +453,7 @@ export function Settings(): React.ReactElement {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-text-secondary">Max Channels</span>
-                        <span className="text-foreground font-mono">
-                          {systemInfo.maxChannels}
-                        </span>
+                        <span className="text-foreground font-mono">{systemInfo.maxChannels}</span>
                       </div>
                       <div>
                         <div className="flex justify-between mb-1">
@@ -503,9 +507,7 @@ export function Settings(): React.ReactElement {
                               : "bg-bg-elevated",
                           )}
                         >
-                          <div className="font-medium text-foreground truncate">
-                            {device.label}
-                          </div>
+                          <div className="font-medium text-foreground truncate">{device.label}</div>
                           <div className="text-xs text-text-tertiary font-mono mt-0.5">
                             ID: {device.deviceId.slice(0, 16)}...
                           </div>
@@ -647,18 +649,6 @@ export function Settings(): React.ReactElement {
                 enabledLabel="Smooth waveform enabled"
                 disabledLabel="Smooth waveform disabled"
               />
-            </SettingsRow>
-          </SettingsCard>
-        </Section>
-
-        {}
-        <Section icon={<Info size={20} />} title="About" description="Application information">
-          <SettingsCard>
-            <SettingsRow label="Version" border={false}>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-background border border-border-subtle rounded-md text-sm font-mono text-text-secondary">
-                <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                {APP_VERSION}
-              </div>
             </SettingsRow>
           </SettingsCard>
         </Section>

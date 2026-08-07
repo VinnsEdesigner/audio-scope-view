@@ -115,7 +115,11 @@ export function Root() {
             <Spinner size={48} className="text-gray-400" />
           </div>
         ) : (
-          <div data-app-state="ready" data-hydrated={String(isHydrated)} data-initializing={String(isInitializing)}>
+          <div
+            data-app-state="ready"
+            data-hydrated={String(isHydrated)}
+            data-initializing={String(isInitializing)}
+          >
             <NavigationLoader />
             <ToastProvider>
               <ThemedApp />

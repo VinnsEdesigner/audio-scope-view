@@ -1,6 +1,6 @@
 {
   "name": "@audio-scope-view/tamagui",
-  "version": "v0.1.0-beta",
+  "version": "v0.1.1-beta",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

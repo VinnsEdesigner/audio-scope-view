@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Settings, Key, Home, Monitor } from "lucide-react";
+import { Settings, Key, Home, Monitor, Info } from "lucide-react";
 import { useSessionSelection } from "../../contexts/session-selection-context";
 
 interface NavItem {
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { label: "API Keys", href: "/api-keys", icon: <Key size={18} /> },
   { label: "Settings", href: "/settings", icon: <Settings size={18} /> },
+  { label: "About", href: "/about", icon: <Info size={18} /> },
 ];
 
 export function TopNav(): React.ReactElement {

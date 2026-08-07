@@ -69,6 +69,15 @@ export function CreateSessionDialog({
 
         {/* Content */}
         <div className="px-4 py-4">
+          {/* Description */}
+          <div className="mb-4 p-3 bg-bg-tertiary rounded-lg border border-border-subtle">
+            <p className="text-xs text-text-secondary leading-relaxed">
+              A session is a container that groups your audio recordings and clips together. Create
+              one to organize your work by project, location, or time period — all your recordings
+              within a session share the same context and can be compared side-by-side.
+            </p>
+          </div>
+
           <div className="mb-3">
             <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
               Session Name
@@ -78,7 +87,6 @@ export function CreateSessionDialog({
               value={name}
               onChange={(event_) => setName(event_.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g., Morning Lab Testing"
               maxLength={100}
               className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary focus:outline-none transition-all"
               autoFocus
@@ -96,7 +104,6 @@ export function CreateSessionDialog({
               value={description}
               onChange={(event_) => setDescription(event_.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Add a description..."
               maxLength={500}
               rows={2}
               className="w-full px-3 py-2 bg-bg-tertiary border border-border rounded-md text-sm text-foreground placeholder:text-text-tertiary resize-none focus:outline-none transition-all"

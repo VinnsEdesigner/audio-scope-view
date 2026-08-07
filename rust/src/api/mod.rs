@@ -8,6 +8,7 @@ pub mod middleware_cors;
 pub mod resolver_dashboard;
 pub mod resolver_session;
 pub mod resolver_settings;
+pub mod schema_about;
 pub mod schema_audio_input;
 pub mod schema_dashboard;
 pub mod schema_dsp;
