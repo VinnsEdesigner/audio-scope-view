@@ -52,7 +52,7 @@ function AppShell() {
       <div className="flex flex-1 h-screen bg-bg-primary">
         {/* Always show TopNav - loading bar overlays it */}
         <TopNav />
-        <div className="flex flex-col flex-1 overflow-hidden bg-bg-primary min-h-0">
+        <div className="flex flex-col flex-1 overflow-y-auto bg-bg-primary min-h-0">
           <StickyHeader />
           <Outlet />
         </div>

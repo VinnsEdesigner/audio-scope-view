@@ -3,7 +3,7 @@ import { YStack, styled } from "tamagui";
 
 const ContentRoot = styled(YStack, {
   flex: 1,
-  height: "100%",
+  minHeight: 0,
   backgroundColor: "$gray1",
   padding: "$md",
   overflow: "scroll",

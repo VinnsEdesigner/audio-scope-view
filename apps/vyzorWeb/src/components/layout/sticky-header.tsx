@@ -147,6 +147,12 @@ interface AppHeaderProperties {
 }
 
 function AppHeader({ content, navButton }: AppHeaderProperties): React.ReactElement {
+  const location = useLocation();
+  const isHome = isHomePage(location.pathname);
+
+  // Show logo only on home page, or if showLogo is explicitly set
+  const showLogo = isHome && (content.showLogo ?? true);
+
   return (
     <div className="flex items-center justify-between px-4 py-2 md:px-6">
       <HeaderLeft
@@ -154,6 +160,7 @@ function AppHeader({ content, navButton }: AppHeaderProperties): React.ReactElem
         title={content.title}
         subtitle={content.subtitle}
         badge={content.badge}
+        showLogo={showLogo}
       />
       {content.actions && (
         <div className="flex items-center gap-2 flex-shrink-0">{content.actions}</div>

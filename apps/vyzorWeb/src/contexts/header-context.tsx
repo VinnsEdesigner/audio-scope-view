@@ -33,6 +33,9 @@ export interface HeaderContent {
 
   /** Override the auto back behavior (hamburger on home, back elsewhere) */
   forceBackButton?: boolean;
+
+  /** Whether to show the ASV logo - defaults to true, set to false for non-home pages */
+  showLogo?: boolean;
 }
 
 export interface HeaderContextValue {

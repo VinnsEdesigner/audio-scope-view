@@ -273,7 +273,7 @@ function Licenses(): React.ReactElement {
 }
 
 export function Legal(): React.ReactElement {
-  const [searchParameters, setSearchParameters] = useSearchParams();
+  const [searchParameters] = useSearchParams();
   const { setContent } = useHeader();
 
   const activeTab: LegalTab = (searchParameters.get("tab") as LegalTab) || "privacy";
@@ -281,7 +281,7 @@ export function Legal(): React.ReactElement {
   React.useEffect(() => {
     setContent({
       title: "Legal",
-      subtitle: "Last updated: December 15, 2024",
+      subtitle: "Last updated: August 7, 2026",
       variant: "tabbed",
       backUrl: "/about",
       tabs: TABS.map((tab) => ({
@@ -293,29 +293,12 @@ export function Legal(): React.ReactElement {
     });
   }, [setContent, activeTab]);
 
-  const handleTabChange = (tab: LegalTab) => {
-    setSearchParameters({ tab });
-  };
-
   return (
     <div className="page-container">
-      {/* Tab navigation for mobile / content area */}
-      <nav className="nav-tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            className={`nav-tab ${activeTab === tab.id ? "active" : ""}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-
       {/* Page header */}
       <header className="page-header">
         <h1 className="page-title">Legal Information</h1>
-        <p className="last-updated">Last updated: December 15, 2024</p>
+        <p className="last-updated">Last updated: August 7, 2026</p>
       </header>
 
       {/* Content based on active tab */}

@@ -100,23 +100,49 @@
     width: 100%;
   }
 
-  /* Hide scrollbar but keep functionality */
+  /* Custom Scrollbar - Hidden by default, show on hover */
   ::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
+    width: 6px;
+    height: 6px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   ::-webkit-scrollbar-track {
     background: transparent;
+    margin: 0;
   }
 
   ::-webkit-scrollbar-thumb {
+    background: var(--color-border-hover, rgba(255, 255, 255, 0.15));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-hover, rgba(255, 255, 255, 0.25));
+  }
+
+  ::-webkit-scrollbar-corner {
     background: transparent;
   }
 
+  /* Show scrollbar on hover for the document */
+  :hover::-webkit-scrollbar,
+  :focus::-webkit-scrollbar,
+  ::-webkit-scrollbar-thumb:hover,
+  *:hover > ::-webkit-scrollbar {
+    opacity: 1;
+  }
+
+  /* Firefox scrollbar - hidden by default, show on hover */
   * {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+
+  *:hover {
+    scrollbar-color: var(--color-border-hover, rgba(255, 255, 255, 0.15)) transparent;
   }
 
   /* Remove white focus rings from interactive elements */
@@ -381,6 +407,19 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--color-foreground);
+}
+
+.stat-bar-container {
+  height: 6px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stat-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 
 .link-list {

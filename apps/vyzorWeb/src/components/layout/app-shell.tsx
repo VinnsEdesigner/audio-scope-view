@@ -10,7 +10,7 @@ const AppShellRoot = styled(YStack, {
 
 const AppShellBody = styled(XStack, {
   flex: 1,
-  overflow: "hidden",
+  overflow: "visible",
 });
 
 export interface AppShellProperties {

@@ -71,7 +71,7 @@ export function CreateSessionDialog({
         <div className="px-4 py-4">
           {/* Description */}
           <div className="mb-4 p-3 bg-bg-tertiary rounded-lg border border-border-subtle">
-            <p className="text-xs text-text-secondary leading-relaxed">
+            <p className="text-xs text-foreground leading-relaxed">
               A session is a container that groups your audio recordings and clips together. Create
               one to organize your work by project, location, or time period — all your recordings
               within a session share the same context and can be compared side-by-side.
@@ -79,7 +79,7 @@ export function CreateSessionDialog({
           </div>
 
           <div className="mb-3">
-            <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
+            <label className="block text-[10px] font-medium text-foreground uppercase tracking-wide mb-1">
               Session Name
             </label>
             <input
@@ -97,7 +97,7 @@ export function CreateSessionDialog({
           </div>
 
           <div>
-            <label className="block text-[10px] font-medium text-text-secondary uppercase tracking-wide mb-1">
+            <label className="block text-[10px] font-medium text-foreground uppercase tracking-wide mb-1">
               Description (optional)
             </label>
             <textarea

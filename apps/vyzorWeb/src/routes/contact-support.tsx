@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
 import { useHeader } from "@/contexts/header-context";
 import { Mail, MessageCircle } from "lucide-react";
 
@@ -53,26 +52,12 @@ export function ContactSupport(): React.ReactElement {
 
   return (
     <div className="page-container">
-      <Link to="/about" className="back-link">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-        Back to About
-      </Link>
-
       <div className="page-header">
         <h1 className="page-title">Contact Support</h1>
         <p className="page-subtitle">Need help? We're here for you.</p>
       </div>
 
-      <div className="content-section">
+      <div className="content-section" style={{ margin: "0 auto" }}>
         <div className="info-card">
           <h3>Get in Touch</h3>
 

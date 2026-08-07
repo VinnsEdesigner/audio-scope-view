@@ -47,47 +47,156 @@ const STAT_ICONS = [
     id: "sessions",
     gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
     shadow: "0 4px 12px rgba(217, 119, 6, 0.3)",
+    barColor: "#f59e0b",
   },
   {
     id: "live",
     gradient: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
     shadow: "0 4px 12px rgba(34, 197, 94, 0.3)",
+    barColor: "#22c55e",
   },
   {
     id: "recordings",
     gradient: "linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)",
     shadow: "0 4px 12px rgba(225, 29, 72, 0.3)",
+    barColor: "#f43f5e",
   },
   {
     id: "storage",
     gradient: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
     shadow: "0 4px 12px rgba(8, 145, 178, 0.3)",
+    barColor: "#06b6d4",
   },
   {
     id: "time",
     gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
     shadow: "0 4px 12px rgba(124, 58, 237, 0.3)",
+    barColor: "#8b5cf6",
   },
 ];
 
 function StatIcon({ id, index }: { id: string; index: number }): React.ReactElement {
   const config = STAT_ICONS[index] ?? STAT_ICONS[0];
+
+  const renderIcon = () => {
+    switch (id) {
+      case "sessions": {
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect
+              x="3"
+              y="3"
+              width="18"
+              height="18"
+              rx="3"
+              stroke="white"
+              strokeWidth="2"
+              fill="none"
+            />
+            <path d="M3 9h18" stroke="white" strokeWidth="2" />
+            <rect x="7" y="12" width="4" height="5" rx="1" fill="white" opacity="0.9" />
+            <rect x="13" y="12" width="4" height="3" rx="1" fill="white" opacity="0.6" />
+          </svg>
+        );
+      }
+      case "live": {
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="4" fill="white" />
+            <circle
+              cx="12"
+              cy="12"
+              r="7"
+              stroke="white"
+              strokeWidth="2"
+              fill="none"
+              opacity="0.6"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="white"
+              strokeWidth="1.5"
+              fill="none"
+              opacity="0.3"
+            />
+          </svg>
+        );
+      }
+      case "recordings": {
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2C10.34 2 9 3.34 9 5v6c0 1.66 1.34 3 3 3s3-1.34 3-3V5c0-1.66-1.34-3-3-3z"
+              fill="white"
+            />
+            <path
+              d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5h-2c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+              fill="white"
+              opacity="0.9"
+            />
+          </svg>
+        );
+      }
+      case "storage": {
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <ellipse cx="12" cy="6" rx="8" ry="3" stroke="white" strokeWidth="2" fill="none" />
+            <path
+              d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"
+              stroke="white"
+              strokeWidth="2"
+              fill="none"
+            />
+            <path
+              d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"
+              stroke="white"
+              strokeWidth="2"
+              fill="none"
+            />
+            <ellipse
+              cx="12"
+              cy="12"
+              rx="8"
+              ry="3"
+              stroke="white"
+              strokeWidth="2"
+              fill="none"
+              opacity="0.5"
+            />
+          </svg>
+        );
+      }
+      case "time": {
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" fill="none" />
+            <path
+              d="M12 6v6l4 2"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <circle cx="12" cy="12" r="2" fill="white" />
+          </svg>
+        );
+      }
+      default: {
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" />
+          </svg>
+        );
+      }
+    }
+  };
+
   return (
     <div className="stat-icon" style={{ background: config.gradient, boxShadow: config.shadow }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-        {id === "sessions" && <path d="M4 4h16v16H4z M4 9h16 M9 4v16" />}
-        {id === "live" && <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />}
-        {id === "recordings" && (
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v3" />
-        )}
-        {id === "storage" && <path d="M22 12h-6l-2 3h-4l-2-3H2 M12 2v20 M8 6l4-4 4 4" />}
-        {id === "time" && (
-          <>
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </>
-        )}
-      </svg>
+      {renderIcon()}
     </div>
   );
 }
@@ -178,31 +287,48 @@ export function About(): React.ReactElement {
   const features = featuresData?.features ?? [];
   const changelog = changelogData?.changelog ?? [];
 
+  // Calculate max values for progress bar percentages
+  const maxSessions = Math.max(sessionCounts?.sessionStatusCounts.total ?? 0, 10);
+  const maxLive = Math.max(sessionCounts?.sessionStatusCounts.liveCount ?? 0, 5);
+  const maxRecordings = Math.max(recordingStats?.recordingStats.totalRecordings ?? 0, 20);
+  const maxStorageBytes = Math.max(recordingStats?.recordingStats.totalSizeBytes ?? 0, 1e9); // 1GB default max
+  const maxDurationMs = Math.max(recordingStats?.recordingStats.totalDurationMs ?? 0, 3_600_000); // 1hr default max
+
   const stats = [
     {
       label: "Total Sessions",
       value: sessionCounts?.sessionStatusCounts.total ?? 0,
       icon: "sessions",
+      maxValue: maxSessions,
+      rawValue: sessionCounts?.sessionStatusCounts.total ?? 0,
     },
     {
       label: "Live Sessions",
       value: sessionCounts?.sessionStatusCounts.liveCount ?? 0,
       icon: "live",
+      maxValue: maxLive,
+      rawValue: sessionCounts?.sessionStatusCounts.liveCount ?? 0,
     },
     {
       label: "Total Recordings",
       value: recordingStats?.recordingStats.totalRecordings ?? 0,
       icon: "recordings",
+      maxValue: maxRecordings,
+      rawValue: recordingStats?.recordingStats.totalRecordings ?? 0,
     },
     {
       label: "Storage Used",
       value: formatBytes(recordingStats?.recordingStats.totalSizeBytes ?? 0),
       icon: "storage",
+      maxValue: maxStorageBytes,
+      rawValue: recordingStats?.recordingStats.totalSizeBytes ?? 0,
     },
     {
       label: "Recording Time",
       value: formatDuration(recordingStats?.recordingStats.totalDurationMs ?? 0),
       icon: "time",
+      maxValue: maxDurationMs,
+      rawValue: recordingStats?.recordingStats.totalDurationMs ?? 0,
     },
   ];
 
@@ -213,15 +339,15 @@ export function About(): React.ReactElement {
       ) : (
         <>
           <header className="page-header">
-            <div className="logo-large mb-6">
+            <div className="logo-large">
               <svg
-                width="240"
-                height="96"
+                width="180"
+                height="72"
                 viewBox="0 0 300 120"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
+                className="mx-auto"
               >
-                <rect width="300" height="120" fill="#000000" />
                 <text
                   x="10"
                   y="100"
@@ -273,26 +399,45 @@ export function About(): React.ReactElement {
             <h2 className="section-title">Activity</h2>
             <div className="card p-0">
               <div className="stats-list">
-                {stats.map((stat, index) => (
-                  <div key={stat.label} className="stat-row">
-                    <StatIcon id={stat.icon} index={index} />
-                    <div className="stat-info">
-                      <div className="stat-header">
-                        <span className="stat-label">{stat.label}</span>
-                        <span className="stat-value">{stat.value}</span>
+                {stats.map((stat, index) => {
+                  const iconConfig = STAT_ICONS[index] ?? STAT_ICONS[0];
+                  const percentage = stat.maxValue > 0 ? (stat.rawValue / stat.maxValue) * 100 : 0;
+                  const hasData = stat.rawValue > 0;
+                  const barColor = hasData ? iconConfig.barColor : "#6b7280";
+                  const barWidth = hasData ? `${Math.min(percentage, 100)}%` : "100%";
+                  const barOpacity = hasData ? 1 : 0.3;
+
+                  return (
+                    <div key={stat.label} className="stat-row">
+                      <StatIcon id={stat.icon} index={index} />
+                      <div className="stat-info">
+                        <div className="stat-header">
+                          <span className="stat-label">{stat.label}</span>
+                          <span className="stat-value">{stat.value}</span>
+                        </div>
+                        <div className="stat-bar-container">
+                          <div
+                            className="stat-bar"
+                            style={{
+                              width: barWidth,
+                              backgroundColor: barColor,
+                              opacity: barOpacity,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
 
           <section className="section">
             <h2 className="section-title">About</h2>
-            <div className="card text-center p-8">
+            <div className="card p-6">
               <div
-                className="text-[15px] max-w-[600px] mx-auto [&_strong]:text-[--color-foreground]"
+                className="text-[15px] leading-relaxed text-left [&_strong]:text-[--color-foreground]"
                 dangerouslySetInnerHTML={{ __html: description ?? "" }}
               />
             </div>
@@ -316,7 +461,7 @@ export function About(): React.ReactElement {
           </section>
 
           <section className="section">
-            <h2 className="section-title">Changelog</h2>
+            <h2 className="section-title">WHAT'S NEW</h2>
             <div className="space-y-4">
               {changelog.map((release) => (
                 <div key={release.version} className="card">
@@ -365,32 +510,6 @@ export function About(): React.ReactElement {
                     </svg>
                   </span>
                   Documentation
-                </span>
-                <span className="arrow">→</span>
-              </a>
-              <a
-                href="https://github.com/VinnsEdesigner/audio-scope-view"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-item"
-              >
-                <span className="left">
-                  <span className="icon">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
-                    </svg>
-                  </span>
-                  GitHub Repository
-                  <span className="repo-link text-[--color-text-tertiary]">
-                    VinnsEdesigner/audio-scope-view
-                  </span>
                 </span>
                 <span className="arrow">→</span>
               </a>

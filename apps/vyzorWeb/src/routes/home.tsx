@@ -295,7 +295,7 @@ export function Home(): React.ReactElement {
             title="Create Session"
           >
             <Plus size={16} />
-            <span className="hidden sm:inline">Create Session</span>
+            <span>Create Session</span>
           </button>
 
           {/* Session Actions Dropdown */}
