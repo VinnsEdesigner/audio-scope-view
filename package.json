@@ -6,8 +6,8 @@
   "packageManager": "pnpm@11.15.1",
   "scripts": {
     "dev": "pnpm --filter @audio-scope-view/vyzor-web dev",
-    "build": "pnpm --filter @audio-scope-view/vyzor-web build",
-    "build:dev": "pnpm --filter @audio-scope-view/vyzor-web build:dev",
+    "build": "pnpm --filter @audio-scope-view/vyzor-web build && node scripts/sync-dist.cjs",
+    "build:dev": "pnpm --filter @audio-scope-view/vyzor-web build:dev && node scripts/sync-dist.cjs",
     "preview": "pnpm --filter @audio-scope-view/vyzor-web preview",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
