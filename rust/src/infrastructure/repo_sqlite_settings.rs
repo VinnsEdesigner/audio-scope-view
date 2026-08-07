@@ -1,7 +1,8 @@
 
 #![allow(dead_code)]
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::FromRow;
+use sqlx::SqlitePool;
 
 use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
 

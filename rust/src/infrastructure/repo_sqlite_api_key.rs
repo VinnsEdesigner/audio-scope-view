@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::FromRow;
+use sqlx::SqlitePool;
 
 use crate::api::auth::api_key::ApiKey;
 use crate::shared::error_app::{AppError, AppResult};

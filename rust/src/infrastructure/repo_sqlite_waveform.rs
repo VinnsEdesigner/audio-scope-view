@@ -2,7 +2,8 @@
 #![allow(dead_code)]
 use chrono::{DateTime, Utc};
 use serde_json;
-use sqlx::{FromRow, SqlitePool};
+use sqlx::FromRow;
+use sqlx::SqlitePool;
 
 use crate::domain::trait_waveform_repository::WaveformStatistics;
 use crate::domain::{Waveform, error_domain::DomainError};

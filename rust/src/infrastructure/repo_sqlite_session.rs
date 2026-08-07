@@ -2,7 +2,8 @@
 
 use crate::domain::{Session, error_domain::DomainError};
 use chrono::{DateTime, Utc};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::FromRow;
+use sqlx::SqlitePool;
 
 #[derive(FromRow)]
 struct SessionRow {

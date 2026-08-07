@@ -167,14 +167,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db = DatabaseConnection::new(&config.database.url).await?;
 
-    run_migrations(db.pool()).await?;
+    // Run migrations
+    match &db {
+        DatabaseConnection::Sqlite(pool) => {
+            run_migrations(pool).await?;
+        }
+        DatabaseConnection::Turso { db: turso_db } => {
+            // Run migrations for Turso using libsql
+            info!("Running migrations for Turso database...");
+            let conn = turso_db.connect()
+                .map_err(|e| format!("Failed to get connection: {}", e))
+                .unwrap();
+            for migration in infrastructure::database_migrations::MIGRATIONS {
+                info!("Applying migration v{}: {}", migration.version, migration.name);
+                conn.execute(migration.sql, ())
+                    .await
+                    .map_err(|e| format!("Failed to apply migration {}: {}", migration.name, e))
+                    .unwrap();
+            }
+            info!("Migrations complete");
+        }
+    }
 
-    let scope_repo = Arc::new(SqliteSessionRepository::new(db.pool().clone()));
-    let settings_repo = Arc::new(SqliteSettingsRepository::new(db.pool().clone()));
-    let waveform_repo = Arc::new(SqliteWaveformRepository::new(db.pool().clone()));
-    let recording_repo = Arc::new(SqliteRecordingRepository::new(db.pool().clone()));
-    let api_key_repo = Arc::new(SqliteApiKeyRepository::new(db.pool().clone()));
-    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(db.pool().clone()));
+    // Get SQLite pool for repositories (they use sqlx with SQLite queries)
+    let pool = db.sqlite_pool()
+        .expect("Repositories require SQLite connection. Turso support requires creating libsql-based repositories.");
+
+    let scope_repo = Arc::new(SqliteSessionRepository::new(pool.clone()));
+    let settings_repo = Arc::new(SqliteSettingsRepository::new(pool.clone()));
+    let waveform_repo = Arc::new(SqliteWaveformRepository::new(pool.clone()));
+    let recording_repo = Arc::new(SqliteRecordingRepository::new(pool.clone()));
+    let api_key_repo = Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(pool.clone()));
 
     let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
     let settings_service = Arc::new(SettingsService::new(
