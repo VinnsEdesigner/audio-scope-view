@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 
-const WEB_DIR = path.join(__dirname, 'apps/vyzorWeb/dist/client');
-const API_DIR = path.join(__dirname, 'packages/api-client/dist');
+const WEB_DIR = path.join(__dirname, '../dist/client');
+const API_DIR = path.join(__dirname, '../../packages/api-client/dist');
 const GRAPHQL_SERVER = 'http://127.0.0.1:8080';
 const WS_SERVER = 'ws://127.0.0.1:8080';
 const BOOTSTRAP_KEY = process.env.BOOTSTRAP_KEY;
