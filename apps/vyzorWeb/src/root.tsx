@@ -32,8 +32,6 @@ const seoData = {
 
 function AppShell() {
   const _isInitializing = useUIStore((state) => state.isInitializing);
-  const setInitializing = useUIStore((state) => state.setInitializing);
-
   // Header context state
   const [headerContent, setHeaderContent] = useState<HeaderContent>({
     title: "",
@@ -43,13 +41,6 @@ function AppShell() {
   const handleSetContent = (content: HeaderContent) => {
     setHeaderContent(content);
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitializing(false);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [setInitializing]);
 
   return (
     <HeaderContext.Provider value={{ content: headerContent, setContent: handleSetContent }}>
@@ -96,11 +87,20 @@ function ThemedApp() {
 export function Root() {
   const apolloClient = graphqlClient as unknown as ApolloClient<NormalizedCacheObject>;
   const isInitializing = useUIStore((state) => state.isInitializing);
+  const setInitializing = useUIStore((state) => state.setInitializing);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
+
+  // Clear the boot splash once the client has mounted. This must live above the
+  // splash/app branch, otherwise nothing ever unsets it and the spinner sticks.
+  useEffect(() => {
+    if (!isHydrated || !isInitializing) return;
+    const timer = setTimeout(() => setInitializing(false), 300);
+    return () => clearTimeout(timer);
+  }, [isHydrated, isInitializing, setInitializing]);
 
   return (
     <ApolloProvider client={apolloClient}>
