@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 use crate::domain::{DomainResult, Settings};
 
-#[allow(async_fn_in_trait)]
+#[async_trait::async_trait]
 pub trait SettingsRepository: Send + Sync {
     async fn save(&self, settings: &Settings) -> DomainResult<()>;
 

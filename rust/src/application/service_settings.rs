@@ -1,19 +1,19 @@
 #![allow(dead_code)]
 
 use crate::domain::{Settings, error_domain::DomainError};
+use crate::domain::trait_settings_repository::SettingsRepository;
 use crate::infrastructure::repo_trait_session::SessionRepository;
-use crate::infrastructure::repo_sqlite_settings::SqliteSettingsRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
 pub struct SettingsService {
-    settings_repository: Arc<SqliteSettingsRepository>,
+    settings_repository: Arc<dyn SettingsRepository>,
     session_repository: Arc<dyn SessionRepository>,
 }
 
 impl SettingsService {
     pub fn new(
-        settings_repository: Arc<SqliteSettingsRepository>,
+        settings_repository: Arc<dyn SettingsRepository>,
         session_repository: Arc<dyn SessionRepository>,
     ) -> Self {
         Self {

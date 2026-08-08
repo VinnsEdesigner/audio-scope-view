@@ -11,7 +11,7 @@ pub struct WaveformStatistics {
     pub average_rms: f32,
 }
 
-#[allow(async_fn_in_trait)]
+#[async_trait::async_trait]
 pub trait WaveformRepository: Send + Sync {
     async fn save(&self, waveform: &Waveform) -> DomainResult<()>;
 

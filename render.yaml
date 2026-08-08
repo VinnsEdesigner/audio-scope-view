@@ -21,12 +21,15 @@ services:
           type: web
           envVarKey: BOOTSTRAP_KEY
       # Database URL - Set via environment variable for Turso
-      # Example: libsql://audio-scope-view-xxx.turso.io?authToken=xxx
-      # Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Render dashboard
+      # Example: libsql://audio-scope-view-xxx.turso.io
+      # Set TURSO_DATABASE_URL and TURSO_VYZOR_SCOPE_DB_TOKEN in Render dashboard
       - key: APP__DATABASE__URL
         fromService:
           type: web
           envVarKey: TURSO_DATABASE_URL
+      # Turso DB-scoped token (create via: turso db tokens create <db-name>)
+      - key: TURSO_VYZOR_SCOPE_DB_TOKEN
+        sync: false
       - key: APP__SERVER__HOST
         value: "127.0.0.1"
       - key: APP__SERVER__PORT

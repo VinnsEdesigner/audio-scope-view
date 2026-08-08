@@ -116,7 +116,7 @@ impl SessionService {
             return Ok(active_session);
         }
 
-        self.create_session().await
+        self.create_session("default".to_string(), "Active Session".to_string()).await
     }
 
     pub async fn get_sub_sessions(&self, parent_id: &str) -> AppResult<Vec<Session>> {
@@ -205,7 +205,7 @@ impl SessionService {
             .ok_or_else(|| AppError::NotFound("Session not found".to_string()))?;
 
         if let Some(n) = name {
-            session.name = Some(n);
+            session.name = n;
         }
         if let Some(d) = description {
             session.description = Some(d);

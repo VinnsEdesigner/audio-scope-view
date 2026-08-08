@@ -2,19 +2,19 @@
 #![allow(dead_code)]
 
 use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, ScopeStatus, SessionWithStatus, TimeRange};
-use crate::infrastructure::repo_sqlite_recording::SqliteRecordingRepository;
+use crate::infrastructure::repo_trait_recording::RecordingRepository;
 use crate::infrastructure::repo_trait_session::SessionRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
 pub struct RecordingService {
-    repository: Arc<SqliteRecordingRepository>,
+    repository: Arc<dyn RecordingRepository>,
     session_repository: Arc<dyn SessionRepository>,
 }
 
 impl RecordingService {
     pub fn new(
-        repository: Arc<SqliteRecordingRepository>,
+        repository: Arc<dyn RecordingRepository>,
         session_repository: Arc<dyn SessionRepository>,
     ) -> Self {
         Self {

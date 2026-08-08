@@ -22,6 +22,9 @@ use api::auth::ApiKeyStore;
 use api::server_graphql::{AppState, start_server};
 use api::schema_subscription::{AudioStats, SpectrumData, WaveformData};
 use application::{BatchCaptureService, DashboardService, RecordingService, SessionService, SettingsService, SimulationService, WaveformService};
+use domain::trait_settings_repository::SettingsRepository;
+use domain::trait_waveform_repository::WaveformRepository;
+use domain::trait_user_preferences_repository::UserPreferencesRepository;
 use infrastructure::{
     config_loader::AppConfig, database_connection::DatabaseConnection,
     database_migrations::run_migrations, repo_sqlite_session::SqliteSessionRepository,
@@ -29,9 +32,16 @@ use infrastructure::{
     repo_sqlite_recording::SqliteRecordingRepository,
     repo_sqlite_api_key::SqliteApiKeyRepository,
     repo_sqlite_user_preferences::SqliteUserPreferencesRepository,
-    AudioStreamEvent, AudioStreamManager,
     repo_trait_session::SessionRepository,
+    repo_trait_recording::RecordingRepository,
+    repo_trait_api_key::ApiKeyRepository,
     repo_turso_session::TursoSessionRepository,
+    repo_turso_settings::TursoSettingsRepository,
+    repo_turso_waveform::TursoWaveformRepository,
+    repo_turso_recording::TursoRecordingRepository,
+    repo_turso_api_key::TursoApiKeyRepository,
+    repo_turso_user_preferences::TursoUserPreferencesRepository,
+    AudioStreamEvent, AudioStreamManager,
     turso_http_client::TursoClient,
 };
 
@@ -188,46 +198,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Get SQLite pool for repositories (they use sqlx with SQLite queries)
-    // For SQLite, we need the pool for other repos too
-    // For Turso, we use HTTP-based repos for sessions and local SQLite for others
+    // Repository wiring: SQLite (local) or Turso (cloud) for ALL repositories
     let scope_repo: Arc<dyn SessionRepository>;
-    let settings_repo: Arc<SqliteSettingsRepository>;
-    let waveform_repo: Arc<SqliteWaveformRepository>;
-    let recording_repo: Arc<SqliteRecordingRepository>;
-    let api_key_repo: Arc<SqliteApiKeyRepository>;
-    let local_sqlite_pool: sqlx::SqlitePool;
+    let settings_repo: Arc<dyn SettingsRepository>;
+    let waveform_repo: Arc<dyn WaveformRepository>;
+    let recording_repo: Arc<dyn RecordingRepository>;
+    let api_key_repo: Arc<dyn ApiKeyRepository>;
+    let user_prefs_repo: Arc<dyn UserPreferencesRepository>;
     
     match &db {
         DatabaseConnection::Sqlite(pool) => {
             info!("Using SQLite repositories");
-            local_sqlite_pool = pool.clone();
             scope_repo = Arc::new(SqliteSessionRepository::new(pool.clone())) as Arc<dyn SessionRepository>;
-            settings_repo = Arc::new(SqliteSettingsRepository::new(pool.clone()));
-            waveform_repo = Arc::new(SqliteWaveformRepository::new(pool.clone()));
-            recording_repo = Arc::new(SqliteRecordingRepository::new(pool.clone()));
-            api_key_repo = Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+            settings_repo = Arc::new(SqliteSettingsRepository::new(pool.clone())) as Arc<dyn SettingsRepository>;
+            waveform_repo = Arc::new(SqliteWaveformRepository::new(pool.clone())) as Arc<dyn WaveformRepository>;
+            recording_repo = Arc::new(SqliteRecordingRepository::new(pool.clone())) as Arc<dyn RecordingRepository>;
+            api_key_repo = Arc::new(SqliteApiKeyRepository::new(pool.clone())) as Arc<dyn ApiKeyRepository>;
+            user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(pool.clone())) as Arc<dyn UserPreferencesRepository>;
         }
         DatabaseConnection::Turso { url, token } => {
-            info!("Using Turso session repository with local SQLite fallback for other repos");
-            // Create local SQLite for non-session repos
-            local_sqlite_pool = sqlx::sqlite::SqlitePoolOptions::new()
-                .max_connections(5)
-                .connect("sqlite:./data/local_fallback.db?mode=rwc")
-                .await
-                .expect("Failed to create local SQLite pool");
+            info!("Using Turso repositories for all entities");
+            let client = TursoClient::new(url, token);
+            let client2 = TursoClient::new(url, token);
+            let client3 = TursoClient::new(url, token);
+            let client4 = TursoClient::new(url, token);
+            let client5 = TursoClient::new(url, token);
+            let client6 = TursoClient::new(url, token);
             
-            // Run migrations on local SQLite
-            run_migrations(&local_sqlite_pool).await.expect("Failed to run local migrations");
-            
-            scope_repo = Arc::new(TursoSessionRepository::new(TursoClient::new(url, token))) as Arc<dyn SessionRepository>;
-            settings_repo = Arc::new(SqliteSettingsRepository::new(local_sqlite_pool.clone()));
-            waveform_repo = Arc::new(SqliteWaveformRepository::new(local_sqlite_pool.clone()));
-            recording_repo = Arc::new(SqliteRecordingRepository::new(local_sqlite_pool.clone()));
-            api_key_repo = Arc::new(SqliteApiKeyRepository::new(local_sqlite_pool.clone()));
+            scope_repo = Arc::new(TursoSessionRepository::new(client)) as Arc<dyn SessionRepository>;
+            settings_repo = Arc::new(TursoSettingsRepository::new(client2)) as Arc<dyn SettingsRepository>;
+            waveform_repo = Arc::new(TursoWaveformRepository::new(client3)) as Arc<dyn WaveformRepository>;
+            recording_repo = Arc::new(TursoRecordingRepository::new(client4)) as Arc<dyn RecordingRepository>;
+            api_key_repo = Arc::new(TursoApiKeyRepository::new(client5)) as Arc<dyn ApiKeyRepository>;
+            user_prefs_repo = Arc::new(TursoUserPreferencesRepository::new(client6)) as Arc<dyn UserPreferencesRepository>;
         }
     }
-    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(settings_repo.pool().clone()));
 
     let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
     let settings_service = Arc::new(SettingsService::new(

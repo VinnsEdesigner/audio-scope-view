@@ -5,6 +5,7 @@ use sqlx::FromRow;
 use sqlx::SqlitePool;
 
 use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
+use crate::domain::trait_settings_repository::SettingsRepository;
 
 #[derive(FromRow)]
 struct SettingsRow {
@@ -227,4 +228,31 @@ type DomainErrorResult<T> = Result<T, DomainError>;
 
 fn map_sqlx_err(e: sqlx::Error) -> DomainError {
     DomainError::repository(format!("Database error: {}", e))
+}
+
+#[async_trait::async_trait]
+impl SettingsRepository for SqliteSettingsRepository {
+    async fn save(&self, settings: &Settings) -> Result<(), DomainError> {
+        SqliteSettingsRepository::save(self, settings).await
+    }
+
+    async fn update(&self, settings: &Settings) -> Result<(), DomainError> {
+        SqliteSettingsRepository::update(self, settings).await
+    }
+
+    async fn find_by_id(&self, id: &str) -> Result<Option<Settings>, DomainError> {
+        SqliteSettingsRepository::find_by_id(self, id).await
+    }
+
+    async fn find_by_session_id(&self, session_id: &str) -> Result<Option<Settings>, DomainError> {
+        SqliteSettingsRepository::find_by_session_id(self, session_id).await
+    }
+
+    async fn delete(&self, id: &str) -> Result<bool, DomainError> {
+        SqliteSettingsRepository::delete(self, id).await
+    }
+
+    async fn delete_by_session_id(&self, session_id: &str) -> Result<bool, DomainError> {
+        SqliteSettingsRepository::delete_by_session_id(self, session_id).await
+    }
 }

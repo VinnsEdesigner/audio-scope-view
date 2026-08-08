@@ -8,6 +8,7 @@ use sqlx::SqlitePool;
 
 use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, TimeRange};
 use crate::domain::error_domain::DomainError;
+use crate::infrastructure::repo_trait_recording::RecordingRepository;
 
 #[derive(FromRow)]
 struct RecordingRow {
@@ -588,4 +589,63 @@ fn get_time_range_bounds(range: TimeRange) -> (Option<DateTime<Utc>>, Option<Dat
 
 fn map_sqlx_err(e: sqlx::Error) -> DomainError {
     DomainError::repository(format!("Database error: {}", e))
+}
+
+#[async_trait::async_trait]
+impl RecordingRepository for SqliteRecordingRepository {
+    async fn save(&self, recording: &Recording) -> Result<(), DomainError> {
+        SqliteRecordingRepository::save(self, recording).await
+    }
+
+    async fn find_by_id(&self, id: &str) -> Result<Option<Recording>, DomainError> {
+        SqliteRecordingRepository::find_by_id(self, id).await
+    }
+
+    async fn find_metadata_by_id(&self, id: &str) -> Result<Option<RecordingMetadata>, DomainError> {
+        SqliteRecordingRepository::find_metadata_by_id(self, id).await
+    }
+
+    async fn list(
+        &self,
+        filter: Option<&RecordingFilter>,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<RecordingSummary>, u64, bool), DomainError> {
+        SqliteRecordingRepository::list(self, filter, limit, offset).await
+    }
+
+    async fn get_recent(&self, limit: u32) -> Result<Vec<RecordingSummary>, DomainError> {
+        SqliteRecordingRepository::get_recent(self, limit).await
+    }
+
+    async fn update(&self, recording: &Recording) -> Result<(), DomainError> {
+        SqliteRecordingRepository::update(self, recording).await
+    }
+
+    async fn delete(&self, id: &str) -> Result<(), DomainError> {
+        SqliteRecordingRepository::delete(self, id).await
+    }
+
+    async fn delete_many(&self, ids: &[String]) -> Result<u64, DomainError> {
+        SqliteRecordingRepository::delete_many(self, ids).await
+    }
+
+    async fn count_by_scope(&self, session_id: &str) -> Result<u64, DomainError> {
+        SqliteRecordingRepository::count_by_scope(self, session_id).await
+    }
+
+    async fn get_stats(
+        &self,
+        session_id: Option<&str>,
+        time_range: Option<TimeRange>,
+    ) -> Result<RecordingStats, DomainError> {
+        SqliteRecordingRepository::get_stats(self, session_id, time_range).await
+    }
+
+    async fn get_recording_count_by_range(
+        &self,
+        session_id: Option<&str>,
+    ) -> Result<RecordingStats, DomainError> {
+        SqliteRecordingRepository::get_recording_count_by_range(self, session_id).await
+    }
 }

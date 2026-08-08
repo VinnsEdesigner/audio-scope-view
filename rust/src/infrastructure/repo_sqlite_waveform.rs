@@ -5,7 +5,7 @@ use serde_json;
 use sqlx::FromRow;
 use sqlx::SqlitePool;
 
-use crate::domain::trait_waveform_repository::WaveformStatistics;
+use crate::domain::trait_waveform_repository::{WaveformRepository, WaveformStatistics};
 use crate::domain::{Waveform, error_domain::DomainError};
 
 #[derive(FromRow)]
@@ -211,4 +211,44 @@ struct WaveformStatsRow {
 
 fn map_sqlx_err(e: sqlx::Error) -> DomainError {
     DomainError::repository(format!("Database error: {}", e))
+}
+
+#[async_trait::async_trait]
+impl WaveformRepository for SqliteWaveformRepository {
+    async fn save(&self, waveform: &Waveform) -> Result<(), DomainError> {
+        SqliteWaveformRepository::save(self, waveform).await
+    }
+
+    async fn find_by_id(&self, id: &str) -> Result<Option<Waveform>, DomainError> {
+        SqliteWaveformRepository::find_by_id(self, id).await
+    }
+
+    async fn find_by_session(
+        &self,
+        session_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<Waveform>, DomainError> {
+        SqliteWaveformRepository::find_by_session(self, session_id, limit, offset).await
+    }
+
+    async fn find_recent(&self, session_id: &str, limit: u32) -> Result<Vec<Waveform>, DomainError> {
+        SqliteWaveformRepository::find_recent(self, session_id, limit).await
+    }
+
+    async fn count_by_session(&self, session_id: &str) -> Result<u64, DomainError> {
+        SqliteWaveformRepository::count_by_session(self, session_id).await
+    }
+
+    async fn delete_by_session(&self, session_id: &str) -> Result<u64, DomainError> {
+        SqliteWaveformRepository::delete_by_session(self, session_id).await
+    }
+
+    async fn delete_older_than(&self, before: DateTime<Utc>) -> Result<u64, DomainError> {
+        SqliteWaveformRepository::delete_older_than(self, before).await
+    }
+
+    async fn get_statistics(&self, session_id: &str) -> Result<WaveformStatistics, DomainError> {
+        SqliteWaveformRepository::get_statistics(self, session_id).await
+    }
 }

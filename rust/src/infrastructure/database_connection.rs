@@ -42,8 +42,8 @@ impl DatabaseConnection {
 
     /// Create Turso connection using HTTP API
     async fn new_turso(database_url: &str) -> AppResult<Self> {
-        let auth_token = std::env::var("TURSO_AUTH_TOKEN")
-            .map_err(|_| AppError::database("TURSO_AUTH_TOKEN environment variable not set"))?;
+        let auth_token = std::env::var("TURSO_VYZOR_SCOPE_DB_TOKEN")
+            .map_err(|_| AppError::database("TURSO_VYZOR_SCOPE_DB_TOKEN environment variable not set"))?;
 
         // Test connection
         let client = reqwest::Client::new();
@@ -115,30 +115,44 @@ impl DatabaseConnection {
         Ok(())
     }
 
-    /// Execute SQL via Turso HTTP API
+    /// Execute SQL via Turso HTTP API.
+    ///
+    /// The Turso v1 REST API rejects SQL strings containing more than one
+    /// statement, so multi-statement migration files are split on semicolons
+    /// and sent as separate requests.
     async fn execute_turso(&self, sql: &str) -> AppResult<()> {
         let (url, token) = match self.turso_info() {
             Some(info) => info,
             None => return Err(AppError::database("Not a Turso connection")),
         };
 
-        let client = reqwest::Client::new();
-        let response = client
-            .post(url)
-            .header("Authorization", format!("Bearer {}", token))
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "statements": [sql]
-            }))
-            .send()
-            .await
-            .map_err(|e| AppError::database(&format!("Failed to execute on Turso: {}", e)))?;
+        let stmts: Vec<&str> = sql
+            .split(';')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
 
-        if !response.status().is_success() {
-            return Err(AppError::database(&format!(
-                "Turso query failed with status: {}", 
-                response.status()
-            )));
+        let client = reqwest::Client::new();
+        for stmt in stmts {
+            let response = client
+                .post(url)
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .json(&serde_json::json!({
+                    "statements": [stmt]
+                }))
+                .send()
+                .await
+                .map_err(|e| AppError::database(&format!("Failed to execute on Turso: {}", e)))?;
+
+            if !response.status().is_success() {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                return Err(AppError::database(&format!(
+                    "Turso query failed with status {}: {}",
+                    status, body
+                )));
+            }
         }
 
         Ok(())

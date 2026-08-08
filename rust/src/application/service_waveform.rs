@@ -2,16 +2,16 @@
 #![allow(dead_code)]
 
 use crate::domain::{Waveform, WaveformStreamData};
-use crate::infrastructure::repo_sqlite_waveform::SqliteWaveformRepository;
+use crate::domain::trait_waveform_repository::WaveformRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
 pub struct WaveformService {
-    repository: Arc<SqliteWaveformRepository>,
+    repository: Arc<dyn WaveformRepository>,
 }
 
 impl WaveformService {
-    pub fn new(repository: Arc<SqliteWaveformRepository>) -> Self {
+    pub fn new(repository: Arc<dyn WaveformRepository>) -> Self {
         Self { repository }
     }
 

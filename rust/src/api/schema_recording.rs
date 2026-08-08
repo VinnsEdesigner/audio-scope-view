@@ -525,7 +525,7 @@ impl RecordingMutation {
             .await
             .ok()
             .flatten()
-            .and_then(|s| s.name)
+            .map(|s| s.name)
             .unwrap_or_else(|| "Recording".to_string());
 
         Some(RecordingOutput::from_recording(saved, session_name))
@@ -547,7 +547,7 @@ impl RecordingMutation {
             .await
             .ok()
             .flatten()
-            .and_then(|s| s.name)
+            .map(|s| s.name)
             .unwrap_or_else(|| "Recording".to_string());
 
         Some(RecordingOutput::from_recording(recording, session_name))
@@ -564,7 +564,7 @@ impl RecordingMutation {
             .await
             .ok()
             .flatten()
-            .and_then(|s| s.name)
+            .map(|s| s.name)
             .unwrap_or_else(|| "Recording".to_string());
 
         Some(RecordingOutput::from_recording(recording, session_name))

@@ -7,7 +7,7 @@ use std::time::{Duration, Instant, SystemTime};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::infrastructure::SqliteApiKeyRepository;
+use crate::infrastructure::repo_trait_api_key::ApiKeyRepository;
 use crate::infrastructure::repo_sqlite_api_key::ApiKeyWithHash;
 
 #[derive(Debug, Clone)]
@@ -62,7 +62,7 @@ pub struct ApiKeyStore {
     keys: Arc<RwLock<HashMap<String, ApiKey>>>,
     key_ids: Arc<RwLock<HashMap<String, String>>>,
     rate_limits: Arc<RwLock<HashMap<String, Vec<Instant>>>>,
-    repository: Option<Arc<SqliteApiKeyRepository>>,
+    repository: Option<Arc<dyn ApiKeyRepository>>,
 }
 
 impl ApiKeyStore {
@@ -75,7 +75,7 @@ impl ApiKeyStore {
         }
     }
 
-    pub fn with_repository(repo: Arc<SqliteApiKeyRepository>) -> Self {
+    pub fn with_repository(repo: Arc<dyn ApiKeyRepository>) -> Self {
         Self {
             keys: Arc::new(RwLock::new(HashMap::new())),
             key_ids: Arc::new(RwLock::new(HashMap::new())),

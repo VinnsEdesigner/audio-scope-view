@@ -2,19 +2,19 @@
 use crate::domain::entity_dashboard_summary::{DashboardSummary, RecentScope};
 use crate::domain::valueobject_timerange::TimeRange;
 use crate::infrastructure::repo_trait_session::SessionRepository;
-use crate::infrastructure::repo_sqlite_waveform::SqliteWaveformRepository;
+use crate::domain::trait_waveform_repository::WaveformRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
 pub struct DashboardService {
     session_repository: Arc<dyn SessionRepository>,
-    waveform_repository: Arc<SqliteWaveformRepository>,
+    waveform_repository: Arc<dyn WaveformRepository>,
 }
 
 impl DashboardService {
     pub fn new(
         session_repository: Arc<dyn SessionRepository>,
-        waveform_repository: Arc<SqliteWaveformRepository>,
+        waveform_repository: Arc<dyn WaveformRepository>,
     ) -> Self {
         Self {
             session_repository,

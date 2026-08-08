@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 
 use crate::api::auth::api_key::ApiKey;
 use crate::shared::error_app::{AppError, AppResult};
+use crate::infrastructure::repo_trait_api_key::ApiKeyRepository;
 
 #[derive(FromRow)]
 struct ApiKeyRow {
@@ -219,5 +220,40 @@ impl SqliteApiKeyRepository {
         .map_err(|e| AppError::database(&format!("Failed to delete expired API keys: {}", e)))?;
 
         Ok(result.rows_affected())
+    }
+}
+
+#[async_trait::async_trait]
+impl ApiKeyRepository for SqliteApiKeyRepository {
+    async fn save(&self, api_key: &ApiKey) -> AppResult<()> {
+        SqliteApiKeyRepository::save(self, api_key).await
+    }
+
+    async fn update(&self, api_key: &ApiKey) -> AppResult<()> {
+        SqliteApiKeyRepository::update(self, api_key).await
+    }
+
+    async fn find_by_key(&self, key: &str) -> AppResult<Option<ApiKey>> {
+        SqliteApiKeyRepository::find_by_key(self, key).await
+    }
+
+    async fn find_by_id(&self, id: &str) -> AppResult<Option<ApiKey>> {
+        SqliteApiKeyRepository::find_by_id(self, id).await
+    }
+
+    async fn list_all(&self) -> AppResult<Vec<ApiKey>> {
+        SqliteApiKeyRepository::list_all(self).await
+    }
+
+    async fn list_all_with_hash(&self) -> AppResult<Vec<ApiKeyWithHash>> {
+        SqliteApiKeyRepository::list_all_with_hash(self).await
+    }
+
+    async fn delete(&self, id: &str) -> AppResult<bool> {
+        SqliteApiKeyRepository::delete(self, id).await
+    }
+
+    async fn update_last_used(&self, id: &str) -> AppResult<()> {
+        SqliteApiKeyRepository::update_last_used(self, id).await
     }
 }
