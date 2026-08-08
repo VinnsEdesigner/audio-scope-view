@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Session {
     pub id: String,
-    pub user_id: Option<String>,
-    pub name: Option<String>,
+    pub user_id: String,
+    pub name: String,
     pub description: Option<String>,
     pub started_at: DateTime<Utc>,
     pub ended_at: Option<DateTime<Utc>>,
@@ -25,11 +25,11 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(id: String) -> Self {
+    pub fn new(id: String, user_id: String, name: String) -> Self {
         Self {
             id,
-            user_id: None,
-            name: None,
+            user_id,
+            name,
             description: None,
             started_at: Utc::now(),
             ended_at: None,
@@ -48,10 +48,10 @@ impl Session {
         }
     }
 
-    pub fn new_named(id: String, name: Option<String>, description: Option<String>) -> Self {
+    pub fn new_with_description(id: String, user_id: String, name: String, description: Option<String>) -> Self {
         Self {
             id,
-            user_id: None,
+            user_id,
             name,
             description,
             started_at: Utc::now(),
@@ -71,11 +71,11 @@ impl Session {
         }
     }
 
-    pub fn new_sub_session(id: String, parent_id: String) -> Self {
+    pub fn new_sub_session(id: String, parent_id: String, user_id: String, name: String) -> Self {
         Self {
             id,
-            user_id: None,
-            name: None,
+            user_id,
+            name,
             description: None,
             started_at: Utc::now(),
             ended_at: None,
@@ -92,21 +92,6 @@ impl Session {
             frequency_high: None,
             frequency_low: None,
         }
-    }
-
-    pub fn with_user_id(mut self, user_id: String) -> Self {
-        self.user_id = Some(user_id);
-        self
-    }
-
-    pub fn with_name(mut self, name: String) -> Self {
-        self.name = Some(name);
-        self
-    }
-
-    pub fn with_description(mut self, description: String) -> Self {
-        self.description = Some(description);
-        self
     }
 
     pub fn end(&mut self) {
@@ -148,14 +133,11 @@ impl Session {
     }
 
     pub fn display_name(&self) -> String {
-        if let Some(ref name) = self.name {
-            name.clone()
-        } else if self.is_sub_session {
+        if self.is_sub_session {
             let short_id = if self.id.len() > 8 { &self.id[self.id.len() - 8..] } else { &self.id };
             format!("Sub-session {}", short_id)
         } else {
-            let short_id = if self.id.len() > 8 { &self.id[self.id.len() - 8..] } else { &self.id };
-            format!("Session {}", short_id)
+            self.name.clone()
         }
     }
 }
@@ -166,11 +148,11 @@ mod tests {
 
     #[test]
     fn test_new_session() {
-        let session = Session::new("session-1".to_string());
+        let session = Session::new("session-1".to_string(), "user-1".to_string(), "Test Session".to_string());
 
         assert_eq!(session.id, "session-1");
-        assert!(session.user_id.is_none());
-        assert!(session.name.is_none());
+        assert_eq!(session.user_id, "user-1");
+        assert_eq!(session.name, "Test Session");
         assert!(session.description.is_none());
         assert!(session.ended_at.is_none());
         assert!(session.is_active());
@@ -179,22 +161,23 @@ mod tests {
     }
 
     #[test]
-    fn test_new_named_session() {
-        let session = Session::new_named(
+    fn test_new_with_description_session() {
+        let session = Session::new_with_description(
             "session-1".to_string(),
-            Some("Morning Lab".to_string()),
+            "user-1".to_string(),
+            "Morning Lab".to_string(),
             Some("Testing audio filters".to_string()),
         );
 
         assert_eq!(session.id, "session-1");
-        assert_eq!(session.name, Some("Morning Lab".to_string()));
+        assert_eq!(session.name, "Morning Lab");
         assert_eq!(session.description, Some("Testing audio filters".to_string()));
         assert!(!session.is_sub_session());
     }
 
     #[test]
     fn test_new_sub_session() {
-        let session = Session::new_sub_session("sub-1".to_string(), "parent-1".to_string());
+        let session = Session::new_sub_session("sub-1".to_string(), "parent-1".to_string(), "user-1".to_string(), "Sub".to_string());
 
         assert_eq!(session.id, "sub-1");
         assert!(session.is_sub_session());
@@ -204,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_end_session() {
-        let mut session = Session::new("session-1".to_string());
+        let mut session = Session::new("session-1".to_string(), "user-1".to_string(), "Test".to_string());
         assert!(session.is_active());
 
         session.end();
@@ -216,17 +199,10 @@ mod tests {
 
     #[test]
     fn test_display_name() {
-        let short_id_session = Session::new("session1".to_string());
-        assert_eq!(short_id_session.display_name(), "Session session1");
+        let session = Session::new("session1".to_string(), "user-1".to_string(), "Custom Name".to_string());
+        assert_eq!(session.display_name(), "Custom Name");
 
-        let long_id_session = Session::new("session-12345678".to_string());
-        assert_eq!(long_id_session.display_name(), "Session 12345678");
-
-        let named_session = Session::new_named(
-            "session-1".to_string(),
-            Some("Custom Name".to_string()),
-            None,
-        );
-        assert_eq!(named_session.display_name(), "Custom Name");
+        let long_id_session = Session::new("session-12345678".to_string(), "user-1".to_string(), "Test".to_string());
+        assert_eq!(long_id_session.display_name(), "Test");
     }
 }

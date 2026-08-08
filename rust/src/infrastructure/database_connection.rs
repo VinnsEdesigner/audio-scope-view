@@ -2,7 +2,6 @@
 
 use sqlx::SqlitePool;
 use sqlx::sqlite::SqlitePoolOptions;
-use libsql::Builder;
 
 use crate::shared::error_app::{AppError, AppResult};
 
@@ -10,7 +9,8 @@ use crate::shared::error_app::{AppError, AppResult};
 pub enum DatabaseConnection {
     Sqlite(SqlitePool),
     Turso {
-        db: libsql::Database,
+        url: String,
+        token: String,
     },
 }
 
@@ -40,17 +40,38 @@ impl DatabaseConnection {
         Ok(Self::Sqlite(pool))
     }
 
-    /// Create Turso/libsql connection
+    /// Create Turso connection using HTTP API
     async fn new_turso(database_url: &str) -> AppResult<Self> {
         let auth_token = std::env::var("TURSO_AUTH_TOKEN")
             .map_err(|_| AppError::database("TURSO_AUTH_TOKEN environment variable not set"))?;
 
-        let db = Builder::new_remote(database_url.to_string(), auth_token)
-            .build()
+        // Test connection
+        let client = reqwest::Client::new();
+        let host = database_url.trim_start_matches("libsql://");
+        let test_url = format!("https://{}", host);
+        
+        let response = client
+            .post(&test_url)
+            .header("Authorization", format!("Bearer {}", auth_token))
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "statements": ["SELECT 1"]
+            }))
+            .send()
             .await
-            .map_err(|e| AppError::database(&format!("Failed to create Turso connection: {}", e)))?;
+            .map_err(|e| AppError::database(&format!("Failed to connect to Turso: {}", e)))?;
 
-        Ok(Self::Turso { db })
+        if !response.status().is_success() {
+            return Err(AppError::database(&format!(
+                "Turso connection failed with status: {}", 
+                response.status()
+            )));
+        }
+
+        Ok(Self::Turso {
+            url: test_url,
+            token: auth_token,
+        })
     }
 
     pub async fn in_memory() -> AppResult<Self> {
@@ -70,15 +91,15 @@ impl DatabaseConnection {
         }
     }
 
-    /// Get the Turso database (only works for Turso connections)
-    pub fn turso_db(&self) -> Option<&libsql::Database> {
+    /// Get the Turso database info (only works for Turso connections)
+    pub fn turso_info(&self) -> Option<(&str, &str)> {
         match self {
             Self::Sqlite(_) => None,
-            Self::Turso { db } => Some(db),
+            Self::Turso { url, token } => Some((url, token)),
         }
     }
 
-    /// Execute a raw SQL query using Turso (for migrations, etc.)
+    /// Execute a raw SQL query using Turso HTTP API
     pub async fn execute_raw(&self, sql: &str) -> AppResult<()> {
         match self {
             Self::Sqlite(pool) => {
@@ -87,34 +108,44 @@ impl DatabaseConnection {
                     .await
                     .map_err(|e| AppError::database(&format!("Failed to execute SQL: {}", e)))?;
             }
-            Self::Turso { db } => {
-                let conn = db.connect()
-                    .map_err(|e| AppError::database(&format!("Failed to get connection: {}", e)))?;
-                conn.execute(sql, ())
-                    .await
-                    .map_err(|e| AppError::database(&format!("Failed to execute SQL: {}", e)))?;
+            Self::Turso { url, token } => {
+                self.execute_turso(sql).await?;
             }
         }
         Ok(())
     }
 
+    /// Execute SQL via Turso HTTP API
+    async fn execute_turso(&self, sql: &str) -> AppResult<()> {
+        let (url, token) = match self.turso_info() {
+            Some(info) => info,
+            None => return Err(AppError::database("Not a Turso connection")),
+        };
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post(url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .json(&serde_json::json!({
+                "statements": [sql]
+            }))
+            .send()
+            .await
+            .map_err(|e| AppError::database(&format!("Failed to execute on Turso: {}", e)))?;
+
+        if !response.status().is_success() {
+            return Err(AppError::database(&format!(
+                "Turso query failed with status: {}", 
+                response.status()
+            )));
+        }
+
+        Ok(())
+    }
+
     /// Execute a parameterized SQL query
     pub async fn execute(&self, sql: &str) -> AppResult<()> {
-        match self {
-            Self::Sqlite(pool) => {
-                sqlx::query(sql)
-                    .execute(pool)
-                    .await
-                    .map_err(|e| AppError::database(&format!("Failed to execute query: {}", e)))?;
-            }
-            Self::Turso { db } => {
-                let conn = db.connect()
-                    .map_err(|e| AppError::database(&format!("Failed to get connection: {}", e)))?;
-                conn.execute(sql, ())
-                    .await
-                    .map_err(|e| AppError::database(&format!("Failed to execute query: {}", e)))?;
-            }
-        }
-        Ok(())
+        self.execute_raw(sql).await
     }
 }

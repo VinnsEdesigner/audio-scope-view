@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use crate::domain::{Session, error_domain::DomainError};
+use crate::infrastructure::repo_trait_session::{SessionRepository, DomainErrorResult};
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 use sqlx::SqlitePool;
@@ -8,8 +10,8 @@ use sqlx::SqlitePool;
 #[derive(FromRow)]
 struct SessionRow {
     id: String,
-    user_id: Option<String>,
-    name: Option<String>,
+    user_id: String,
+    name: String,
     description: Option<String>,
     started_at: String,
     ended_at: Option<String>,
@@ -68,13 +70,15 @@ pub struct SqliteSessionRepository {
 }
 
 impl SqliteSessionRepository {
+    /* SQLITE REPO METHODS */
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 }
 
-impl SqliteSessionRepository {
-    pub async fn save_session(&self, session: &Session) -> DomainErrorResult<()> {
+#[async_trait]
+impl SessionRepository for SqliteSessionRepository {
+    async fn save_session(&self, session: &Session) -> DomainErrorResult<()> {
         sqlx::query(
             r#"
             INSERT INTO sessions (id, user_id, name, description, started_at, ended_at, duration_seconds, oscilloscope_opened_at, oscilloscope_duration_ms, parent_session_id, is_sub_session, auto_close_timeout_secs, peak_amplitude, rms_amplitude, dc_offset, dominant_frequency, frequency_high, frequency_low)
@@ -105,7 +109,7 @@ impl SqliteSessionRepository {
         Ok(())
     }
 
-    pub async fn update_session(&self, session: &Session) -> DomainErrorResult<()> {
+    async fn update_session(&self, session: &Session) -> DomainErrorResult<()> {
         sqlx::query(
             r#"
             UPDATE sessions
@@ -137,7 +141,7 @@ impl SqliteSessionRepository {
         Ok(())
     }
 
-    pub async fn find_by_id(&self, id: &str) -> DomainErrorResult<Option<Session>> {
+    async fn find_by_id(&self, id: &str) -> DomainErrorResult<Option<Session>> {
         let row: Option<SessionRow> = sqlx::query_as("SELECT * FROM sessions WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
@@ -150,7 +154,7 @@ impl SqliteSessionRepository {
         }
     }
 
-    pub async fn find_active_session(&self) -> DomainErrorResult<Option<Session>> {
+    async fn find_active_session(&self) -> DomainErrorResult<Option<Session>> {
         let row: Option<SessionRow> = sqlx::query_as(
             "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
         )
@@ -164,7 +168,7 @@ impl SqliteSessionRepository {
         }
     }
 
-    pub async fn find_all_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_all_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> =
             sqlx::query_as("SELECT * FROM sessions ORDER BY started_at DESC LIMIT ? OFFSET ?")
                 .bind(limit as i32)
@@ -176,7 +180,7 @@ impl SqliteSessionRepository {
         rows.into_iter().map(TryInto::try_into).collect()
     }
 
-    pub async fn delete(&self, id: &str) -> DomainErrorResult<bool> {
+    async fn delete(&self, id: &str) -> DomainErrorResult<bool> {
         let result = sqlx::query("DELETE FROM sessions WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
@@ -185,7 +189,7 @@ impl SqliteSessionRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn count_sessions(&self) -> DomainErrorResult<u32> {
+    async fn count_sessions(&self) -> DomainErrorResult<u32> {
         let row: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM sessions WHERE is_sub_session = FALSE",
         )
@@ -195,11 +199,7 @@ impl SqliteSessionRepository {
         Ok(row.0 as u32)
     }
 
-    pub async fn count(&self) -> DomainErrorResult<u32> {
-        self.count_sessions().await
-    }
-
-    pub async fn find_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<Vec<Session>> {
+    async fn find_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> = sqlx::query_as(
             "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC"
         )
@@ -211,7 +211,7 @@ impl SqliteSessionRepository {
         rows.into_iter().map(TryInto::try_into).collect()
     }
 
-    pub async fn find_sub_sessions_paginated(
+    async fn find_sub_sessions_paginated(
         &self,
         parent_id: &str,
         limit: u32,
@@ -230,7 +230,7 @@ impl SqliteSessionRepository {
         rows.into_iter().map(TryInto::try_into).collect()
     }
 
-    pub async fn count_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<u32> {
+    async fn count_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<u32> {
         let row: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM sessions WHERE parent_session_id = ?"
         )
@@ -241,7 +241,7 @@ impl SqliteSessionRepository {
         Ok(row.0 as u32)
     }
 
-    pub async fn find_main_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_main_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> = sqlx::query_as(
             "SELECT * FROM sessions WHERE is_sub_session = FALSE ORDER BY started_at DESC LIMIT ? OFFSET ?"
         )
@@ -254,8 +254,6 @@ impl SqliteSessionRepository {
         rows.into_iter().map(TryInto::try_into).collect()
     }
 }
-
-type DomainErrorResult<T> = Result<T, DomainError>;
 
 fn map_sqlx_err(e: sqlx::Error) -> DomainError {
     DomainError::repository(format!("Database error: {}", e))

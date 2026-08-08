@@ -14,6 +14,9 @@ pub mod repo_sqlite_user_preferences;
 pub mod repo_sqlite_waveform;
 pub mod repo_sqlite_recording;
 pub mod repo_sqlite_api_key;
+pub mod turso_http_client;
+pub mod repo_turso_session;
+pub mod repo_trait_session;
 
 pub use audio_capture_mock::MockAudioCapture;
 #[cfg(feature = "real-audio")]
@@ -27,3 +30,6 @@ pub use repo_sqlite_user_preferences::SqliteUserPreferencesRepository;
 pub use repo_sqlite_waveform::SqliteWaveformRepository;
 pub use repo_sqlite_recording::SqliteRecordingRepository;
 pub use repo_sqlite_api_key::SqliteApiKeyRepository;
+pub use repo_trait_session::SessionRepository;
+pub use repo_turso_session::TursoSessionRepository;
+pub use turso_http_client::TursoClient;

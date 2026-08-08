@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::domain::Session;
-use crate::infrastructure::repo_sqlite_session::SqliteSessionRepository;
+use crate::infrastructure::repo_trait_session::SessionRepository;
 use crate::shared::{AppError, AppResult};
 
 #[derive(Debug, Default, Clone)]
@@ -17,16 +17,16 @@ pub struct DspMetrics {
 }
 
 pub struct SessionService {
-    repository: Arc<SqliteSessionRepository>,
+    repository: Arc<dyn SessionRepository>,
 }
 
 impl SessionService {
-    pub fn new(repository: Arc<SqliteSessionRepository>) -> Self {
+    pub fn new(repository: Arc<dyn SessionRepository>) -> Self {
         Self { repository }
     }
 
-    pub async fn create_session(&self) -> AppResult<Session> {
-        let session = Session::new(uuid::Uuid::new_v4().to_string());
+    pub async fn create_session(&self, user_id: String, name: String) -> AppResult<Session> {
+        let session = Session::new(uuid::Uuid::new_v4().to_string(), user_id, name);
         self.repository
             .save_session(&session)
             .await
@@ -36,10 +36,11 @@ impl SessionService {
 
     pub async fn create_named_session(
         &self,
+        user_id: String,
         name: String,
         description: Option<String>,
     ) -> AppResult<Session> {
-        let session = Session::new_named(uuid::Uuid::new_v4().to_string(), Some(name), description);
+        let session = Session::new_with_description(uuid::Uuid::new_v4().to_string(), user_id, name, description);
         self.repository
             .save_session(&session)
             .await
@@ -47,14 +48,14 @@ impl SessionService {
         Ok(session)
     }
 
-    pub async fn create_sub_session(&self, parent_id: &str) -> AppResult<Session> {
+    pub async fn create_sub_session(&self, parent_id: &str, user_id: String, name: String) -> AppResult<Session> {
         let _parent = self.repository
             .find_by_id(parent_id)
             .await
             .map_err(AppError::Domain)?
             .ok_or_else(|| AppError::NotFound("Parent session not found".to_string()))?;
 
-        let session = Session::new_sub_session(uuid::Uuid::new_v4().to_string(), parent_id.to_string());
+        let session = Session::new_sub_session(uuid::Uuid::new_v4().to_string(), parent_id.to_string(), user_id, name);
         self.repository
             .save_session(&session)
             .await

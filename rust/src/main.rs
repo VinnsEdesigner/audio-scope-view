@@ -30,6 +30,9 @@ use infrastructure::{
     repo_sqlite_api_key::SqliteApiKeyRepository,
     repo_sqlite_user_preferences::SqliteUserPreferencesRepository,
     AudioStreamEvent, AudioStreamManager,
+    repo_trait_session::SessionRepository,
+    repo_turso_session::TursoSessionRepository,
+    turso_http_client::TursoClient,
 };
 
 async fn audio_event_processor(
@@ -172,33 +175,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         DatabaseConnection::Sqlite(pool) => {
             run_migrations(pool).await?;
         }
-        DatabaseConnection::Turso { db: turso_db } => {
-            // Run migrations for Turso using libsql
+        DatabaseConnection::Turso { .. } => {
+            // Run migrations for Turso using HTTP API
             info!("Running migrations for Turso database...");
-            let conn = turso_db.connect()
-                .map_err(|e| format!("Failed to get connection: {}", e))
-                .unwrap();
             for migration in infrastructure::database_migrations::MIGRATIONS {
                 info!("Applying migration v{}: {}", migration.version, migration.name);
-                conn.execute(migration.sql, ())
+                db.execute_raw(migration.sql)
                     .await
-                    .map_err(|e| format!("Failed to apply migration {}: {}", migration.name, e))
-                    .unwrap();
+                    .map_err(|e| format!("Failed to apply migration {}: {}", migration.name, e))?;
             }
             info!("Migrations complete");
         }
     }
 
     // Get SQLite pool for repositories (they use sqlx with SQLite queries)
-    let pool = db.sqlite_pool()
-        .expect("Repositories require SQLite connection. Turso support requires creating libsql-based repositories.");
-
-    let scope_repo = Arc::new(SqliteSessionRepository::new(pool.clone()));
-    let settings_repo = Arc::new(SqliteSettingsRepository::new(pool.clone()));
-    let waveform_repo = Arc::new(SqliteWaveformRepository::new(pool.clone()));
-    let recording_repo = Arc::new(SqliteRecordingRepository::new(pool.clone()));
-    let api_key_repo = Arc::new(SqliteApiKeyRepository::new(pool.clone()));
-    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(pool.clone()));
+    // For SQLite, we need the pool for other repos too
+    // For Turso, we use HTTP-based repos for sessions and local SQLite for others
+    let scope_repo: Arc<dyn SessionRepository>;
+    let settings_repo: Arc<SqliteSettingsRepository>;
+    let waveform_repo: Arc<SqliteWaveformRepository>;
+    let recording_repo: Arc<SqliteRecordingRepository>;
+    let api_key_repo: Arc<SqliteApiKeyRepository>;
+    let local_sqlite_pool: sqlx::SqlitePool;
+    
+    match &db {
+        DatabaseConnection::Sqlite(pool) => {
+            info!("Using SQLite repositories");
+            local_sqlite_pool = pool.clone();
+            scope_repo = Arc::new(SqliteSessionRepository::new(pool.clone())) as Arc<dyn SessionRepository>;
+            settings_repo = Arc::new(SqliteSettingsRepository::new(pool.clone()));
+            waveform_repo = Arc::new(SqliteWaveformRepository::new(pool.clone()));
+            recording_repo = Arc::new(SqliteRecordingRepository::new(pool.clone()));
+            api_key_repo = Arc::new(SqliteApiKeyRepository::new(pool.clone()));
+        }
+        DatabaseConnection::Turso { url, token } => {
+            info!("Using Turso session repository with local SQLite fallback for other repos");
+            // Create local SQLite for non-session repos
+            local_sqlite_pool = sqlx::sqlite::SqlitePoolOptions::new()
+                .max_connections(5)
+                .connect("sqlite:./data/local_fallback.db?mode=rwc")
+                .await
+                .expect("Failed to create local SQLite pool");
+            
+            // Run migrations on local SQLite
+            run_migrations(&local_sqlite_pool).await.expect("Failed to run local migrations");
+            
+            scope_repo = Arc::new(TursoSessionRepository::new(TursoClient::new(url, token))) as Arc<dyn SessionRepository>;
+            settings_repo = Arc::new(SqliteSettingsRepository::new(local_sqlite_pool.clone()));
+            waveform_repo = Arc::new(SqliteWaveformRepository::new(local_sqlite_pool.clone()));
+            recording_repo = Arc::new(SqliteRecordingRepository::new(local_sqlite_pool.clone()));
+            api_key_repo = Arc::new(SqliteApiKeyRepository::new(local_sqlite_pool.clone()));
+        }
+    }
+    let user_prefs_repo = Arc::new(SqliteUserPreferencesRepository::new(settings_repo.pool().clone()));
 
     let scope_service = Arc::new(SessionService::new(scope_repo.clone()));
     let settings_service = Arc::new(SettingsService::new(

@@ -79,6 +79,10 @@ impl SqliteSettingsRepository {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
+    
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
 
     async fn to_row(settings: &Settings) -> SettingsRow {
         SettingsRow {

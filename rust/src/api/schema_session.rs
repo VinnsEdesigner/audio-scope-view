@@ -53,7 +53,8 @@ pub struct SessionStatusCountsOutput {
 #[derive(Debug, SimpleObject)]
 pub struct SessionOutput {
     pub id: String,
-    pub name: Option<String>,
+    pub user_id: String,
+    pub name: String,
     pub description: Option<String>,
     pub started_at: String,
     pub ended_at: Option<String>,
@@ -79,6 +80,7 @@ impl SessionOutput {
         let oscilloscope_duration_ms = session.oscilloscope_duration_ms;
         Self {
             id: session.id,
+            user_id: session.user_id,
             name: session.name,
             description: session.description,
             started_at: session.started_at.to_rfc3339(),
@@ -113,6 +115,7 @@ impl SessionOutput {
         let oscilloscope_duration_ms = session.oscilloscope_duration_ms;
         Self {
             id: session.id,
+            user_id: session.user_id,
             name: session.name,
             description: session.description,
             started_at: session.started_at.to_rfc3339(),
@@ -173,6 +176,7 @@ fn validate_session_name(name: &str) -> Result<(), String> {
 
 #[derive(Debug, InputObject)]
 pub struct CreateSessionInput {
+    pub user_id: String,
     pub name: String,
     pub description: Option<String>,
 }
@@ -489,7 +493,7 @@ impl SessionMutation {
 
         let session = context
             .session_service
-            .create_named_session(input.name, input.description)
+            .create_named_session(input.user_id, input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create session: {:?}", e)))?;
 
@@ -511,7 +515,7 @@ impl SessionMutation {
 
         let session = context
             .session_service
-            .create_named_session(input.name, input.description)
+            .create_named_session(input.user_id, input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create named session: {:?}", e)))?;
 
@@ -522,6 +526,7 @@ impl SessionMutation {
         &self,
         ctx: &Context<'_>,
         parent_id: String,
+        input: CreateSessionInput,
     ) -> Result<SessionOutput, async_graphql::Error> {
         let context = ctx
             .data::<GraphqlContext>()
@@ -529,7 +534,7 @@ impl SessionMutation {
 
         let session = context
             .session_service
-            .create_sub_session(&parent_id)
+            .create_sub_session(&parent_id, input.user_id, input.name)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create sub-session: {:?}", e)))?;
 
