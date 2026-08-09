@@ -2,7 +2,7 @@
   "releases": [
     {
       "version": "1.5.0",
-      "date": "December 15, 2024",
+      "date": "July 15, 2026",
       "changes": [
         {
           "type": "New",
@@ -13,7 +13,7 @@
     },
     {
       "version": "1.4.2",
-      "date": "December 8, 2024",
+      "date": "July 8, 2026",
       "changes": [
         {
           "type": "Improved",
@@ -24,7 +24,7 @@
     },
     {
       "version": "1.4.1",
-      "date": "November 30, 2024",
+      "date": "June 30, 2026",
       "changes": [
         {
           "type": "Fixed",
@@ -35,7 +35,7 @@
     },
     {
       "version": "1.4.0",
-      "date": "November 22, 2024",
+      "date": "June 22, 2026",
       "changes": [
         {
           "type": "New",
