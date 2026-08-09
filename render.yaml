@@ -38,6 +38,6 @@ services:
       - key: VITE_GRAPHQL_ENDPOINT
         value: "/graphql"
       - key: VITE_WEBSOCKET_ENDPOINT
-        value: "ws://localhost:8080/graphql"
+        value: "/ws"
       - key: VITE_CLIENT_URL
         value: "https://your-app.onrender.com"

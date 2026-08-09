@@ -6,6 +6,14 @@
 - More-menu / popover z-index: use `z-50` (sticky header is `z-30`). The recordings more-menu previously used `z-10` and rendered behind later rows.
 - GraphQL fragments/queries were verified to match the Rust schema via introspection (SESSION_FIELDS, RECORDING_FIELDS, RECORDING_SUMMARY_FIELDS, SessionWithStatusFields, all wrapper result types).
 
+## Docker / Client-Server Connection (IMPORTANT)
+- The deployed image bundles a static-server (Node, port 3000) that serves the SPA and reverse-proxies `/graphql` and `/ws` to the Rust backend (127.0.0.1:8080 inside the container). So the browser must use **relative** endpoints (`/graphql`, `/ws`), NOT absolute `ws://localhost:8080/...` URLs — the browser's `localhost` is not the container's localhost, so absolute URLs break in Docker/remote deploys.
+- `packages/api-client/src/config.ts` `DEFAULT_CONFIG`: `graphqlEndpoint: "/graphql"`, `websocketEndpoint: "/ws"`. `apps/vyzorWeb/src/hooks/use-waveform-stream.ts` builds the WS URL from `location.host` + `/ws`. `.env.example` and `render.yaml` set `VITE_WEBSOCKET_ENDPOINT=/ws`.
+- `VITE_*` env vars are baked into the frontend bundle at **build** time (Vite), not read at runtime. A deployed image with stale/empty build-time env will be broken regardless of runtime env — rebuild the image to pick up new values.
+- **Image freshness matters:** the ghcr image must be rebuilt from current source after client-side changes. A stale image renders the UI but the Apollo client may silently fail to fire queries (no POST /graphql in server logs). Always rebuild + redeploy after frontend fixes.
+- Run locally: `docker run -p 3000:3000 -p 8080:8080 -e BOOTSTRAP_KEY="$(openssl rand -hex 32)" ghcr.io/vinnsedesigner/audio-scope-view:latest`. Health: `curl http://localhost:3000/health`.
+- Dev frontend (no Docker): `pnpm --filter @audio-scope-view/vyzor-web dev` (add a `server.proxy` in vite.config.ts pointing `/graphql`+`/ws` at the backend port to test against a running server).
+
 ## Build & Run
 - Rust project in `rust/` directory; pinned toolchain `nightly-2026-07-20` (via `rust-toolchain.toml`)
 - Build: `cd rust && cargo build --release` (release takes ~2m; only warnings)

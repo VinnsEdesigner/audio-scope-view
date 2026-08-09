@@ -90,8 +90,12 @@ export interface ClientConfig {
 }
 
 const DEFAULT_CONFIG: ClientConfig = {
+  // Relative paths so the browser connects to whatever host served the page
+  // (the static-server / reverse proxy forwards these to the Rust backend).
+  // Absolute URLs like ws://localhost:8080 break in Docker and remote deploys
+  // because the browser's localhost is not the server.
   graphqlEndpoint: "/graphql",
-  websocketEndpoint: "ws://localhost:8080/ws",
+  websocketEndpoint: "/ws",
   bootstrapKey: "",
   clientUrl: "http://localhost:3000",
 };

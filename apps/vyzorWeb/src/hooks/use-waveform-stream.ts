@@ -34,7 +34,7 @@ export function useWaveformStream(options: UseWaveformStreamOptions) {
     setSessionId(sessionId);
 
     const wsProtocol = globalThis.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${globalThis.location.host}/graphql`;
+    const wsUrl = `${wsProtocol}//${globalThis.location.host}/ws`;
 
     const connect = () => {
       try {
