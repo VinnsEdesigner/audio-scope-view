@@ -511,6 +511,7 @@ impl RecordingQuery {
         time_range: Option<String>,
     ) -> RecordingStatsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
 
         let range = time_range.as_ref().map(|t| match t.as_str() {
             "today" => TimeRange::Today,
@@ -521,7 +522,7 @@ impl RecordingQuery {
 
         context
             .recording_service
-            .get_stats(session_id.as_deref(), range)
+            .get_stats(device_id.as_deref(), session_id.as_deref(), range)
             .await
             .map(RecordingStatsOutput::from)
             .unwrap_or(RecordingStatsOutput {
@@ -594,9 +595,10 @@ impl RecordingQuery {
         session_id: Option<String>,
     ) -> RecordingStatsOutput {
         let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
         context
             .recording_service
-            .get_recording_count_by_range(session_id.as_deref())
+            .get_recording_count_by_range(device_id.as_deref(), session_id.as_deref())
             .await
             .map(RecordingStatsOutput::from)
             .unwrap_or(RecordingStatsOutput {

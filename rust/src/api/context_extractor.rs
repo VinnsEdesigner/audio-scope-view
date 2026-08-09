@@ -3,6 +3,7 @@
 use crate::application::{DashboardService, RecordingService, SessionService, SettingsService, WaveformService};
 use crate::api::auth::ApiKey;
 use crate::domain::UserPreferencesRepository;
+use crate::infrastructure::AudioStreamManager;
 use std::sync::Arc;
 
 #[derive(Clone, Default)]
@@ -19,6 +20,7 @@ pub struct GraphqlContext {
     pub waveform_service: Arc<WaveformService>,
     pub recording_service: Arc<RecordingService>,
     pub user_preferences_repository: Arc<dyn UserPreferencesRepository>,
+    pub audio_manager: Arc<AudioStreamManager>,
     pub auth: ApiKeyAuth,
 }
 
@@ -31,6 +33,7 @@ impl GraphqlContext {
         waveform_service: Arc<WaveformService>,
         recording_service: Arc<RecordingService>,
         user_preferences_repository: Arc<dyn UserPreferencesRepository>,
+        audio_manager: Arc<AudioStreamManager>,
     ) -> Self {
         Self {
             session_service,
@@ -39,6 +42,7 @@ impl GraphqlContext {
             waveform_service,
             recording_service,
             user_preferences_repository,
+            audio_manager,
             auth: ApiKeyAuth::default(),
         }
     }

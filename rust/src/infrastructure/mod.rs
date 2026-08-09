@@ -1,8 +1,4 @@
 
-pub mod audio_capture_alsa;
-pub mod audio_capture_mock;
-pub mod audio_capture_pulse;
-#[cfg(feature = "real-audio")]
 pub mod audio_capture_real;
 pub mod audio_stream_manager;
 pub mod config_loader;
@@ -25,8 +21,6 @@ pub mod repo_turso_recording;
 pub mod repo_turso_api_key;
 pub mod repo_turso_user_preferences;
 
-pub use audio_capture_mock::MockAudioCapture;
-#[cfg(feature = "real-audio")]
 pub use audio_capture_real::RealAudioCapture;
 pub use audio_stream_manager::{AudioBackendType, AudioStreamEvent, AudioStreamManager, StreamConfig, StreamStats};
 pub use config_loader::AppConfig;

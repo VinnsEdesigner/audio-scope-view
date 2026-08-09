@@ -4,17 +4,19 @@
 use std::sync::Arc;
 
 use async_graphql::http::GraphiQLSource;
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
     body::Body,
+    extract::ws::WebSocketUpgrade,
     response::Html,
     Router,
-    extract::State,
+    extract::{Query, State},
     response::IntoResponse,
     routing::{get, post},
     middleware::from_fn,
 };
 use http::header::{AUTHORIZATION};
+use serde::Deserialize;
 use sha2::{Sha256, Digest};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
@@ -26,7 +28,7 @@ use crate::api::handler_recording::{get_recording_samples, get_recording_metadat
 use crate::api::schema_root::build_schema;
 use crate::api::websocket::{WsState, ws_handler};
 use crate::application::{BatchCaptureService, DashboardService, RecordingService, SessionService, SettingsService, SimulationService, WaveformService};
-use crate::shared::constants::{GRAPHQL_PATH, GRAPHQL_PLAYGROUND_PATH, HEALTH_PATH};
+use crate::shared::constants::{GRAPHQL_PATH, GRAPHQL_PLAYGROUND_PATH, HEALTH_PATH, is_valid_device_id};
 
 /// HTTP header carrying the per-device anonymous identity.
 pub const DEVICE_ID_HEADER: &str = "x-device-id";
@@ -95,12 +97,26 @@ async fn extract_auth_header(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
+    // The device id is the data-isolation dimension. A malformed id must never
+    // be trusted as a scoping key (it could be used to enumerate or impersonate
+    // another scope), so we validate its shape here and reject bad requests
+    // early. An absent id is allowed (admin / playground / tooling).
     let device_id = req
         .headers()
         .get(DEVICE_ID_HEADER)
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.trim().is_empty())
         .map(|s| s.trim().to_string());
+
+    if let Some(ref did) = device_id {
+        if !is_valid_device_id(did) {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                "Invalid X-Device-Id: must be a well-formed device identifier",
+            )
+                .into_response();
+        }
+    }
 
     let mut req = req;
     // NOTE: auth_header and device_id must be stored under distinct types —
@@ -149,6 +165,7 @@ impl AppState {
         bootstrap_key: String,
         key_store: Arc<ApiKeyStore>,
         user_preferences_repository: Arc<dyn crate::domain::UserPreferencesRepository>,
+        audio_manager: Arc<crate::infrastructure::AudioStreamManager>,
     ) -> Self {
         let context = GraphqlContext::new(
             session_service.clone(),
@@ -157,6 +174,7 @@ impl AppState {
             waveform_service,
             recording_service.clone(),
             user_preferences_repository,
+            audio_manager,
         );
 
         let schema = build_schema();
@@ -333,6 +351,101 @@ async fn playground_handler() -> impl IntoResponse {
     )
 }
 
+/// Query params accepted by the GraphQL subscription WebSocket handshake.
+/// Browsers cannot set custom headers on a `WebSocket()` upgrade, so the device
+/// id and bootstrap/api key are accepted via the query string (the same fields
+/// are also accepted through the `Authorization` / `X-Device-Id` headers injected
+/// by the auth middleware when a reverse proxy forwards them).
+#[derive(Debug, Deserialize)]
+struct GraphqlWsHandshakeQuery {
+    #[serde(rename = "X-Device-Id")]
+    device_id: Option<String>,
+    /// Bootstrap key or API key (also accepted via the `Authorization` header).
+    #[serde(rename = "X-Api-Key")]
+    api_key: Option<String>,
+}
+
+/// `graphql-transport-ws` / legacy `graphql-ws` endpoint for GraphQL
+/// subscriptions (`OnAnalysisResult`, `WaveformSubscribe`, ...). Mirrors the
+/// HTTP handler's auth + context injection so subscriptions are authenticated
+/// and device-scoped exactly like queries and mutations.
+async fn graphql_ws_handler(
+    ws: WebSocketUpgrade,
+    protocol: async_graphql_axum::GraphQLProtocol,
+    Query(query): Query<GraphqlWsHandshakeQuery>,
+    State(state): State<Arc<AppState>>,
+    axum::extract::Extension(AuthHeaderExt(header_auth)): axum::extract::Extension<AuthHeaderExt>,
+    axum::extract::Extension(DeviceIdExt(header_device_id)): axum::extract::Extension<DeviceIdExt>,
+) -> axum::response::Response {
+    let auth_header = header_auth.or_else(|| query.api_key.clone());
+    let device_id = header_device_id.or_else(|| query.device_id.clone());
+
+    // Validate the device id shape. A malformed id must never become a scoping
+    // key, so reject the subscription handshake early.
+    if let Some(ref did) = device_id {
+        if !is_valid_device_id(did) {
+            info!("GQL-WS: rejected malformed device id");
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                "Invalid X-Device-Id: must be a well-formed device identifier",
+            )
+                .into_response();
+        }
+    }
+
+    let (api_key_info, is_system_client) = state.validate_api_key(auth_header.as_deref()).await;
+    if api_key_info.is_none() && !is_system_client {
+        info!("GQL-WS: AUTH FAILED - invalid or missing API key");
+        return (axum::http::StatusCode::UNAUTHORIZED, "Unauthorized: invalid or missing API key")
+            .into_response();
+    }
+
+    let identity = RequestIdentity {
+        device_id,
+        is_system_client,
+        api_key: api_key_info.clone(),
+    };
+    let scope = identity.effective_device_id().map(|s| s.to_string());
+    info!("GQL-WS: AUTH OK (device: {})", scope.as_deref().unwrap_or("<unscoped>"));
+
+    // Inject the same request data as the HTTP handler so subscription
+    // resolvers can read AppState, GraphqlContext, WsState, ApiKeyStore and the
+    // device-scoped RequestIdentity.
+    let schema = state.graphql_schema.clone();
+    let app_state = state.clone();
+    let key_info = api_key_info.clone();
+
+    // Echo the `Sec-WebSocket-Protocol` the client requested (graphql-ws /
+    // graphql-transport-ws). Browsers reject an upgrade that drops the selected
+    // subprotocol, so both Apollo's `subscriptions-transport-ws` and the newer
+    // `graphql-ws` transports must see their protocol echoed back.
+    let ws = ws
+        .protocols(["graphql-ws", "graphql-transport-ws", "subscriptions-transport-ws"]);
+
+    ws.on_upgrade(move |socket| {
+        GraphQLWebSocket::new(socket, schema.clone(), protocol)
+            .on_connection_init(move |_msg| {
+                let app_state = app_state.clone();
+                let identity = identity.clone();
+                let key_info = key_info.clone();
+                async move {
+                    let mut data = async_graphql::Data::default();
+                    data.insert(app_state.clone());
+                    data.insert(app_state.context.clone());
+                    data.insert(app_state.ws_state.clone());
+                    data.insert(app_state.key_store.clone());
+                    data.insert(identity);
+                    data.insert(ApiKeyAuth {
+                        key_info,
+                        is_system_client,
+                    });
+                    Ok(data)
+                }
+            })
+            .serve()
+    })
+}
+
 pub fn build_router(state: Arc<AppState>) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -344,6 +457,10 @@ pub fn build_router(state: Arc<AppState>) -> Router {
     let graphql_router = Router::new()
         .route(GRAPHQL_PATH, post(graphql_handler))
         .route(GRAPHQL_PLAYGROUND_PATH, get(playground_handler))
+        // GraphQL subscription transport (graphql-transport-ws / legacy
+        // graphql-ws). Used by Apollo Client's WebSocketLink for
+        // `OnAnalysisResult` and the waveform/spectrum subscriptions.
+        .route("/ws", get(graphql_ws_handler))
         .layer(auth_middleware)
         .with_state(state.clone());
 

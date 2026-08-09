@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useRenameRecording, useDeleteRecording } from "./use-recordings";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
+import { formatError } from "@/lib/format-error";
 import { renameDialogInputReference } from "@/components/dialogs/rename-dialog-constants";
 import { useToast } from "@/hooks";
 import {
@@ -102,7 +103,7 @@ export function useSessionDialogs({
         });
       } catch (error) {
         showToast({
-          message: `Failed to rename recording: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to rename recording: ${formatError(error)}`,
           type: "error",
         });
       }
@@ -121,7 +122,7 @@ export function useSessionDialogs({
         });
       } catch (error) {
         showToast({
-          message: `Failed to delete recording: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to delete recording: ${formatError(error)}`,
           type: "error",
         });
       }

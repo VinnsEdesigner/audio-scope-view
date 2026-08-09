@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { formatError } from "@/lib/format-error";
 import { InlineSelect } from "@/components/ui/inline-select";
 import type { ApiKey, UpdateApiKeyInput } from "@/hooks/use-api-keys";
 import { useUpdateApiKey } from "@/hooks/use-api-keys";
@@ -55,7 +56,7 @@ export function EditApiKeyDialog({ isOpen, onClose, apiKey }: EditApiKeyDialogPr
       },
       onError: (error: Error) => {
         showToast({
-          message: `Failed to update API key: ${error.message || "Unknown error"}`,
+          message: `Failed to update API key: ${formatError(error, "Unknown error")}`,
           type: "error",
         });
       },

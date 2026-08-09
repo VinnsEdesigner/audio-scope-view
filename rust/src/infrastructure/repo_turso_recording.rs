@@ -116,7 +116,7 @@ impl TursoRecordingRepository {
     }
 
     fn row_to_metadata(row: &[TursoValue]) -> Result<RecordingMetadata, DomainError> {
-        let timestamp_str = row.get(5).and_then(|v| v.as_str())
+        let timestamp_str = row.get(6).and_then(|v| v.as_str())
             .ok_or_else(|| DomainError::corruption("Missing timestamp".to_string()))?;
         let waveform_overview = row.get(13).and_then(|v| v.as_str())
             .map(|json| serde_json::from_str(json))
@@ -420,11 +420,16 @@ impl RecordingRepository for TursoRecordingRepository {
 
     async fn get_stats(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> DomainErrorResult<RecordingStats> {
         let mut where_clause = String::new();
         let mut args: Vec<TursoArg> = Vec::new();
+        if let Some(did) = device_id {
+            where_clause.push_str(" AND session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
+            args.push(TursoArg::text(did));
+        }
         if let Some(range) = time_range {
             if let Some(start) = Self::get_time_range_start(range) {
                 where_clause.push_str(" AND timestamp >= ?");
@@ -448,12 +453,19 @@ impl RecordingRepository for TursoRecordingRepository {
 
     async fn get_recording_count_by_range(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
     ) -> DomainErrorResult<RecordingStats> {
-        let (where_clause, args) = match session_id {
-            Some(sid) => (" AND session_id = ?".to_string(), vec![TursoArg::text(sid)]),
-            None => (String::new(), Vec::new()),
-        };
+        let mut where_clause = String::new();
+        let mut args: Vec<TursoArg> = Vec::new();
+        if let Some(did) = device_id {
+            where_clause.push_str(" AND session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
+            args.push(TursoArg::text(did));
+        }
+        if let Some(sid) = session_id {
+            where_clause.push_str(" AND session_id = ?");
+            args.push(TursoArg::text(sid));
+        }
         let sql = format!("{}{}", Self::stats_sql(), where_clause);
         let result = self.client.execute_with_args(&sql, args)
             .await.map_err(Self::map_err)?;

@@ -8,6 +8,7 @@ import {
 } from "../hooks";
 import { useToast } from "../hooks";
 import { SelectSessionDialog, CreateSessionDialog } from "../components/dialogs";
+import { formatError } from "@/lib/format-error";
 import type { Session } from "@audio-scope-view/api-client/domain";
 
 export type SessionSelectionState =
@@ -34,11 +35,11 @@ const SessionSelectionContext = React.createContext<SessionSelectionContextValue
   undefined,
 );
 
-// Helper to check if a session is active (no endedAt date)
-// Note: isLastUsedSessionActive is a more comprehensive check that includes
-// whether the session is in the active sessions list
+// Helper to check if a session is active (no endedAt date).
+// GraphQL returns `null` for endedAt on active sessions, so we must treat
+// both null and undefined as "not ended".
 function isSessionActive(session: Session | undefined): boolean {
-  return session?.endedAt === undefined;
+  return !session?.endedAt;
 }
 
 export function useSessionSelection(): SessionSelectionContextValue {
@@ -241,7 +242,7 @@ export function SessionSelectionProvider({
         }
       } catch (error) {
         showToast({
-          message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to create session: ${formatError(error)}`,
           type: "error",
         });
       }

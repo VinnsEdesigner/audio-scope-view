@@ -6,7 +6,8 @@ use sha2::{Sha256, Digest};
 use crate::application::export_service::ExportService;
 use crate::application::export_service::ExportFormat as AppExportFormat;
 use crate::application::BatchCaptureSettings;
-use crate::api::context_extractor::GraphqlContext;
+use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
+use crate::api::server_graphql::RequestIdentity;
 
 fn verify_bootstrap_key(provided_key: &str, expected_hash: &[u8; 32]) -> bool {
     let mut hasher = Sha256::new();
@@ -99,6 +100,21 @@ impl ExportQueryRoot {
             .map_err(|e| async_graphql::Error::new(format!("Failed to get waveform: {}", e)))?
             .ok_or_else(|| async_graphql::Error::new("Waveform not found"))?;
 
+        // Enforce device isolation: a device must not export another device's
+        // waveform. Verify the waveform's session belongs to the requesting
+        // device. Unscoped admins bypass the check.
+        if let Some(ref did) = device_scope_from_context(ctx) {
+            let session = context
+                .session_service
+                .get(&waveform.session_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(format!("Failed to load session: {}", e)))?
+                .ok_or_else(|| async_graphql::Error::new("Waveform not found"))?;
+            if session.user_id != *did {
+                return Err(async_graphql::Error::new("Waveform not found"));
+            }
+        }
+
         let export_service = ExportService::new(44100);
         let data = export_service.export(&waveform, format.into())
             .map_err(|e| async_graphql::Error::new(format!("Export failed: {}", e)))?;
@@ -171,6 +187,21 @@ impl BatchCaptureMutationRoot {
         input: BatchCaptureInput,
     ) -> async_graphql::Result<BatchCaptureResult> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
+
+        // Enforce device isolation: a device must not trigger batch captures
+        // into another device's session. Unscoped admins bypass the check.
+        if let Some(ref did) = device_scope_from_context(ctx) {
+            let session = app_state
+                .context
+                .session_service
+                .get(&input.session_id)
+                .await
+                .map_err(|e| async_graphql::Error::new(format!("Failed to load session: {}", e)))?
+                .ok_or_else(|| async_graphql::Error::new("Session not found"))?;
+            if session.user_id != *did {
+                return Err(async_graphql::Error::new("Session not found"));
+            }
+        }
 
         let settings = BatchCaptureSettings {
             session_id: input.session_id,
@@ -292,9 +323,26 @@ pub struct UpdateApiKeyInput {
 #[derive(Default)]
 pub struct ApiKeyQueryRoot;
 
+/// Returns `Ok(())` when the caller is an unscoped admin (bootstrap key with no
+/// device id). API key management is an admin-only capability: a regular device
+/// must not enumerate, verify, or inspect API keys, because that would let a
+/// device enumerate/manage credentials for the whole system.
+fn assert_admin(ctx: &Context<'_>) -> async_graphql::Result<()> {
+    let identity = ctx
+        .data_unchecked::<RequestIdentity>();
+    if identity.is_unscoped_admin() {
+        Ok(())
+    } else {
+        Err(async_graphql::Error::new(
+            "Forbidden: API key management requires an admin (bootstrap) context",
+        ))
+    }
+}
+
 #[Object]
 impl ApiKeyQueryRoot {
     async fn api_keys(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<ApiKeyInfo>> {
+        assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         let keys = key_store.list_keys().await;
 
@@ -310,6 +358,7 @@ impl ApiKeyQueryRoot {
     }
 
     async fn api_key(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<Option<ApiKeyInfo>> {
+        assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
 
         if let Some(k) = key_store.get_key_info(&id).await {
@@ -329,6 +378,7 @@ impl ApiKeyQueryRoot {
     }
 
     async fn verify_api_key(&self, ctx: &Context<'_>, key: String) -> async_graphql::Result<ApiKeyVerifyResult> {
+        assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
 
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
@@ -372,6 +422,7 @@ impl ApiKeyMutationRoot {
         ctx: &Context<'_>,
         input: CreateApiKeyInput,
     ) -> async_graphql::Result<ApiKeyCreated> {
+        assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
 
         let api_key = if let Some(hours) = input.expires_in_hours {
@@ -397,6 +448,7 @@ impl ApiKeyMutationRoot {
         id: String,
         input: UpdateApiKeyInput,
     ) -> async_graphql::Result<bool> {
+        assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
 
         if let Some(ref name) = input.name {
@@ -420,6 +472,7 @@ impl ApiKeyMutationRoot {
         ctx: &Context<'_>,
         id: String,
     ) -> async_graphql::Result<bool> {
+        assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         let deleted = key_store.delete_key(&id).await;
         Ok(deleted)

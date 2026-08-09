@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import { Radio, Loader2 } from "lucide-react";
 import type { SessionWithStatus } from "@/hooks";
 import { formatTimestampRelative, useToast } from "@/hooks";
@@ -26,7 +25,6 @@ export function SelectSessionDialog({
   isLoading,
   required = false,
 }: SelectSessionDialogProperties): React.ReactElement {
-  const navigate = useNavigate();
   const { showToast } = useToast();
 
   // Local state to track the selected session within the dialog
@@ -61,7 +59,7 @@ export function SelectSessionDialog({
   };
 
   const handleCancelClick = () => {
-    navigate("/");
+    _onClose();
   };
 
   return (

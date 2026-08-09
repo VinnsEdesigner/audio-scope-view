@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Check } from "lucide-react";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
+import { formatError } from "@/lib/format-error";
 import type { ApiKey } from "@/hooks/use-api-keys";
 import { useDeleteApiKey } from "@/hooks/use-api-keys";
 import { useToast } from "@/hooks";
@@ -66,7 +67,7 @@ export function DeleteApiKeyDialog({ isOpen, onClose, apiKey }: DeleteApiKeyDial
       },
       onError: (error: Error) => {
         showToast({
-          message: `Failed to delete API key: ${error.message || "Unknown error"}`,
+          message: `Failed to delete API key: ${formatError(error, "Unknown error")}`,
           type: "error",
         });
       },

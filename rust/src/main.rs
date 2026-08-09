@@ -58,7 +58,7 @@ async fn audio_event_processor(
                 sample_rate
             } => {
                 let peak = samples.iter().fold(0.0f32, |max, &s| max.max(s.abs()));
-                let rms = (samples.iter().map(|&s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
+                let rms = (samples.iter().map(|&s| s * s).sum::<f32>() / samples.len().max(1) as f32).sqrt();
 
                 let waveform_data = WaveformData {
                     session_id: session_id.clone(),
@@ -70,6 +70,46 @@ async fn audio_event_processor(
                 };
 
                 ws_state.broadcast_to_graphql_waveform(&session_id, waveform_data).await;
+
+                // Compute full DSP analysis (FFT + harmonics) from the
+                // server-captured audio and publish it to the
+                // `analysisSubscribe` GraphQL subscription, so clients receive
+                // server-side metrics without having to push their own audio.
+                let sample_rate_f = sample_rate as f32;
+                let waveform_analysis = crate::domain::measurements::analyze_waveform(&samples, sample_rate_f);
+                let harmonic_analysis = crate::domain::measurements::analyze_harmonics(&samples, sample_rate_f);
+
+                let harmonics: Vec<crate::api::schema_subscription::HarmonicComponent> = harmonic_analysis
+                    .harmonics
+                    .iter()
+                    .take(10)
+                    .map(|h| crate::api::schema_subscription::HarmonicComponent {
+                        harmonic: h.harmonic as i32,
+                        frequency: h.frequency,
+                        magnitude: h.magnitude,
+                        phase: h.phase,
+                    })
+                    .collect();
+
+                let analysis_data = crate::api::schema_subscription::AnalysisResult {
+                    session_id: session_id.clone(),
+                    timestamp: timestamp_ms,
+                    sample_rate,
+                    peak_amplitude: waveform_analysis.peak_amplitude,
+                    rms_amplitude: waveform_analysis.rms_amplitude,
+                    dc_offset: waveform_analysis.dc_offset,
+                    dominant_frequency: waveform_analysis.dominant_frequency,
+                    fundamental_frequency: harmonic_analysis.fundamental.frequency,
+                    thd: waveform_analysis.thd,
+                    thdn: harmonic_analysis.thdn,
+                    snr: waveform_analysis.snr,
+                    crest_factor: waveform_analysis.crest_factor,
+                    signal_energy: harmonic_analysis.signal_energy,
+                    noise_energy: harmonic_analysis.noise_energy,
+                    harmonics,
+                };
+
+                ws_state.broadcast_to_graphql_analysis(&session_id, analysis_data).await;
             }
             AudioStreamEvent::Spectrum {
                 session_id,
@@ -104,6 +144,24 @@ async fn audio_event_processor(
     warn!("Audio event processor stopped");
 }
 
+/// Pumps the AudioStreamManager capture loop: while any session is capturing,
+/// repeatedly reads samples from the cpal backend and dispatches them as
+/// `AudioStreamEvent`s (which `audio_event_processor` turns into waveform /
+/// analysis broadcasts). Without this loop the capture backend is opened but
+/// never read, so no events are emitted.
+async fn capture_pump_loop(stream_manager: Arc<AudioStreamManager>) {
+    let mut ticker = interval(Duration::from_millis(50));
+    loop {
+        ticker.tick().await;
+        if !stream_manager.is_any_capturing().await {
+            continue;
+        }
+        if let Err(e) = stream_manager.read_and_process().await {
+            warn!("capture_pump_loop read_and_process error: {:?}", e);
+        }
+    }
+}
+
 async fn stats_reporter(
     stream_manager: Arc<AudioStreamManager>,
     ws_state: Arc<api::websocket::handler::WsState>,
@@ -114,10 +172,10 @@ async fn stats_reporter(
     loop {
         ticker.tick().await;
 
-        let active_sessions = stream_manager.active_sessions();
+        let active_sessions = stream_manager.active_sessions().await;
 
         for session_id in active_sessions {
-            if let Some(stats) = stream_manager.get_session_stats(&session_id) {
+            if let Some(stats) = stream_manager.get_session_stats(&session_id).await {
                 let samples_per_second = stats.samples_captured
                     .checked_mul(1000)
                     .and_then(|v| v.checked_div(stats.capture_duration_ms))
@@ -127,7 +185,7 @@ async fn stats_reporter(
                     session_id: session_id.clone(),
                     samples_per_second,
                     dropped_samples: stats.errors,                     buffer_fill_percent: 0.0,                     capture_duration_ms: stats.capture_duration_ms,
-                    is_capturing: stream_manager.is_any_capturing(),
+                    is_capturing: stream_manager.is_any_capturing().await,
                 };
 
                 ws_state.broadcast_to_graphql_stats(&session_id, audio_stats).await;
@@ -251,10 +309,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let simulation_service = Arc::new(SimulationService::new(waveform_service.clone()));
     let batch_capture_service = Arc::new(BatchCaptureService::new(waveform_service.clone()));
 
-    let ws_state = Arc::new(api::websocket::handler::WsState::new());
-
-    let audio_manager = Arc::new(AudioStreamManager::new());
-    info!("Audio backend: {:?}", audio_manager.backend_type());
+    let audio_backend = config.audio.backend_type();
+    info!("Audio backend (configured): {:?}", audio_backend);
+    let audio_manager = Arc::new(AudioStreamManager::with_backend(audio_backend));
+    info!("Audio backend (active): {:?}", audio_manager.backend_type());
     match audio_manager.list_devices().await {
         Ok(devices) => {
             for device in &devices {
@@ -269,18 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let (event_tx, event_rx) = mpsc::channel::<AudioStreamEvent>(100);
-    audio_manager.set_event_sender(event_tx);
-
-    let ws_state_clone = ws_state.clone();
-    let _processor_handle = tokio::spawn(async move {
-        audio_event_processor(event_rx, ws_state_clone).await;
-    });
-
-    let audio_manager_clone = audio_manager.clone();
-    let ws_state_stats = ws_state.clone();
-    let _stats_handle = tokio::spawn(async move {
-        stats_reporter(audio_manager_clone, ws_state_stats, 1).await;
-    });
+    audio_manager.set_event_sender(event_tx).await;
 
     let key_store = Arc::new(ApiKeyStore::with_repository(api_key_repo.clone()));
     key_store.load_from_database().await;
@@ -296,7 +343,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         bootstrap_key,
         key_store,
         user_prefs_repo,
+        audio_manager.clone(),
     ));
+
+    // Use the SAME `WsState` instance that `AppState` injects into the GraphQL
+    // context. A separately-created `WsState` here would desynchronize the
+    // event processor's broadcast map from the subscription resolvers' map, so
+    // `analysisSubscribe`/`waveformSubscribe` would never receive data.
+    let ws_state = state.ws_state();
+
+    let ws_state_clone = ws_state.clone();
+    let _processor_handle = tokio::spawn(async move {
+        audio_event_processor(event_rx, ws_state_clone).await;
+    });
+
+    let audio_manager_clone = audio_manager.clone();
+    let ws_state_stats = ws_state.clone();
+    let _stats_handle = tokio::spawn(async move {
+        stats_reporter(audio_manager_clone, ws_state_stats, 1).await;
+    });
+
+    // Pump the cpal capture loop so server-captured audio is read and
+    // dispatched as waveform/analysis events while sessions are capturing.
+    let audio_manager_pump = audio_manager.clone();
+    let _pump_handle = tokio::spawn(async move {
+        capture_pump_loop(audio_manager_pump).await;
+    });
 
     let address = config.server_address();
     info!("GraphQL endpoint: http://{}/graphql", address);
@@ -308,6 +380,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     audio_manager.shutdown().await;
     _processor_handle.abort();
     _stats_handle.abort();
+    _pump_handle.abort();
 
     Ok(())
 }

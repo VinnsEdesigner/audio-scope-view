@@ -3,6 +3,7 @@ import { Plus, Copy, Pencil, Trash2, Key, MoreVertical, Gauge } from "lucide-rea
 import { useToast } from "@/hooks";
 import { useApiKeys, type ApiKey } from "@/hooks/use-api-keys";
 import { useHeader } from "@/contexts/header-context";
+import { formatError } from "@/lib/format-error";
 import {
   DeleteApiKeyDialog,
   CreateApiKeyDialog,
@@ -67,7 +68,7 @@ export function ApiKeys() {
 
   useEffect(() => {
     if (error) {
-      const errorMessage = error.message || "";
+      const errorMessage = formatError(error, "");
 
       if (
         errorMessage.includes("fetch") ||
@@ -81,7 +82,8 @@ export function ApiKeys() {
           type: "error",
         });
       } else {
-        const statusMatch = errorMessage.match(/status.*?(\d+)/i) || errorMessage.match(/(\d{3})/);
+        const statusMatch = (error as { message?: string })?.message?.match(/status.*?(\d+)/i)
+          || (error as { message?: string })?.message?.match(/(\d{3})/);
         if (statusMatch) {
           showToast({
             message: `Response not successful, received status code ${statusMatch[1]}`,

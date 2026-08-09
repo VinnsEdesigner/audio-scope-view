@@ -7,16 +7,13 @@ use crate::shared::constants::{DEFAULT_BUFFER_SIZE, DEFAULT_SAMPLE_RATE};
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::RwLock;
 use std::thread::JoinHandle;
 use std::time::Instant;
 use tokio::sync::mpsc;
+use tokio::sync::RwLock;
 use tracing::{info, warn};
 
-#[cfg(feature = "real-audio")]
 use crate::infrastructure::audio_capture_real::RealAudioCapture;
-use crate::infrastructure::audio_capture_mock::MockAudioCapture;
-use crate::infrastructure::audio_capture_pulse::PulseAudioCapture;
 
 #[derive(Debug, Clone)]
 pub enum AudioStreamEvent {
@@ -122,24 +119,17 @@ impl SessionStream {
 }
 
 pub struct AudioStreamManager {
-    #[cfg(feature = "real-audio")]
-    capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
-    #[cfg(not(feature = "real-audio"))]
     capture: RwLock<Option<Box<dyn AudioCaptureBackend>>>,
     sessions: RwLock<HashMap<String, SessionStream>>,
     fft: RwLock<FftProcessor>,
     event_sender: RwLock<Option<mpsc::Sender<AudioStreamEvent>>>,
     task_handle: RwLock<Option<JoinHandle<()>>>,
     stop_signal: AtomicBool,
-    backend_type: RwLock<AudioBackendType>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AudioBackendType {
     #[default]
-    Mock,
-    Pulse,
-    #[cfg(feature = "real-audio")]
     Real,
 }
 
@@ -153,51 +143,6 @@ pub trait AudioCaptureBackend: Send + Sync {
     fn sample_rate(&self) -> u32;
 }
 
-#[async_trait]
-impl AudioCaptureBackend for MockAudioCapture {
-    async fn start(&mut self, device_id: Option<&str>) -> crate::domain::DomainResult<()> {
-        AudioCapture::start(self, device_id).await
-    }
-    async fn stop(&mut self) -> crate::domain::DomainResult<()> {
-        AudioCapture::stop(self).await
-    }
-    fn is_capturing(&self) -> bool {
-        AudioCapture::is_capturing(self)
-    }
-    async fn read_samples(&mut self, buffer: &mut [f32]) -> crate::domain::DomainResult<u32> {
-        AudioCapture::read_samples(self, buffer).await
-    }
-    async fn get_devices(&self) -> crate::domain::DomainResult<Vec<crate::domain::trait_audio_capture::AudioDevice>> {
-        AudioCapture::get_devices(self).await
-    }
-    fn sample_rate(&self) -> u32 {
-        44100
-    }
-}
-
-#[async_trait]
-impl AudioCaptureBackend for PulseAudioCapture {
-    async fn start(&mut self, device_id: Option<&str>) -> crate::domain::DomainResult<()> {
-        AudioCapture::start(self, device_id).await
-    }
-    async fn stop(&mut self) -> crate::domain::DomainResult<()> {
-        AudioCapture::stop(self).await
-    }
-    fn is_capturing(&self) -> bool {
-        AudioCapture::is_capturing(self)
-    }
-    async fn read_samples(&mut self, buffer: &mut [f32]) -> crate::domain::DomainResult<u32> {
-        AudioCapture::read_samples(self, buffer).await
-    }
-    async fn get_devices(&self) -> crate::domain::DomainResult<Vec<crate::domain::trait_audio_capture::AudioDevice>> {
-        AudioCapture::get_devices(self).await
-    }
-    fn sample_rate(&self) -> u32 {
-        44100
-    }
-}
-
-#[cfg(feature = "real-audio")]
 #[async_trait]
 impl AudioCaptureBackend for RealAudioCapture {
     async fn start(&mut self, device_id: Option<&str>) -> crate::domain::DomainResult<()> {
@@ -229,47 +174,68 @@ impl AudioStreamManager {
             event_sender: RwLock::new(None),
             task_handle: RwLock::new(None),
             stop_signal: AtomicBool::new(false),
-            backend_type: RwLock::new(AudioBackendType::Mock),
         }
     }
 
-    pub fn with_backend(backend: AudioBackendType) -> Self {
-        let manager = Self::new();
-        *manager.backend_type.write().unwrap() = backend;
-        manager
+    pub fn with_backend(_backend: AudioBackendType) -> Self {
+        // Only the cpal (Real) backend exists; the argument is accepted for
+        // API compatibility but ignored.
+        Self::new()
     }
 
     pub async fn init_capture(&self) -> crate::domain::DomainResult<()> {
-        let backend = *self.backend_type.read().unwrap();
-
-        let capture: Box<dyn AudioCaptureBackend> = match backend {
-            AudioBackendType::Mock => {
-                info!("Initializing mock audio capture backend");
-                Box::new(MockAudioCapture::new())
-            }
-            AudioBackendType::Pulse => {
-                info!("Initializing PulseAudio capture backend");
-                Box::new(PulseAudioCapture::new())
-            }
-            #[cfg(feature = "real-audio")]
-            AudioBackendType::Real => {
-                info!("Initializing real audio capture (cpal) backend");
-                Box::new(RealAudioCapture::new().map_err(|e| {
-                    crate::domain::DomainError::capture_error(format!("RealAudio init failed: {:?}", e))
-                })?)
-            }
-        };
-
-        *self.capture.write().unwrap() = Some(capture);
+        info!("Initializing real audio capture (cpal) backend");
+        let capture: Box<dyn AudioCaptureBackend> = Box::new(RealAudioCapture::new().map_err(|e| {
+            crate::domain::DomainError::capture_error(format!("RealAudio init failed: {:?}", e))
+        })?);
+        *self.capture.write().await = Some(capture);
         Ok(())
     }
 
-    pub fn set_event_sender(&self, sender: mpsc::Sender<AudioStreamEvent>) {
-        *self.event_sender.write().unwrap() = Some(sender);
+    /// One-shot capture: open the cpal backend, read `duration_ms` of audio,
+    /// then close it. Used by the `capture` GraphQL mutation. The streaming
+    /// session registry is not touched, so this is safe to call while a
+    /// streaming capture is active.
+    pub async fn capture_once(&self, duration_ms: u32) -> crate::domain::DomainResult<(Vec<f32>, u32)> {
+        let sample_rate = RealAudioCapture::new()
+            .map(|c| c.sample_rate())
+            .unwrap_or(DEFAULT_SAMPLE_RATE);
+
+        info!("One-shot capture: real (cpal) backend");
+        let mut capture: Box<dyn AudioCaptureBackend> = Box::new(RealAudioCapture::new().map_err(|e| {
+            crate::domain::DomainError::capture_error(format!("RealAudio init failed: {:?}", e))
+        })?);
+
+        let num_samples = (sample_rate as usize * duration_ms as usize) / 1000;
+        let num_samples = num_samples.max(1);
+        let mut buffer = vec![0.0f32; num_samples];
+
+        capture.start(None).await?;
+        let read = capture.read_samples(&mut buffer).await?;
+        let _ = capture.stop().await;
+
+        // Truncate to actually-read samples (real backends may return fewer).
+        let actual_rate = capture.sample_rate();
+        if (read as usize) < buffer.len() && read > 0 {
+            buffer.truncate(read as usize);
+        }
+
+        info!(
+            "One-shot capture complete: {} samples @ {} Hz (requested {} ms)",
+            buffer.len(),
+            actual_rate,
+            duration_ms
+        );
+
+        Ok((buffer, actual_rate))
     }
 
-    pub fn register_session(&self, config: StreamConfig) -> crate::domain::DomainResult<()> {
-        let mut sessions = self.sessions.write().unwrap();
+    pub async fn set_event_sender(&self, sender: mpsc::Sender<AudioStreamEvent>) {
+        *self.event_sender.write().await = Some(sender);
+    }
+
+    pub async fn register_session(&self, config: StreamConfig) -> crate::domain::DomainResult<()> {
+        let mut sessions = self.sessions.write().await;
         if sessions.contains_key(&config.session_id) {
             return Err(crate::domain::DomainError::invalid_operation(
                 format!("Session '{}' already registered", config.session_id)
@@ -279,24 +245,24 @@ impl AudioStreamManager {
         Ok(())
     }
 
-    pub fn unregister_session(&self, session_id: &str) -> bool {
-        let mut sessions = self.sessions.write().unwrap();
+    pub async fn unregister_session(&self, session_id: &str) -> bool {
+        let mut sessions = self.sessions.write().await;
         sessions.remove(session_id).is_some()
     }
 
-    pub fn get_session_config(&self, session_id: &str) -> Option<StreamConfig> {
-        let sessions = self.sessions.read().unwrap();
+    pub async fn get_session_config(&self, session_id: &str) -> Option<StreamConfig> {
+        let sessions = self.sessions.read().await;
         sessions.get(session_id).map(|s| s.config.clone())
     }
 
-    pub fn get_session_stats(&self, session_id: &str) -> Option<StreamStats> {
-        let sessions = self.sessions.read().unwrap();
+    pub async fn get_session_stats(&self, session_id: &str) -> Option<StreamStats> {
+        let sessions = self.sessions.read().await;
         sessions.get(session_id).map(|s| s.stats.clone())
     }
 
     pub async fn start_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
         let needs_register = {
-            let sessions = self.sessions.read().unwrap();
+            let sessions = self.sessions.read().await;
             !sessions.contains_key(session_id)
         };
 
@@ -305,24 +271,24 @@ impl AudioStreamManager {
                 session_id: session_id.to_string(),
                 ..Default::default()
             };
-            self.register_session(config)?;
+            self.register_session(config).await?;
         }
 
-        let mut capture_guard = self.capture.write().unwrap();
+        let mut capture_guard = self.capture.write().await;
         if let Some(capture) = capture_guard.as_mut()
             && !capture.is_capturing() {
                 capture.start(None).await?;
             }
         drop(capture_guard);
 
-        let mut sessions = self.sessions.write().unwrap();
+        let mut sessions = self.sessions.write().await;
         if let Some(session) = sessions.get_mut(session_id) {
             session.running.store(true, Ordering::SeqCst);
             session.capture_start = Some(Instant::now());
         }
         drop(sessions);
 
-        if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
+        if let Some(sender) = self.event_sender.read().await.as_ref() {
             let _ = sender.send(AudioStreamEvent::CaptureStarted {
                 session_id: session_id.to_string(),
                 sample_rate: DEFAULT_SAMPLE_RATE,
@@ -334,26 +300,26 @@ impl AudioStreamManager {
     }
 
     pub async fn stop_capture(&self, session_id: &str) -> crate::domain::DomainResult<()> {
-        let mut sessions = self.sessions.write().unwrap();
+        let mut sessions = self.sessions.write().await;
         if let Some(session) = sessions.get_mut(session_id) {
             session.running.store(false, Ordering::SeqCst);
         }
         drop(sessions);
 
         let any_running = {
-            let sessions = self.sessions.read().unwrap();
+            let sessions = self.sessions.read().await;
             sessions.values().any(|s| s.running.load(Ordering::SeqCst))
         };
 
         if !any_running {
-            let mut capture_guard = self.capture.write().unwrap();
+            let mut capture_guard = self.capture.write().await;
             if let Some(capture) = capture_guard.as_mut()
                 && capture.is_capturing() {
                     capture.stop().await?;
                 }
         }
 
-        if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
+        if let Some(sender) = self.event_sender.read().await.as_ref() {
             let _ = sender.send(AudioStreamEvent::CaptureStopped {
                 session_id: session_id.to_string(),
             }).await;
@@ -367,7 +333,7 @@ impl AudioStreamManager {
         let mut buffer = vec![0.0f32; 4096];
 
         let sample_rate = {
-            let capture_guard = self.capture.read().unwrap();
+            let capture_guard = self.capture.read().await;
             match capture_guard.as_ref() {
                 Some(c) if c.is_capturing() => c.sample_rate(),
                 _ => return Ok(0),
@@ -375,20 +341,22 @@ impl AudioStreamManager {
         };
 
         {
-            let mut capture_guard = self.capture.write().unwrap();
+            let mut capture_guard = self.capture.write().await;
             if let Some(capture) = capture_guard.as_mut() {
                 if !capture.is_capturing() {
                     return Ok(0);
                 }
 
-                let samples_read = capture.read_samples(&mut buffer).await?;
-                if samples_read == 0 {
-                    return Ok(0);
-                }
+                // Always read a full buffer (read_samples zero-pads when the
+                // cpal ring buffer is empty, e.g. a silent monitor). Emitting
+                // even zero-padded buffers guarantees subscribers receive
+                // server-side metrics on every tick instead of going silent
+                // when there is no audio.
+                let _samples_read = capture.read_samples(&mut buffer).await?;
             }
         }
 
-        let sessions = self.sessions.read().unwrap();
+        let sessions = self.sessions.read().await;
         let mut processed = 0;
 
         for (session_id, session) in sessions.iter() {
@@ -404,7 +372,7 @@ impl AudioStreamManager {
                 session_stats.capture_duration_ms = start.elapsed().as_millis() as u64;
             }
 
-            if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
+            if let Some(sender) = self.event_sender.read().await.as_ref() {
                 let timestamp_ms = chrono::Utc::now().timestamp_millis();
 
                 let event = AudioStreamEvent::Waveform {
@@ -421,14 +389,14 @@ impl AudioStreamManager {
             }
 
             if session.config.enable_spectrum && buffer.len() >= session.config.fft_size {
-                let mut fft = self.fft.write().unwrap();
+                let mut fft = self.fft.write().await;
                 let spectrum = fft.compute_spectrum(
                     &buffer[..session.config.fft_size],
                     sample_rate as f32,
                     session.config.fft_window,
                 );
 
-                if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
+                if let Some(sender) = self.event_sender.read().await.as_ref() {
                     let event = AudioStreamEvent::Spectrum {
                         session_id: session_id.clone(),
                         frequencies: spectrum.frequencies,
@@ -443,13 +411,13 @@ impl AudioStreamManager {
         Ok(processed)
     }
 
-    pub fn is_any_capturing(&self) -> bool {
-        let sessions = self.sessions.read().unwrap();
+    pub async fn is_any_capturing(&self) -> bool {
+        let sessions = self.sessions.read().await;
         sessions.values().any(|s| s.running.load(Ordering::SeqCst))
     }
 
-    pub fn active_sessions(&self) -> Vec<String> {
-        let sessions = self.sessions.read().unwrap();
+    pub async fn active_sessions(&self) -> Vec<String> {
+        let sessions = self.sessions.read().await;
         sessions
             .iter()
             .filter(|(_, s)| s.running.load(Ordering::SeqCst))
@@ -458,14 +426,18 @@ impl AudioStreamManager {
     }
 
     pub fn backend_type(&self) -> AudioBackendType {
-        *self.backend_type.read().unwrap()
+        AudioBackendType::Real
     }
 
     pub async fn list_devices(&self) -> crate::domain::DomainResult<Vec<crate::domain::trait_audio_capture::AudioDevice>> {
-        let capture_guard = self.capture.read().unwrap();
+        let capture_guard = self.capture.read().await;
         match capture_guard.as_ref() {
             Some(c) => c.get_devices().await,
-            None => Ok(vec![]),
+            None => {
+                // Static enumeration avoids opening a capture stream before a
+                // start request.
+                Ok(RealAudioCapture::list_devices())
+            }
         }
     }
 
@@ -473,14 +445,14 @@ impl AudioStreamManager {
         info!("Shutting down AudioStreamManager");
         self.stop_signal.store(true, Ordering::SeqCst);
 
-        if let Some(capture) = self.capture.write().unwrap().as_mut()
+        if let Some(capture) = self.capture.write().await.as_mut()
             && capture.is_capturing() {
                 let _ = capture.stop().await;
             }
 
-        self.sessions.write().unwrap().clear();
+        self.sessions.write().await.clear();
 
-        if let Some(sender) = self.event_sender.read().unwrap().as_ref() {
+        if let Some(sender) = self.event_sender.read().await.as_ref() {
             let _ = sender.send(AudioStreamEvent::Error {
                 session_id: "system".to_string(),
                 message: "Stream manager shutting down".to_string(),
@@ -499,13 +471,9 @@ impl Default for AudioStreamManager {
 
 impl std::fmt::Debug for AudioStreamManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let backend = *self.backend_type.read().unwrap();
-        let active = self.active_sessions();
         f.debug_struct("AudioStreamManager")
-            .field("backend", &backend)
-            .field("active_sessions", &active)
-            .field("is_capturing", &self.is_any_capturing())
-            .finish()
+            .field("backend", &self.backend_type())
+            .finish_non_exhaustive()
     }
 }
 
@@ -516,8 +484,8 @@ mod tests {
     #[tokio::test]
     async fn test_manager_creation() {
         let manager = AudioStreamManager::new();
-        assert!(!manager.is_any_capturing());
-        assert!(manager.active_sessions().is_empty());
+        assert!(!manager.is_any_capturing().await);
+        assert!(manager.active_sessions().await.is_empty());
     }
 
     #[tokio::test]
@@ -529,10 +497,10 @@ mod tests {
             ..Default::default()
         };
 
-        manager.register_session(config.clone()).unwrap();
-        assert!(manager.get_session_config("test-session").is_some());
+        manager.register_session(config.clone()).await.unwrap();
+        assert!(manager.get_session_config("test-session").await.is_some());
 
-        assert!(manager.register_session(config).is_err());
+        assert!(manager.register_session(config).await.is_err());
     }
 
     #[tokio::test]
@@ -544,9 +512,9 @@ mod tests {
             ..Default::default()
         };
 
-        manager.register_session(config).unwrap();
-        assert!(manager.unregister_session("test-session"));
-        assert!(!manager.unregister_session("nonexistent"));
+        manager.register_session(config).await.unwrap();
+        assert!(manager.unregister_session("test-session").await);
+        assert!(!manager.unregister_session("nonexistent").await);
     }
 
     #[tokio::test]
@@ -558,8 +526,8 @@ mod tests {
             session_id: "test-session".to_string(),
             ..Default::default()
         };
-        manager.register_session(config).unwrap();
+        manager.register_session(config).await.unwrap();
 
-        assert!(!manager.is_any_capturing());
+        assert!(!manager.is_any_capturing().await);
     }
 }

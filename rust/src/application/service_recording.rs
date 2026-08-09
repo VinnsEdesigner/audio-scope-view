@@ -119,21 +119,23 @@ impl RecordingService {
 
     pub async fn get_stats(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> AppResult<RecordingStats> {
         self.repository
-            .get_stats(session_id, time_range)
+            .get_stats(device_id, session_id, time_range)
             .await
             .map_err(AppError::Domain)
     }
 
     pub async fn get_recording_count_by_range(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
     ) -> AppResult<RecordingStats> {
         self.repository
-            .get_recording_count_by_range(session_id)
+            .get_recording_count_by_range(device_id, session_id)
             .await
             .map_err(AppError::Domain)
     }

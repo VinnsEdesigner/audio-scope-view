@@ -12,10 +12,6 @@ url = "sqlite:./data/audio_scope_view.db?mode=rwc"
 playground_enabled = true
 introspection_enabled = true
 
-[audio]
-# Default audio capture backend: "mock", "alsa", "pulse"
-backend = "mock"
-
 [security]
 # Require API key authentication for GraphQL endpoints
 require_auth = true

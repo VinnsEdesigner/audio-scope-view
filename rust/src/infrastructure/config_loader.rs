@@ -11,6 +11,8 @@ pub struct AppConfig {
     pub database: DatabaseConfig,
     pub graphql: GraphqlConfig,
     pub security: SecurityConfig,
+    #[serde(default)]
+    pub audio: AudioConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -71,6 +73,24 @@ impl Default for SecurityConfig {
     }
 }
 
+/// Audio capture backend selection. The server always uses cpal (live capture
+/// from a physical or virtual input device); the mock / pulse stub backends
+/// have been removed.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AudioConfig {}
+
+impl AudioConfig {
+    pub fn backend_type(&self) -> crate::infrastructure::AudioBackendType {
+        crate::infrastructure::AudioBackendType::Real
+    }
+}
+
+impl Default for AudioConfig {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 impl AppConfig {
     pub fn load() -> AppResult<Self> {
         let config = Config::builder()
@@ -110,6 +130,7 @@ impl Default for AppConfig {
             database: DatabaseConfig::default(),
             graphql: GraphqlConfig::default(),
             security: SecurityConfig::default(),
+            audio: AudioConfig::default(),
         }
     }
 }

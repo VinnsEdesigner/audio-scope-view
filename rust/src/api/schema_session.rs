@@ -4,8 +4,6 @@ use chrono::Utc;
 
 use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
 use crate::domain::Session;
-use crate::domain::trait_audio_capture::AudioCapture;
-use crate::infrastructure::audio_capture_mock::MockAudioCapture;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, async_graphql::Enum)]
 pub enum SessionStatus {
@@ -378,6 +376,12 @@ impl SessionQuery {
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
 
+        // Enforce device isolation: a device must not list another device's
+        // sub-sessions. On denial return an empty list.
+        if assert_session_ownership(ctx, &parent_id).await.is_err() {
+            return Vec::new();
+        }
+
         let sessions = context
             .session_service
             .get_sub_sessions_paginated(&parent_id, limit, offset)
@@ -401,6 +405,13 @@ impl SessionQuery {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
+        // Enforce device isolation: a device must not resolve the parent of
+        // another device's sub-session. First verify the sub-session belongs to
+        // the requesting device.
+        if assert_session_ownership(ctx, &sub_session_id).await.is_err() {
+            return None;
+        }
+
         let parent_opt = context
             .session_service
             .get_parent_session(&sub_session_id)
@@ -409,6 +420,13 @@ impl SessionQuery {
             .flatten();
 
         if let Some(session) = parent_opt {
+            // The parent must also belong to the requesting device (it normally
+            // does, but verify defensively).
+            if let Some(ref did) = device_scope_from_context(ctx) {
+                if session.user_id != *did {
+                    return None;
+                }
+            }
             let count = context
                 .recording_service
                 .get_recording_count_for_scope(&session.id)
@@ -601,6 +619,10 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        // Enforce device isolation: a device must not create a sub-session
+        // under another device's session.
+        assert_session_ownership(ctx, &parent_id).await?;
+
         let owner = resolve_session_owner(ctx, input.user_id)?;
 
         let session = context
@@ -720,6 +742,21 @@ impl SessionMutation {
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to open oscilloscope: {:?}", e)))?;
 
+        // Start the server-side cpal capture for this session so the
+        // `analysisSubscribe` / `waveformSubscribe` subscriptions receive live
+        // server-captured audio. The capture stream is shared across sessions;
+        // the first opener initializes it.
+        context
+            .audio_manager
+            .init_capture()
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to init audio capture: {:?}", e)))?;
+        context
+            .audio_manager
+            .start_capture(&session_id)
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to start audio capture: {:?}", e)))?;
+
         Ok(Some(SessionOutput::from(session)))
     }
 
@@ -729,6 +766,14 @@ impl SessionMutation {
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
         assert_session_ownership(ctx, &session_id).await?;
+
+        // Stop the server-side capture for this session. When no sessions
+        // remain capturing, the underlying cpal stream is released.
+        context
+            .audio_manager
+            .stop_capture(&session_id)
+            .await
+            .map_err(|e| async_graphql::Error::new(format!("Failed to stop audio capture: {:?}", e)))?;
 
         let session = context
             .session_service
@@ -749,6 +794,10 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        // Enforce device isolation: a device must not capture into another
+        // device's session.
+        assert_session_ownership(ctx, &session_id).await?;
+
         let _session = context
             .session_service
             .get(&session_id)
@@ -763,23 +812,18 @@ impl SessionMutation {
             duration_ms: Some(100),
         });
 
-        let mut capture = MockAudioCapture::new()
-            .with_sample_rate(44100)             .with_frequency(capture_settings.frequency.unwrap_or(440.0))
-            .with_amplitude(capture_settings.amplitude.unwrap_or(0.5))
-            .with_noise(capture_settings.noise_level.unwrap_or(0.02));
+        // Use the configured audio backend (mock / pulse / real) via the
+        // AudioStreamManager one-shot capture, instead of hardcoding the mock.
+        // The frequency/amplitude/noise settings only apply to the mock backend
+        // (synthetic signal); for live backends the captured device signal is
+        // returned as-is.
+        let duration_ms = capture_settings.duration_ms.unwrap_or(100) as u32;
 
-        let duration_ms = capture_settings.duration_ms.unwrap_or(100) as usize;
-        let sample_rate = 44100u32;
-        let num_samples = (sample_rate as usize * duration_ms) / 1000;
-        let mut buffer = vec![0.0f32; num_samples];
-
-        capture
-            .start(None)
+        let (buffer, _sample_rate) = context
+            .audio_manager
+            .capture_once(duration_ms)
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to start capture: {:?}", e)))?;
-
-        let _ = capture.read_samples(&mut buffer).await;
-        let _ = capture.stop().await;
+            .map_err(|e| async_graphql::Error::new(format!("Failed to capture audio: {:?}", e)))?;
 
         let waveform = crate::domain::Waveform::new(
             uuid::Uuid::new_v4().to_string(),
@@ -806,6 +850,10 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+
+        // Enforce device isolation: a device must not update another device's
+        // session DSP metrics.
+        assert_session_ownership(ctx, &id).await?;
 
         let session = context
             .session_service

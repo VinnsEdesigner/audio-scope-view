@@ -37,6 +37,7 @@ import {
 } from "../components/dialogs";
 import { useToast, useDeviceId } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatError } from "@/lib/format-error";
 
 export function Home(): React.ReactElement {
   const navigate = useNavigate();
@@ -183,7 +184,7 @@ export function Home(): React.ReactElement {
           },
           onError: (error: Error) => {
             showToast({
-              message: `Failed to delete recording: ${error.message}`,
+              message: `Failed to delete recording: ${formatError(error)}`,
               type: "error",
             });
           },
@@ -223,7 +224,7 @@ export function Home(): React.ReactElement {
         },
         onError: (error: Error) => {
           showToast({
-            message: `Failed to rename: ${error.message}`,
+            message: `Failed to rename: ${formatError(error)}`,
             type: "error",
           });
         },
@@ -273,7 +274,7 @@ export function Home(): React.ReactElement {
         }
       } catch (error) {
         showToast({
-          message: `Failed to create session: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to create session: ${formatError(error)}`,
           type: "error",
         });
       }
@@ -289,7 +290,7 @@ export function Home(): React.ReactElement {
         setDropdownOpen(false);
       } catch (error) {
         showToast({
-          message: `Failed to save settings: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to save settings: ${formatError(error)}`,
           type: "error",
         });
       }

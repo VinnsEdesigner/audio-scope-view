@@ -1,9 +1,9 @@
 import * as React from "react";
-import { ApolloError } from "@apollo/client";
 import { Dialog, DialogFooter } from "../ui/dialog";
 import { SelectDialog } from "./select-dialog";
 import { Mic, Pause, Play, Trash2, CheckCircle2, AlertCircle, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatError } from "@/lib/format-error";
 import {
   useMediaDevices,
   useCreateRecording,
@@ -19,40 +19,18 @@ const SMOOTHING_VALUE = {
   normal: 0.3,
 };
 
-// Helper to extract a user-friendly error message from Apollo errors
+// Helper to extract a user-friendly error message from Apollo errors.
+// Delegates to the shared `formatError` so endpoint URLs and transport noise are
+// never shown to users; only the generic-message skip preference is preserved.
 function extractErrorMessage(error: unknown): string {
-  if (error instanceof ApolloError) {
-    // Try GraphQL errors first
-    if (error.graphQLErrors.length > 0) {
-      // Get the first meaningful GraphQL error message
-      for (const gqlError of error.graphQLErrors) {
-        const message = gqlError.message;
-        // Skip generic messages
-        if (
-          message &&
-          !message.includes("UNCAUGHT_ERROR") &&
-          !message.includes("INTERNAL_SERVER_ERROR")
-        ) {
-          return message;
-        }
-      }
-      // If all were generic, return the first one
-      return error.graphQLErrors[0].message;
-    }
-    // Then try network error
-    if (error.networkError) {
-      const networkMessage = error.networkError.message;
-      if (networkMessage) {
-        return `Network error: ${networkMessage}`;
-      }
-    }
-    // Fall back to the Apollo error message
-    return error.message || "Unknown GraphQL error";
+  const formatted = formatError(error, "Unknown error");
+  if (
+    formatted.includes("UNCAUGHT_ERROR") ||
+    formatted.includes("INTERNAL_SERVER_ERROR")
+  ) {
+    return "An unexpected server error occurred. Please try again.";
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Unknown error";
+  return formatted;
 }
 
 const WAVEFORM_COLORS: Record<WaveformColor, string> = {
@@ -321,7 +299,7 @@ export function DialogMicRecording({
 
   const handleStartCapture = async () => {
     if (error) {
-      showToast({ message: error.message, type: "error" });
+      showToast({ message: extractErrorMessage(error), type: "error" });
       return;
     }
     await startCapture();

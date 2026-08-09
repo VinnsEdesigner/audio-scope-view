@@ -468,6 +468,7 @@ impl SqliteRecordingRepository {
 
     pub async fn get_stats(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> Result<RecordingStats, DomainError> {
@@ -482,6 +483,10 @@ impl SqliteRecordingRepository {
             (None, None)
         };
 
+        let has_device = device_id.is_some();
+        if has_device {
+            where_clause.push_str(" AND session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
+        }
         if session_id.is_some() {
             where_clause.push_str(" AND session_id = ?");
         }
@@ -500,11 +505,16 @@ impl SqliteRecordingRepository {
 
         let mut query = sqlx::query_as::<_, RecordingStatsRow>(&sql);
 
-        if let Some(sid) = session_id {
-            query = query.bind(sid);
-        }
         if let Some(start) = start_time {
             query = query.bind(start.to_rfc3339());
+        }
+        if has_device {
+            if let Some(did) = device_id {
+                query = query.bind(did);
+            }
+        }
+        if let Some(sid) = session_id {
+            query = query.bind(sid);
         }
 
         let row: Option<RecordingStatsRow> = query
@@ -527,16 +537,33 @@ impl SqliteRecordingRepository {
 
     pub async fn get_recording_count_by_range(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
     ) -> Result<RecordingStats, DomainError> {
-        let sql = if session_id.is_some() {
-            "SELECT COUNT(*) as total_recordings, COALESCE(SUM(size_bytes), 0) as total_size_bytes, COALESCE(SUM(duration_ms), 0) as total_duration_ms, COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count FROM recordings WHERE session_id = ?"
-        } else {
-            "SELECT COUNT(*) as total_recordings, COALESCE(SUM(size_bytes), 0) as total_size_bytes, COALESCE(SUM(duration_ms), 0) as total_duration_ms, COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count FROM recordings"
-        };
+        let mut where_clause = String::new();
+        let has_device = device_id.is_some();
+        if has_device {
+            where_clause.push_str(" WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
+        }
+        if session_id.is_some() {
+            if has_device {
+                where_clause.push_str(" AND session_id = ?");
+            } else {
+                where_clause.push_str(" WHERE session_id = ?");
+            }
+        }
+        let sql = format!(
+            "SELECT COUNT(*) as total_recordings, COALESCE(SUM(size_bytes), 0) as total_size_bytes, COALESCE(SUM(duration_ms), 0) as total_duration_ms, COALESCE(SUM(CASE WHEN is_pinned = 1 THEN 1 ELSE 0 END), 0) as pinned_count FROM recordings{}",
+            where_clause
+        );
 
-        let mut query = sqlx::query_as::<_, RecordingStatsRow>(sql);
+        let mut query = sqlx::query_as::<_, RecordingStatsRow>(&sql);
 
+        if has_device {
+            if let Some(did) = device_id {
+                query = query.bind(did);
+            }
+        }
         if let Some(sid) = session_id {
             query = query.bind(sid);
         }
@@ -636,16 +663,18 @@ impl RecordingRepository for SqliteRecordingRepository {
 
     async fn get_stats(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> Result<RecordingStats, DomainError> {
-        SqliteRecordingRepository::get_stats(self, session_id, time_range).await
+        SqliteRecordingRepository::get_stats(self, device_id, session_id, time_range).await
     }
 
     async fn get_recording_count_by_range(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
     ) -> Result<RecordingStats, DomainError> {
-        SqliteRecordingRepository::get_recording_count_by_range(self, session_id).await
+        SqliteRecordingRepository::get_recording_count_by_range(self, device_id, session_id).await
     }
 }

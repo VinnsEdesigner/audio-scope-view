@@ -27,6 +27,7 @@ import {
   GET_SESSIONS_WITH_STATUS,
   GET_ACTIVE_SESSIONS_WITH_STATUS,
   GET_SESSION_STATUS_COUNTS,
+  GET_RECORDING_STATS,
 } from "@audio-scope-view/api-client/audioScopeView/graphql/queries/recording-queries";
 import type { Session } from "@audio-scope-view/api-client/domain/session";
 
@@ -132,7 +133,13 @@ export function useSessionHeartbeat() {
 
 export function useDeleteSession() {
   return useMutation(DELETE_SESSION, {
-    refetchQueries: [{ query: GET_SESSIONS }],
+    refetchQueries: [
+      { query: GET_SESSIONS },
+      { query: GET_SESSIONS_WITH_STATUS },
+      { query: GET_ACTIVE_SESSIONS_WITH_STATUS },
+      { query: GET_SESSION_STATUS_COUNTS },
+      { query: GET_RECORDINGS },
+    ],
   });
 }
 
@@ -174,13 +181,13 @@ export function useUpdateSessionDsp() {
 
 export function useDeleteRecording() {
   return useMutation(DELETE_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
   });
 }
 
 export function useDeleteRecordings() {
   return useMutation(DELETE_RECORDINGS, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
   });
 }
 

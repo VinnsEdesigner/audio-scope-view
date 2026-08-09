@@ -17,6 +17,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { useHeader } from "@/contexts/header-context";
+import { formatError } from "@/lib/format-error";
 import {
   useSessionDetail,
   useSubSessions,
@@ -444,7 +445,7 @@ export function Session(): React.ReactElement {
           })
           .catch((error) => {
             showToast({
-              message: `Failed to end session: ${error instanceof Error ? error.message : "Unknown error"}`,
+              message: `Failed to end session: ${formatError(error)}`,
               type: "error",
             });
           });
@@ -473,7 +474,7 @@ export function Session(): React.ReactElement {
           })
           .catch((error) => {
             showToast({
-              message: `Failed to delete session: ${error instanceof Error ? error.message : "Unknown error"}`,
+              message: `Failed to delete session: ${formatError(error)}`,
               type: "error",
             });
           });
@@ -504,7 +505,7 @@ export function Session(): React.ReactElement {
       refetchRecordings();
     } catch (error) {
       showToast({
-        message: `Failed to delete recording: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `Failed to delete recording: ${formatError(error)}`,
         type: "error",
       });
     } finally {
@@ -526,7 +527,7 @@ export function Session(): React.ReactElement {
         showToast({ message: `${recording.name} exported to CSV`, type: "success" });
       } catch (error) {
         showToast({
-          message: `Failed to export CSV: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to export CSV: ${formatError(error)}`,
           type: "error",
         });
       }
@@ -542,7 +543,7 @@ export function Session(): React.ReactElement {
         showToast({ message: `${recording.name} exported to WAV`, type: "success" });
       } catch (error) {
         showToast({
-          message: `Failed to export WAV: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to export WAV: ${formatError(error)}`,
           type: "error",
         });
       }
@@ -558,7 +559,7 @@ export function Session(): React.ReactElement {
         showToast({ message: `${recording.name} exported to JSON`, type: "success" });
       } catch (error) {
         showToast({
-          message: `Failed to export JSON: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to export JSON: ${formatError(error)}`,
           type: "error",
         });
       }
@@ -582,7 +583,7 @@ export function Session(): React.ReactElement {
         showToast({ message: "Session updated successfully", type: "success" });
       } catch (error) {
         showToast({
-          message: `Failed to update session: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to update session: ${formatError(error)}`,
           type: "error",
         });
       }

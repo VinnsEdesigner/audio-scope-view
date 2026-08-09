@@ -154,7 +154,7 @@ export function CalibrationDialog({
   if (!isOpen) return null;
 
   const hasData = analysisData !== undefined;
-  // Show LIVE badge when capturing regardless of data source (server or local fallback)
+  // Show LIVE badge when capturing; metrics always come from the server.
   const isLive = isCapturing;
 
   const peakAmplitude = analysisData?.peakAmplitude ?? 0;

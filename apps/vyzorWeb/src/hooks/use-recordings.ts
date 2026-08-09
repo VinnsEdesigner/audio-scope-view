@@ -138,7 +138,7 @@ export function useRenameRecording() {
 
 export function usePinRecording() {
   return useMutation(PIN_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }, RECENT_RECORDINGS_REFETCH],
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }, RECENT_RECORDINGS_REFETCH],
   });
 }
 
@@ -154,7 +154,7 @@ export function useDeleteRecording() {
 
 export function usePinRecordings() {
   return useMutation(PIN_RECORDINGS, {
-    refetchQueries: [{ query: GET_RECORDINGS }, RECENT_RECORDINGS_REFETCH],
+    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }, RECENT_RECORDINGS_REFETCH],
   });
 }
 

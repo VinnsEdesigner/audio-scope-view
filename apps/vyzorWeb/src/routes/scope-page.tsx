@@ -23,6 +23,7 @@ import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/c
 import { CalibrationDialog } from "@/components/dialogs";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { formatError } from "@/lib/format-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Recording } from "@/hooks";
 
@@ -106,7 +107,7 @@ export function ScopePage(): React.ReactElement {
       // sessionDetailData will be undefined if session doesn't exist or was deleted
       const serverSession = sessionDetailData?.session;
       const sessionExistsOnServer = serverSession !== undefined;
-      const sessionIsActiveOnServer = sessionExistsOnServer && serverSession?.endedAt === undefined;
+      const sessionIsActiveOnServer = sessionExistsOnServer && !serverSession?.endedAt;
 
       if (sessionId && sessionExistsOnServer && sessionIsActiveOnServer) {
         // We have a valid active session from server - show the oscilloscope UI
@@ -193,65 +194,6 @@ export function ScopePage(): React.ReactElement {
     fftSize: bufferSize,
   });
   const audioAnalyzer = testMode ? mockAnalyzer : realAnalyzer;
-
-  // Build fallback analysis from local audio analyzer when server data is unavailable
-  const buildLocalAnalysis = React.useCallback((): AnalysisUpdate | undefined => {
-    if (audioAnalyzer.recordingState === "idle" || audioAnalyzer.analysisFrame.length === 0) {
-      return undefined;
-    }
-
-    // Calculate local metrics from the audio analyzer data
-    const frame = audioAnalyzer.analysisFrame;
-    const analyzerSampleRate = audioAnalyzer.sampleRate;
-
-    // Calculate peak amplitude
-    let peak = 0;
-    for (const sample of frame) {
-      const abs = Math.abs(sample);
-      if (abs > peak) peak = abs;
-    }
-
-    // Calculate RMS
-    let sumSquares = 0;
-    for (const sample of frame) {
-      sumSquares += sample * sample;
-    }
-    const rms = Math.sqrt(sumSquares / frame.length);
-
-    // Calculate DC offset
-    let sum = 0;
-    for (const sample of frame) {
-      sum += sample;
-    }
-    const dcOffset = sum / frame.length;
-
-    // Calculate crest factor
-    const crestFactor = rms > 0 ? peak / rms : 0;
-
-    return {
-      sessionId: sessionId ?? "",
-      timestamp: Date.now(),
-      sampleRate: analyzerSampleRate || 48_000,
-      peakAmplitude: peak,
-      rmsAmplitude: rms,
-      dcOffset,
-      dominantFrequency: audioAnalyzer.frequency,
-      fundamentalFrequency: audioAnalyzer.frequency,
-      thd: 0,
-      thdn: 0,
-      snr: 0,
-      crestFactor,
-      signalEnergy: 0,
-      noiseEnergy: 0,
-      harmonics: [],
-    };
-  }, [
-    audioAnalyzer.analysisFrame,
-    audioAnalyzer.sampleRate,
-    audioAnalyzer.frequency,
-    audioAnalyzer.recordingState,
-    sessionId,
-  ]);
 
   const {
     data: recordingData,
@@ -408,8 +350,9 @@ export function ScopePage(): React.ReactElement {
   const isCapturing = !isPlaybackMode && audioAnalyzer.isCapturing;
   const isPaused = !isPlaybackMode && audioAnalyzer.recordingState === "paused";
 
-  // Use server analysis when available, otherwise fall back to local analysis
-  const analysisData = serverAnalysis ?? (isCapturing ? buildLocalAnalysis() : undefined);
+  // Analysis metrics always come from the server (analysisSubscribe); there
+  // is no local fallback. The cal dialog relies solely on server-computed DSP.
+  const analysisData = serverAnalysis;
 
   const scopeName = "Oscilloscope";
   const recordingName = recordingData?.name;
@@ -731,7 +674,7 @@ export function ScopePage(): React.ReactElement {
               </div>
               <p className="text-white font-medium">Failed to load recording</p>
               <p className="text-sm text-[#a1a1aa] max-w-md">
-                {error instanceof Error ? error.message : "An unknown error occurred"}
+                {formatError(error, "An unknown error occurred")}
               </p>
               <button
                 onClick={handleBack}

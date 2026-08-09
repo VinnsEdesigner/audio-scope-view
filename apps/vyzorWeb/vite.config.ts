@@ -14,6 +14,43 @@ export default defineConfig(({ command, mode }) => {
       tsconfigPaths({
         root: ".",
       }),
+      {
+        name: "log-graphql",
+        configureServer(server) {
+          server.middlewares.use("/graphql", async (req, res, next) => {
+            if (req.method === "POST") {
+              let body = "";
+              for await (const chunk of req) body += chunk;
+              const opName = (body.match(/"operationName":"([^"]+)"/) || [])[1] || "?";
+              const devId = req.headers["x-device-id"];
+              const auth = req.headers["authorization"];
+              console.log(`\n[GRAPHQL] op=${opName} device=${devId || "<none>"} auth=${auth ? auth.slice(0, 20) + "..." : "<none>"}`);
+              const proxyReq = await import("http").then((http) => {
+                return new Promise<void>((resolve) => {
+                  const upstream = http.request(
+                    { hostname: "127.0.0.1", port: 8090, path: "/graphql", method: "POST", headers: { ...req.headers, host: "127.0.0.1:8090" } },
+                    (upRes) => {
+                      let respBody = "";
+                      upRes.on("data", (c) => (respBody += c));
+                      upRes.on("end", () => {
+                        const hasErr = respBody.includes('"errors"');
+                        console.log(`[GRAPHQL] op=${opName} status=${upRes.statusCode} ${hasErr ? "ERRORS:" + respBody.slice(0, 300) : "ok"}`);
+                        res.writeHead(upRes.statusCode, upRes.headers);
+                        res.end(respBody);
+                        resolve();
+                      });
+                    },
+                  );
+                  upstream.on("error", (e) => { console.log("[GRAPHQL] upstream err", e); res.writeHead(502); res.end(); resolve(); });
+                  upstream.end(body);
+                });
+              });
+              return;
+            }
+            next();
+          });
+        },
+      },
     ],
 
     define: {
@@ -87,5 +124,21 @@ export default defineConfig(({ command, mode }) => {
 
     appType: "spa",
     base: "./",
+
+    server: {
+      host: "0.0.0.0",
+      port: 5173,
+      proxy: {
+        "/graphql": {
+          target: "http://127.0.0.1:8090",
+          changeOrigin: true,
+        },
+        "/ws": {
+          target: "ws://127.0.0.1:8090",
+          ws: true,
+          changeOrigin: true,
+        },
+      },
+    },
   };
 });

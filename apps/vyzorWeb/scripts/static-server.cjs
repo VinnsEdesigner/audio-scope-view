@@ -40,15 +40,27 @@ const server = http.createServer((req, res) => {
   // Proxy GraphQL requests to Rust server
   if (urlPath.startsWith('/graphql')) {
     console.log(`  -> Proxying to GraphQL server: ${GRAPHQL_SERVER}${urlPath}`);
+    // Explicitly forward the per-device identity header. We cannot rely on the
+    // `...req.headers` spread alone: if the client omits it we must not silently
+    // forward an unrelated value, and we want the device-scoping on the backend
+    // to always receive a clean, lower-cased X-Device-Id.
+    const deviceId = req.headers['x-device-id'];
+    const proxyHeaders = {
+      ...req.headers,
+      'Host': '127.0.0.1:8080',
+      'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
+    };
+    if (deviceId) {
+      proxyHeaders['X-Device-Id'] = deviceId;
+    } else {
+      delete proxyHeaders['X-Device-Id'];
+      delete proxyHeaders['x-device-id'];
+    }
     const proxyReq = http.request(
       `${GRAPHQL_SERVER}${urlPath}`,
       {
         method: req.method,
-        headers: {
-          ...req.headers,
-          'Host': '127.0.0.1:8080',
-          'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
-        },
+        headers: proxyHeaders,
       },
       (proxyRes) => {
         res.writeHead(proxyRes.statusCode, proxyRes.headers);
@@ -67,15 +79,24 @@ const server = http.createServer((req, res) => {
   // Proxy API requests to Rust server (for recording streaming, metadata, etc.)
   if (urlPath.startsWith('/api/')) {
     console.log(`  -> Proxying to API server: ${GRAPHQL_SERVER}${urlPath}`);
+    // Explicitly forward the per-device identity header (see /graphql block).
+    const deviceId = req.headers['x-device-id'];
+    const proxyHeaders = {
+      ...req.headers,
+      'Host': '127.0.0.1:8080',
+      'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
+    };
+    if (deviceId) {
+      proxyHeaders['X-Device-Id'] = deviceId;
+    } else {
+      delete proxyHeaders['X-Device-Id'];
+      delete proxyHeaders['x-device-id'];
+    }
     const proxyReq = http.request(
       `${GRAPHQL_SERVER}${urlPath}`,
       {
         method: req.method,
-        headers: {
-          ...req.headers,
-          'Host': '127.0.0.1:8080',
-          'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
-        },
+        headers: proxyHeaders,
       },
       (proxyRes) => {
         res.writeHead(proxyRes.statusCode, proxyRes.headers);
@@ -169,23 +190,42 @@ const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', (request, socket, head) => {
   const url = request.url;
   console.log(`[WS UPGRADE] ${url}`);
-  
-  if (url.startsWith('/ws')) {
-    // Proxy WebSocket to Rust server
+
+  if (url.startsWith('/ws') || url.startsWith('/graphql/ws')) {
+    // Proxy WebSocket to Rust server (custom /ws audio protocol and the
+    // /graphql/ws GraphQL subscription transport).
     const targetUrl = `${WS_SERVER}${url}`;
     console.log(`  -> Proxying WebSocket to: ${targetUrl}`);
-    
+
+    // Forward the client handshake headers but drop `sec-websocket-extensions`
+    // (permessage-deflate). The proxy pipes raw frames between two independent
+    // WebSocket legs; if one leg negotiated compression and the other did not,
+    // compressed frames would be forwarded undecoded. Stripping the extension
+    // keeps both legs on plain frames so the raw pipe is correct.
+    const forwardedHeaders = { ...request.headers };
+    delete forwardedHeaders['sec-websocket-extensions'];
+    forwardedHeaders['Host'] = '127.0.0.1:8080';
+    forwardedHeaders['Authorization'] = `Bearer ${BOOTSTRAP_KEY}`;
+    forwardedHeaders['Upgrade'] = 'websocket';
+    forwardedHeaders['Connection'] = 'Upgrade';
+    // Explicitly forward the per-device identity header so the backend's WS
+    // handshake device-scoping always receives it (browsers cannot set custom
+    // WS headers, so the client attaches it as a query param; the backend also
+    // accepts the header, and we forward whichever form arrived).
+    const wsDeviceId = request.headers['x-device-id'];
+    if (wsDeviceId) {
+      forwardedHeaders['X-Device-Id'] = wsDeviceId;
+    } else {
+      delete forwardedHeaders['X-Device-Id'];
+      delete forwardedHeaders['x-device-id'];
+    }
+
     const proxyReq = http.request({
       method: 'GET',
-      headers: {
-        ...request.headers,
-        'Host': '127.0.0.1:8080',
-        'Authorization': `Bearer ${BOOTSTRAP_KEY}`,
-        'Upgrade': 'websocket',
-        'Connection': 'Upgrade',
-      },
+      headers: forwardedHeaders,
       path: url,
       host: '127.0.0.1',
+      port: 8080,
     }, (proxyRes) => {
       console.log(`  -> Proxy response status: ${proxyRes.statusCode}`);
     });
@@ -198,20 +238,21 @@ server.on('upgrade', (request, socket, head) => {
     proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
       // Handle WebSocket upgrade response
       const headers = proxyRes.headers;
-      const key = request.headers['sec-websocket-key'];
-      const version = request.headers['sec-websocket-version'];
       
-      // Build upgrade response manually
+      // Build upgrade response manually, echoing back the subprotocol the
+      // server selected (e.g. `graphql-ws`) so the client handshake completes.
       const respHeaders = [
         'HTTP/1.1 101 Switching Protocols',
         `Upgrade: websocket`,
         `Connection: Upgrade`,
         `Sec-WebSocket-Accept: ${headers['sec-websocket-accept'] || ''}`,
-        ``,
-        ``
-      ].join('\r\n');
+      ];
+      if (headers['sec-websocket-protocol']) {
+        respHeaders.push(`Sec-WebSocket-Protocol: ${headers['sec-websocket-protocol']}`);
+      }
+      respHeaders.push(``, ``);
       
-      socket.write(respHeaders);
+      socket.write(respHeaders.join('\r\n'));
       
       // Pipe proxy socket to client socket
       proxySocket.pipe(socket);

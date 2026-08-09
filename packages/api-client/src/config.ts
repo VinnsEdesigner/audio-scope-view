@@ -84,6 +84,10 @@ export interface ClientConfig {
 
   websocketEndpoint: string;
 
+  /// Endpoint for the GraphQL subscription transport (graphql-transport-ws /
+  /// legacy graphql-ws). Defaults to `<graphqlEndpoint>/ws`.
+  graphqlSubscriptionEndpoint: string;
+
   bootstrapKey: string;
 
   clientUrl: string;
@@ -96,6 +100,7 @@ const DEFAULT_CONFIG: ClientConfig = {
   // because the browser's localhost is not the server.
   graphqlEndpoint: "/graphql",
   websocketEndpoint: "/ws",
+  graphqlSubscriptionEndpoint: "",
   bootstrapKey: "",
   clientUrl: "http://localhost:3000",
 };
@@ -103,6 +108,7 @@ const DEFAULT_CONFIG: ClientConfig = {
 const ENV_MAPPINGS: Record<keyof ClientConfig, string> = {
   graphqlEndpoint: "VITE_GRAPHQL_ENDPOINT",
   websocketEndpoint: "VITE_WEBSOCKET_ENDPOINT",
+  graphqlSubscriptionEndpoint: "VITE_GRAPHQL_SUBSCRIPTION_ENDPOINT",
   bootstrapKey: "VITE_BOOTSTRAP_KEY",
   clientUrl: "VITE_CLIENT_URL",
 };
@@ -115,6 +121,11 @@ function loadConfig(): ClientConfig {
     if (value) {
       (config as unknown as Record<string, string>)[key] = value;
     }
+  }
+
+  // Default the subscription endpoint to `<graphqlEndpoint>/ws` when not set.
+  if (!config.graphqlSubscriptionEndpoint) {
+    config.graphqlSubscriptionEndpoint = `${config.graphqlEndpoint}/ws`;
   }
 
   return config;

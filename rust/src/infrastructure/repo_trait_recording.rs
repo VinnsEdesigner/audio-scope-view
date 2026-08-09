@@ -28,11 +28,13 @@ pub trait RecordingRepository: Send + Sync {
     async fn count_by_scope(&self, session_id: &str) -> DomainErrorResult<u64>;
     async fn get_stats(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
         time_range: Option<TimeRange>,
     ) -> DomainErrorResult<RecordingStats>;
     async fn get_recording_count_by_range(
         &self,
+        device_id: Option<&str>,
         session_id: Option<&str>,
     ) -> DomainErrorResult<RecordingStats>;
 }

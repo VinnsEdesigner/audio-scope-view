@@ -22,6 +22,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::api::server_graphql::{AppState, AuthHeaderExt, DeviceIdExt, RequestIdentity};
 use crate::domain::compression::compress_waveform;
+use crate::shared::constants::is_valid_device_id;
 use super::client::{OutgoingMessage, WsClient, WsMessage};
 
 pub struct WsState {
@@ -247,6 +248,19 @@ pub async fn ws_handler(
     // query string values the client attached to the URL.
     let auth_header = header_auth.or_else(|| query.api_key.clone());
     let device_id = header_device_id.or_else(|| query.device_id.clone());
+
+    // Validate the device id shape. A malformed id must never become a scoping
+    // key, so reject the handshake early (an absent id is allowed for admins).
+    if let Some(ref did) = device_id {
+        if !is_valid_device_id(did) {
+            info!("WS: rejected malformed device id");
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                "Invalid X-Device-Id: must be a well-formed device identifier",
+            )
+                .into_response();
+        }
+    }
 
     let (api_key_info, is_system_client) = state.validate_api_key(auth_header.as_deref()).await;
     if api_key_info.is_none() && !is_system_client {

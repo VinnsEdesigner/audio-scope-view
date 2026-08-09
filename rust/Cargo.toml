@@ -81,15 +81,10 @@ bytes = "1"
 
 # cpal - cross-platform audio
 # Supports: ALSA, PulseAudio, WASAPI, CoreAudio, OpenSL ES (Android), WebAudio (wasm)
-cpal = { version = "0.15", optional = true }
+cpal = "0.15"
 
 # Compression
 lz4 = "1.24"
-
-[features]
-default = ["mock-audio"]
-mock-audio = []
-real-audio = ["cpal"]
 
 [dev-dependencies]
 tokio-test = "0.4"
