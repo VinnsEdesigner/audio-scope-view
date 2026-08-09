@@ -14,6 +14,7 @@ FROM rust:1.97-bookworm AS backend-builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
 COPY rust/ ./rust/
+COPY data/ ./data/
 WORKDIR /app/rust
 RUN cargo build --release
 
