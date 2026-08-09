@@ -1,6 +1,11 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { useLastUsedSession, useCreateNamedSession, useHomePageSessions } from "../hooks";
+import {
+  useLastUsedSession,
+  useCreateNamedSession,
+  useHomePageSessions,
+  useDeviceId,
+} from "../hooks";
 import { useToast } from "../hooks";
 import { SelectSessionDialog, CreateSessionDialog } from "../components/dialogs";
 import type { Session } from "@audio-scope-view/api-client/domain";
@@ -53,6 +58,9 @@ export function SessionSelectionProvider({
 }: SessionSelectionProviderProperties): React.ReactElement {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  // Device identity is accessed via the hook (the server uses the X-Device-Id
+  // header sent by the api client to scope all data to this device).
+  useDeviceId();
   const { sessions, loading: sessionsLoading } = useHomePageSessions();
   const {
     shouldAutoSelect,

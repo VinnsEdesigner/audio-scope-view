@@ -7,19 +7,13 @@ export const RECORDING_FIELDS = gql`
     sessionName
     name
     samples
+    sampleRate
+    sampleCount
     timestamp
     durationMs
-    sampleCount
     sizeBytes
     peakAmplitude
     rmsAmplitude
-    peakDb
-    rmsDb
-    dcOffset
-    dominantFrequency
-    frequencyHigh
-    frequencyLow
-    bitDepth
     isPinned
     isRecording
     waveformOverview

@@ -1,5 +1,5 @@
 import { ApolloClient, InMemoryCache, HttpLink, ApolloLink } from "@apollo/client";
-import { config } from "../../config";
+import { config, getDeviceId, DEVICE_ID_HEADER_NAME } from "../../config";
 
 function createHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
@@ -8,6 +8,13 @@ function createHeaders(): Record<string, string> {
 
   if (config.bootstrapKey) {
     headers["Authorization"] = `Bearer ${config.bootstrapKey}`;
+  }
+
+  // Attach the per-device identity so the server can scope all data to this
+  // device. Generated lazily on first use and persisted in localStorage.
+  const deviceId = getDeviceId();
+  if (deviceId) {
+    headers[DEVICE_ID_HEADER_NAME] = deviceId;
   }
 
   return headers;

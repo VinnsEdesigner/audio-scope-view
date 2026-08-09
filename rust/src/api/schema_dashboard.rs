@@ -1,7 +1,7 @@
 
 use async_graphql::{Context, Object, SimpleObject};
 
-use crate::api::context_extractor::GraphqlContext;
+use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
 use crate::domain::valueobject_timerange::TimeRange;
 
 #[derive(Debug, SimpleObject)]
@@ -48,7 +48,8 @@ impl DashboardQuery {
             _ => TimeRange::Last24Hours,
         };
 
-        let summary = context.dashboard_service.get_summary(tr).await.ok()?;
+        let device_id = device_scope_from_context(ctx);
+        let summary = context.dashboard_service.get_summary(device_id.as_deref(), tr).await.ok()?;
 
         Some(DashboardSummaryOutput {
             time_range: summary.time_range.to_string(),
@@ -78,10 +79,11 @@ impl DashboardQuery {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
         let limit = limit.unwrap_or(5).clamp(1, 20) as u32;
+        let device_id = device_scope_from_context(ctx);
 
         context
             .dashboard_service
-            .get_recent_sessions(limit)
+            .get_recent_sessions(device_id.as_deref(), limit)
             .await
             .map(|scopes| {
                 scopes

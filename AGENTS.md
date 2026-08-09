@@ -1,5 +1,11 @@
 # audio-scope-view
 
+## Frontend (web app) gotchas
+- The home recordings list reads `useRecentRecordings` (query `GET_RECENT_RECORDINGS`), NOT `useRecordings` (`GET_RECORDINGS`). Any recording mutation (pin/rename/delete/create) must refetch `GET_RECENT_RECORDINGS` too, or the home list shows stale pin/rename/delete state. See `RECENT_RECORDINGS_REFETCH` in `apps/vyzorWeb/src/hooks/use-recordings.ts`.
+- Main scroll container is `apps/vyzorWeb/src/root.tsx:55` (`overflow-y-auto`), which clips absolutely-positioned dropdowns that extend beyond it. `position: fixed` dialogs (session-settings, create-session) escape this, but their downward dropdowns can still run off the viewport on mobile — `InlineSelect` flips up / clamps `maxHeight` to available space to handle this.
+- More-menu / popover z-index: use `z-50` (sticky header is `z-30`). The recordings more-menu previously used `z-10` and rendered behind later rows.
+- GraphQL fragments/queries were verified to match the Rust schema via introspection (SESSION_FIELDS, RECORDING_FIELDS, RECORDING_SUMMARY_FIELDS, SessionWithStatusFields, all wrapper result types).
+
 ## Build & Run
 - Rust project in `rust/` directory; pinned toolchain `nightly-2026-07-20` (via `rust-toolchain.toml`)
 - Build: `cd rust && cargo build --release` (release takes ~2m; only warnings)
@@ -47,3 +53,14 @@
 - Sessions: `createSession`, `session(id)`, `sessions`, `updateSessionDsp(id, input)`, `endSession`
 - Settings: `settings(sessionId)`, `updateSettings`
 - Use `input` wrapper for mutation arguments (e.g. `updateSessionDsp(id, input: {...})`)
+- Static content (no device scoping): `aboutInfo`, `features`, `changelog` — served from JSON embedded via `include_str!("../../data/*.json")` at compile time, so it works in Docker containers without the `data/` dir on disk.
+
+## Device-ID Scoping (IMPORTANT)
+- **No user-facing auth.** Sessions/preferences are scoped to a device via the `X-Device-Id` HTTP header (no sign-up/login). A larger platform will wrap this app as a feature with its own auth later.
+- Frontend: `apps/vyzorWeb/src/hooks/use-device-id.ts` (`useDeviceId`) generates/persists a UUID per browser (localStorage). The api-client attaches it as `X-Device-Id` on every request and as a query param on the WS connection.
+- Backend: `extract_auth_header` middleware reads `Authorization` + `X-Device-Id` and inserts them as `AuthHeaderExt(Option<String>)` / `DeviceIdExt(Option<String>)` newtype wrappers into the request extensions. **These must be distinct types** — axum's `Extension` map is keyed by type, so two `Option<String>` inserts collide and the second overwrites the first (previously caused the device-id value to clobber the auth-header value, breaking all auth).
+- `RequestIdentity` (built in `graphql_handler`) carries `device_id` + `is_system_client` + `api_key`; resolvers read it via `ctx.data::<RequestIdentity>()` and use `device_scope_from_context(ctx)` to scope queries/mutations.
+- Ownership checks: batch recording ops (`deleteRecording`, `deleteRecordings`, `pinRecordings`) verify each item belongs to the device. Subscription resolvers (`waveform_subscribe`, `spectrum_subscribe`, etc.) verify session ownership before streaming. `endSession`/`updateSessionDsp` only affect sessions owned by the requesting device.
+- **WebSocket auth + scoping:** The WS handshake (`/ws`) is behind the same `extract_auth_header` middleware. Because browsers cannot set custom headers on a WebSocket handshake, the frontend also sends `X-Device-Id` and `X-Api-Key` as query params (`WsHandshakeQuery`), which the `ws_handler` merges with any header values. The handler authenticates the bootstrap/API key (401 on failure), builds a `RequestIdentity`, and passes it + the `SessionService` into `handle_socket`. Every `Subscribe`/`SubscribeSpectrum`/`WaveformData`/`AnalysisData` message is checked by `verify_ws_session_ownership` against `session.user_id == device_id` before acting — so a device cannot subscribe to or publish into another device's session.
+- User preferences: `prefs_id` = device id (falls back to `"default"` for system/admin calls with no device id).
+- Verified end-to-end: device A's sessions/preferences are invisible to device B; unauthenticated requests are rejected.

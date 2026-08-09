@@ -8,6 +8,7 @@ use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
 
+use crate::api::context_extractor::device_scope_from_context;
 use crate::api::websocket::handler::WsState;
 
 #[derive(Debug, Clone, SimpleObject)]
@@ -70,6 +71,32 @@ pub struct AnalysisResult {
 
 pub struct SubscriptionRoot;
 
+/// Returns `Ok(())` when the requesting device may subscribe to `session_id`'s
+/// stream, or an error otherwise. Unscoped admins (no device id) bypass the
+/// check.
+async fn check_subscription_access(
+    ctx: &Context<'_>,
+    session_id: &str,
+) -> Result<(), async_graphql::Error> {
+    let did = match device_scope_from_context(ctx) {
+        Some(d) => d,
+        None => return Ok(()),
+    };
+    let context = ctx
+        .data::<crate::api::context_extractor::GraphqlContext>()
+        .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+    let session = context
+        .session_service
+        .get(session_id)
+        .await
+        .map_err(|e| async_graphql::Error::new(format!("Failed to load session: {:?}", e)))?
+        .ok_or_else(|| async_graphql::Error::new("Session not found"))?;
+    if session.user_id != did {
+        return Err(async_graphql::Error::new("Session not found"));
+    }
+    Ok(())
+}
+
 #[Subscription]
 impl SubscriptionRoot {
     async fn waveform_subscribe(
@@ -77,12 +104,17 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
         session_id: String,
     ) -> impl Stream<Item = Result<WaveformData, async_graphql::Error>> + 'static {
+        // Enforce device isolation: a device must not subscribe to another
+        // device's session stream. On denial we return an empty stream.
+        let denied = check_subscription_access(ctx, &session_id).await.is_err();
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
-        if let Some(state) = ws_state {
-            let mut subs = state.waveform_subscribers.write().await;
-            subs.insert(session_id.clone(), tx);
+        if !denied {
+            if let Some(state) = ws_state {
+                let mut subs = state.waveform_subscribers.write().await;
+                subs.insert(session_id.clone(), tx);
+            }
         }
 
         BroadcastStream::new(rx)
@@ -94,12 +126,15 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
         session_id: String,
     ) -> impl Stream<Item = Result<SpectrumData, async_graphql::Error>> + 'static {
+        let denied = check_subscription_access(ctx, &session_id).await.is_err();
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<SpectrumData>(100);
-        if let Some(state) = ws_state {
-            let mut subs = state.spectrum_subscribers.write().await;
-            subs.insert(session_id.clone(), tx);
+        if !denied {
+            if let Some(state) = ws_state {
+                let mut subs = state.spectrum_subscribers.write().await;
+                subs.insert(session_id.clone(), tx);
+            }
         }
 
         BroadcastStream::new(rx)
@@ -111,12 +146,15 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
         session_id: String,
     ) -> impl Stream<Item = Result<AudioStats, async_graphql::Error>> + 'static {
+        let denied = check_subscription_access(ctx, &session_id).await.is_err();
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<AudioStats>(50);
-        if let Some(state) = ws_state {
-            let mut subs = state.stats_subscribers.write().await;
-            subs.insert(session_id.clone(), tx);
+        if !denied {
+            if let Some(state) = ws_state {
+                let mut subs = state.stats_subscribers.write().await;
+                subs.insert(session_id.clone(), tx);
+            }
         }
 
         BroadcastStream::new(rx)
@@ -128,12 +166,15 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
         session_id: String,
     ) -> impl Stream<Item = Result<AnalysisResult, async_graphql::Error>> + 'static {
+        let denied = check_subscription_access(ctx, &session_id).await.is_err();
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<AnalysisResult>(100);
-        if let Some(state) = ws_state {
-            let mut subs = state.analysis_subscribers.write().await;
-            subs.insert(session_id.clone(), tx);
+        if !denied {
+            if let Some(state) = ws_state {
+                let mut subs = state.analysis_subscribers.write().await;
+                subs.insert(session_id.clone(), tx);
+            }
         }
 
         BroadcastStream::new(rx)
@@ -144,12 +185,18 @@ impl SubscriptionRoot {
         &self,
         ctx: &Context<'_>,
     ) -> impl Stream<Item = Result<WaveformData, async_graphql::Error>> + 'static {
+        // `all_waveforms` is a global stream with no session scoping. Only allow
+        // for unscoped admins; devices get an empty stream to avoid receiving
+        // other devices' data.
+        let denied = device_scope_from_context(ctx).is_some();
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
-        if let Some(state) = ws_state {
-            let mut subs = state.all_waveform_subscribers.write().await;
-            subs.push(tx);
+        if !denied {
+            if let Some(state) = ws_state {
+                let mut subs = state.all_waveform_subscribers.write().await;
+                subs.push(tx);
+            }
         }
 
         BroadcastStream::new(rx)

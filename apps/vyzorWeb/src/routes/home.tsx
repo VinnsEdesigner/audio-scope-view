@@ -35,12 +35,16 @@ import {
   CreateSessionDialog,
   SessionSettingsDialog,
 } from "../components/dialogs";
-import { useToast } from "@/hooks";
+import { useToast, useDeviceId } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Home(): React.ReactElement {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  // Device identity is read via a hook (not a direct api-client import). The
+  // server scopes all session/recording data to this id via the X-Device-Id
+  // header; it is also available here if needed for client-side logic.
+  useDeviceId();
   const { setContent } = useHeader();
 
   // UI State
@@ -142,8 +146,20 @@ export function Home(): React.ReactElement {
 
   const handlePin = React.useCallback(
     (id: string, isPinned: boolean) => {
-      pinRecording({ variables: { id, isPinned: !isPinned } });
       setOpenMenuId(undefined);
+      pinRecording({ variables: { id } })
+        .then(() => {
+          showToast({
+            message: isPinned ? "Pin removed" : "Recording pinned",
+            type: "success",
+          });
+        })
+        .catch(() => {
+          showToast({
+            message: isPinned ? "Failed to remove pin" : "Failed to pin recording",
+            type: "error",
+          });
+        });
       showToast({
         message: isPinned ? "Removing pin..." : "Pinning recording...",
         type: "info",
@@ -236,7 +252,9 @@ export function Home(): React.ReactElement {
   const handleCreateSession = React.useCallback(
     async (name: string, description: string) => {
       try {
-        const result = await createNamedSession({ variables: { input: { name, description } } });
+        const result = await createNamedSession({
+          variables: { input: { name, description } },
+        });
         const newSession = result.data?.createNamedSession;
         if (newSession) {
           await markSessionAsUsed(newSession.id);
@@ -502,7 +520,7 @@ export function Home(): React.ReactElement {
       </div>
 
       {}
-      <div className="bg-bg-secondary border border-border-subtle rounded-xl overflow-hidden">
+      <div className="bg-bg-secondary border border-border-subtle rounded-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-border-subtle gap-3">
           <div className="flex gap-1 p-1 bg-bg-elevated rounded-lg">
             <button
@@ -600,7 +618,7 @@ export function Home(): React.ReactElement {
                             }}
                             onBlur={() => handleRenameSubmit(recording.id)}
                             autoFocus
-                            className="flex-1 px-2 py-1 text-sm bg-bg-primary border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                            className="flex-1 px-2 py-1 text-sm bg-bg-primary border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-border-hover"
                           />
                         </div>
                       ) : (
@@ -631,7 +649,7 @@ export function Home(): React.ReactElement {
                         <MoreVertical size={16} className="text-text-secondary" />
                       </button>
                       {openMenuId === recording.id && (
-                        <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-lg z-10">
+                        <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-xl z-50">
                           <button
                             onClick={(_event) => {
                               _event.stopPropagation();

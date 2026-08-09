@@ -2,6 +2,16 @@ use async_graphql::{Object, SimpleObject};
 use serde::Deserialize;
 use std::path::PathBuf;
 
+// Static content is embedded at compile time from the root `data/` directory so it
+// is always available inside the binary, regardless of the deployment layout (this
+// fixes the empty About/Changelog/Features sections when running inside the Docker
+// image, where the `data/` directory is not present on disk). At runtime we still
+// try to read the file from disk first so local development can hot-swap the JSON
+// without rebuilding.
+const EMBEDDED_ABOUT: &str = include_str!("../../../data/about.json");
+const EMBEDDED_FEATURES: &str = include_str!("../../../data/features.json");
+const EMBEDDED_CHANGELOG: &str = include_str!("../../../data/changelog.json");
+
 #[derive(Debug, SimpleObject)]
 pub struct AboutInfoOutput {
     pub description: String,
@@ -54,9 +64,22 @@ fn get_data_path(filename: &str) -> PathBuf {
 }
 
 fn read_json_file<T: for<'de> Deserialize<'de>>(filename: &str) -> Option<T> {
+    // Prefer the on-disk file (allows local dev hot-swap), then fall back to the
+    // compile-time-embedded copy so the data is always present in container images.
     let path = get_data_path(filename);
-    let content = std::fs::read_to_string(&path).ok()?;
-    serde_json::from_str(&content).ok()
+    if let Some(content) = std::fs::read_to_string(&path).ok().filter(|c| !c.trim().is_empty()) {
+        if let Ok(parsed) = serde_json::from_str::<T>(&content) {
+            return Some(parsed);
+        }
+    }
+
+    let embedded = match filename {
+        "about.json" => EMBEDDED_ABOUT,
+        "features.json" => EMBEDDED_FEATURES,
+        "changelog.json" => EMBEDDED_CHANGELOG,
+        _ => return None,
+    };
+    serde_json::from_str::<T>(embedded).ok()
 }
 
 #[Object]

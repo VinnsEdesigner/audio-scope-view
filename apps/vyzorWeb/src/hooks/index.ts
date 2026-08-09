@@ -135,3 +135,5 @@ export type {
   FeaturesData,
   ChangelogData,
 } from "./use-about";
+
+export { useDeviceId } from "./use-device-id";

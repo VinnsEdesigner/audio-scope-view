@@ -89,16 +89,16 @@ impl SessionService {
             .map_err(AppError::Domain)
     }
 
-    pub async fn list(&self, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
+    pub async fn list(&self, device_id: Option<&str>, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
         self.repository
-            .find_all_sessions(limit, offset)
+            .find_all_sessions(device_id, limit, offset)
             .await
             .map_err(AppError::Domain)
     }
 
-    pub async fn list_main_sessions(&self, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
+    pub async fn list_main_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
         self.repository
-            .find_main_sessions(limit, offset)
+            .find_main_sessions(device_id, limit, offset)
             .await
             .map_err(AppError::Domain)
     }
@@ -107,16 +107,19 @@ impl SessionService {
         self.repository.delete(id).await.map_err(AppError::Domain)
     }
 
-    pub async fn count(&self) -> AppResult<u32> {
-        self.repository.count_sessions().await.map_err(AppError::Domain)
+    pub async fn count(&self, device_id: Option<&str>) -> AppResult<u32> {
+        self.repository.count_sessions(device_id).await.map_err(AppError::Domain)
     }
 
-    pub async fn get_or_create_active_session(&self) -> AppResult<Session> {
-        if let Some(active_session) = self.repository.find_active_session().await.map_err(AppError::Domain)? {
+    pub async fn get_or_create_active_session(&self, device_id: Option<&str>) -> AppResult<Session> {
+        if let Some(active_session) = self.repository.find_active_session(device_id).await.map_err(AppError::Domain)? {
             return Ok(active_session);
         }
 
-        self.create_session("default".to_string(), "Active Session".to_string()).await
+        // No active session for this device — create one scoped to it. When the
+        // caller is unscoped (admin), fall back to the legacy "default" user id.
+        let owner = device_id.unwrap_or("default").to_string();
+        self.create_session(owner, "Active Session".to_string()).await
     }
 
     pub async fn get_sub_sessions(&self, parent_id: &str) -> AppResult<Vec<Session>> {

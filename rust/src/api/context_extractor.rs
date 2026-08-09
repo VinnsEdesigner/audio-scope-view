@@ -54,3 +54,17 @@ impl GraphqlContext {
         self.auth.api_key.is_some() || self.auth.is_bootstrap
     }
 }
+
+/// Extracts the data-scoping device id from the GraphQL request context.
+///
+/// Returns:
+/// - `Some(device_id)` — scope all queries to this device (normal client).
+/// - `None` — unscoped admin/system view (bootstrap key with no device id).
+///
+/// When a `RequestIdentity` was not attached to the request (e.g. the schema is
+/// exercised outside the HTTP handler in tests), we fall back to `None` so the
+/// query still executes, rather than erroring.
+pub fn device_scope_from_context(ctx: &async_graphql::Context<'_>) -> Option<String> {
+    ctx.data_opt::<crate::api::server_graphql::RequestIdentity>()
+        .and_then(|id| id.effective_device_id().map(|s| s.to_string()))
+}

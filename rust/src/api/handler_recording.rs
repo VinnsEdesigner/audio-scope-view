@@ -1,7 +1,7 @@
 
 use std::sync::Arc;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, Query, State, Extension},
     response::{IntoResponse, Response},
     Json,
     body::Body,
@@ -10,7 +10,7 @@ use bytes::Bytes;
 use serde::Deserialize;
 use tracing::info;
 
-use crate::api::server_graphql::AppState;
+use crate::api::server_graphql::{AppState, AccessDenied, AuthHeaderExt, DeviceIdExt};
 use crate::application::export_service::{ExportFormat, StreamingExportService, RecordingExportData};
 
 #[derive(Debug, Deserialize)]
@@ -28,12 +28,49 @@ pub struct SampleChunkResponse {
     pub samples: Vec<f32>,
 }
 
+/// Authenticate the REST request and verify the recording belongs to the caller's
+/// device. Returns `Ok(())` on success, or an error response otherwise. The
+/// `auth_header`/`device_id` extensions are injected by the `extract_auth_header`
+/// middleware shared with the GraphQL router.
+async fn authorize_recording(
+    state: &AppState,
+    auth_header: &Option<String>,
+    device_id: &Option<String>,
+    recording_id: &str,
+) -> Result<(), Response> {
+    let identity = match state.resolve_identity(auth_header.as_deref(), device_id.as_deref()).await {
+        Some(id) => id,
+        None => {
+            return Err((
+                axum::http::StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({ "error": "Unauthorized" })),
+            )
+                .into_response());
+        }
+    };
+
+    match state.check_recording_access(&identity, recording_id).await {
+        Ok(()) => Ok(()),
+        Err(AccessDenied) => Err((
+            axum::http::StatusCode::NOT_FOUND,
+            Json(serde_json::json!({ "error": "Recording not found" })),
+        )
+            .into_response()),
+    }
+}
+
 pub async fn get_recording_samples(
     State(state): State<Arc<AppState>>,
+    Extension(AuthHeaderExt(auth_header)): Extension<AuthHeaderExt>,
+    Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
     Query(params): Query<SampleRangeParams>,
 ) -> impl IntoResponse {
     info!("REQUEST: GET /api/recordings/{}/samples", recording_id);
+
+    if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
+        return resp;
+    }
 
     const DEFAULT_CHUNK_SIZE: usize = 100_000;
     const MAX_CHUNK_SIZE: usize = 500_000;
@@ -108,10 +145,16 @@ pub async fn get_recording_samples(
 
 pub async fn stream_recording_pcm(
     State(state): State<Arc<AppState>>,
+    Extension(AuthHeaderExt(auth_header)): Extension<AuthHeaderExt>,
+    Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
     Query(params): Query<SampleRangeParams>,
 ) -> Response {
     info!("REQUEST: GET /api/recordings/{}/stream (PCM streaming)", recording_id);
+
+    if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
+        return resp;
+    }
 
     const DEFAULT_CHUNK_SIZE: usize = 44_100;     const MAX_CHUNK_SIZE: usize = 176_400;
     let start = params.start.unwrap_or(0);
@@ -204,9 +247,15 @@ pub struct RecordingMetadataResponse {
 
 pub async fn get_recording_metadata(
     State(state): State<Arc<AppState>>,
+    Extension(AuthHeaderExt(auth_header)): Extension<AuthHeaderExt>,
+    Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> impl IntoResponse {
     info!("REQUEST: GET /api/recordings/{}/metadata", recording_id);
+
+    if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
+        return resp;
+    }
 
     let recording = match state.recording_service.get(&recording_id).await {
         Ok(Some(r)) => r,
@@ -277,9 +326,15 @@ fn sanitize_filename(name: &str) -> String {
 /// Streams CSV data in chunks to avoid memory issues with large recordings
 pub async fn stream_recording_csv(
     State(state): State<Arc<AppState>>,
+    Extension(AuthHeaderExt(auth_header)): Extension<AuthHeaderExt>,
+    Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> Response {
     info!("REQUEST: GET /api/recordings/{}/csv (streaming CSV)", recording_id);
+
+    if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
+        return resp;
+    }
 
     // Get recording
     let recording = match state.recording_service.get(&recording_id).await {
@@ -329,9 +384,15 @@ pub async fn stream_recording_csv(
 /// Exports audio data as WAV format
 pub async fn stream_recording_wav(
     State(state): State<Arc<AppState>>,
+    Extension(AuthHeaderExt(auth_header)): Extension<AuthHeaderExt>,
+    Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> Response {
     info!("REQUEST: GET /api/recordings/{}/wav (streaming WAV)", recording_id);
+
+    if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
+        return resp;
+    }
 
     // Get recording
     let recording = match state.recording_service.get(&recording_id).await {
@@ -380,9 +441,15 @@ pub async fn stream_recording_wav(
 /// Exports recording metadata and samples as JSON
 pub async fn stream_recording_json(
     State(state): State<Arc<AppState>>,
+    Extension(AuthHeaderExt(auth_header)): Extension<AuthHeaderExt>,
+    Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> Response {
     info!("REQUEST: GET /api/recordings/{}/json (streaming JSON)", recording_id);
+
+    if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
+        return resp;
+    }
 
     // Get recording
     let recording = match state.recording_service.get(&recording_id).await {

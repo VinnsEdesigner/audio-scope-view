@@ -140,16 +140,17 @@ impl RecordingService {
 
     pub async fn get_sessions_with_status(
         &self,
+        device_id: Option<&str>,
         limit: u32,
         offset: u32,
     ) -> AppResult<(Vec<SessionWithStatus>, u64, bool)> {
         let sessions = self.session_repository
-            .find_all_sessions(limit, offset)
+            .find_all_sessions(device_id, limit, offset)
             .await
             .map_err(AppError::Domain)?;
 
         let total = self.session_repository
-            .count_sessions()
+            .count_sessions(device_id)
             .await
             .map_err(AppError::Domain)? as u64;
 
@@ -182,9 +183,9 @@ impl RecordingService {
         Ok((sessions_with_status, total, has_more))
     }
 
-    pub async fn get_active_sessions_with_status(&self) -> AppResult<Vec<SessionWithStatus>> {
+    pub async fn get_active_sessions_with_status(&self, device_id: Option<&str>) -> AppResult<Vec<SessionWithStatus>> {
         let sessions = self.session_repository
-            .find_all_sessions(100, 0)
+            .find_all_sessions(device_id, 100, 0)
             .await
             .map_err(AppError::Domain)?;
 
@@ -214,9 +215,9 @@ impl RecordingService {
         Ok(sessions_with_status)
     }
 
-    pub async fn get_session_status_counts(&self) -> crate::domain::recording::ScopeStatusCounts {
+    pub async fn get_session_status_counts(&self, device_id: Option<&str>) -> crate::domain::recording::ScopeStatusCounts {
         let sessions = self.session_repository
-            .find_all_sessions(1000, 0)
+            .find_all_sessions(device_id, 1000, 0)
             .await
             .unwrap_or_default();
 

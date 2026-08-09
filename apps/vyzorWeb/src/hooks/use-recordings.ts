@@ -125,38 +125,55 @@ export function useFullRecording(recordingId: string | undefined) {
   });
 }
 
+// The home recordings list is fed by GET_RECENT_RECORDINGS (via useRecentRecordings),
+// so mutations that change recordings must refetch it too — otherwise the list shows
+// stale pin/rename/delete state even though the backend already updated.
+const RECENT_RECORDINGS_REFETCH = { query: GET_RECENT_RECORDINGS, variables: { limit: 20 } };
+
 export function useRenameRecording() {
   return useMutation(RENAME_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
+    refetchQueries: [{ query: GET_RECORDINGS }, RECENT_RECORDINGS_REFETCH],
   });
 }
 
 export function usePinRecording() {
   return useMutation(PIN_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
+    refetchQueries: [{ query: GET_RECORDINGS }, RECENT_RECORDINGS_REFETCH],
   });
 }
 
 export function useDeleteRecording() {
   return useMutation(DELETE_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
+    refetchQueries: [
+      { query: GET_RECORDINGS },
+      { query: GET_RECORDING_STATS },
+      RECENT_RECORDINGS_REFETCH,
+    ],
   });
 }
 
 export function usePinRecordings() {
   return useMutation(PIN_RECORDINGS, {
-    refetchQueries: [{ query: GET_RECORDINGS }],
+    refetchQueries: [{ query: GET_RECORDINGS }, RECENT_RECORDINGS_REFETCH],
   });
 }
 
 export function useDeleteRecordings() {
   return useMutation(DELETE_RECORDINGS, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
+    refetchQueries: [
+      { query: GET_RECORDINGS },
+      { query: GET_RECORDING_STATS },
+      RECENT_RECORDINGS_REFETCH,
+    ],
   });
 }
 
 export function useCreateRecording() {
   return useMutation(CREATE_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }],
+    refetchQueries: [
+      { query: GET_RECORDINGS },
+      { query: GET_RECORDING_STATS },
+      RECENT_RECORDINGS_REFETCH,
+    ],
   });
 }

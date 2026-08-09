@@ -29,6 +29,7 @@ export const GET_OR_CREATE_SESSION = gql`
 `;
 
 export const END_SESSION = gql`
+  ${SESSION_FIELDS}
   mutation EndSession($id: String!) {
     endSession(id: $id) {
       ...SessionFields
@@ -38,9 +39,7 @@ export const END_SESSION = gql`
 
 export const SESSION_HEARTBEAT = gql`
   mutation SessionHeartbeat($id: String!) {
-    sessionHeartbeat(id: $id) {
-      ...SessionFields
-    }
+    sessionHeartbeat(id: $id)
   }
 `;
 

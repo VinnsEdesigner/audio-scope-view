@@ -4,13 +4,14 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
+        Query, State,
     },
-    response::Response,
+    response::{IntoResponse, Response},
     routing::get,
     Router,
 };
 use futures_util::{SinkExt, StreamExt};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -19,6 +20,7 @@ use tokio::time::interval;
 use tower_http::cors::CorsLayer;
 use tracing::{debug, error, info, warn};
 
+use crate::api::server_graphql::{AppState, AuthHeaderExt, DeviceIdExt, RequestIdentity};
 use crate::domain::compression::compress_waveform;
 use super::client::{OutgoingMessage, WsClient, WsMessage};
 
@@ -218,15 +220,65 @@ impl Default for WsState {
     }
 }
 
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<Arc<WsState>>,
-) -> Response {
-    let config = state.config.clone();
-    ws.on_upgrade(move |socket| handle_socket(socket, state, config))
+/// Query params accepted by the WebSocket handshake. The browser cannot set
+/// custom headers on a `WebSocket` handshake, so the device id and bootstrap
+/// key are passed here instead.
+#[derive(Debug, Deserialize)]
+pub struct WsHandshakeQuery {
+    /// Optional `X-Device-Id` value (also accepted via the `x-device-id` header
+    /// injected by the auth middleware).
+    #[serde(rename = "X-Device-Id")]
+    device_id: Option<String>,
+    /// Optional bootstrap key / API key (also accepted via the `Authorization`
+    /// header injected by the auth middleware).
+    #[serde(rename = "X-Api-Key")]
+    api_key: Option<String>,
 }
 
-async fn handle_socket(socket: WebSocket, state: Arc<WsState>, config: WsConfig) {
+pub async fn ws_handler(
+    ws: WebSocketUpgrade,
+    Query(query): Query<WsHandshakeQuery>,
+    State(state): State<Arc<AppState>>,
+    axum::extract::Extension(AuthHeaderExt(header_auth)): axum::extract::Extension<AuthHeaderExt>,
+    axum::extract::Extension(DeviceIdExt(header_device_id)): axum::extract::Extension<DeviceIdExt>,
+) -> Response {
+    // The auth middleware extracted Authorization + X-Device-Id from headers.
+    // The browser WebSocket API can't set those headers, so fall back to the
+    // query string values the client attached to the URL.
+    let auth_header = header_auth.or_else(|| query.api_key.clone());
+    let device_id = header_device_id.or_else(|| query.device_id.clone());
+
+    let (api_key_info, is_system_client) = state.validate_api_key(auth_header.as_deref()).await;
+    if api_key_info.is_none() && !is_system_client {
+        info!("WS: AUTH FAILED - invalid or missing API key");
+        return (
+            axum::http::StatusCode::UNAUTHORIZED,
+            "Unauthorized: invalid or missing API key",
+        )
+            .into_response();
+    }
+
+    let identity = RequestIdentity {
+        device_id,
+        is_system_client,
+        api_key: api_key_info,
+    };
+    let scope = identity.effective_device_id().map(|s| s.to_string());
+    info!("WS: AUTH OK (device: {})", scope.as_deref().unwrap_or("<unscoped>"));
+
+    let ws_state = state.ws_state.clone();
+    let session_service = state.context.session_service.clone();
+    let config = ws_state.config.clone();
+    ws.on_upgrade(move |socket| handle_socket(socket, ws_state, session_service, identity, config))
+}
+
+async fn handle_socket(
+    socket: WebSocket,
+    state: Arc<WsState>,
+    session_service: Arc<crate::application::SessionService>,
+    identity: RequestIdentity,
+    config: WsConfig,
+) {
     let (sender, mut receiver) = socket.split();
     let client_id = uuid::Uuid::new_v4().to_string();
 
@@ -300,7 +352,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>, config: WsConfig)
                     Some(Ok(Message::Text(text))) => {
                         let text_str = text.to_string();
                         if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text_str) {
-                            handle_client_message(&state, &client_id, ws_msg, &tx).await;
+                            handle_client_message(&state, &session_service, &identity, &client_id, ws_msg, &tx).await;
                         }
                     }
                     Some(Ok(Message::Binary(data))) => {
@@ -353,14 +405,49 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsState>, config: WsConfig)
     info!("Client {} disconnected and cleaned up", client_id);
 }
 
+/// Verifies that the session referenced by a WS subscribe/publish message
+/// belongs to the connecting device. Unscoped admin/system connections are
+/// allowed to subscribe to any session.
+async fn verify_ws_session_ownership(
+    session_service: &Arc<crate::application::SessionService>,
+    identity: &RequestIdentity,
+    session_id: &str,
+) -> bool {
+    if identity.is_unscoped_admin() {
+        return true;
+    }
+    let expected_device = match identity.effective_device_id() {
+        Some(d) => d,
+        None => return false,
+    };
+    match session_service.get(session_id).await {
+        Ok(Some(session)) => session.user_id == expected_device,
+        _ => false,
+    }
+}
+
 async fn handle_client_message(
     state: &Arc<WsState>,
+    session_service: &Arc<crate::application::SessionService>,
+    identity: &RequestIdentity,
     client_id: &str,
     msg: WsMessage,
     sender: &mpsc::Sender<OutgoingMessage>,
 ) {
     match msg {
         WsMessage::Subscribe { session_id } => {
+            if !verify_ws_session_ownership(session_service, identity, &session_id).await {
+                info!(
+                    "WS: denied Subscribe to session {} for client {} (device mismatch)",
+                    session_id, client_id
+                );
+                let _ = sender
+                    .send(OutgoingMessage::Error {
+                        message: "Forbidden: session does not belong to this device".to_string(),
+                    })
+                    .await;
+                return;
+            }
             let session_id_clone = session_id.clone();
             {
                 let mut clients = state.clients.write().await;
@@ -396,6 +483,18 @@ async fn handle_client_message(
         }
 
         WsMessage::SubscribeSpectrum { session_id } => {
+            if !verify_ws_session_ownership(session_service, identity, &session_id).await {
+                info!(
+                    "WS: denied SubscribeSpectrum to session {} for client {} (device mismatch)",
+                    session_id, client_id
+                );
+                let _ = sender
+                    .send(OutgoingMessage::Error {
+                        message: "Forbidden: session does not belong to this device".to_string(),
+                    })
+                    .await;
+                return;
+            }
             let session_id_clone = session_id.clone();
             {
                 let mut clients = state.clients.write().await;
@@ -436,6 +535,15 @@ async fn handle_client_message(
             timestamp,
             sample_rate,
             peak_amplitude: _,              rms_amplitude: _,          } => {
+            // Only accept published waveform data for sessions this device owns,
+            // otherwise a client could inject data into another device's session.
+            if !verify_ws_session_ownership(session_service, identity, &session_id).await {
+                info!(
+                    "WS: denied WaveformData publish to session {} for client {} (device mismatch)",
+                    session_id, client_id
+                );
+                return;
+            }
             let sample_rate_f = sample_rate as f32;
 
             let waveform_analysis = crate::domain::measurements::analyze_waveform(&samples, sample_rate_f);
@@ -496,6 +604,13 @@ async fn handle_client_message(
             dc_offset: _,
             timestamp: _,
         } => {
+            if !verify_ws_session_ownership(session_service, identity, &session_id).await {
+                info!(
+                    "WS: denied AnalysisData publish to session {} for client {} (device mismatch)",
+                    session_id, client_id
+                );
+                return;
+            }
             let analysis = OutgoingMessage::Analysis {
                 session_id: session_id.clone(),
                 peak_amplitude,
@@ -549,13 +664,6 @@ async fn handle_client_message(
             let _ = sender.send(response).await;
         }
     }
-}
-
-pub fn create_ws_router(state: Arc<WsState>) -> Router {
-    Router::new()
-        .route("/", get(ws_handler))
-        .layer(CorsLayer::permissive())
-        .with_state(state)
 }
 
 pub async fn broadcast_waveform(

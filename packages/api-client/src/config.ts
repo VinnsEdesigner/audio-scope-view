@@ -10,6 +10,75 @@ export const APP_VERSION = "v0.1.1-beta";
 
 export const APP_NAME = "Audio Scope View";
 
+/**
+ * Per-device anonymous identity.
+ *
+ * This is NOT user-facing authentication — there is no signup/login UI. Each
+ * browser generates a stable random id once and persists it in localStorage so
+ * that all data (sessions, recordings, preferences) created from that device is
+ * scoped to it and never returned to a different device. The id is sent on every
+ * request via the `X-Device-Id` header and is treated by the server as the data
+ * scoping key. The real, user-facing auth lives in the parent platform that will
+ * embed this scope system as a feature.
+ */
+const DEVICE_ID_STORAGE_KEY = "asv:device-id";
+const DEVICE_ID_HEADER = "X-Device-Id";
+
+function generateDeviceId(): string {
+  // Prefer the platform crypto UUID; fall back to a Math.random id for older runtimes.
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi && typeof cryptoApi.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+  return `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function readStoredDeviceId(): string | undefined {
+  try {
+    return globalThis.localStorage?.getItem(DEVICE_ID_STORAGE_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function storeDeviceId(id: string): void {
+  try {
+    globalThis.localStorage?.setItem(DEVICE_ID_STORAGE_KEY, id);
+  } catch {
+    /* localStorage unavailable (SSR / privacy mode) — id stays in-memory only */
+  }
+}
+
+let cachedDeviceId: string | undefined;
+
+/**
+ * Returns the stable device id for this browser, creating and persisting it on
+ * first use. Safe to call during SSR (returns undefined when `window`/localStorage
+ * are not available).
+ */
+export function getDeviceId(): string | undefined {
+  if (cachedDeviceId) {
+    return cachedDeviceId;
+  }
+  if (globalThis.window === undefined) {
+    return undefined;
+  }
+
+  const stored = readStoredDeviceId();
+  if (stored) {
+    cachedDeviceId = stored;
+    return stored;
+  }
+
+  const id = generateDeviceId();
+  storeDeviceId(id);
+  cachedDeviceId = id;
+  return id;
+}
+
+/** HTTP header name used to transmit the device identity to the server. */
+export const DEVICE_ID_HEADER_NAME = DEVICE_ID_HEADER;
+
 export interface ClientConfig {
   graphqlEndpoint: string;
 

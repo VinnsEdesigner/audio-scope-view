@@ -1,7 +1,7 @@
 
 use async_graphql::{Context, Object, SimpleObject};
 
-use crate::api::context_extractor::GraphqlContext;
+use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
 
 #[derive(Debug, SimpleObject)]
 pub struct UserPreferencesOutput {
@@ -24,11 +24,11 @@ impl UserPreferencesQuery {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        let prefs_id = "default-user";
+        let prefs_id = device_scope_from_context(ctx).unwrap_or_else(|| "default".to_string());
 
         let prefs = context
             .user_preferences_repository
-            .get_or_create(prefs_id)
+            .get_or_create(&prefs_id)
             .await
             .ok()?;
 
@@ -45,11 +45,11 @@ impl UserPreferencesQuery {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        let prefs_id = "default-user";
+        let prefs_id = device_scope_from_context(ctx).unwrap_or_else(|| "default".to_string());
 
         let prefs = context
             .user_preferences_repository
-            .get(prefs_id)
+            .get(&prefs_id)
             .await
             .ok()
             .flatten()?;
@@ -72,11 +72,11 @@ impl UserPreferencesMutation {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        let prefs_id = "default-user";
+        let prefs_id = device_scope_from_context(ctx).unwrap_or_else(|| "default".to_string());
 
         let mut prefs = match context
             .user_preferences_repository
-            .get_or_create(prefs_id)
+            .get_or_create(&prefs_id)
             .await
         {
             Ok(p) => p,
@@ -111,11 +111,11 @@ impl UserPreferencesMutation {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        let prefs_id = "default-user";
+        let prefs_id = device_scope_from_context(ctx).unwrap_or_else(|| "default".to_string());
 
         let mut prefs = match context
             .user_preferences_repository
-            .get_or_create(prefs_id)
+            .get_or_create(&prefs_id)
             .await
         {
             Ok(p) => p,
@@ -150,11 +150,11 @@ impl UserPreferencesMutation {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        let prefs_id = "default-user";
+        let prefs_id = device_scope_from_context(ctx).unwrap_or_else(|| "default".to_string());
 
         let mut prefs = match context
             .user_preferences_repository
-            .get_or_create(prefs_id)
+            .get_or_create(&prefs_id)
             .await
         {
             Ok(p) => p,
@@ -191,11 +191,11 @@ impl UserPreferencesMutation {
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
 
-        let prefs_id = "default-user";
+        let prefs_id = device_scope_from_context(ctx).unwrap_or_else(|| "default".to_string());
 
         let mut prefs = match context
             .user_preferences_repository
-            .get_or_create(prefs_id)
+            .get_or_create(&prefs_id)
             .await
         {
             Ok(p) => p,

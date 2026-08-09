@@ -64,15 +64,34 @@ export function InlineSelect({
     };
   }, [isOpen]);
 
-  // Position dropdown
+  // Position dropdown, flipping/clamping to stay within the viewport.
   React.useEffect(() => {
     if (isOpen && containerReference.current && dropdownReference.current) {
-      const containerRect = containerReference.current.getBoundingClientRect();
+      const container = containerReference.current;
       const dropdown = dropdownReference.current;
+      const containerRect = container.getBoundingClientRect();
 
       dropdown.style.minWidth = `${containerRect.width}px`;
       dropdown.style.left = "0";
-      dropdown.style.top = `${containerRect.height + 4}px`;
+
+      const gap = 4;
+      const viewportHeight = window.innerHeight;
+      // Measure the dropdown's natural height by temporarily rendering it open.
+      const naturalHeight = dropdown.scrollHeight;
+      const spaceBelow = viewportHeight - (containerRect.bottom + gap);
+      const spaceAbove = containerRect.top - gap;
+
+      if (spaceBelow >= naturalHeight || spaceBelow >= spaceAbove) {
+        // Open downward, clamped to the available space so it never runs off-screen.
+        dropdown.style.top = `${containerRect.height + gap}px`;
+        dropdown.style.bottom = "";
+        dropdown.style.maxHeight = `${Math.max(spaceBelow, 120)}px`;
+      } else {
+        // Not enough room below — open upward, clamped to the space above the trigger.
+        dropdown.style.top = "";
+        dropdown.style.bottom = `${containerRect.height + gap}px`;
+        dropdown.style.maxHeight = `${Math.max(spaceAbove, 120)}px`;
+      }
     }
   }, [isOpen]);
 
@@ -112,9 +131,9 @@ export function InlineSelect({
       {isOpen && (
         <div
           ref={dropdownReference}
-          className="absolute z-50 mt-1 bg-bg-secondary border border-border-subtle rounded-md shadow-lg overflow-hidden"
+          className="absolute z-50 bg-bg-secondary border border-border-subtle rounded-md shadow-lg overflow-hidden"
         >
-          <div className="max-h-96 overflow-y-auto py-1">
+          <div className="overflow-y-auto py-1" style={{ maxHeight: "inherit" }}>
             {options.length === 0 ? (
               <div className="px-3 py-2 text-sm text-text-tertiary">No options available</div>
             ) : (

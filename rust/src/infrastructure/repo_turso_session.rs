@@ -154,15 +154,35 @@ impl SessionRepository for TursoSessionRepository {
         Self::first_row(&result)
     }
 
-    async fn find_active_session(&self) -> DomainErrorResult<Option<Session>> {
-        let sql = "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1";
-        let result = self.client.execute(sql).await.map_err(Self::map_err)?;
+    async fn find_active_session(&self, device_id: Option<&str>) -> DomainErrorResult<Option<Session>> {
+        let (sql, args) = match device_id {
+            Some(d) => (
+                "SELECT * FROM sessions WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1",
+                vec![TursoArg::text(d)],
+            ),
+            None => (
+                "SELECT * FROM sessions WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1",
+                vec![],
+            ),
+        };
+        let result = self.client.execute_with_args(sql, args).await.map_err(Self::map_err)?;
         Self::first_row(&result)
     }
 
-    async fn find_all_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
-        let sql = "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ? OFFSET ?";
-        let result = self.client.execute_with_args(sql, vec![limit.into(), offset.into()])
+    async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+        let (sql, mut args) = match device_id {
+            Some(d) => (
+                "SELECT * FROM sessions WHERE user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                vec![TursoArg::text(d)],
+            ),
+            None => (
+                "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                vec![],
+            ),
+        };
+        args.push(limit.into());
+        args.push(offset.into());
+        let result = self.client.execute_with_args(sql, args)
             .await.map_err(Self::map_err)?;
         Self::collect_sessions(&result)
     }
@@ -178,9 +198,18 @@ impl SessionRepository for TursoSessionRepository {
         }
     }
 
-    async fn count_sessions(&self) -> DomainErrorResult<u32> {
-        let sql = "SELECT COUNT(*) FROM sessions WHERE is_sub_session = 0";
-        let result = self.client.execute(sql).await.map_err(Self::map_err)?;
+    async fn count_sessions(&self, device_id: Option<&str>) -> DomainErrorResult<u32> {
+        let (sql, args) = match device_id {
+            Some(d) => (
+                "SELECT COUNT(*) FROM sessions WHERE is_sub_session = 0 AND user_id = ?",
+                vec![TursoArg::text(d)],
+            ),
+            None => (
+                "SELECT COUNT(*) FROM sessions WHERE is_sub_session = 0",
+                vec![],
+            ),
+        };
+        let result = self.client.execute_with_args(sql, args).await.map_err(Self::map_err)?;
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             if let Some(row) = ok.response.result.rows.first() {
                 if let Some(count) = row.first().and_then(|v| v.as_i64()) {
@@ -219,9 +248,20 @@ impl SessionRepository for TursoSessionRepository {
         Ok(0)
     }
 
-    async fn find_main_sessions(&self, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
-        let sql = "SELECT * FROM sessions WHERE is_sub_session = 0 ORDER BY started_at DESC LIMIT ? OFFSET ?";
-        let result = self.client.execute_with_args(sql, vec![limit.into(), offset.into()])
+    async fn find_main_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+        let (sql, mut args) = match device_id {
+            Some(d) => (
+                "SELECT * FROM sessions WHERE is_sub_session = 0 AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                vec![TursoArg::text(d)],
+            ),
+            None => (
+                "SELECT * FROM sessions WHERE is_sub_session = 0 ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                vec![],
+            ),
+        };
+        args.push(limit.into());
+        args.push(offset.into());
+        let result = self.client.execute_with_args(sql, args)
             .await.map_err(Self::map_err)?;
         Self::collect_sessions(&result)
     }

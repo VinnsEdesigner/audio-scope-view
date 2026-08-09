@@ -1,4 +1,4 @@
-import { config } from "../../config";
+import { config, getDeviceId, DEVICE_ID_HEADER_NAME } from "../../config";
 
 // Custom WebSocket protocol types matching the server implementation
 
@@ -129,24 +129,39 @@ export class WaveformStreamClient {
   }
 
   private buildEndpoint(): string {
+    let base: string;
     if (config.websocketEndpoint) {
       if (
         config.websocketEndpoint.startsWith("ws://") ||
         config.websocketEndpoint.startsWith("wss://")
       ) {
-        return config.websocketEndpoint;
+        base = config.websocketEndpoint;
+      } else {
+        const httpProtocol = globalThis.window?.location?.protocol ?? "http:";
+        const wsProtocol = httpProtocol === "https:" ? "wss:" : "ws:";
+        const host = globalThis.window?.location?.host ?? "localhost:8080";
+        base = `${wsProtocol}://${host}${config.websocketEndpoint}`;
       }
-
+    } else {
       const httpProtocol = globalThis.window?.location?.protocol ?? "http:";
       const wsProtocol = httpProtocol === "https:" ? "wss:" : "ws:";
       const host = globalThis.window?.location?.host ?? "localhost:8080";
-      return `${wsProtocol}://${host}${config.websocketEndpoint}`;
+      base = `${wsProtocol}://${host}/ws`;
     }
 
-    const httpProtocol = globalThis.window?.location?.protocol ?? "http:";
-    const wsProtocol = httpProtocol === "https:" ? "wss:" : "ws:";
-    const host = globalThis.window?.location?.host ?? "localhost:8080";
-    return `${wsProtocol}://${host}/ws`;
+    // Attach the per-device identity + API key so the server can authenticate
+    // the handshake and authorize stream subscriptions to sessions owned by
+    // this device. Browsers cannot set custom headers on WebSocket handshakes,
+    // so both travel as query params.
+    const deviceId = getDeviceId();
+    if (deviceId) {
+      const separator = base.includes("?") ? "&" : "?";
+      base = `${base}${separator}${DEVICE_ID_HEADER_NAME}=${encodeURIComponent(deviceId)}`;
+      if (config.bootstrapKey) {
+        base = `${base}&X-Api-Key=${encodeURIComponent(config.bootstrapKey)}`;
+      }
+    }
+    return base;
   }
 
   connect(): void {

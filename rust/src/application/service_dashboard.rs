@@ -22,16 +22,16 @@ impl DashboardService {
         }
     }
 
-    pub async fn get_summary(&self, time_range: TimeRange) -> AppResult<DashboardSummary> {
+    pub async fn get_summary(&self, device_id: Option<&str>, time_range: TimeRange) -> AppResult<DashboardSummary> {
         let total_sessions = self
             .session_repository
-            .count_sessions()
+            .count_sessions(device_id)
             .await
             .map_err(AppError::Domain)?;
 
         let recent_sessions = self
             .session_repository
-            .find_all_sessions(5, 0)
+            .find_all_sessions(device_id, 5, 0)
             .await
             .map_err(AppError::Domain)?;
 
@@ -80,10 +80,10 @@ impl DashboardService {
         Ok(summary)
     }
 
-    pub async fn get_recent_sessions(&self, limit: u32) -> AppResult<Vec<RecentScope>> {
+    pub async fn get_recent_sessions(&self, device_id: Option<&str>, limit: u32) -> AppResult<Vec<RecentScope>> {
         let sessions = self
             .session_repository
-            .find_all_sessions(limit, 0)
+            .find_all_sessions(device_id, limit, 0)
             .await
             .map_err(AppError::Domain)?;
 

@@ -4,7 +4,7 @@ import { RECORDING_FIELDS } from "../queries/recording-queries";
 export const RENAME_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation RenameRecording($id: String!, $name: String!) {
-    rename_recording(id: $id, name: $name) {
+    renameRecording(id: $id, name: $name) {
       ...RecordingFields
     }
   }
@@ -12,8 +12,8 @@ export const RENAME_RECORDING = gql`
 
 export const PIN_RECORDING = gql`
   ${RECORDING_FIELDS}
-  mutation PinRecording($id: String!, $isPinned: Boolean!) {
-    pin_recording(id: $id, isPinned: $isPinned) {
+  mutation PinRecording($id: String!) {
+    pinRecording(id: $id) {
       ...RecordingFields
     }
   }
@@ -21,7 +21,7 @@ export const PIN_RECORDING = gql`
 
 export const DELETE_RECORDING = gql`
   mutation DeleteRecording($id: String!) {
-    delete_recording(id: $id)
+    deleteRecording(id: $id)
   }
 `;
 
@@ -44,7 +44,7 @@ export const CREATE_RECORDING = gql`
 export const STOP_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation StopRecording($id: String!) {
-    stop_recording(id: $id) {
+    stopRecording(id: $id) {
       ...RecordingFields
     }
   }
@@ -53,7 +53,7 @@ export const STOP_RECORDING = gql`
 export const PAUSE_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation PauseRecording($id: String!) {
-    pause_recording(id: $id) {
+    pauseRecording(id: $id) {
       ...RecordingFields
     }
   }
@@ -62,7 +62,7 @@ export const PAUSE_RECORDING = gql`
 export const RESUME_RECORDING = gql`
   ${RECORDING_FIELDS}
   mutation ResumeRecording($id: String!) {
-    resume_recording(id: $id) {
+    resumeRecording(id: $id) {
       ...RecordingFields
     }
   }
@@ -70,12 +70,12 @@ export const RESUME_RECORDING = gql`
 
 export const DELETE_RECORDINGS = gql`
   mutation DeleteRecordings($ids: [String!]!) {
-    delete_recordings(ids: $ids)
+    deleteRecordings(ids: $ids)
   }
 `;
 
 export const PIN_RECORDINGS = gql`
   mutation PinRecordings($ids: [String!]!, $pinned: Boolean!) {
-    pin_recordings(ids: $ids, pinned: $pinned)
+    pinRecordings(ids: $ids, pinned: $pinned)
   }
 `;

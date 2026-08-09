@@ -2,7 +2,7 @@
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 use chrono::Utc;
 
-use crate::api::context_extractor::GraphqlContext;
+use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
 use crate::domain::Session;
 use crate::domain::trait_audio_capture::AudioCapture;
 use crate::infrastructure::audio_capture_mock::MockAudioCapture;
@@ -174,9 +174,57 @@ fn validate_session_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Resolves the owner (user_id / device id) to attribute a new session to.
+///
+/// The per-device id from the request identity always wins. When the request is
+/// an unscoped admin (no device id), the client-supplied `input_user_id` is
+/// honored so the GraphQL playground / tooling can still create sessions;
+/// otherwise it falls back to "default".
+fn resolve_session_owner(
+    ctx: &Context<'_>,
+    input_user_id: Option<String>,
+) -> Result<String, async_graphql::Error> {
+    if let Some(did) = device_scope_from_context(ctx) {
+        return Ok(did);
+    }
+    Ok(input_user_id.filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "default".to_string()))
+}
+
+/// Verifies that the session `id` belongs to the requesting device. Returns
+/// `Ok(session)` when access is allowed, or an error otherwise. Unscoped admins
+/// (no device id) bypass the check. A missing session returns a "not found"
+/// error so the existence of another device's session is not leaked.
+async fn assert_session_ownership(
+    ctx: &Context<'_>,
+    id: &str,
+) -> Result<Session, async_graphql::Error> {
+    let context = ctx
+        .data::<GraphqlContext>()
+        .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+    let session = context
+        .session_service
+        .get(id)
+        .await
+        .map_err(|e| async_graphql::Error::new(format!("Failed to load session: {:?}", e)))?
+        .ok_or_else(|| async_graphql::Error::new("Session not found"))?;
+
+    if let Some(ref did) = device_scope_from_context(ctx) {
+        if session.user_id != *did {
+            // Return "not found" rather than "forbidden" to avoid leaking that
+            // the session exists and belongs to another device.
+            return Err(async_graphql::Error::new("Session not found"));
+        }
+    }
+    Ok(session)
+}
+
 #[derive(Debug, InputObject)]
 pub struct CreateSessionInput {
-    pub user_id: String,
+    /// Optional client-supplied owner id. Normal clients omit this and the
+    /// server derives the owner from the `X-Device-Id` header. It is only
+    /// honored for unscoped admin requests (e.g. the GraphQL playground) so a
+    /// device cannot create sessions attributed to a different device.
+    pub user_id: Option<String>,
     pub name: String,
     pub description: Option<String>,
 }
@@ -215,12 +263,13 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
 
         let sessions = context
             .session_service
-            .list_main_sessions(limit, offset)
+            .list_main_sessions(device_id.as_deref(), limit, offset)
             .await
             .unwrap_or_default();
 
@@ -249,12 +298,21 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
         let session = context
             .session_service
             .get(&id)
             .await
             .ok()
             .flatten()?;
+
+        // Enforce device isolation: a device must not read another device's
+        // session. Unscoped admins (device_id == None) may read any session.
+        if let Some(ref did) = device_id {
+            if session.user_id != *did {
+                return None;
+            }
+        }
 
         let count = context
             .recording_service
@@ -279,17 +337,19 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
-        context.session_service.count().await.unwrap_or(0) as i32
+        let device_id = device_scope_from_context(ctx);
+        context.session_service.count(device_id.as_deref()).await.unwrap_or(0) as i32
     }
 
     async fn active_sessions(&self, ctx: &Context<'_>) -> Vec<SessionOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
 
         let sessions = context
             .session_service
-            .list_main_sessions(100, 0)
+            .list_main_sessions(device_id.as_deref(), 100, 0)
             .await
             .unwrap_or_default();
 
@@ -373,9 +433,10 @@ impl SessionQuery {
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
         let total_limit = 1000u32;
+        let device_id = device_scope_from_context(ctx);
         let sessions = context
             .session_service
-            .list_main_sessions(total_limit, 0)
+            .list_main_sessions(device_id.as_deref(), total_limit, 0)
             .await
             .unwrap_or_default();
 
@@ -411,10 +472,11 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
 
         let sessions = context
             .session_service
-            .list_main_sessions(100, 0)
+            .list_main_sessions(device_id.as_deref(), 100, 0)
             .await
             .unwrap_or_default();
 
@@ -443,10 +505,11 @@ impl SessionQuery {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");
+        let device_id = device_scope_from_context(ctx);
 
         let sessions = context
             .session_service
-            .list_main_sessions(1000, 0)
+            .list_main_sessions(device_id.as_deref(), 1000, 0)
             .await
             .unwrap_or_default();
 
@@ -491,9 +554,13 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        // Owner is derived from the request identity (X-Device-Id), never trusted
+        // from the client for normal device requests.
+        let owner = resolve_session_owner(ctx, input.user_id)?;
+
         let session = context
             .session_service
-            .create_named_session(input.user_id, input.name, input.description)
+            .create_named_session(owner, input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create session: {:?}", e)))?;
 
@@ -513,9 +580,11 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        let owner = resolve_session_owner(ctx, input.user_id)?;
+
         let session = context
             .session_service
-            .create_named_session(input.user_id, input.name, input.description)
+            .create_named_session(owner, input.name, input.description)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create named session: {:?}", e)))?;
 
@@ -532,9 +601,11 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        let owner = resolve_session_owner(ctx, input.user_id)?;
+
         let session = context
             .session_service
-            .create_sub_session(&parent_id, input.user_id, input.name)
+            .create_sub_session(&parent_id, owner, input.name)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to create sub-session: {:?}", e)))?;
 
@@ -557,6 +628,9 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        // Verify the session belongs to the requesting device before mutating.
+        assert_session_ownership(ctx, &id).await?;
+
         let session = context
             .session_service
             .update_session_metadata(&id, input.name, input.description)
@@ -577,9 +651,10 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        let device_id = device_scope_from_context(ctx);
         let session = context
             .session_service
-            .get_or_create_active_session()
+            .get_or_create_active_session(device_id.as_deref())
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get or create session: {:?}", e)))?;
 
@@ -590,6 +665,8 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+
+        assert_session_ownership(ctx, &id).await?;
 
         let session = context
             .session_service
@@ -605,6 +682,8 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        assert_session_ownership(ctx, &id).await?;
+
         context
             .session_service
             .heartbeat(&id)
@@ -619,6 +698,8 @@ impl SessionMutation {
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
 
+        assert_session_ownership(ctx, &id).await?;
+
         context
             .session_service
             .delete(&id)
@@ -630,6 +711,8 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+
+        assert_session_ownership(ctx, &session_id).await?;
 
         let session = context
             .session_service
@@ -644,6 +727,8 @@ impl SessionMutation {
         let context = ctx
             .data::<GraphqlContext>()
             .map_err(|e| async_graphql::Error::new(format!("Missing context: {:?}", e)))?;
+
+        assert_session_ownership(ctx, &session_id).await?;
 
         let session = context
             .session_service

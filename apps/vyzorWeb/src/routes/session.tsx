@@ -15,7 +15,6 @@ import {
   Gauge,
   MoreVertical,
   FileSpreadsheet,
-  ActivitySquare,
 } from "lucide-react";
 import { useHeader } from "@/contexts/header-context";
 import {
@@ -596,10 +595,6 @@ export function Session(): React.ReactElement {
     handleDelete();
   }, [handleDelete]);
 
-  const handleOpenOscilloscope = React.useCallback(() => {
-    navigate(`/oscilloscope?sessionId=${sessionId}`);
-  }, [navigate, sessionId]);
-
   const handleSelectSubSession = React.useCallback(
     (subSessionId: string) => {
       navigate(`/session/${subSessionId}`);
@@ -612,19 +607,12 @@ export function Session(): React.ReactElement {
   // Set header content
   React.useEffect(() => {
     setContent({
+      variant: "tabbed",
       title: session?.name || `Session ${sessionId?.slice(0, 8)}` || "Session",
       subtitle: session?.startedAt ? formatSessionDate(session.startedAt) : undefined,
       badge: session?.endedAt ? undefined : "Live",
       actions: (
         <>
-          <button
-            onClick={handleOpenOscilloscope}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-yellow-700 hover:bg-yellow-800 border border-yellow-900 transition-all text-white font-semibold"
-          >
-            <ActivitySquare size={14} />
-            <span className="hidden sm:inline">Oscilloscope</span>
-          </button>
           {!session?.endedAt && (
             <button
               onClick={handleEnd}
@@ -652,6 +640,13 @@ export function Session(): React.ReactElement {
           </button>
         </>
       ),
+      tabs: [
+        {
+          id: "oscilloscope",
+          label: "Oscilloscope",
+          href: `/oscilloscope?sessionId=${sessionId ?? ""}`,
+        },
+      ],
     });
   }, [
     setContent,
@@ -661,7 +656,6 @@ export function Session(): React.ReactElement {
     isEnding,
     isDeleting,
     isUpdating,
-    handleOpenOscilloscope,
     handleEnd,
     handleOpenEdit,
     handleDelete,
@@ -669,6 +663,11 @@ export function Session(): React.ReactElement {
 
   return (
     <div className="w-full min-h-screen bg-bg-primary">
+      {session?.description && (
+        <p className="mx-4 md:mx-6 mt-4 text-sm text-text-secondary max-w-3xl leading-relaxed">
+          {session.description}
+        </p>
+      )}
       {}
       {parentSession && (
         <div className="mx-4 md:mx-6 mt-4 p-4 bg-icon/10 border border-icon/30 rounded-xl">

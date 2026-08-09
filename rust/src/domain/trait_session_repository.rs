@@ -11,9 +11,9 @@ pub trait SessionRepository: Send + Sync {
 
     async fn find_by_id(&self, id: &str) -> DomainResult<Option<Session>>;
 
-    async fn find_all_sessions(&self, limit: u32, offset: u32) -> DomainResult<Vec<Session>>;
+    async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainResult<Vec<Session>>;
 
-    async fn count_sessions(&self) -> DomainResult<u32>;
+    async fn count_sessions(&self, device_id: Option<&str>) -> DomainResult<u32>;
 
     async fn delete(&self, id: &str) -> DomainResult<bool>;
 }

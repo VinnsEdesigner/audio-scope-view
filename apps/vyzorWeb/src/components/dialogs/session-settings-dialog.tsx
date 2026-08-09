@@ -76,7 +76,7 @@ export function SessionSettingsDialog({
       {/* Click outside to close */}
       <div className="fixed inset-0 z-40 pointer-events-none" onClick={onClose} />
       <div
-        className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[420px] overflow-hidden shadow-lg pointer-events-auto"
+        className="fixed z-50 top-16 right-20 bg-bg-secondary border border-border rounded-xl w-full max-w-[420px] shadow-lg pointer-events-auto"
         onKeyDown={handleKeyDown}
         onClick={(event_) => event_.stopPropagation()}
       >

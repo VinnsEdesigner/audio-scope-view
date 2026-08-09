@@ -94,7 +94,7 @@ export function ReportIssue(): React.ReactElement {
               gap: "8px",
               padding: "10px 18px",
               backgroundColor:
-                message.trim() && !isLoading ? "var(--color-primary)" : "var(--color-bg-hover)",
+                message.trim() && !isLoading ? "var(--color-accent)" : "var(--color-bg-hover)",
               color: message.trim() && !isLoading ? "#fff" : "var(--color-text-tertiary)",
               border: "none",
               borderRadius: "var(--radius-md)",
@@ -103,6 +103,16 @@ export function ReportIssue(): React.ReactElement {
               cursor: message.trim() && !isLoading ? "pointer" : "not-allowed",
               transition: "all 0.2s",
               minWidth: "120px",
+            }}
+            onMouseEnter={(event_) => {
+              if (message.trim() && !isLoading) {
+                event_.currentTarget.style.backgroundColor = "var(--color-accent-hover)";
+              }
+            }}
+            onMouseLeave={(event_) => {
+              if (message.trim() && !isLoading) {
+                event_.currentTarget.style.backgroundColor = "var(--color-accent)";
+              }
             }}
           >
             {isLoading ? (
