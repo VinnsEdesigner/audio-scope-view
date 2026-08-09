@@ -3,7 +3,7 @@
     {
       "id": "oscilloscope",
       "title": "Real-time Oscilloscope",
-      "description": "Live waveform visualization with adjustable time scales and gain controls"
+      "description": "Live waveform visualization with adjustable time scales and gain controls, trigger, live measurement s"
     },
     {
       "id": "sessions",
@@ -13,12 +13,12 @@
     {
       "id": "export",
       "title": "Export Options",
-      "description": "Download recordings in WAV or MP3 format for sharing or archival"
+      "description": "Download recordings in WAV,JSON and CSV format for sharing or archival or review purposes"
     },
     {
       "id": "database",
-      "title": "Cloud Database",
-      "description": "Powered by Turso edge database for fast, reliable data sync across devices"
+      "title": "Cloud Storage",
+      "description": "fast, reliable data sync across your sessions"
     }
   ]
 }
