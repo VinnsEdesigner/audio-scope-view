@@ -12,7 +12,7 @@ RUN pnpm build && rm -f packages/api-client/tsconfig.tsbuildinfo && pnpm --filte
 
 FROM rust:1.97-bookworm AS backend-builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y musl-tools libssl-dev pkg-config libasound2-dev && rm -rf /var/lib/apt/lists/*
 COPY rust/ ./rust/
 COPY data/ ./data/
 WORKDIR /app/rust
