@@ -20,7 +20,7 @@ RUN cargo build --release
 
 FROM node:22-slim AS production
 WORKDIR /app
-RUN apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl ca-certificates libasound2 libssl3 && rm -rf /var/lib/apt/lists/*
 COPY --from=frontend-builder /app/apps/vyzorWeb/dist ./apps/vyzorWeb/dist
 COPY --from=frontend-builder /app/packages/api-client/dist ./packages/api-client/dist
 COPY --from=backend-builder /app/rust/target/release/audio-scope-view /usr/local/bin/
