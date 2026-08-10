@@ -231,7 +231,6 @@ export function ScopeCanvas({
           context,
           width,
           height,
-          color: waveformColorValue,
           glow,
           data: fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame,
           sampleRate,
