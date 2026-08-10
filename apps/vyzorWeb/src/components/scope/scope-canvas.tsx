@@ -107,9 +107,20 @@ function drawSpectrum({
   context.restore();
 }
 
+function levelFromPointer(
+  event: React.PointerEvent<HTMLDivElement>,
+  container: HTMLDivElement | null,
+): number {
+  if (!container) return 0;
+  const rect = container.getBoundingClientRect();
+  if (rect.height === 0) return 0;
+  const centerY = rect.height / 2;
+  const fullScale = (rect.height / 2) * 0.9;
+  const level = (centerY - (event.clientY - rect.top)) / fullScale;
+  return Math.round(Math.max(-1, Math.min(1, level)) * 100) / 100;
+}
+
 export function ScopeCanvas({
-  ...(0 as never),
-}: never);
   waveformData,
   isPaused = false,
   analysisFrame,
