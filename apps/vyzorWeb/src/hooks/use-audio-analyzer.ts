@@ -1,6 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
 import {
-  normalizeAudioData,
   calculateRMS,
   calculatePeak,
   calculateFrequency,
