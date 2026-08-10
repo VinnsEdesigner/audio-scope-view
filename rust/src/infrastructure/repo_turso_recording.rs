@@ -98,6 +98,7 @@ impl TursoRecordingRepository {
                 .ok_or_else(|| DomainError::corruption("Missing name".to_string()))?
                 .to_string(),
             sample_rate: row.get(5).and_then(|v| v.as_i64()).unwrap_or(44100) as u32,
+            sample_count: row.get(4).and_then(|v| v.as_i64()).unwrap_or(0) as u64,
             timestamp: Self::parse_datetime(timestamp_str)?,
             duration_ms: row.get(7).and_then(|v| v.as_f64()).unwrap_or(0.0),
             size_bytes: row.get(8).and_then(|v| v.as_i64()).unwrap_or(0) as u64,

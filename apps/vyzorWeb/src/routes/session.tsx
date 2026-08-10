@@ -23,6 +23,7 @@ import {
   useSubSessions,
   useParentSession,
   useRecordings,
+  useRecordingStats,
   useDeleteSession,
   useDeleteRecording,
   useEndSession,
@@ -359,6 +360,9 @@ export function Session(): React.ReactElement {
     limit: recordingsLimit,
     offset: recordingsOffset,
   });
+  // Server-side aggregate across ALL recordings in the session (the paged
+  // list only exposes the current page, so summing it undercounts the total).
+  const { data: sessionStatsData } = useRecordingStats(undefined, sessionId);
 
   const [deleteSession, { loading: isDeleting }] = useDeleteSession();
   const [endSession, { loading: isEnding }] = useEndSession({
@@ -411,13 +415,19 @@ export function Session(): React.ReactElement {
   );
   const recordingsTotal = recordingsData?.recordings?.total || 0;
 
+  // Prefer the server-side aggregate (covers all recordings, not just the
+  // current page). Fall back to the paged sum while the stats query loads.
   const totalDurationMs = React.useMemo(() => {
+    const serverTotal = sessionStatsData?.recordingStats?.totalDurationMs;
+    if (typeof serverTotal === "number") return serverTotal;
     return recordings.reduce((sum: number, r: RecordingSummary) => sum + (r.durationMs || 0), 0);
-  }, [recordings]);
+  }, [sessionStatsData?.recordingStats?.totalDurationMs, recordings]);
 
   const totalStorageBytes = React.useMemo(() => {
+    const serverTotal = sessionStatsData?.recordingStats?.totalSizeBytes;
+    if (typeof serverTotal === "number") return serverTotal;
     return recordings.reduce((sum: number, r: RecordingSummary) => sum + (r.sizeBytes || 0), 0);
-  }, [recordings]);
+  }, [sessionStatsData?.recordingStats?.totalSizeBytes, recordings]);
 
   React.useEffect(() => {
     if (session) {

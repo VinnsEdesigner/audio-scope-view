@@ -172,11 +172,11 @@ impl SessionRepository for TursoSessionRepository {
     async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
         let (sql, mut args) = match device_id {
             Some(d) => (
-                "SELECT * FROM sessions WHERE user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM sessions WHERE is_sub_session = 0 AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
                 vec![TursoArg::text(d)],
             ),
             None => (
-                "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM sessions WHERE is_sub_session = 0 ORDER BY started_at DESC LIMIT ? OFFSET ?",
                 vec![],
             ),
         };

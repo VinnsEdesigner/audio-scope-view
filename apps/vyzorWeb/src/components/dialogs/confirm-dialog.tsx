@@ -55,7 +55,7 @@ export function ConfirmDialog({
   const styles = getVariantStyles();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} onKeyDown={undefined} />
       <div className="relative bg-bg-secondary border border-border rounded-lg shadow-xl w-full max-w-sm p-6">
         <div className="flex items-start gap-4 mb-4">

@@ -151,7 +151,11 @@ export function useUpdateSession() {
 
 export function useCreateSubSession() {
   return useMutation(CREATE_SUB_SESSION, {
-    refetchQueries: [{ query: GET_SESSIONS }],
+    refetchQueries: [
+      { query: GET_SESSIONS },
+      { query: GET_SUB_SESSIONS },
+      { query: GET_SESSIONS_BY_ID },
+    ],
   });
 }
 
@@ -163,19 +167,27 @@ export function useCaptureWaveform() {
 
 export function useOpenOscilloscope() {
   return useMutation(OPEN_OSCILLOSCOPE, {
-    refetchQueries: [{ query: GET_SESSIONS }],
+    refetchQueries: [{ query: GET_SESSIONS }, { query: GET_SESSIONS_BY_ID }],
   });
 }
 
 export function useCloseOscilloscope() {
   return useMutation(CLOSE_OSCILLOSCOPE, {
-    refetchQueries: [{ query: GET_SESSIONS }],
+    refetchQueries: [
+      { query: GET_SESSIONS },
+      { query: GET_SUB_SESSIONS },
+      { query: GET_SESSIONS_BY_ID },
+    ],
   });
 }
 
 export function useUpdateSessionDsp() {
   return useMutation(UPDATE_SESSION_DSP, {
-    refetchQueries: [{ query: GET_SESSIONS }],
+    refetchQueries: [
+      { query: GET_SESSIONS },
+      { query: GET_SUB_SESSIONS },
+      { query: GET_SESSIONS_BY_ID },
+    ],
   });
 }
 

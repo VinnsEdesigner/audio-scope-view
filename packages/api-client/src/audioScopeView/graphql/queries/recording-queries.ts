@@ -27,6 +27,7 @@ export const RECORDING_SUMMARY_FIELDS = gql`
     sessionName
     name
     sampleRate
+    sampleCount
     timestamp
     durationMs
     sizeBytes

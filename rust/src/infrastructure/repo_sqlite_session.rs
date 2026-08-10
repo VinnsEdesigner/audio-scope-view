@@ -180,7 +180,7 @@ impl SessionRepository for SqliteSessionRepository {
     async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> = match device_id {
             Some(d) => sqlx::query_as(
-                "SELECT * FROM sessions WHERE user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM sessions WHERE is_sub_session = FALSE AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
             )
             .bind(d)
             .bind(limit as i32)
@@ -188,7 +188,7 @@ impl SessionRepository for SqliteSessionRepository {
             .fetch_all(&self.pool)
             .await
             .map_err(map_sqlx_err)?,
-            None => sqlx::query_as("SELECT * FROM sessions ORDER BY started_at DESC LIMIT ? OFFSET ?")
+            None => sqlx::query_as("SELECT * FROM sessions WHERE is_sub_session = FALSE ORDER BY started_at DESC LIMIT ? OFFSET ?")
                 .bind(limit as i32)
                 .bind(offset as i32)
                 .fetch_all(&self.pool)

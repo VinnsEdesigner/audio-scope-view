@@ -85,9 +85,9 @@ export function useRecentRecordings(limit = 5) {
   });
 }
 
-export function useRecordingStats(timeRange?: TimeRange) {
+export function useRecordingStats(timeRange?: TimeRange, sessionId?: string) {
   return useQuery(GET_RECORDING_STATS, {
-    variables: { timeRange },
+    variables: { timeRange, sessionId },
     fetchPolicy: "cache-and-network",
   });
 }
@@ -138,7 +138,11 @@ export function useRenameRecording() {
 
 export function usePinRecording() {
   return useMutation(PIN_RECORDING, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }, RECENT_RECORDINGS_REFETCH],
+    refetchQueries: [
+      { query: GET_RECORDINGS },
+      { query: GET_RECORDING_STATS },
+      RECENT_RECORDINGS_REFETCH,
+    ],
   });
 }
 
@@ -154,7 +158,11 @@ export function useDeleteRecording() {
 
 export function usePinRecordings() {
   return useMutation(PIN_RECORDINGS, {
-    refetchQueries: [{ query: GET_RECORDINGS }, { query: GET_RECORDING_STATS }, RECENT_RECORDINGS_REFETCH],
+    refetchQueries: [
+      { query: GET_RECORDINGS },
+      { query: GET_RECORDING_STATS },
+      RECENT_RECORDINGS_REFETCH,
+    ],
   });
 }
 

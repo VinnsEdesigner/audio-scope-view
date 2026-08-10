@@ -222,6 +222,10 @@ async function startCapture(): Promise<void> {
         next.set(collected);
         next.set(chunk, collected.length);
         collected = next;
+
+        // Reflect the growing capture buffer in state so the UI can show a
+        // live size/sample-count as the recording progresses.
+        patch.samples = collected;
       }
 
       animationFrameId = requestAnimationFrame(tick);
