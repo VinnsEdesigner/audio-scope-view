@@ -131,6 +131,9 @@ export function ScopeCanvas({
 
   const internalCanvasReference = React.useRef<HTMLCanvasElement>(null);
   const containerReference = React.useRef<HTMLDivElement>(null);
+  const setTriggerLevel = useUIStore((state) => state.setTriggerLevel);
+  const isDraggingReference = React.useRef(false);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   const effectiveCanvasReference = forwardedRef ?? internalCanvasReference;
 
@@ -168,6 +171,9 @@ export function ScopeCanvas({
 
   /** Smoothed max value for auto-scale to reduce jitter. Uses exponential moving average. */
   const smoothedMaxValueReference = React.useRef(0.01);
+
+  const draggingReference = React.useRef(isDragging);
+  draggingReference.current = isDragging;
 
   React.useEffect(() => {
     if (triggerMode === "single") singleArmedReference.current = true;
@@ -273,14 +279,55 @@ export function ScopeCanvas({
 
       // ---- Trigger level marker ------------------------------------------
       if (triggerEnabled) {
-        const levelY = centerY - triggerLevel * fullScale;
+        const clampedLevel = Math.max(-1, Math.min(1, triggerLevel));
+        const levelY = centerY - clampedLevel * fullScale;
+        const active = draggingReference.current;
+        const markerColor = active ? "#f97316" : "rgba(249, 115, 22, 0.75)";
+
         context.save();
-        context.strokeStyle = "rgba(255,255,255,0.35)";
-        context.setLineDash([4, 4]);
-        context.lineWidth = 1;
+        context.strokeStyle = markerColor;
+        context.setLineDash([6, 5]);
+        context.lineWidth = active ? 2 : 1;
         context.beginPath();
         context.moveTo(0, levelY);
-        context.lineTo(width, levelY);
+        context.lineTo(width - 46, levelY);
+        context.stroke();
+        context.setLineDash([]);
+
+        // Right-edge drag handle with the level value.
+        const handleWidth = 44;
+        const handleHeight = 16;
+        const handleY = Math.max(0, Math.min(height - handleHeight, levelY - handleHeight / 2));
+        context.fillStyle = markerColor;
+        context.fillRect(width - handleWidth, handleY, handleWidth, handleHeight);
+        context.fillStyle = "#111820";
+        context.font = "10px ui-monospace, monospace";
+        context.textBaseline = "middle";
+        context.fillText(clampedLevel.toFixed(2), width - handleWidth + 5, handleY + handleHeight / 2);
+
+        // Edge arrow on the left showing rising / falling / auto.
+        const arrowX = 10;
+        context.strokeStyle = markerColor;
+        context.lineWidth = 1.5;
+        context.beginPath();
+        if (triggerEdge === "falling") {
+          context.moveTo(arrowX - 4, levelY - 6);
+          context.lineTo(arrowX, levelY + 6);
+          context.lineTo(arrowX + 4, levelY - 6);
+        } else {
+          context.moveTo(arrowX - 4, levelY + 6);
+          context.lineTo(arrowX, levelY - 6);
+          context.lineTo(arrowX + 4, levelY + 6);
+        }
+        context.stroke();
+
+        // Trigger point (horizontal position of the aligned edge).
+        context.strokeStyle = "rgba(249, 115, 22, 0.35)";
+        context.setLineDash([3, 5]);
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.lineTo(0, height);
         context.stroke();
         context.restore();
       }
@@ -381,6 +428,33 @@ export function ScopeCanvas({
 
       {}
       <canvas ref={effectiveCanvasReference} className="absolute inset-0 w-full h-full" />
+
+      {}
+      {triggerEnabled && scopeView !== "spectrum" && (
+        <div
+          className="absolute inset-0"
+          style={{ cursor: isDragging ? "grabbing" : "ns-resize", touchAction: "none" }}
+          onPointerDown={(event) => {
+            (event.target as HTMLElement).setPointerCapture(event.pointerId);
+            isDraggingReference.current = true;
+            setIsDragging(true);
+            setTriggerLevel(levelFromPointer(event, containerReference.current));
+          }}
+          onPointerMove={(event) => {
+            if (!isDraggingReference.current) return;
+            setTriggerLevel(levelFromPointer(event, containerReference.current));
+          }}
+          onPointerUp={() => {
+            isDraggingReference.current = false;
+            setIsDragging(false);
+          }}
+          onPointerCancel={() => {
+            isDraggingReference.current = false;
+            setIsDragging(false);
+          }}
+          onDoubleClick={() => setTriggerLevel(0)}
+        />
+      )}
 
       {}
       {isFrozen && (
