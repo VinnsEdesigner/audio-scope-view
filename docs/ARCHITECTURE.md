@@ -1,27 +1,6 @@
-# Audio Scope View - Complete System Architecture
+# Audio Scope View - Architecture
 
-> **Version:** 2.0  
-> **Status:** Production Design  
-> **Last Updated:** 2026-07-22
-
----
-
-## Table of Contents
-
-1. [Philosophy](#philosophy)
-2. [System Overview](#system-overview)
-3. [Layer Architecture](#layer-architecture)
-4. [C++ DSP Layer](#c-dsp-layer)
-5. [Platform Bindings](#platform-bindings)
-6. [Web Assembly Build](#web-assembly-build)
-7. [UI Layer](#ui-layer)
-8. [Server Layer](#server-layer)
-9. [Communication Protocol](#communication-protocol)
-10. [Audio Format Specification](#audio-format-specification)
-11. [Phone Audio Limitations](#phone-audio-limitations)
-12. [File Structure](#file-structure)
-13. [Implementation Roadmap](#implementation-roadmap)
-
+>
 ---
 
 ## Philosophy
@@ -31,7 +10,7 @@
 1. **Single DSP Core** - Write signal processing code once in C++, use everywhere
 2. **Native Performance** - No interpreted languages in the DSP path
 3. **Clean Separation** - Each layer has one job and does it well
-4. **Server Simplicity** - Server is transport + storage, not a DSP engine
+4. **Server Simplicity** - Server is transport + storage, and maybe other functions.
 
 ### Why C++ for DSP?
 
@@ -104,16 +83,16 @@
     │                                                                       │
     │   ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐    │
     │   │  WebSocket  │  │  Broadcast  │  │   Database Storage      │    │
-    │   │   Receiver  │  │   Service   │  │   (Optional)            │    │
+    │   │   Receiver  │  │   Service   │  │                    │    │
     │   └─────────────┘  └─────────────┘  └─────────────────────────┘    │
     │                                                                       │
-    │                          NO DSP ON SERVER                             │
+    │                                                                │
     └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Layer Architecture
+## Layer Architecture.
 
 ### Layer 1: C++ DSP Core (sdk/dsp/)
 
@@ -122,7 +101,7 @@
 - FFT/IFFT computations
 - Frequency domain corrections
 - Time domain filters
-- Audio analysis (THD, SNR, RMS, peak)
+- Audio analysis (THD, SNR, RMS, peak etc,)
 
 ### Layer 2: Platform Bindings (sdk/bindings/)
 
@@ -200,199 +179,23 @@ sdk/
 
 #### 1. FFT Processor
 
-```cpp
-// sdk/dsp/include/audioscope/fft.hpp
-namespace audioscope {
-namespace dsp {
 
-class FFTProcessor {
-public:
-    FFTProcessor(size_t fft_size);
-    ~FFTProcessor();
-    
-    // Forward FFT
-    void forward(const float* input, Complex* output);
-    
-    // Inverse FFT
-    void inverse(const Complex* input, float* output);
-    
-    // Compute magnitude spectrum (dB)
-    void magnitude_spectrum(const float* input, float* magnitudes);
-    
-    // Get frequency for bin index
-    float bin_to_freq(size_t bin, float sample_rate);
-    
-private:
-    size_t fft_size_;
-    std::vector<Complex> fft_buffer_;
-};
-
-}} // namespace audioscope::dsp
-```
 
 #### 2. Corrections
 
-```cpp
-// sdk/dsp/include/audioscope/corrections.hpp
-namespace audioscope {
-namespace dsp {
 
-struct CorrectionConfig {
-    bool enable_agc_reversal = true;
-    bool enable_filter_correction = false;
-    bool enable_noise_gate_removal = true;
-    bool enable_dc_offset_correction = true;
-    
-    float noise_gate_threshold_db = -60.0f;
-    float agc_target_level = 0.5f;
-    std::vector<float> inverse_response_curve;
-};
-
-class CorrectionsProcessor {
-public:
-    CorrectionsProcessor(const CorrectionConfig& config);
-    
-    // Apply all enabled corrections
-    void process(float* samples, size_t count);
-    
-    // Individual corrections
-    void remove_dc_offset(float* samples, size_t count);
-    void reverse_agc(float* samples, size_t count, float detected_gain);
-    void remove_noise_gate_artifacts(float* samples, size_t count);
-    void apply_inverse_frequency_response(float* samples, size_t count);
-    
-private:
-    CorrectionConfig config_;
-    float dc_offset_ = 0.0f;
-    float last_gain_ = 1.0f;
-};
-
-}} // namespace audioscope::dsp
-```
 
 #### 3. Measurements
 
-```cpp
-// sdk/dsp/include/audioscope/measurements.hpp
-namespace audioscope {
-namespace dsp {
 
-struct Measurements {
-    float peak_amplitude;        // 0.0 to 1.0
-    float rms_amplitude;        // 0.0 to 1.0
-    float dc_offset;            // -1.0 to 1.0
-    float crest_factor;         // peak / rms
-    float dominant_frequency;   // Hz
-    float thd_percent;          // Total Harmonic Distortion %
-    float snr_db;               // Signal to Noise Ratio dB
-};
-
-struct SpectrumData {
-    std::vector<float> frequencies;    // Hz
-    std::vector<float> magnitudes_db;   // dB
-    float peak_frequency;               // Hz
-    float peak_magnitude_db;             // dB
-};
-
-class MeasurementsProcessor {
-public:
-    MeasurementsProcessor(float sample_rate);
-    
-    // Analyze samples
-    Measurements analyze(const float* samples, size_t count);
-    
-    // Get spectrum (requires FFT)
-    SpectrumData get_spectrum(const float* samples, size_t count);
-    
-private:
-    FFTProcessor fft_;
-    float sample_rate_;
-};
-
-}} // namespace audioscope::dsp
-```
 
 #### 4. Main Processor
 
-```cpp
-// sdk/dsp/include/audioscope/dsp.hpp
-namespace audioscope {
-namespace dsp {
 
-struct ProcessingResult {
-    float* processed_samples;    // Corrected waveform
-    size_t sample_count;
-    Measurements measurements;
-    SpectrumData spectrum;
-    uint64_t timestamp_ms;
-};
-
-class AudioProcessor {
-public:
-    AudioProcessor(int sample_rate = 44100, size_t buffer_size = 4096);
-    ~AudioProcessor();
-    
-    // Process a single audio frame
-    ProcessingResult process_frame(const float* samples, size_t count);
-    
-    // Configuration
-    void set_correction_config(const CorrectionConfig& config);
-    void set_fft_size(size_t size);
-    void set_sample_rate(int sample_rate);
-    
-    // Getters
-    const Measurements& get_measurements() const;
-    const SpectrumData& get_spectrum() const;
-    
-private:
-    int sample_rate_;
-    size_t buffer_size_;
-    size_t fft_size_;
-    
-    FFTProcessor fft_;
-    CorrectionsProcessor corrections_;
-    MeasurementsProcessor measurements_;
-    
-    std::vector<float> output_buffer_;
-    std::vector<Complex> fft_buffer_;
-};
-
-}} // namespace audioscope::dsp
-```
 
 ### DSP Configuration
 
-```cpp
-// sdk/dsp/examples/example_basic.cpp
-#include <audioscope/dsp.hpp>
-#include <vector>
 
-int main() {
-    // Create processor for 44100 Hz, 4096 sample buffer
-    audioscope::dsp::AudioProcessor processor(44100, 4096);
-    
-    // Configure corrections
-    audioscope::dsp::CorrectionConfig config;
-    config.enable_dc_offset_correction = true;
-    config.enable_agc_reversal = true;
-    config.enable_noise_gate_removal = true;
-    config.noise_gate_threshold_db = -60.0f;
-    
-    processor.set_correction_config(config);
-    
-    // Process audio frame
-    std::vector<float> samples = { /* audio data */ };
-    auto result = processor.process_frame(samples.data(), samples.size());
-    
-    // Use result
-    printf("Peak: %.3f, RMS: %.3f, Freq: %.1f Hz\n",
-           result.measurements.peak_amplitude,
-           result.measurements.rms_amplitude,
-           result.measurements.dominant_frequency);
-    
-    return 0;
-}
-```
 
 ---
 
@@ -541,440 +344,33 @@ if __name__ == '__main__':
 
 ### JavaScript WASM Bridge
 
-```typescript
-// src/audio/wasm-bridge.ts
-import AudioScopeDSP from '@audioscope/dsp-wasm';
-
-export interface Measurements {
-  peakAmplitude: number;
-  rmsAmplitude: number;
-  dcOffset: number;
-  crestFactor: number;
-  dominantFrequency: number;
-  thdPercent: number;
-  snrDb: number;
-}
-
-export interface SpectrumData {
-  frequencies: Float32Array;
-  magnitudesDb: Float32Array;
-  peakFrequency: number;
-  peakMagnitudeDb: number;
-}
-
-export class WASMAudioBridge {
-  private dsp: typeof AudioScopeDSP;
-  private memory: WebAssembly.Memory;
-  
-  constructor() {
-    this.memory = new WebAssembly.Memory({ initial: 256, maximum: 512 });
-    this.dsp = AudioScopeDSP({
-      wasmMemory: this.memory,
-    });
-  }
-  
-  async initialize(): Promise<void> {
-    await this.dsp.ready;
-    
-    // Configure DSP
-    this.dsp.setSampleRate(44100);
-    this.dsp.setBufferSize(4096);
-    this.dsp.setCorrectionConfig({
-      enableDcOffsetCorrection: true,
-      enableAgcReversal: true,
-      enableNoiseGateRemoval: true,
-      noiseGateThresholdDb: -60,
-    });
-  }
-  
-  processFrame(samples: Float32Array): Measurements {
-    const result = this.dsp.processFrame(samples);
-    return result.measurements;
-  }
-  
-  getMeasurements(): Measurements {
-    return this.dsp.getMeasurements();
-  }
-  
-  getSpectrum(): SpectrumData {
-    return this.dsp.getSpectrum();
-  }
-}
-```
-
 ### Web Audio API Integration
 
-```typescript
-// src/audio/audio-capture.ts
-import { WASMAudioBridge } from './wasm-bridge';
-
-export class BrowserAudioCapture {
-  private bridge: WASMAudioBridge;
-  private audioContext: AudioContext;
-  private mediaStream: MediaStream | null = null;
-  private processor: ScriptProcessorNode | null = null;
-  
-  constructor() {
-    this.audioContext = new AudioContext({ sampleRate: 44100 });
-    this.bridge = new WASMAudioBridge();
-  }
-  
-  async initialize(): Promise<void> {
-    await this.bridge.initialize();
-    
-    // Request microphone access with processing DISABLED
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        sampleRate: 44100,
-      }
-    });
-    
-    // Create audio pipeline
-    const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-    
-    this.processor.onaudioprocess = (event) => {
-      const inputData = event.inputBuffer.getChannelData(0);
-      
-      // Process through WASM DSP
-      const measurements = this.bridge.processFrame(inputData);
-      
-      // Update UI with measurements
-      this.onMeasurements(measurements);
-    };
-    
-    source.connect(this.processor);
-    this.processor.connect(this.audioContext.destination);
-  }
-  
-  private onMeasurements(measurements: Measurements): void {
-    // Emit to listeners
-  }
-  
-  stop(): void {
-    this.mediaStream?.getTracks().forEach(track => track.stop());
-    this.processor?.disconnect();
-    this.audioContext.close();
-  }
-}
-```
-
----
 
 ## UI Layer
 
-### React Components
 
-```tsx
-// src/components/scope/Oscilloscope.tsx
-import { useEffect, useRef } from 'react';
-import { useAudioConnection } from '../hooks/useAudioConnection';
-import { useWaveformRenderer } from '../hooks/useWaveformRenderer';
-import { WaveformCanvas } from './WaveformCanvas';
-import { SpectrumDisplay } from './SpectrumDisplay';
-import { TriggerControls } from './TriggerControls';
+### WebSocket 
 
-interface OscilloscopeProps {
-  scopeId: string;
-  serverUrl: string;
-}
+### Messages
 
-export function Oscilloscope({ scopeId, serverUrl }: OscilloscopeProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { measurements, spectrum, connectionState } = useAudioConnection(serverUrl, scopeId);
-  const renderer = useWaveformRenderer(canvasRef);
-  
-  useEffect(() => {
-    if (measurements && spectrum) {
-      renderer.draw(measurements, spectrum);
-    }
-  }, [measurements, spectrum, renderer]);
-  
-  return (
-    <div className="oscilloscope">
-      <div className="scope-display">
-        <WaveformCanvas ref={canvasRef} />
-        <SpectrumDisplay data={spectrum} />
-      </div>
-      
-      <div className="measurements">
-        <MeasurementDisplay label="Peak" value={measurements?.peakAmplitude} />
-        <MeasurementDisplay label="RMS" value={measurements?.rmsAmplitude} />
-        <MeasurementDisplay label="Freq" value={measurements?.dominantFrequency} unit="Hz" />
-        <MeasurementDisplay label="THD" value={measurements?.thdPercent} unit="%" />
-      </div>
-      
-      <TriggerControls />
-    </div>
-  );
-}
-```
+## Communication Protocols
 
-### WebSocket Hook
-
-```typescript
-// src/hooks/useAudioConnection.ts
-import { useEffect, useState, useCallback } from 'react';
-
-interface AudioMessage {
-  type: 'audio_frame' | 'measurement' | 'spectrum' | 'error';
-  measurements?: Measurements;
-  spectrum?: SpectrumData;
-  error?: string;
-}
-
-export function useAudioConnection(serverUrl: string, scopeId: string) {
-  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  const [measurements, setMeasurements] = useState<Measurements | null>(null);
-  const [spectrum, setSpectrum] = useState<SpectrumData | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  
-  const connect = useCallback(() => {
-    setConnectionState('connecting');
-    
-    const ws = new WebSocket(`${serverUrl}/audio/${scopeId}`);
-    
-    ws.onopen = () => {
-      setConnectionState('connected');
-    };
-    
-    ws.onmessage = (event) => {
-      const message: AudioMessage = JSON.parse(event.data);
-      
-      switch (message.type) {
-        case 'measurement':
-          setMeasurements(message.measurements);
-          break;
-        case 'spectrum':
-          setSpectrum(message.spectrum);
-          break;
-        case 'error':
-          console.error('Audio error:', message.error);
-          break;
-      }
-    };
-    
-    ws.onclose = () => {
-      setConnectionState('disconnected');
-    };
-    
-    wsRef.current = ws;
-  }, [serverUrl, scopeId]);
-  
-  const disconnect = useCallback(() => {
-    wsRef.current?.close();
-  }, []);
-  
-  useEffect(() => {
-    return () => disconnect();
-  }, [disconnect]);
-  
-  return {
-    connectionState,
-    measurements,
-    spectrum,
-    connect,
-    disconnect,
-  };
-}
-```
-
----
-
-## Server Layer
-
-### WebSocket Handler (Rust)
-
-```rust
-// rust/src/api/websocket/audio_handler.rs
-use axum::{
-    extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        Path, State,
-    },
-    response::IntoResponse,
-};
-use std::sync::Arc;
-
-pub async fn audio_websocket_handler(
-    ws: WebSocketUpgrade,
-    Path(scope_id): Path<String>,
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| audio_stream(socket, scope_id, state))
-}
-
-async fn audio_stream(
-    socket: WebSocket,
-    scope_id: String,
-    state: Arc<AppState>,
-) {
-    let (sender, receiver) = socket.split();
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<AudioFrame>(1000);
-    
-    // Spawn tasks for bidirectional communication
-    // (Production: add storage, broadcast, etc.)
-}
-```
-
-### Message Types
-
-```rust
-// rust/src/api/websocket/messages.rs
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum ClientMessage {
-    #[serde(rename = "audio_frame")]
-    AudioFrame {
-        samples: Vec<f32>,
-        sample_rate: i32,
-        timestamp_ms: i64,
-        channels: i32,
-    },
-    #[serde(rename = "subscribe")]
-    Subscribe { scope_id: String },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum ServerMessage {
-    #[serde(rename = "dsp_result")]
-    DspResult {
-        measurements: MeasurementsDto,
-        spectrum: SpectrumDto,
-    },
-    #[serde(rename = "error")]
-    Error { message: String },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MeasurementsDto {
-    pub peak_amplitude: f32,
-    pub rms_amplitude: f32,
-    pub dc_offset: f32,
-    pub crest_factor: f32,
-    pub dominant_frequency: f32,
-    pub thd_percent: f32,
-    pub snr_db: f32,
-}
-```
-
----
-
-## Communication Protocol
-
-### WebSocket Endpoint
+### WebSocket Endpoints
 
 ```
-ws://{server}:{port}/audio/{scope_id}
+
 ```
 
 ### Authentication
 
 All WebSocket connections require the `Authorization` header (or query param):
 
-```
-ws://localhost:8080/audio/scope-123?token={BOOTSTRAP_KEY}
-```
-
-### Message Flow
-
-```
-┌──────────┐                                            ┌──────────┐
-│  Client  │                                            │  Server  │
-└────┬─────┘                                            └────┬─────┘
-     │                                                       │
-     │────────── Connection + Auth ──────────────────────▶   │
-     │                                                       │
-     │◀─────────── Welcome / Error ────────────────────────  │
-     │                                                       │
-     │◀══════════ Real-time Audio Stream ═══════════════════▶│
-     │  (Client sends audio frames)                          │
-     │                                                       │
-     │◀─────────── DSP Results ─────────────────────────────  │
-     │  (Measurements, Spectrum)                             │
-     │                                                       │
-     │◀══════════ Broadcast to Subscribers ════════════════▶│
-     │  (Other clients viewing same scope)                   │
-     │                                                       │
-```
-
-### Message Schema
-
-**Client → Server (Audio Frame):**
-```json
-{
-  "type": "audio_frame",
-  "samples": [0.123, -0.456, 0.789, ...],
-  "sample_rate": 44100,
-  "timestamp_ms": 1234567890123,
-  "channels": 1
-}
-```
 
 **Server → Client (DSP Result):**
-```json
-{
-  "type": "dsp_result",
-  "waveform_id": "waveform-abc123",
-  "measurements": {
-    "peak_amplitude": 0.85,
-    "rms_amplitude": 0.52,
-    "dc_offset": 0.001,
-    "crest_factor": 1.63,
-    "dominant_frequency": 1000.0,
-    "thd_percent": 0.45,
-    "snr_db": 55.2
-  },
-  "spectrum": {
-    "frequencies": [20.0, 21.0, 22.0, ...],
-    "magnitudes_db": [-80.0, -75.0, -60.0, ...],
-    "peak_frequency": 1000.0,
-    "peak_magnitude_db": -10.5
-  }
-}
-```
 
----
 
-## Audio Format Specification
 
-### Standard Format
-
-All DSP processing operates on this canonical format:
-
-```cpp
-struct AudioFrame {
-    float* samples;        // Normalized to [-1.0, 1.0]
-    size_t sample_count;   // Number of samples
-    int sample_rate;       // Hz (8000, 16000, 22050, 44100, 48000)
-    int channels;          // 1 (mono) or 2 (stereo)
-    uint64_t timestamp;   // Microseconds since epoch
-};
-```
-
-### Sample Rate Support
-
-| Sample Rate | Use Case | Buffer Time (4096 samples) |
-|-------------|----------|---------------------------|
-| 8000 Hz | Voice quality | 512 ms |
-| 16000 Hz | Enhanced voice | 256 ms |
-| 22050 Hz | Music (low) | 185 ms |
-| 44100 Hz | CD quality | 92 ms |
-| 48000 Hz | Professional | 85 ms |
-
-### Buffer Size
-
-- **Default:** 4096 samples
-- **Minimum:** 256 samples (for low latency)
-- **Maximum:** 16384 samples (for batch processing)
-
----
 
 ## Phone Audio Limitations
 
@@ -1028,7 +424,7 @@ const constraints = {
     echoCancellation: false,    // DISABLE
     noiseSuppression: false,    // DISABLE
     autoGainControl: false,     // DISABLE
-    sampleRate: 44100,
+    
   }
 };
 ```
@@ -1084,160 +480,27 @@ audio-scope-view/
 ├── apps/                                 # Client applications
 │   ├── vyzorWeb/                         # Web application (React)
 │   │   ├── src/
-│   │   │   ├── components/
-│   │   │   │   ├── scope/
-│   │   │   │   │   ├── Oscilloscope.tsx
-│   │   │   │   │   ├── WaveformCanvas.tsx
-│   │   │   │   │   ├── SpectrumDisplay.tsx
-│   │   │   │   │   └── TriggerControls.tsx
-│   │   │   │   ├── layout/
-│   │   │   │   ├── dashboard/
-│   │   │   │   └── shared/
-│   │   │   ├── hooks/                  # PRESENTATION LAYER
-│   │   │   │   ├── useAudioConnection.ts
-│   │   │   │   ├── useWaveformRenderer.ts
-│   │   │   │   └── useWebSocket.ts
-│   │   │   ├── store/                  # STATE LAYER (Zustand)
-│   │   │   │   ├── scope-store.ts
-│   │   │   │   ├── settings-store.ts
-│   │   │   │   └── ui-store.ts
-│   │   │   ├── lib/
-│   │   │   └── routes/                 # UI LAYER (TanStack Router)
-│   │   ├── package.json
-│   │   ├── vite.config.ts
-│   │   └── ARCHITECTURE.md
+│   │
 │   │
 │   └── vyzorMobile/                     # Mobile application (Expo)
 │       ├── app/
-│       │   ├── routes/                 # UI LAYER (Expo Router)
-│       │   ├── components/
-│       │   │   ├── scope/
-│       │   │   └── dashboard/
-│       │   ├── hooks/                  # PRESENTATION LAYER
-│       │   └── store/                  # STATE LAYER (Zustand)
+│                         
 │       ├── android/
-│       │   └── app/src/main/java/com/audioscope/
+│       │   └── app/src/main/java/com/ASV/
 │       ├── ios/
 │       ├── app.json
 │       └── ARCHITECTURE.md
 │
 ├── rust/                                 # Server
 │   ├── src/
-│   │   ├── api/
-│   │   │   ├── websocket/
-│   │   │   │   ├── handler.rs
-│   │   │   │   ├── client.rs
-│   │   │   │   └── messages.rs
-│   │   │   └── auth/
-│   │   ├── application/
-│   │   │   ├── broadcast_service.rs
-│   │   │   └── storage_service.rs
-│   │   └── main.rs
-│   ├── Cargo.toml
-│   └── SPEC.md
-│
-└── package.json                          # Workspace root
+│   │                             
 ```
 
 ---
 
-## Implementation Roadmap
 
-### Phase 1: C++ DSP Core (Week 1-2)
-- [ ] Implement FFT processor
-- [ ] Implement frequency domain filters
-- [ ] Implement time domain filters
-- [ ] Implement measurements (THD, SNR, RMS, peak)
-- [ ] Implement corrections (DC offset, AGC reversal, noise gate)
-- [ ] Write unit tests
-- [ ] Benchmark performance
 
-### Phase 2: Platform Bindings (Week 3-4)
-- [ ] Linux: ALSA binding
-- [ ] Windows: WASAPI binding
-- [ ] Android: JNI bridge + Kotlin wrapper
-- [ ] Test on each platform
 
-### Phase 3: WASM Build (Week 5)
-- [ ] Set up Emscripten build
-- [ ] Compile C++ to WASM
-- [ ] JavaScript bridge implementation
-- [ ] Browser integration test
-
-### Phase 4: TypeScript UI (Week 6-7)
-- [ ] React component structure
-- [ ] Canvas waveform renderer
-- [ ] Spectrum display
-- [ ] WebSocket connection hook
-- [ ] Controls and settings
-
-### Phase 5: Rust Server (Week 8)
-- [ ] WebSocket handler
-- [ ] Authentication middleware
-- [ ] Broadcast service
-- [ ] Optional database storage
-- [ ] Load testing
-
-### Phase 6: Integration (Week 9-10)
-- [ ] End-to-end testing
-- [ ] Performance optimization
-- [ ] Bug fixes
-- [ ] Documentation
-
----
-
-## Appendix: Dependencies
-
-### C++ SDK
-
-| Library | Purpose | License |
-|---------|---------|---------|
-| KissFFT / FFTS | FFT computation | BSD / MIT |
-| CMake | Build system | BSD |
-
-### Rust Server
-
-| Crate | Purpose | Version |
-|-------|---------|---------|
-| tokio | Async runtime | 1.x |
-| axum | Web framework | 0.7.x |
-| serde | Serialization | 1.x |
-| tokio-tungstenite | WebSocket | 0.21.x |
-
-### TypeScript / Web
-
-| Package | Purpose | Version |
-|---------|---------|---------|
-| react | UI framework | 18.x |
-| typescript | Language | 5.x |
-| vite | Build tool | 5.x |
-| @tanstack/react-query | Data fetching | 5.x |
-
----
-
-## Implementation Status
-
-### Server (Rust) - Complete ✅
-
-| Module | Status | Description |
-|--------|--------|-------------|
-| `fft_processor.rs` | ✅ Wired | FFT computation with windowing |
-| `measurements.rs` | ✅ Wired | THD, SNR, RMS, peak detection |
-| `spectrogram.rs` | ✅ Wired | Waterfall/spectrogram display |
-| `waveform_generators.rs` | ✅ Wired | Test signal generation |
-| `compression/` | ✅ Wired | Data compression |
-| `trigger/` | ✅ Wired | Trigger detection system |
-
-### GraphQL DSP API - Available ✅
-
-All DSP operations exposed via GraphQL mutations:
-- `analyzeWaveform` - Full waveform measurements
-- `fftAnalyze` - FFT spectrum analysis
-- `computeSpectrogram` - Waterfall display data
-- `analyzeHarmonics` - THD/N analysis
-- `processAudio` - Full DSP pipeline
-
-### Still Needed for Production
 
 1. **Real-time WebSocket streaming** - Current API is request/response
 2. **C++ DSP Layer** - For native apps with better performance
