@@ -108,6 +108,8 @@ function drawSpectrum({
 }
 
 export function ScopeCanvas({
+  ...(0 as never),
+}: never);
   waveformData,
   isPaused = false,
   analysisFrame,
