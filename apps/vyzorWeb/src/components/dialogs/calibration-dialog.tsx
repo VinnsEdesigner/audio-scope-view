@@ -207,14 +207,14 @@ export function CalibrationDialog({
                   label="Dominant"
                   value={formatFrequency(dominantFrequency)}
                   unit="Hz"
-                  icon={<Activity size={14} className="text-pink-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Peak frequency"
                 />
                 <MetricRow
                   label="Fundamental"
                   value={formatFrequency(fundamentalFrequency)}
                   unit="Hz"
-                  icon={<Waves size={14} className="text-cyan-400" />}
+                  icon={<Waves size={14} className="text-gray-400" />}
                   description="1st harmonic"
                 />
               </div>
@@ -230,27 +230,27 @@ export function CalibrationDialog({
                 <MetricRow
                   label="Peak"
                   value={formatAmplitude(peakAmplitude)}
-                  icon={<Activity size={14} className="text-orange-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Maximum"
                 />
                 <MetricRow
                   label="RMS"
                   value={formatAmplitude(rmsAmplitude)}
-                  icon={<Activity size={14} className="text-yellow-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Root mean square"
                 />
                 <MetricRow
                   label="DC Offset"
                   value={(dcOffset * 1000).toFixed(3)}
                   unit="mV"
-                  icon={<Activity size={14} className="text-purple-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   status={getDcOffsetStatus(dcOffset)}
                   description="Average offset"
                 />
                 <MetricRow
                   label="Crest Factor"
                   value={formatAmplitude(crestFactor)}
-                  icon={<Gauge size={14} className="text-blue-400" />}
+                  icon={<Gauge size={14} className="text-gray-400" />}
                   status={getCrestFactorStatus(crestFactor)}
                   description="Peak / RMS"
                 />
@@ -269,7 +269,7 @@ export function CalibrationDialog({
                     label="THD"
                     value={formatPercent(thd)}
                     unit="%"
-                    icon={<Zap size={14} className="text-yellow-400" />}
+                    icon={<Zap size={14} className="text-gray-400" />}
                     status={getThdStatus(thd)}
                     description="Harmonic distortion"
                   />
@@ -277,7 +277,7 @@ export function CalibrationDialog({
                     label="THD+N"
                     value={formatPercent(thdn)}
                     unit="%"
-                    icon={<Zap size={14} className="text-red-400" />}
+                    icon={<Zap size={14} className="text-gray-400" />}
                     status={getThdnStatus(thdn)}
                     description="With noise"
                   />
@@ -285,7 +285,7 @@ export function CalibrationDialog({
                     label="SNR"
                     value={formatDecibel(snr)}
                     unit="dB"
-                    icon={<Volume2 size={14} className="text-green-400" />}
+                    icon={<Volume2 size={14} className="text-gray-400" />}
                     status={getSnrStatus(snr)}
                     description="Signal-to-noise"
                   />
@@ -303,7 +303,7 @@ export function CalibrationDialog({
                 <MetricRow
                   label="Signal Energy"
                   value={formatEnergy(signalEnergy)}
-                  icon={<Activity size={14} className="text-green-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Fundamental + harmonics"
                 />
                 <MetricRow
