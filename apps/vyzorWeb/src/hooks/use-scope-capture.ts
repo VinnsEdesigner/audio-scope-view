@@ -217,23 +217,20 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
     setIsConnected(false);
   }, []);
 
-  React.useEffect(() => {
-    return () => {
-      disconnect();
-      if (intervalReference.current) {
-        clearInterval(intervalReference.current);
-      }
-    };
-  }, [disconnect]);
-
   /**
-   * Rotates a tracking sub-session after every `subSessionThresholdMs` of
-   * continuous live capture. Guarded by refs (never by React state) because it
-   * runs from a long-lived interval whose closure is created once.
+   * Promotes the live capture to a single tracking sub-session once, after
+   * `subSessionThresholdMs` of continuous capture. Unlike a rotation, the
+   * sub-session is never re-created while capture continues — it stays open,
+   * receiving rolling DSP updates, and is only ended by `stopCapture`
+   * (oscilloscope closed) or unmount/navigation-away. Guarded by refs (never
+   * by React state) because it runs from a long-lived interval whose closure
+   * is created once.
    */
   const checkSubSessionCreation = React.useCallback(async () => {
     if (!isCapturingReference.current) return;
     if (isCreatingSubSessionReference.current) return;
+    // A sub-session already exists for this capture — do not rotate.
+    if (activeSubSessionReference.current) return;
 
     const now = performance.now();
     const timeSinceLastTick = now - lastTickTimeReference.current;
@@ -253,8 +250,6 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
     continuousCaptureTimeReference.current = 0;
     isCreatingSubSessionReference.current = true;
 
-    const previousSubSessionId = activeSubSessionReference.current;
-
     try {
       const result = await createSubSession({ variables: { parentId: sessionId } });
       const subSessionId = result?.data?.createSubSession?.id;
@@ -262,21 +257,30 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
       if (subSessionId) {
         activeSubSessionReference.current = subSessionId;
         setActiveSubSessionId(subSessionId);
-
-        // Close the previous tracking sub-session, not the new one.
-        if (previousSubSessionId) {
-          await closeOscilloscope({ variables: { sessionId: previousSubSessionId } });
-        }
       }
     } catch (error_) {
       console.error("Failed to create sub-session:", error_);
     } finally {
       isCreatingSubSessionReference.current = false;
     }
-  }, [sessionId, createSubSession, closeOscilloscope, subSessionThresholdMs]);
+  }, [sessionId, createSubSession, subSessionThresholdMs]);
 
   const checkSubSessionCreationReference = React.useRef(checkSubSessionCreation);
   checkSubSessionCreationReference.current = checkSubSessionCreation;
+
+  // Closes the active tracking sub-session (if any) and clears local refs.
+  // Safe to call repeatedly — a no-op once the active sub-session is cleared.
+  const closeActiveSubSession = React.useCallback(() => {
+    const subSessionId = activeSubSessionReference.current;
+    if (subSessionId) {
+      closeOscilloscope({ variables: { sessionId: subSessionId } }).catch(console.error);
+      activeSubSessionReference.current = undefined;
+      setActiveSubSessionId(undefined);
+    }
+  }, [closeOscilloscope]);
+
+  const closeActiveSubSessionReference = React.useRef(closeActiveSubSession);
+  closeActiveSubSessionReference.current = closeActiveSubSession;
 
   const sendWaveformData = React.useCallback(
     (samples: number[], sampleRate: number, metrics: DspMetrics) => {
@@ -358,15 +362,25 @@ export function useScopeCapture(options: UseScopeCaptureOptions): UseScopeCaptur
       intervalReference.current = undefined;
     }
 
-    const subSessionId = activeSubSessionReference.current;
-    if (subSessionId) {
-      closeOscilloscope({ variables: { sessionId: subSessionId } }).catch(console.error);
-      activeSubSessionReference.current = undefined;
-      setActiveSubSessionId(undefined);
-    }
+    // Close the active sub-session (oscilloscope closed). Idempotent.
+    closeActiveSubSessionReference.current();
 
     disconnect();
-  }, [closeOscilloscope, disconnect]);
+  }, [disconnect]);
+
+  // Unmount / navigation-away: tear down the capture loop, disconnect the
+  // websocket, and close any active tracking sub-session so it is not left
+  // dangling. Mirrors stopCapture but does not touch isCapturing state.
+  React.useEffect(() => {
+    return () => {
+      closeActiveSubSessionReference.current();
+      if (intervalReference.current) {
+        clearInterval(intervalReference.current);
+        intervalReference.current = undefined;
+      }
+      disconnect();
+    };
+  }, [disconnect]);
 
   return {
     activeSubSessionId: activeSubSessionId ?? undefined,
