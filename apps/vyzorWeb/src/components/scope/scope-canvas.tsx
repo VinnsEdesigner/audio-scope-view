@@ -25,17 +25,43 @@ interface DrawSpectrumOptions {
   context: CanvasRenderingContext2D;
   width: number;
   height: number;
-  color: string;
   glow: boolean;
   data: ArrayLike<number>;
   sampleRate: number;
+}
+
+/**
+ * Standard analyser palette: low magnitude = deep blue, rising through cyan,
+ * green and yellow to red at full scale.
+ */
+function spectrumColor(normalized: number): string {
+  const t = Math.min(1, Math.max(0, normalized));
+  const stops: [number, [number, number, number]][] = [
+    [0, [12, 24, 92]],
+    [0.25, [0, 140, 200]],
+    [0.5, [0, 190, 110]],
+    [0.75, [235, 205, 40]],
+    [1, [230, 45, 30]],
+  ];
+  let lower = stops[0];
+  let upper = stops[stops.length - 1];
+  for (let index = 0; index < stops.length - 1; index++) {
+    if (t >= stops[index][0] && t <= stops[index + 1][0]) {
+      lower = stops[index];
+      upper = stops[index + 1];
+      break;
+    }
+  }
+  const span = upper[0] - lower[0] || 1;
+  const ratio = (t - lower[0]) / span;
+  const mix = (a: number, b: number) => Math.round(a + (b - a) * ratio);
+  return `rgb(${mix(lower[1][0], upper[1][0])}, ${mix(lower[1][1], upper[1][1])}, ${mix(lower[1][2], upper[1][2])})`;
 }
 
 function drawSpectrum({
   context,
   width,
   height,
-  color,
   glow,
   data,
   sampleRate,
@@ -50,19 +76,19 @@ function drawSpectrum({
   const floorDatabase = -80;
 
   context.save();
-  if (glow) {
-    context.shadowColor = color;
-    context.shadowBlur = 8;
-  }
-
   const barWidth = Math.max(1, width / maxBin);
-  context.fillStyle = color;
 
   for (let bin = 1; bin <= maxBin; bin++) {
     const database = toDecibels(magnitudes[bin], floorDatabase);
     const normalized = (database - floorDatabase) / -floorDatabase;
     const barHeight = Math.max(0, normalized) * (height - 18);
     const x = ((bin - 1) / maxBin) * width;
+    const barColor = spectrumColor(normalized);
+    context.fillStyle = barColor;
+    if (glow) {
+      context.shadowColor = barColor;
+      context.shadowBlur = 6;
+    }
     context.fillRect(x, height - 18 - barHeight, barWidth, barHeight);
   }
   context.restore();
@@ -205,7 +231,6 @@ export function ScopeCanvas({
           context,
           width,
           height,
-          color: waveformColorValue,
           glow,
           data: fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame,
           sampleRate,
@@ -268,11 +293,6 @@ export function ScopeCanvas({
           context.shadowBlur = 8;
         }
 
-        if (invert) {
-          context.scale(1, -1);
-          context.translate(0, -height);
-        }
-
         context.beginPath();
         context.strokeStyle = waveformColorValue;
         context.lineWidth = 2;
@@ -287,26 +307,23 @@ export function ScopeCanvas({
         }
 
         if (autoScale) {
-          // Apply exponential moving average for smooth auto-scaling
-          // This reduces jitter when signal levels change slightly between frames
-          const alpha = 0.15; // Smoothing factor - higher = faster response, lower = smoother
+          // Explicit user-enabled auto-scale only: smooth the peak so the trace
+          // does not jump between frames.
+          const alpha = 0.15;
           const previousMax = smoothedMaxValueReference.current;
-          const newMax = Math.max(frameMaxValue, previousMax * 0.95); // Never let max drop below 95% of previous (peak hold)
+          const newMax = Math.max(frameMaxValue, previousMax * 0.95);
           smoothedMaxValueReference.current = previousMax * (1 - alpha) + newMax * alpha;
 
           pixelsPerUnit = (fullScale * verticalGain) / smoothedMaxValueReference.current;
         } else {
-          // When autoScale is off, ensure minimum display gain so small signals remain visible.
-          // Calculate what gain would fill 80% of the display at current verticalGain.
-          const minGainNeeded = frameMaxValue > 0 ? (fullScale * 0.8) / frameMaxValue : fullScale;
-          // Use whichever is larger: user-set verticalGain or the minimum needed to see the signal
-          const effectiveGain = Math.max(verticalGain, minGainNeeded / fullScale);
-          pixelsPerUnit = fullScale * effectiveGain;
+          // No hidden gain: draw the signal exactly at its real amplitude.
+          pixelsPerUnit = fullScale * verticalGain;
         }
 
+        const sign = invert ? -1 : 1;
         for (let index = 0; index < frame.length; index++) {
           const x = (index / (frame.length - 1)) * width;
-          const y = centerY - frame[index] * pixelsPerUnit;
+          const y = centerY - sign * frame[index] * pixelsPerUnit;
 
           if (index === 0) {
             context.moveTo(x, y);

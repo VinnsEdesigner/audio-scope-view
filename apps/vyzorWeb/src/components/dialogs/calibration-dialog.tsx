@@ -18,6 +18,8 @@ interface MetricRowProperties {
   icon: React.ReactNode;
   status?: "good" | "warning" | "bad" | "neutral";
   description?: string;
+  /** Stacked layout for narrow (3-up) grids so values stay aligned. */
+  compact?: boolean;
 }
 
 function MetricRow({
@@ -27,6 +29,7 @@ function MetricRow({
   icon,
   status = "neutral",
   description,
+  compact = false,
 }: MetricRowProperties) {
   // All statuses use gray for a cleaner, monochrome look
   const statusColors = {
@@ -36,9 +39,33 @@ function MetricRow({
     neutral: "text-foreground",
   };
 
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-2 py-2 px-3 bg-bg-elevated rounded-lg min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 shrink-0 flex items-center justify-center rounded-md bg-bg-tertiary">
+            {icon}
+          </div>
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide truncate">
+            {label}
+          </span>
+        </div>
+        <div
+          className={`font-mono font-semibold tabular-nums text-sm truncate ${statusColors[status]}`}
+        >
+          {value}
+          {unit && <span className="text-[10px] text-text-secondary ml-1">{unit}</span>}
+        </div>
+        {description && (
+          <div className="text-[10px] text-text-tertiary/70 truncate">{description}</div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 py-2 px-3 bg-bg-elevated rounded-lg">
-      <div className="w-8 h-8 flex items-center justify-center rounded-md bg-bg-tertiary">
+      <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-md bg-bg-tertiary">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
@@ -47,7 +74,7 @@ function MetricRow({
           <div className="text-[10px] text-text-tertiary/70 mt-0.5">{description}</div>
         )}
       </div>
-      <div className={`text-right font-mono font-semibold ${statusColors[status]}`}>
+      <div className={`text-right font-mono font-semibold tabular-nums ${statusColors[status]}`}>
         {value}
         {unit && <span className="text-xs text-text-secondary ml-1">{unit}</span>}
       </div>
@@ -70,7 +97,7 @@ function HarmonicBar({ harmonic }: HarmonicBarProperties) {
       </span>
       <div className="flex-1 h-4 bg-bg-tertiary rounded overflow-hidden">
         <div
-          className={`h-full rounded transition-all ${isFundamental ? "bg-green-500" : "bg-cyan-500"}`}
+          className={`h-full rounded transition-all ${isFundamental ? "bg-cyan-300" : "bg-cyan-500"}`}
           style={{ width: `${magnitudePercent}%` }}
         />
       </div>
@@ -177,8 +204,8 @@ export function CalibrationDialog({
         <div className="flex items-center gap-2">
           <h2 className="text-base font-semibold text-foreground tracking-tight">Calibration</h2>
           {isLive && (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full text-[10px] font-medium">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-500/20 text-gray-400 rounded-full text-[10px] font-medium">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" />
               LIVE
             </span>
           )}
@@ -207,14 +234,14 @@ export function CalibrationDialog({
                   label="Dominant"
                   value={formatFrequency(dominantFrequency)}
                   unit="Hz"
-                  icon={<Activity size={14} className="text-pink-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Peak frequency"
                 />
                 <MetricRow
                   label="Fundamental"
                   value={formatFrequency(fundamentalFrequency)}
                   unit="Hz"
-                  icon={<Waves size={14} className="text-cyan-400" />}
+                  icon={<Waves size={14} className="text-gray-400" />}
                   description="1st harmonic"
                 />
               </div>
@@ -230,27 +257,27 @@ export function CalibrationDialog({
                 <MetricRow
                   label="Peak"
                   value={formatAmplitude(peakAmplitude)}
-                  icon={<Activity size={14} className="text-orange-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Maximum"
                 />
                 <MetricRow
                   label="RMS"
                   value={formatAmplitude(rmsAmplitude)}
-                  icon={<Activity size={14} className="text-yellow-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Root mean square"
                 />
                 <MetricRow
                   label="DC Offset"
                   value={(dcOffset * 1000).toFixed(3)}
                   unit="mV"
-                  icon={<Activity size={14} className="text-purple-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   status={getDcOffsetStatus(dcOffset)}
                   description="Average offset"
                 />
                 <MetricRow
                   label="Crest Factor"
                   value={formatAmplitude(crestFactor)}
-                  icon={<Gauge size={14} className="text-blue-400" />}
+                  icon={<Gauge size={14} className="text-gray-400" />}
                   status={getCrestFactorStatus(crestFactor)}
                   description="Peak / RMS"
                 />
@@ -269,7 +296,8 @@ export function CalibrationDialog({
                     label="THD"
                     value={formatPercent(thd)}
                     unit="%"
-                    icon={<Zap size={14} className="text-yellow-400" />}
+                    compact
+                    icon={<Zap size={14} className="text-gray-400" />}
                     status={getThdStatus(thd)}
                     description="Harmonic distortion"
                   />
@@ -277,7 +305,8 @@ export function CalibrationDialog({
                     label="THD+N"
                     value={formatPercent(thdn)}
                     unit="%"
-                    icon={<Zap size={14} className="text-red-400" />}
+                    compact
+                    icon={<Zap size={14} className="text-gray-400" />}
                     status={getThdnStatus(thdn)}
                     description="With noise"
                   />
@@ -285,7 +314,8 @@ export function CalibrationDialog({
                     label="SNR"
                     value={formatDecibel(snr)}
                     unit="dB"
-                    icon={<Volume2 size={14} className="text-green-400" />}
+                    compact
+                    icon={<Volume2 size={14} className="text-gray-400" />}
                     status={getSnrStatus(snr)}
                     description="Signal-to-noise"
                   />
@@ -303,7 +333,7 @@ export function CalibrationDialog({
                 <MetricRow
                   label="Signal Energy"
                   value={formatEnergy(signalEnergy)}
-                  icon={<Activity size={14} className="text-green-400" />}
+                  icon={<Activity size={14} className="text-gray-400" />}
                   description="Fundamental + harmonics"
                 />
                 <MetricRow

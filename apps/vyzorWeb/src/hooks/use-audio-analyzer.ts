@@ -1,6 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
 import {
-  normalizeAudioData,
   calculateRMS,
   calculatePeak,
   calculateFrequency,
@@ -185,16 +184,18 @@ async function startCapture(): Promise<void> {
       }
     }, 100);
 
-    const dataArray = new Uint8Array(node.frequencyBinCount);
+    // Float time-domain data: full precision. The byte API quantises to 1/128
+    // steps which turns near-silent input into visible square-ish pulses.
+    const timeDomain = new Float32Array(node.fftSize);
+    const byteBuffer = new Uint8Array(node.frequencyBinCount);
     let lastAnalysisFrameAt = 0;
 
     const tick = () => {
       if (!analyser || !audioContext || state.recordingState === "idle") return;
 
       if (state.recordingState === "recording") {
-        analyser.getByteTimeDomainData(dataArray);
-
-        const normalized = normalizeAudioData(dataArray);
+        analyser.getFloatTimeDomainData(timeDomain);
+        const normalized = timeDomain.slice();
         const rms = calculateRMS(normalized);
         const peak = calculatePeak(normalized);
         const frequency = calculateFrequency(normalized, audioContext.sampleRate);
@@ -215,7 +216,8 @@ async function startCapture(): Promise<void> {
 
         setState(patch);
 
-        const chunk = collectSamples(dataArray, options.sampleCollectionInterval);
+        analyser.getByteTimeDomainData(byteBuffer);
+        const chunk = collectSamples(byteBuffer, options.sampleCollectionInterval);
         const next = new Float32Array(collected.length + chunk.length);
         next.set(collected);
         next.set(chunk, collected.length);
