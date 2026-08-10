@@ -293,11 +293,6 @@ export function ScopeCanvas({
           context.shadowBlur = 8;
         }
 
-        if (invert) {
-          context.scale(1, -1);
-          context.translate(0, -height);
-        }
-
         context.beginPath();
         context.strokeStyle = waveformColorValue;
         context.lineWidth = 2;
@@ -312,26 +307,23 @@ export function ScopeCanvas({
         }
 
         if (autoScale) {
-          // Apply exponential moving average for smooth auto-scaling
-          // This reduces jitter when signal levels change slightly between frames
-          const alpha = 0.15; // Smoothing factor - higher = faster response, lower = smoother
+          // Explicit user-enabled auto-scale only: smooth the peak so the trace
+          // does not jump between frames.
+          const alpha = 0.15;
           const previousMax = smoothedMaxValueReference.current;
-          const newMax = Math.max(frameMaxValue, previousMax * 0.95); // Never let max drop below 95% of previous (peak hold)
+          const newMax = Math.max(frameMaxValue, previousMax * 0.95);
           smoothedMaxValueReference.current = previousMax * (1 - alpha) + newMax * alpha;
 
           pixelsPerUnit = (fullScale * verticalGain) / smoothedMaxValueReference.current;
         } else {
-          // When autoScale is off, ensure minimum display gain so small signals remain visible.
-          // Calculate what gain would fill 80% of the display at current verticalGain.
-          const minGainNeeded = frameMaxValue > 0 ? (fullScale * 0.8) / frameMaxValue : fullScale;
-          // Use whichever is larger: user-set verticalGain or the minimum needed to see the signal
-          const effectiveGain = Math.max(verticalGain, minGainNeeded / fullScale);
-          pixelsPerUnit = fullScale * effectiveGain;
+          // No hidden gain: draw the signal exactly at its real amplitude.
+          pixelsPerUnit = fullScale * verticalGain;
         }
 
+        const sign = invert ? -1 : 1;
         for (let index = 0; index < frame.length; index++) {
           const x = (index / (frame.length - 1)) * width;
-          const y = centerY - frame[index] * pixelsPerUnit;
+          const y = centerY - sign * frame[index] * pixelsPerUnit;
 
           if (index === 0) {
             context.moveTo(x, y);
