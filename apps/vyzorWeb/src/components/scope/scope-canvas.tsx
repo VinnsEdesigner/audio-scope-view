@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useUIStore, type WaveformColor } from "@/store";
-import { computeSpectrum, toDecibels, triggeredWindow } from "@/lib/scope-dsp";
+import { ensureDsp, getDsp } from "@/lib/dsp-loader";
+import type { Spectrum } from "@audio-scope-view/dsp-wasm";
 
 const WAVEFORM_COLORS: Record<WaveformColor, string> = {
   cyan: "#22d3ee",
@@ -26,8 +27,7 @@ interface DrawSpectrumOptions {
   width: number;
   height: number;
   glow: boolean;
-  data: ArrayLike<number>;
-  sampleRate: number;
+  spectrum: Spectrum;
 }
 
 /**
@@ -58,29 +58,32 @@ function spectrumColor(normalized: number): string {
   return `rgb(${mix(lower[1][0], upper[1][0])}, ${mix(lower[1][1], upper[1][1])}, ${mix(lower[1][2], upper[1][2])})`;
 }
 
+const SPECTRUM_FLOOR_DB = -80;
+
 function drawSpectrum({
   context,
   width,
   height,
   glow,
-  data,
-  sampleRate,
+  spectrum,
 }: DrawSpectrumOptions): void {
-  if (!data || data.length < 8) return;
+  const { magnitudesDb, frequencies } = spectrum;
+  if (magnitudesDb.length === 0) return;
 
-  const { magnitudes, binHz } = computeSpectrum(data, sampleRate);
-  if (magnitudes.length === 0) return;
-
-  const maxFrequency = Math.min(sampleRate / 2, 20_000);
-  const maxBin = Math.max(1, Math.min(magnitudes.length - 1, Math.floor(maxFrequency / binHz)));
-  const floorDatabase = -80;
+  const maxFrequency = Math.min(spectrum.sampleRate / 2, 20_000);
+  // Last bin index whose frequency is within the displayed range.
+  const maxBin = Math.max(
+    1,
+    Math.min(magnitudesDb.length - 1, frequencies.findIndex((f) => f > maxFrequency) - 1),
+  );
+  if (maxBin <= 0) return;
 
   context.save();
   const barWidth = Math.max(1, width / maxBin);
 
   for (let bin = 1; bin <= maxBin; bin++) {
-    const database = toDecibels(magnitudes[bin], floorDatabase);
-    const normalized = (database - floorDatabase) / -floorDatabase;
+    const db = magnitudesDb[bin];
+    const normalized = (db - SPECTRUM_FLOOR_DB) / -SPECTRUM_FLOOR_DB;
     const barHeight = Math.max(0, normalized) * (height - 18);
     const x = ((bin - 1) / maxBin) * width;
     const barColor = spectrumColor(normalized);
@@ -99,7 +102,7 @@ function drawSpectrum({
   context.font = "10px ui-monospace, monospace";
   for (let step = 0; step <= 4; step++) {
     const ratio = step / 4;
-    const frequency = ratio * maxBin * binHz;
+    const frequency = ratio * maxFrequency;
     const label =
       frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
     context.fillText(label, Math.min(width - 22, ratio * width + 2), height - 5);
@@ -194,6 +197,13 @@ export function ScopeCanvas({
 
   const isFrozen = isPaused;
 
+  // Kick off the WASM DSP core load as soon as the scope mounts so it is ready
+  // for the spectrum + trigger hot path. getDsp() in the draw loop picks it up
+  // once loaded; until then the UI free-runs (no spectrum / no trigger align).
+  React.useEffect(() => {
+    void ensureDsp();
+  }, []);
+
   React.useEffect(() => {
     const canvas = effectiveCanvasReference.current;
     const container = containerReference.current;
@@ -244,39 +254,40 @@ export function ScopeCanvas({
       const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
       const liveFrame = waveformDataReference.current;
       const fullFrame = analysisFrameReference.current;
+      const dsp = getDsp();
 
       if (scopeView === "spectrum") {
-        drawSpectrum({
-          context,
-          width,
-          height,
-          glow,
-          data: fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame,
-          sampleRate,
-        });
+        const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
+        if (dsp && data.length >= 8) {
+          const spectrum = dsp.computeSpectrum(data, sampleRate, "hann");
+          drawSpectrum({ context, width, height, glow, spectrum });
+        }
         animationFrameId = requestAnimationFrame(draw);
         return;
       }
 
       // ---- Trigger --------------------------------------------------------
-      let frame: number[] = liveFrame;
+      let frame: ArrayLike<number> = liveFrame;
 
       if (triggerEnabled && !isPaused && liveFrame.length > 0) {
         const source = fullFrame && fullFrame.length > liveFrame.length ? fullFrame : liveFrame;
         const windowSize = Math.min(liveFrame.length, source.length);
         const armed = triggerMode !== "single" || singleArmedReference.current;
 
-        const aligned = armed
-          ? triggeredWindow(source, windowSize, {
-              edge: triggerEdge,
-              level: triggerLevel,
-              holdoff: triggerHoldoff,
-            })
-          : undefined;
+        // Use the WASM trigger core when available (single source of truth);
+        // otherwise fall back to free-running display so the UI never blocks.
+        const aligned =
+          armed && dsp
+            ? dsp.triggeredWindow(source, windowSize, {
+                edge: triggerEdge,
+                level: triggerLevel,
+                holdoff: triggerHoldoff,
+              }) ?? undefined
+            : undefined;
 
         if (aligned) {
           frame = aligned;
-          heldFrameReference.current = aligned;
+          heldFrameReference.current = Array.from(aligned);
           if (triggerMode === "single") singleArmedReference.current = false;
         } else if (triggerMode === "auto") {
           frame = liveFrame;
@@ -361,8 +372,8 @@ export function ScopeCanvas({
 
         let pixelsPerUnit = fullScale * verticalGain;
         let frameMaxValue = 0.01;
-        for (const value of frame) {
-          const absolute = Math.abs(value);
+        for (let index = 0; index < frame.length; index++) {
+          const absolute = Math.abs(frame[index]);
           if (absolute > frameMaxValue) frameMaxValue = absolute;
         }
 

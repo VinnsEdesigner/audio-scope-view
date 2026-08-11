@@ -20,6 +20,7 @@
   "dependencies": {
     "@apollo/client": "^3.13.0",
     "@audio-scope-view/api-client": "workspace:*",
+    "@audio-scope-view/dsp-wasm": "workspace:*",
     "@audio-scope-view/tamagui": "workspace:*",
     "@audio-scope-view/ui": "workspace:*",
     "@react-router/node": "^7.0.0",

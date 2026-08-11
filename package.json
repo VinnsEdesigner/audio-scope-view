@@ -11,7 +11,7 @@
     "preview": "pnpm --filter @audio-scope-view/vyzor-web preview",
     "build:wasm": "bash sdk/wasm/build.sh",
     "build:sdk": "cmake --preset linux -D AUDIOSCOPE_BUILD_FFI=ON && cmake --build sdk/build/linux",
-    "test:sdk": "cmake --build sdk/build/linux && (cd sdk/build/linux && ctest --preset linux)",
+    "test:sdk": "cmake --build sdk/build/linux && (cd sdk && ctest --preset linux)",
     "test:wasm": "pnpm --filter @audio-scope-view/dsp-wasm test",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",

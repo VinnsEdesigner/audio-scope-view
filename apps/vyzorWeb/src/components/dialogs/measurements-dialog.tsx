@@ -1,12 +1,7 @@
 import * as React from "react";
 import { X } from "lucide-react";
 import { useAudioAnalyzer } from "@/hooks";
-import {
-  calculatePeak,
-  calculateRMS,
-  calculateDCOffset,
-  calculateFrequency,
-} from "@audio-scope-view/api-client/domain/_shared/audio-utilities";
+import { getDsp } from "@/lib/dsp-loader";
 
 interface MeasurementsDialogProperties {
   isOpen: boolean;
@@ -68,10 +63,11 @@ export function MeasurementsDialog({ isOpen: _isOpen, onClose }: MeasurementsDia
       return;
     }
 
-    const vpp = calculatePeak(samples) * 2;
-    const rms = calculateRMS(samples);
-    const dcOffset = calculateDCOffset(samples);
-    const frequency = calculateFrequency(samples, sampleRate);
+    const dsp = getDsp();
+    const vpp = (dsp ? dsp.findPeakAmplitude(samples) : 0) * 2;
+    const rms = dsp ? dsp.computeRms(samples) : 0;
+    const dcOffset = dsp ? dsp.computeDcOffset(samples) : 0;
+    const frequency = dsp ? dsp.estimateDominantFrequency(samples, sampleRate) : 0;
 
     setMeasurements({
       vpp,

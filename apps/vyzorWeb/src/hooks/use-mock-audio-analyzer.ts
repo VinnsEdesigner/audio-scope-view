@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   normalizeAudioData,
   calculateRMS,
@@ -6,6 +6,8 @@ import {
   calculateFrequency,
   downsampleWaveform,
 } from "@audio-scope-view/api-client/domain/_shared/audio-utilities";
+import { ensureDsp, getDsp } from "@/lib/dsp-loader";
+import type { GeneratorKind, NoiseType } from "@audio-scope-view/dsp-wasm";
 
 export type RecordingState = "idle" | "recording" | "paused";
 export type WaveformType = "sine" | "square" | "sawtooth" | "triangle" | "noise";
@@ -56,6 +58,18 @@ const DEFAULT_NOISE_LEVEL = 0.02;
 const DEFAULT_SMOOTHING = 0.3;
 const DEFAULT_FFT_SIZE = 4096;
 
+// Map the UI waveform names to the C++ generator kinds. The C++ core is the
+// single source of truth for synthesis (replaces the TS generateSample).
+const WAVEFORM_TO_GENERATOR: Record<WaveformType, GeneratorKind> = {
+  sine: "sine",
+  square: "square",
+  sawtooth: "sawtooth",
+  triangle: "triangle",
+  noise: "noise",
+};
+const NOISE_TYPE: NoiseType = "white";
+const MOCK_SAMPLE_COUNT = 1024;
+
 export function useMockAudioAnalyzer(
   options: UseMockAudioAnalyzerOptions = {},
 ): UseMockAudioAnalyzerReturn {
@@ -92,6 +106,33 @@ export function useMockAudioAnalyzer(
   const samplesReference = useRef<Float32Array>(new Float32Array());
 
   const isCapturing = recordingState !== "idle";
+
+  // Preload the WASM DSP core so the mock synthesizer can use the C++
+  // generators. The regenerated-samples effect below picks it up once loaded.
+  useEffect(() => {
+    void ensureDsp();
+  }, []);
+
+  // Regenerate the mock sample buffer via the C++ generators whenever a
+  // synthesis parameter changes (or once the DSP core finishes loading). This
+  // replaces the old per-sample TS generateSample loop.
+  useEffect(() => {
+    const dsp = getDsp();
+    if (!dsp) return;
+    const generated = dsp.generateWaveform({
+      kind: WAVEFORM_TO_GENERATOR[currentWaveformType],
+      frequency,
+      amplitude,
+      noiseType: NOISE_TYPE,
+      sampleRate,
+      numSamples: MOCK_SAMPLE_COUNT,
+    });
+    samplesReference.current = generated;
+    // Keep analysisFrame in sync (the scope reads it for spectrum + trigger).
+    if (recordingState !== "idle") {
+      setWaveformData(downsampleWaveform(generated, waveformPoints));
+    }
+  }, [frequency, amplitude, currentWaveformType, sampleRate, waveformPoints, recordingState]);
 
   const createNoiseSource = useCallback((context: AudioContext): AudioBufferSourceNode => {
     const bufferSize = context.sampleRate * 2;
@@ -214,13 +255,28 @@ export function useMockAudioAnalyzer(
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      const initialSamples: number[] = [];
-      for (let index = 0; index < 1024; index++) {
-        initialSamples.push(
-          generateSample(index, frequency, sampleRate, amplitude, currentWaveformType),
-        );
+      // Seed the sample buffer from the C++ generators (single source of
+      // truth). Falls back to the TS sample generator only if the WASM core
+      // has not finished loading yet.
+      const dsp = getDsp();
+      if (dsp) {
+        samplesReference.current = dsp.generateWaveform({
+          kind: WAVEFORM_TO_GENERATOR[currentWaveformType],
+          frequency,
+          amplitude,
+          noiseType: NOISE_TYPE,
+          sampleRate,
+          numSamples: MOCK_SAMPLE_COUNT,
+        });
+      } else {
+        const initialSamples: number[] = [];
+        for (let index = 0; index < MOCK_SAMPLE_COUNT; index++) {
+          initialSamples.push(
+            generateSample(index, frequency, sampleRate, amplitude, currentWaveformType),
+          );
+        }
+        samplesReference.current = new Float32Array(initialSamples);
       }
-      samplesReference.current = new Float32Array(initialSamples);
 
       const updateVisualization = () => {
         if (
@@ -235,9 +291,15 @@ export function useMockAudioAnalyzer(
 
         const normalizedData = normalizeAudioData(dataArray);
 
-        const rms = calculateRMS(normalizedData);
-        const peak = calculatePeak(normalizedData);
-        const freq = calculateFrequency(normalizedData, audioContextReference.current.sampleRate);
+        // Route measurements through the WASM DSP core when loaded.
+        const vizDsp = getDsp();
+        const rms = vizDsp ? vizDsp.computeRms(normalizedData) : calculateRMS(normalizedData);
+        const peak = vizDsp
+          ? vizDsp.findPeakAmplitude(normalizedData)
+          : calculatePeak(normalizedData);
+        const freq = vizDsp
+          ? vizDsp.estimateDominantFrequency(normalizedData, audioContextReference.current.sampleRate)
+          : calculateFrequency(normalizedData, audioContextReference.current.sampleRate);
 
         setVolumeLevel(Math.min(rms * 3, 1));
         setPeakLevel(Math.min(peak, 1));

@@ -1,11 +1,9 @@
 import { useCallback, useSyncExternalStore } from "react";
 import {
-  calculateRMS,
-  calculatePeak,
-  calculateFrequency,
   downsampleWaveform,
   collectSamples,
 } from "@audio-scope-view/api-client/domain/_shared/audio-utilities";
+import { ensureDsp, getDsp } from "@/lib/dsp-loader";
 import { useAudioStore } from "../store";
 
 export type RecordingState = "idle" | "recording" | "paused";
@@ -50,6 +48,25 @@ const DEFAULT_SAMPLE_INTERVAL = 16;
 const ANALYSIS_FRAME_INTERVAL_MS = 100;
 
 const EMPTY_SAMPLES = new Float32Array();
+
+// Minimal pre-load fallbacks so live capture produces sane readings before the
+// WASM core finishes compiling. Once getDsp() is non-null the C++ core takes
+// over for real. Kept tiny — the WASM path is the source of truth.
+function inlineRms(data: Float32Array): number {
+  if (data.length === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+  return Math.sqrt(sum / data.length);
+}
+function inlinePeak(data: Float32Array): number {
+  if (data.length === 0) return 0;
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) {
+    const a = Math.abs(data[i]);
+    if (a > peak) peak = a;
+  }
+  return peak;
+}
 
 function createInitialState(): AudioAnalyzerState {
   return {
@@ -171,6 +188,11 @@ async function startCapture(): Promise<void> {
     analyser = node;
     collected = new Float32Array();
 
+    // Preload the WASM DSP core so the per-frame measurements (RMS/peak/freq)
+    // hit the C++ core instead of the TS fallbacks. Non-blocking: the tick loop
+    // reads getDsp() and degrades gracefully until the module is ready.
+    void ensureDsp();
+
     setState({
       sampleRate: context.sampleRate,
       duration: 0,
@@ -196,9 +218,16 @@ async function startCapture(): Promise<void> {
       if (state.recordingState === "recording") {
         analyser.getFloatTimeDomainData(timeDomain);
         const normalized = timeDomain.slice();
-        const rms = calculateRMS(normalized);
-        const peak = calculatePeak(normalized);
-        const frequency = calculateFrequency(normalized, audioContext.sampleRate);
+
+        // Route measurements through the WASM DSP core (single source of truth)
+        // when it is loaded; otherwise fall back to inline TS so capture still
+        // works before the module finishes compiling.
+        const dsp = getDsp();
+        const rms = dsp ? dsp.computeRms(normalized) : inlineRms(normalized);
+        const peak = dsp ? dsp.findPeakAmplitude(normalized) : inlinePeak(normalized);
+        const frequency = dsp
+          ? dsp.estimateDominantFrequency(normalized, audioContext.sampleRate)
+          : 0;
 
         const patch: Partial<AudioAnalyzerState> = {
           volumeLevel: Math.min(rms * 3, 1),

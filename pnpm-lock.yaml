@@ -307,6 +307,9 @@ importers:
       '@audio-scope-view/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@audio-scope-view/dsp-wasm':
+        specifier: workspace:*
+        version: link:../../packages/dsp-wasm
       '@audio-scope-view/tamagui':
         specifier: workspace:*
         version: link:../../packages/tamagui
