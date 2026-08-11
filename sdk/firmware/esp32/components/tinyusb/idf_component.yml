@@ -1,0 +1,4 @@
+version: "0.21.0"
+description: "Local vendored TinyUSB (upstream hathach/tinyusb) for offline ESP-IDF builds."
+targets:
+  - esp32s3

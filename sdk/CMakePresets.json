@@ -15,6 +15,16 @@
             }
         },
         {
+            "name": "linux-bindings",
+            "displayName": "Linux (GCC) + platform audio bindings (ALSA/PulseAudio)",
+            "inherits": "linux",
+            "binaryDir": "${sourceDir}/build/linux-bindings",
+            "cacheVariables": {
+                "AUDIOSCOPE_BUILD_BINDINGS": "ON",
+                "AUDIOSCOPE_BUILD_TESTS": "ON"
+            }
+        },
+        {
             "name": "linux-debug",
             "displayName": "Linux (GCC, Debug)",
             "inherits": "linux",
@@ -63,6 +73,7 @@
     ],
     "buildPresets": [
         { "name": "linux", "configurePreset": "linux" },
+        { "name": "linux-bindings", "configurePreset": "linux-bindings" },
         { "name": "linux-debug", "configurePreset": "linux-debug" },
         { "name": "ffi-rust", "configurePreset": "ffi-rust" },
         { "name": "wasm", "configurePreset": "wasm" },
@@ -72,6 +83,12 @@
         {
             "name": "linux",
             "configurePreset": "linux",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": false }
+        },
+        {
+            "name": "linux-bindings",
+            "configurePreset": "linux-bindings",
             "output": { "outputOnFailure": true },
             "execution": { "noTestsAction": "error", "stopOnFailure": false }
         }

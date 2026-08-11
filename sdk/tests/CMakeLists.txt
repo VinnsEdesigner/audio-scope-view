@@ -30,15 +30,47 @@ set(AUDIOSCOPE_TESTS
     test_common
 )
 
+# The platform bindings smoke test links the ALSA + PulseAudio AudioBinding
+# factories — only add it when the bindings are built (linux-bindings preset
+# or AUDIOSCOPE_BUILD_BINDINGS=ON on Linux).
+if(AUDIOSCOPE_BUILD_BINDINGS AND UNIX AND NOT APPLE)
+    list(APPEND AUDIOSCOPE_TESTS test_bindings)
+endif()
+
+# The libusb (bare-ESP32) binding test links audioscope_bindings_usb. It's
+# cross-platform (gated on libusb, not on the host OS) — so it runs on Linux,
+# Windows, and macOS whenever libusb-1.0 is present.
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(LIBUSB QUIET libusb-1.0)
+endif()
+if(AUDIOSCOPE_BUILD_BINDINGS AND LIBUSB_FOUND)
+    list(APPEND AUDIOSCOPE_TESTS test_usb_binding)
+endif()
+
 foreach(test ${AUDIOSCOPE_TESTS})
     add_executable(${test} ${test}.cpp)
     # test_common exercises only the common infrastructure (ring buffer, pool,
     # config, sample-format conversion); it links audioscope_common directly.
-    # The rest link the DSP core (which itself depends on common transitively).
+    # test_bindings links the Linux platform bindings (ALSA + PulseAudio) when
+    # AUDIOSCOPE_BUILD_BINDINGS is on. The rest link the DSP core (which itself
+    # depends on common transitively).
     if(test STREQUAL "test_common")
         target_link_libraries(${test}
             PRIVATE
                 audioscope_common
+                ${GTEST_LIB}
+        )
+    elseif(test STREQUAL "test_bindings")
+        target_link_libraries(${test}
+            PRIVATE
+                audioscope_bindings_linux
+                ${GTEST_LIB}
+        )
+    elseif(test STREQUAL "test_usb_binding")
+        target_link_libraries(${test}
+            PRIVATE
+                audioscope_bindings_usb
                 ${GTEST_LIB}
         )
     else()

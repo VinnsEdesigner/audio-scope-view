@@ -1,0 +1,8 @@
+# ESP-IDF partition table for the audioscope firmware.
+# nvs: app config; phy_init: RF/PHY cal; factory: the app; coredump: panics.
+# Total 4 MB — typical ESP32-S3 flash.
+# Name,    Type, SubType,  Offset,  Size, Flags
+nvs,       data, nvs,      0x9000,  0x6000,
+phy_init,  data, phy,      0xf000,  0x1000,
+factory,   app,  factory,  0x10000, 0x180000,
+coredump,  data, coredump, 0x190000,0x10000,
