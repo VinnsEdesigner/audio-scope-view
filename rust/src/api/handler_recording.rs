@@ -1,17 +1,18 @@
-
-use std::sync::Arc;
 use axum::{
-    extract::{Path, Query, State, Extension},
-    response::{IntoResponse, Response},
     Json,
     body::Body,
+    extract::{Extension, Path, Query, State},
+    response::{IntoResponse, Response},
 };
 use bytes::Bytes;
 use serde::Deserialize;
+use std::sync::Arc;
 use tracing::info;
 
-use crate::api::server_graphql::{AppState, AccessDenied, AuthHeaderExt, DeviceIdExt};
-use crate::application::export_service::{ExportFormat, StreamingExportService, RecordingExportData};
+use crate::api::server_graphql::{AccessDenied, AppState, AuthHeaderExt, DeviceIdExt};
+use crate::application::export_service::{
+    ExportFormat, RecordingExportData, StreamingExportService,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct SampleRangeParams {
@@ -37,25 +38,32 @@ async fn authorize_recording(
     auth_header: &Option<String>,
     device_id: &Option<String>,
     recording_id: &str,
-) -> Result<(), Response> {
-    let identity = match state.resolve_identity(auth_header.as_deref(), device_id.as_deref()).await {
+) -> Result<(), Box<Response>> {
+    let identity = match state
+        .resolve_identity(auth_header.as_deref(), device_id.as_deref())
+        .await
+    {
         Some(id) => id,
         None => {
-            return Err((
-                axum::http::StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({ "error": "Unauthorized" })),
-            )
-                .into_response());
+            return Err(Box::new(
+                (
+                    axum::http::StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({ "error": "Unauthorized" })),
+                )
+                    .into_response(),
+            ));
         }
     };
 
     match state.check_recording_access(&identity, recording_id).await {
         Ok(()) => Ok(()),
-        Err(AccessDenied) => Err((
-            axum::http::StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": "Recording not found" })),
-        )
-            .into_response()),
+        Err(AccessDenied) => Err(Box::new(
+            (
+                axum::http::StatusCode::NOT_FOUND,
+                Json(serde_json::json!({ "error": "Recording not found" })),
+            )
+                .into_response(),
+        )),
     }
 }
 
@@ -69,7 +77,7 @@ pub async fn get_recording_samples(
     info!("REQUEST: GET /api/recordings/{}/samples", recording_id);
 
     if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
-        return resp;
+        return *resp;
     }
 
     const DEFAULT_CHUNK_SIZE: usize = 100_000;
@@ -83,7 +91,8 @@ pub async fn get_recording_samples(
             Json(serde_json::json!({
                 "error": "Invalid range: start must be less than end"
             })),
-        ).into_response();
+        )
+            .into_response();
     }
 
     let recording = match state.recording_service.get(&recording_id).await {
@@ -95,7 +104,8 @@ pub async fn get_recording_samples(
                 Json(serde_json::json!({
                     "error": "Recording not found"
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
         Err(e) => {
             tracing::error!("Failed to get recording: {:?}", e);
@@ -105,7 +115,8 @@ pub async fn get_recording_samples(
                 Json(serde_json::json!({
                     "error": "Failed to retrieve recording"
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
@@ -125,7 +136,8 @@ pub async fn get_recording_samples(
                 total_samples,
                 samples: vec![],
             }),
-        ).into_response();
+        )
+            .into_response();
     }
 
     let samples: Vec<f32> = recording.samples[clamped_start..clamped_end].to_vec();
@@ -140,7 +152,8 @@ pub async fn get_recording_samples(
             total_samples,
             samples,
         }),
-    ).into_response()
+    )
+        .into_response()
 }
 
 pub async fn stream_recording_pcm(
@@ -150,13 +163,17 @@ pub async fn stream_recording_pcm(
     Path(recording_id): Path<String>,
     Query(params): Query<SampleRangeParams>,
 ) -> Response {
-    info!("REQUEST: GET /api/recordings/{}/stream (PCM streaming)", recording_id);
+    info!(
+        "REQUEST: GET /api/recordings/{}/stream (PCM streaming)",
+        recording_id
+    );
 
     if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
-        return resp;
+        return *resp;
     }
 
-    const DEFAULT_CHUNK_SIZE: usize = 44_100;     const MAX_CHUNK_SIZE: usize = 176_400;
+    const DEFAULT_CHUNK_SIZE: usize = 44_100;
+    const MAX_CHUNK_SIZE: usize = 176_400;
     let start = params.start.unwrap_or(0);
     let end = params.end.unwrap_or(DEFAULT_CHUNK_SIZE).min(MAX_CHUNK_SIZE);
 
@@ -166,7 +183,8 @@ pub async fn stream_recording_pcm(
             Json(serde_json::json!({
                 "error": "Invalid range: start must be less than end"
             })),
-        ).into_response();
+        )
+            .into_response();
     }
 
     let recording = match state.recording_service.get(&recording_id).await {
@@ -178,7 +196,8 @@ pub async fn stream_recording_pcm(
                 Json(serde_json::json!({
                     "error": "Recording not found"
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
         Err(e) => {
             tracing::error!("Failed to get recording: {:?}", e);
@@ -187,7 +206,8 @@ pub async fn stream_recording_pcm(
                 Json(serde_json::json!({
                     "error": "Failed to retrieve recording"
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
@@ -209,7 +229,8 @@ pub async fn stream_recording_pcm(
                 ("X-Chunk-Size", "0"),
             ],
             body,
-        ).into_response();
+        )
+            .into_response();
     }
 
     let samples_slice = &recording.samples[clamped_start..clamped_end];
@@ -231,9 +252,11 @@ pub async fn stream_recording_pcm(
             ("X-End-Sample", &clamped_end.to_string()),
             ("X-Total-Samples", &total_samples.to_string()),
             ("X-Chunk-Size", &samples_slice.len().to_string()),
-            ("Accept-Ranges", "none"),         ],
+            ("Accept-Ranges", "none"),
+        ],
         Body::from(Bytes::from(bytes)),
-    ).into_response()
+    )
+        .into_response()
 }
 
 #[derive(serde::Serialize)]
@@ -254,7 +277,7 @@ pub async fn get_recording_metadata(
     info!("REQUEST: GET /api/recordings/{}/metadata", recording_id);
 
     if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
-        return resp;
+        return *resp;
     }
 
     let recording = match state.recording_service.get(&recording_id).await {
@@ -266,7 +289,8 @@ pub async fn get_recording_metadata(
                 Json(serde_json::json!({
                     "error": "Recording not found"
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
         Err(e) => {
             tracing::error!("Failed to get recording: {:?}", e);
@@ -276,14 +300,16 @@ pub async fn get_recording_metadata(
                 Json(serde_json::json!({
                     "error": "Failed to retrieve recording"
                 })),
-            ).into_response();
+            )
+                .into_response();
         }
     };
 
     let sample_rate = if recording.duration_ms > 0.0 {
         (recording.samples.len() as f64 / recording.duration_ms * 1000.0) as u32
     } else {
-        44100     };
+        44100
+    };
 
     info!("RESPONSE: 200 OK");
     (
@@ -295,7 +321,8 @@ pub async fn get_recording_metadata(
             duration_ms: recording.duration_ms,
             sample_rate,
         }),
-    ).into_response()
+    )
+        .into_response()
 }
 
 /// Helper function to extract recording data and create export service
@@ -330,10 +357,13 @@ pub async fn stream_recording_csv(
     Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> Response {
-    info!("REQUEST: GET /api/recordings/{}/csv (streaming CSV)", recording_id);
+    info!(
+        "REQUEST: GET /api/recordings/{}/csv (streaming CSV)",
+        recording_id
+    );
 
     if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
-        return resp;
+        return *resp;
     }
 
     // Get recording
@@ -345,7 +375,10 @@ pub async fn stream_recording_csv(
         }
         Err(e) => {
             tracing::error!("Failed to get recording: {:?}", e);
-            return error_response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to retrieve recording");
+            return error_response(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to retrieve recording",
+            );
         }
     };
 
@@ -354,20 +387,24 @@ pub async fn stream_recording_csv(
     let (export_data, export_service) = prepare_recording_export(&recording, sample_rate);
     let filename = format!("{}.csv", sanitize_filename(&recording.name));
 
-    info!("RESPONSE: 200 OK - Streaming {} samples as CSV", total_samples);
+    info!(
+        "RESPONSE: 200 OK - Streaming {} samples as CSV",
+        total_samples
+    );
 
     // Create streaming body using export service
     let samples = export_data.samples;
     let stream = tokio_stream::iter({
         // Header
-        let mut chunks: Vec<Result<Bytes, _>> = vec![Ok(Bytes::from(StreamingExportService::csv_header()))];
-        
+        let mut chunks: Vec<Result<Bytes, _>> =
+            vec![Ok(Bytes::from(StreamingExportService::csv_header()))];
+
         // Process samples in chunks
         for chunk in samples.chunks(10000) {
             let chunk_data = export_service.csv_chunk(chunk, 0, sample_rate);
             chunks.push(Ok(Bytes::from(chunk_data)));
         }
-        
+
         chunks
     });
 
@@ -388,10 +425,13 @@ pub async fn stream_recording_wav(
     Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> Response {
-    info!("REQUEST: GET /api/recordings/{}/wav (streaming WAV)", recording_id);
+    info!(
+        "REQUEST: GET /api/recordings/{}/wav (streaming WAV)",
+        recording_id
+    );
 
     if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
-        return resp;
+        return *resp;
     }
 
     // Get recording
@@ -403,7 +443,10 @@ pub async fn stream_recording_wav(
         }
         Err(e) => {
             tracing::error!("Failed to get recording: {:?}", e);
-            return error_response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to retrieve recording");
+            return error_response(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to retrieve recording",
+            );
         }
     };
 
@@ -411,7 +454,10 @@ pub async fn stream_recording_wav(
     let sample_rate = calculate_sample_rate(total_samples, recording.duration_ms);
     let filename = format!("{}.wav", sanitize_filename(&recording.name));
 
-    info!("RESPONSE: 200 OK - Streaming {} samples as WAV", total_samples);
+    info!(
+        "RESPONSE: 200 OK - Streaming {} samples as WAV",
+        total_samples
+    );
 
     // Generate WAV data using export service
     let export_service = StreamingExportService::new(sample_rate);
@@ -419,7 +465,10 @@ pub async fn stream_recording_wav(
         Ok(data) => data,
         Err(e) => {
             tracing::error!("Failed to generate WAV: {:?}", e);
-            return error_response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate WAV");
+            return error_response(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to generate WAV",
+            );
         }
     };
 
@@ -427,14 +476,18 @@ pub async fn stream_recording_wav(
         axum::http::StatusCode::OK,
         [
             ("Content-Type", ExportFormat::Wav.mime_type()),
-            ("Content-Disposition", &format!("attachment; filename=\"{}\"", filename)),
+            (
+                "Content-Disposition",
+                &format!("attachment; filename=\"{}\"", filename),
+            ),
             ("Content-Length", &wav_data.len().to_string()),
             ("X-Recording-Id", &recording_id),
             ("X-Total-Samples", &total_samples.to_string()),
             ("X-Sample-Rate", &sample_rate.to_string()),
         ],
         Body::from(wav_data),
-    ).into_response()
+    )
+        .into_response()
 }
 
 /// Streaming JSON export handler
@@ -445,10 +498,13 @@ pub async fn stream_recording_json(
     Extension(DeviceIdExt(device_id)): Extension<DeviceIdExt>,
     Path(recording_id): Path<String>,
 ) -> Response {
-    info!("REQUEST: GET /api/recordings/{}/json (streaming JSON)", recording_id);
+    info!(
+        "REQUEST: GET /api/recordings/{}/json (streaming JSON)",
+        recording_id
+    );
 
     if let Err(resp) = authorize_recording(&state, &auth_header, &device_id, &recording_id).await {
-        return resp;
+        return *resp;
     }
 
     // Get recording
@@ -460,7 +516,10 @@ pub async fn stream_recording_json(
         }
         Err(e) => {
             tracing::error!("Failed to get recording: {:?}", e);
-            return error_response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to retrieve recording");
+            return error_response(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to retrieve recording",
+            );
         }
     };
 
@@ -469,14 +528,20 @@ pub async fn stream_recording_json(
     let (export_data, export_service) = prepare_recording_export(&recording, sample_rate);
     let filename = format!("{}.json", sanitize_filename(&recording.name));
 
-    info!("RESPONSE: 200 OK - Streaming {} samples as JSON", total_samples);
+    info!(
+        "RESPONSE: 200 OK - Streaming {} samples as JSON",
+        total_samples
+    );
 
     // Generate JSON data using export service
     let json_data = match export_service.export_json(&export_data) {
         Ok(data) => data,
         Err(e) => {
             tracing::error!("Failed to generate JSON: {:?}", e);
-            return error_response(axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to generate JSON");
+            return error_response(
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to generate JSON",
+            );
         }
     };
 
@@ -484,14 +549,18 @@ pub async fn stream_recording_json(
         axum::http::StatusCode::OK,
         [
             ("Content-Type", ExportFormat::Json.mime_type()),
-            ("Content-Disposition", &format!("attachment; filename=\"{}\"", filename)),
+            (
+                "Content-Disposition",
+                &format!("attachment; filename=\"{}\"", filename),
+            ),
             ("Content-Length", &json_data.len().to_string()),
             ("X-Recording-Id", &recording_id),
             ("X-Total-Samples", &total_samples.to_string()),
             ("X-Sample-Rate", &sample_rate.to_string()),
         ],
         Body::from(json_data),
-    ).into_response()
+    )
+        .into_response()
 }
 
 /// Calculate sample rate from duration and sample count
@@ -505,10 +574,7 @@ fn calculate_sample_rate(sample_count: usize, duration_ms: f64) -> u32 {
 
 /// Helper to create error response
 fn error_response(status: axum::http::StatusCode, message: &str) -> Response {
-    (
-        status,
-        Json(serde_json::json!({ "error": message })),
-    ).into_response()
+    (status, Json(serde_json::json!({ "error": message }))).into_response()
 }
 
 /// Helper to create successful streaming response
@@ -523,11 +589,15 @@ fn success_stream_response(
         axum::http::StatusCode::OK,
         [
             ("Content-Type", content_type),
-            ("Content-Disposition", &format!("attachment; filename=\"{}\"", filename)),
+            (
+                "Content-Disposition",
+                &format!("attachment; filename=\"{}\"", filename),
+            ),
             ("X-Recording-Id", &recording_id),
             ("X-Total-Samples", &total_samples.to_string()),
             ("Transfer-Encoding", "chunked"),
         ],
         Body::from_stream(stream),
-    ).into_response()
+    )
+        .into_response()
 }

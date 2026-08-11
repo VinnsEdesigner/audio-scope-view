@@ -5,8 +5,8 @@ use sqlx::FromRow;
 use sqlx::SqlitePool;
 
 use crate::api::auth::api_key::ApiKey;
-use crate::shared::error_app::{AppError, AppResult};
 use crate::infrastructure::repo_trait_api_key::ApiKeyRepository;
+use crate::shared::error_app::{AppError, AppResult};
 
 #[derive(FromRow)]
 struct ApiKeyRow {
@@ -31,7 +31,8 @@ impl TryFrom<ApiKeyRow> for ApiKey {
     fn try_from(row: ApiKeyRow) -> Result<Self, Self::Error> {
         Ok(Self {
             id: row.id,
-            key: String::new(),             name: row.name,
+            key: String::new(),
+            name: row.name,
             created_at: parse_datetime(&row.created_at)?,
             expires_at: row.expires_at.and_then(|s| parse_datetime(&s).ok()),
             rate_limit_per_minute: row.rate_limit_per_minute as u32,
@@ -50,7 +51,10 @@ fn parse_datetime(s: &str) -> AppResult<std::time::SystemTime> {
     if let Ok(dt) = DateTime::parse_from_rfc3339(&format!("{}Z", s)) {
         return Ok(dt.with_timezone(&Utc).into());
     }
-    Err(AppError::validation(&format!("Invalid datetime format: {}", s)))
+    Err(AppError::validation(&format!(
+        "Invalid datetime format: {}",
+        s
+    )))
 }
 
 fn format_datetime(time: std::time::SystemTime) -> String {
@@ -122,13 +126,11 @@ impl SqliteApiKeyRepository {
     pub async fn find_by_key(&self, key: &str) -> AppResult<Option<ApiKey>> {
         let key_hash = hash_key(key);
 
-        let row: Option<ApiKeyRow> = sqlx::query_as(
-            "SELECT * FROM api_keys WHERE key_hash = ?"
-        )
-        .bind(&key_hash)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AppError::database(&format!("Failed to find API key: {}", e)))?;
+        let row: Option<ApiKeyRow> = sqlx::query_as("SELECT * FROM api_keys WHERE key_hash = ?")
+            .bind(&key_hash)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AppError::database(&format!("Failed to find API key: {}", e)))?;
 
         match row {
             Some(r) => Ok(Some(r.try_into()?)),
@@ -137,13 +139,11 @@ impl SqliteApiKeyRepository {
     }
 
     pub async fn find_by_id(&self, id: &str) -> AppResult<Option<ApiKey>> {
-        let row: Option<ApiKeyRow> = sqlx::query_as(
-            "SELECT * FROM api_keys WHERE id = ?"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| AppError::database(&format!("Failed to find API key: {}", e)))?;
+        let row: Option<ApiKeyRow> = sqlx::query_as("SELECT * FROM api_keys WHERE id = ?")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AppError::database(&format!("Failed to find API key: {}", e)))?;
 
         match row {
             Some(r) => Ok(Some(r.try_into()?)),
@@ -152,29 +152,28 @@ impl SqliteApiKeyRepository {
     }
 
     pub async fn list_all(&self) -> AppResult<Vec<ApiKey>> {
-        let rows: Vec<ApiKeyRow> = sqlx::query_as(
-            "SELECT * FROM api_keys ORDER BY created_at DESC"
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AppError::database(&format!("Failed to list API keys: {}", e)))?;
+        let rows: Vec<ApiKeyRow> =
+            sqlx::query_as("SELECT * FROM api_keys ORDER BY created_at DESC")
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AppError::database(&format!("Failed to list API keys: {}", e)))?;
 
         rows.into_iter().map(TryInto::try_into).collect()
     }
 
     pub async fn list_all_with_hash(&self) -> AppResult<Vec<ApiKeyWithHash>> {
-        let rows: Vec<ApiKeyRow> = sqlx::query_as(
-            "SELECT * FROM api_keys ORDER BY created_at DESC"
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| AppError::database(&format!("Failed to list API keys: {}", e)))?;
+        let rows: Vec<ApiKeyRow> =
+            sqlx::query_as("SELECT * FROM api_keys ORDER BY created_at DESC")
+                .fetch_all(&self.pool)
+                .await
+                .map_err(|e| AppError::database(&format!("Failed to list API keys: {}", e)))?;
 
         rows.into_iter()
             .map(|row| {
                 let api_key = ApiKey {
                     id: row.id.clone(),
-                    key: String::new(),                     name: row.name.clone(),
+                    key: String::new(),
+                    name: row.name.clone(),
                     created_at: parse_datetime(&row.created_at)?,
                     expires_at: row.expires_at.and_then(|s| parse_datetime(&s).ok()),
                     rate_limit_per_minute: row.rate_limit_per_minute as u32,
@@ -213,7 +212,7 @@ impl SqliteApiKeyRepository {
     #[allow(dead_code)]
     pub async fn delete_expired(&self) -> AppResult<u64> {
         let result = sqlx::query(
-            "DELETE FROM api_keys WHERE expires_at IS NOT NULL AND expires_at < datetime('now')"
+            "DELETE FROM api_keys WHERE expires_at IS NOT NULL AND expires_at < datetime('now')",
         )
         .execute(&self.pool)
         .await

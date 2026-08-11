@@ -1,17 +1,16 @@
-
-use async_graphql::{Context, Object, InputObject, Enum};
+use async_graphql::{Context, Enum, InputObject, Object};
 use chrono::Utc;
 use tracing::info;
 
+// DSP now runs in the C++ core via FFI. Types come from `domain::dsp_types`;
+// algorithms are re-exported at the `domain` level. `SpectrogramProcessor` no
+// longer exists as a stateful Rust object — the C++ spectrogram is a pure
+// function over raw samples (see `dsp_ffi::compute_spectrogram`).
 use crate::domain::{
-    fft_processor::{FftProcessor, Spectrum, WindowType},
-    entity_waveform::Waveform,
-    measurements::{
-        WaveformAnalysis, analyze_waveform, analyze_harmonics, HarmonicAnalysis,
-        FrequencyComponent,
-    },
-    spectrogram::{SpectrogramData, SpectrogramConfig, SpectrogramProcessor},
+    FftProcessor, analyze_harmonics, analyze_waveform,
+    dsp_types::{SpectrogramConfig, SpectrogramData, Spectrum, WindowType},
 };
+use crate::infrastructure::dsp_ffi;
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
 pub enum FFTWindowType {
@@ -89,7 +88,7 @@ pub struct WaveformMeasurementInput {
 }
 
 pub struct WaveformMeasurementResult {
-    pub analysis: WaveformAnalysis,
+    pub analysis: crate::domain::dsp_types::WaveformAnalysis,
 }
 
 #[Object]
@@ -156,7 +155,11 @@ impl SpectrogramResult {
     }
 
     async fn frequency_bins(&self) -> i32 {
-        self.spectrogram.magnitudes.first().map(|v| v.len() as i32).unwrap_or(0)
+        self.spectrogram
+            .magnitudes
+            .first()
+            .map(|v| v.len() as i32)
+            .unwrap_or(0)
     }
 
     async fn sample_rate(&self) -> i32 {
@@ -180,7 +183,7 @@ pub struct HarmonicAnalysisInput {
 }
 
 pub struct FrequencyComponentResult {
-    component: FrequencyComponent,
+    component: crate::domain::dsp_types::FrequencyComponent,
 }
 
 #[Object]
@@ -203,18 +206,24 @@ impl FrequencyComponentResult {
 }
 
 pub struct HarmonicAnalysisResult {
-    pub analysis: HarmonicAnalysis,
+    pub analysis: crate::domain::dsp_types::HarmonicAnalysis,
 }
 
 #[Object]
 impl HarmonicAnalysisResult {
     async fn fundamental(&self) -> FrequencyComponentResult {
-        FrequencyComponentResult { component: self.analysis.fundamental.clone() }
+        FrequencyComponentResult {
+            component: self.analysis.fundamental.clone(),
+        }
     }
 
     async fn harmonics(&self) -> Vec<FrequencyComponentResult> {
-        self.analysis.harmonics.iter()
-            .map(|c| FrequencyComponentResult { component: c.clone() })
+        self.analysis
+            .harmonics
+            .iter()
+            .map(|c| FrequencyComponentResult {
+                component: c.clone(),
+            })
             .collect()
     }
 
@@ -292,14 +301,12 @@ pub struct DspMutationRoot;
 
 #[Object]
 impl DspMutationRoot {
-    async fn fft_analyze(
-        &self,
-        input: FFTAnalysisInput,
-    ) -> FFTAnalysisResult {
+    async fn fft_analyze(&self, input: FFTAnalysisInput) -> FFTAnalysisResult {
         let sample_rate = input.sample_rate as f32;
         let samples = &input.samples;
 
-        let fft_size = input.fft_size
+        let fft_size = input
+            .fft_size
             .map(|s| s as usize)
             .unwrap_or_else(|| samples.len().next_power_of_two());
 
@@ -307,10 +314,7 @@ impl DspMutationRoot {
 
         let spectrum = fft.compute_magnitudes(samples, sample_rate);
 
-        let peak_result = fft.find_peak_frequency(
-            samples,
-            sample_rate,
-            20.0,              sample_rate / 2.0          );
+        let peak_result = fft.find_peak_frequency(samples, sample_rate, 20.0, sample_rate / 2.0);
 
         let (peak_freq, peak_mag) = peak_result.unwrap_or((0.0, -100.0));
 
@@ -328,20 +332,14 @@ impl DspMutationRoot {
         }
     }
 
-    async fn analyze_waveform(
-        &self,
-        input: WaveformMeasurementInput,
-    ) -> WaveformMeasurementResult {
+    async fn analyze_waveform(&self, input: WaveformMeasurementInput) -> WaveformMeasurementResult {
         let sample_rate = input.sample_rate as f32;
         let analysis = analyze_waveform(&input.samples, sample_rate);
 
         WaveformMeasurementResult { analysis }
     }
 
-    async fn compute_spectrogram(
-        &self,
-        input: SpectrogramInput,
-    ) -> SpectrogramResult {
+    async fn compute_spectrogram(&self, input: SpectrogramInput) -> SpectrogramResult {
         let sample_rate = input.sample_rate as u32;
 
         let config = SpectrogramConfig {
@@ -351,25 +349,17 @@ impl DspMutationRoot {
             max_freq: input.max_freq.unwrap_or(sample_rate as f32 / 2.0),
         };
 
-        let waveform = Waveform::new(
-            uuid::Uuid::new_v4().to_string(),
-            "temp".to_string(),
-            input.samples,
-            Utc::now(),
-        );
-
-        let mut processor = SpectrogramProcessor::new();
-        let spectrogram = processor.compute(&waveform, sample_rate, config);
+        let start_time_ms = Utc::now().timestamp_millis();
+        let spectrogram =
+            dsp_ffi::compute_spectrogram(&input.samples, sample_rate, config, start_time_ms);
 
         SpectrogramResult { spectrogram }
     }
 
-    async fn analyze_harmonics(
-        &self,
-        input: HarmonicAnalysisInput,
-    ) -> HarmonicAnalysisResult {
+    async fn analyze_harmonics(&self, input: HarmonicAnalysisInput) -> HarmonicAnalysisResult {
         let sample_rate = input.sample_rate as f32;
-        let _expected_fundamental = input.expected_fundamental
+        let _expected_fundamental = input
+            .expected_fundamental
             .unwrap_or_else(|| analyze_waveform(&input.samples, sample_rate).dominant_frequency);
 
         let analysis = analyze_harmonics(&input.samples, sample_rate);
@@ -383,24 +373,20 @@ impl DspMutationRoot {
         session_id: String,
         input: crate::api::schema_audio_input::AudioInput,
     ) -> FullDspResult {
-        info!("DSP: Full processing for session '{}' - {} samples at {}Hz",
-              session_id, input.samples.len(), input.sample_rate);
+        info!(
+            "DSP: Full processing for session '{}' - {} samples at {}Hz",
+            session_id,
+            input.samples.len(),
+            input.sample_rate
+        );
 
         let sample_rate = input.sample_rate as u32;
         let sample_rate_f = sample_rate as f32;
 
-        let waveform = Waveform::new(
-            uuid::Uuid::new_v4().to_string(),
-            session_id.clone(),
-            input.samples.clone(),
-            Utc::now(),
-        );
-
         let mut fft = FftProcessor::new();
         let spectrum = fft.compute_magnitudes(&input.samples, sample_rate_f);
-        let peak_result = fft.find_peak_frequency(
-            &input.samples, sample_rate_f, 20.0, sample_rate_f / 2.0
-        );
+        let peak_result =
+            fft.find_peak_frequency(&input.samples, sample_rate_f, 20.0, sample_rate_f / 2.0);
         let (peak_freq, peak_mag) = peak_result.unwrap_or((0.0, -100.0));
 
         let measurements = analyze_waveform(&input.samples, sample_rate_f);
@@ -411,11 +397,18 @@ impl DspMutationRoot {
             min_freq: 0.0,
             max_freq: sample_rate_f / 2.0,
         };
-        let mut spectrogram_processor = SpectrogramProcessor::new();
-        let spectrogram = spectrogram_processor.compute(&waveform, sample_rate, spectrogram_config);
+        let start_time_ms = Utc::now().timestamp_millis();
+        let spectrogram = dsp_ffi::compute_spectrogram(
+            &input.samples,
+            sample_rate,
+            spectrogram_config,
+            start_time_ms,
+        );
 
-        info!("DSP: Processing complete - Peak: {:.1}Hz, THD: {:.2}%, SNR: {:.1}dB",
-              measurements.dominant_frequency, measurements.thd, measurements.snr);
+        info!(
+            "DSP: Processing complete - Peak: {:.1}Hz, THD: {:.2}%, SNR: {:.1}dB",
+            measurements.dominant_frequency, measurements.thd, measurements.snr
+        );
 
         FullDspResult {
             measurements,
@@ -434,7 +427,7 @@ impl DspMutationRoot {
 }
 
 pub struct FullDspResult {
-    pub measurements: WaveformAnalysis,
+    pub measurements: crate::domain::dsp_types::WaveformAnalysis,
     pub spectrum: Spectrum,
     pub spectrogram: SpectrogramData,
 }
@@ -442,15 +435,21 @@ pub struct FullDspResult {
 #[Object]
 impl FullDspResult {
     async fn measurements(&self) -> WaveformMeasurementResult {
-        WaveformMeasurementResult { analysis: self.measurements.clone() }
+        WaveformMeasurementResult {
+            analysis: self.measurements.clone(),
+        }
     }
 
     async fn spectrum(&self) -> SpectrumResult {
-        SpectrumResult { spectrum: self.spectrum.clone() }
+        SpectrumResult {
+            spectrum: self.spectrum.clone(),
+        }
     }
 
     async fn spectrogram(&self) -> SpectrogramResult {
-        SpectrogramResult { spectrogram: self.spectrogram.clone() }
+        SpectrogramResult {
+            spectrogram: self.spectrogram.clone(),
+        }
     }
 }
 

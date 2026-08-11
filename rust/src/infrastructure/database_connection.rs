@@ -8,10 +8,7 @@ use crate::shared::error_app::{AppError, AppResult};
 /// Database connection wrapper that supports both SQLite (local) and Turso (cloud)
 pub enum DatabaseConnection {
     Sqlite(SqlitePool),
-    Turso {
-        url: String,
-        token: String,
-    },
+    Turso { url: String, token: String },
 }
 
 impl DatabaseConnection {
@@ -42,14 +39,15 @@ impl DatabaseConnection {
 
     /// Create Turso connection using HTTP API
     async fn new_turso(database_url: &str) -> AppResult<Self> {
-        let auth_token = std::env::var("TURSO_VYZOR_SCOPE_DB_TOKEN")
-            .map_err(|_| AppError::database("TURSO_VYZOR_SCOPE_DB_TOKEN environment variable not set"))?;
+        let auth_token = std::env::var("TURSO_VYZOR_SCOPE_DB_TOKEN").map_err(|_| {
+            AppError::database("TURSO_VYZOR_SCOPE_DB_TOKEN environment variable not set")
+        })?;
 
         // Test connection
         let client = reqwest::Client::new();
         let host = database_url.trim_start_matches("libsql://");
         let test_url = format!("https://{}", host);
-        
+
         let response = client
             .post(&test_url)
             .header("Authorization", format!("Bearer {}", auth_token))
@@ -63,7 +61,7 @@ impl DatabaseConnection {
 
         if !response.status().is_success() {
             return Err(AppError::database(&format!(
-                "Turso connection failed with status: {}", 
+                "Turso connection failed with status: {}",
                 response.status()
             )));
         }
@@ -108,7 +106,7 @@ impl DatabaseConnection {
                     .await
                     .map_err(|e| AppError::database(&format!("Failed to execute SQL: {}", e)))?;
             }
-            Self::Turso { url, token } => {
+            Self::Turso { .. } => {
                 self.execute_turso(sql).await?;
             }
         }

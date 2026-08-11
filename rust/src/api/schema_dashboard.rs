@@ -1,4 +1,3 @@
-
 use async_graphql::{Context, Object, SimpleObject};
 
 use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
@@ -49,7 +48,11 @@ impl DashboardQuery {
         };
 
         let device_id = device_scope_from_context(ctx);
-        let summary = context.dashboard_service.get_summary(device_id.as_deref(), tr).await.ok()?;
+        let summary = context
+            .dashboard_service
+            .get_summary(device_id.as_deref(), tr)
+            .await
+            .ok()?;
 
         Some(DashboardSummaryOutput {
             time_range: summary.time_range.to_string(),
@@ -74,7 +77,11 @@ impl DashboardQuery {
         })
     }
 
-    async fn recent_sessions(&self, ctx: &Context<'_>, limit: Option<i32>) -> Vec<RecentScopeOutput> {
+    async fn recent_sessions(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i32>,
+    ) -> Vec<RecentScopeOutput> {
         let context = ctx
             .data::<GraphqlContext>()
             .expect("Missing GraphqlContext");

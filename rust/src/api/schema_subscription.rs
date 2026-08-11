@@ -1,12 +1,11 @@
-
 #![allow(dead_code)]
 
 use async_graphql::{Context, SimpleObject, Subscription};
 use futures_util::Stream;
 use std::sync::Arc;
 use tokio::sync::broadcast;
-use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::BroadcastStream;
 
 use crate::api::context_extractor::device_scope_from_context;
 use crate::api::websocket::handler::WsState;
@@ -64,7 +63,11 @@ pub struct AnalysisResult {
     pub dc_offset: f32,
     pub dominant_frequency: f32,
     pub fundamental_frequency: f32,
-    pub thd: f32,              pub thdn: f32,             pub snr: f32,              pub crest_factor: f32,      pub signal_energy: f32,
+    pub thd: f32,
+    pub thdn: f32,
+    pub snr: f32,
+    pub crest_factor: f32,
+    pub signal_energy: f32,
     pub noise_energy: f32,
     pub harmonics: Vec<HarmonicComponent>,
 }
@@ -110,15 +113,12 @@ impl SubscriptionRoot {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
-        if !denied {
-            if let Some(state) = ws_state {
-                let mut subs = state.waveform_subscribers.write().await;
-                subs.insert(session_id.clone(), tx);
-            }
+        if !denied && let Some(state) = ws_state {
+            let mut subs = state.waveform_subscribers.write().await;
+            subs.insert(session_id.clone(), tx);
         }
 
-        BroadcastStream::new(rx)
-            .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
+        BroadcastStream::new(rx).map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
 
     async fn spectrum_subscribe(
@@ -130,15 +130,12 @@ impl SubscriptionRoot {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<SpectrumData>(100);
-        if !denied {
-            if let Some(state) = ws_state {
-                let mut subs = state.spectrum_subscribers.write().await;
-                subs.insert(session_id.clone(), tx);
-            }
+        if !denied && let Some(state) = ws_state {
+            let mut subs = state.spectrum_subscribers.write().await;
+            subs.insert(session_id.clone(), tx);
         }
 
-        BroadcastStream::new(rx)
-            .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
+        BroadcastStream::new(rx).map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
 
     async fn stats_subscribe(
@@ -150,15 +147,12 @@ impl SubscriptionRoot {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<AudioStats>(50);
-        if !denied {
-            if let Some(state) = ws_state {
-                let mut subs = state.stats_subscribers.write().await;
-                subs.insert(session_id.clone(), tx);
-            }
+        if !denied && let Some(state) = ws_state {
+            let mut subs = state.stats_subscribers.write().await;
+            subs.insert(session_id.clone(), tx);
         }
 
-        BroadcastStream::new(rx)
-            .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
+        BroadcastStream::new(rx).map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
 
     async fn analysis_subscribe(
@@ -170,15 +164,12 @@ impl SubscriptionRoot {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<AnalysisResult>(100);
-        if !denied {
-            if let Some(state) = ws_state {
-                let mut subs = state.analysis_subscribers.write().await;
-                subs.insert(session_id.clone(), tx);
-            }
+        if !denied && let Some(state) = ws_state {
+            let mut subs = state.analysis_subscribers.write().await;
+            subs.insert(session_id.clone(), tx);
         }
 
-        BroadcastStream::new(rx)
-            .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
+        BroadcastStream::new(rx).map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
 
     async fn all_waveforms(
@@ -192,14 +183,11 @@ impl SubscriptionRoot {
         let ws_state = ctx.data::<Arc<WsState>>().ok().cloned();
 
         let (tx, rx) = broadcast::channel::<WaveformData>(100);
-        if !denied {
-            if let Some(state) = ws_state {
-                let mut subs = state.all_waveform_subscribers.write().await;
-                subs.push(tx);
-            }
+        if !denied && let Some(state) = ws_state {
+            let mut subs = state.all_waveform_subscribers.write().await;
+            subs.push(tx);
         }
 
-        BroadcastStream::new(rx)
-            .map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
+        BroadcastStream::new(rx).map(|r| r.map_err(|e| async_graphql::Error::new(e.to_string())))
     }
 }

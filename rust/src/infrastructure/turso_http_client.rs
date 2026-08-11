@@ -5,8 +5,14 @@
 //! Parameterized queries should be preferred to avoid SQL injection and
 //! to ensure correct type handling for NULL, text, and numeric values.
 
-use serde::{Deserialize, Serialize};
+// Wire model for the Turso HTTP API: every variant/field mirrors the response
+// shape exactly (for forward-compat), and the client exposes a small surface
+// (`execute_void`/`execute_batch`/`ping`, `is_null`) that the server may call
+// as transport/storage grows. Keep them even when currently unused.
+#![allow(dead_code)]
+
 use crate::shared::error_app::{AppError, AppResult};
+use serde::{Deserialize, Serialize};
 
 /// A bound parameter value for parameterized queries.
 ///
@@ -33,17 +39,23 @@ impl TursoArg {
     }
 
     pub fn integer(v: i64) -> Self {
-        TursoArg::Integer { value: v.to_string() }
+        TursoArg::Integer {
+            value: v.to_string(),
+        }
     }
 
     pub fn float(v: f64) -> Self {
         // serde_json serializes NaN/Infinity as null, which Turso rejects for
         // NOT NULL columns. Sanitize non-finite values to 0.0.
-        TursoArg::Float { value: if v.is_finite() { v } else { 0.0 } }
+        TursoArg::Float {
+            value: if v.is_finite() { v } else { 0.0 },
+        }
     }
 
     pub fn bool(v: bool) -> Self {
-        TursoArg::Integer { value: if v { "1".into() } else { "0".into() } }
+        TursoArg::Integer {
+            value: if v { "1".into() } else { "0".into() },
+        }
     }
 
     pub fn opt_text<T: Into<String>>(v: Option<T>) -> Self {
@@ -78,75 +90,111 @@ impl TursoArg {
 // --- From impls for ergonomic conversion ---
 
 impl From<&str> for TursoArg {
-    fn from(v: &str) -> Self { TursoArg::text(v) }
+    fn from(v: &str) -> Self {
+        TursoArg::text(v)
+    }
 }
 
 impl From<String> for TursoArg {
-    fn from(v: String) -> Self { TursoArg::text(v) }
+    fn from(v: String) -> Self {
+        TursoArg::text(v)
+    }
 }
 
 impl From<&String> for TursoArg {
-    fn from(v: &String) -> Self { TursoArg::text(v) }
+    fn from(v: &String) -> Self {
+        TursoArg::text(v)
+    }
 }
 
 impl From<i32> for TursoArg {
-    fn from(v: i32) -> Self { TursoArg::integer(v as i64) }
+    fn from(v: i32) -> Self {
+        TursoArg::integer(v as i64)
+    }
 }
 
 impl From<i64> for TursoArg {
-    fn from(v: i64) -> Self { TursoArg::integer(v) }
+    fn from(v: i64) -> Self {
+        TursoArg::integer(v)
+    }
 }
 
 impl From<u32> for TursoArg {
-    fn from(v: u32) -> Self { TursoArg::integer(v as i64) }
+    fn from(v: u32) -> Self {
+        TursoArg::integer(v as i64)
+    }
 }
 
 impl From<u64> for TursoArg {
-    fn from(v: u64) -> Self { TursoArg::integer(v as i64) }
+    fn from(v: u64) -> Self {
+        TursoArg::integer(v as i64)
+    }
 }
 
 impl From<f32> for TursoArg {
-    fn from(v: f32) -> Self { TursoArg::float(v as f64) }
+    fn from(v: f32) -> Self {
+        TursoArg::float(v as f64)
+    }
 }
 
 impl From<f64> for TursoArg {
-    fn from(v: f64) -> Self { TursoArg::float(v) }
+    fn from(v: f64) -> Self {
+        TursoArg::float(v)
+    }
 }
 
 impl From<bool> for TursoArg {
-    fn from(v: bool) -> Self { TursoArg::bool(v) }
+    fn from(v: bool) -> Self {
+        TursoArg::bool(v)
+    }
 }
 
 impl From<u8> for TursoArg {
-    fn from(v: u8) -> Self { TursoArg::integer(v as i64) }
+    fn from(v: u8) -> Self {
+        TursoArg::integer(v as i64)
+    }
 }
 
 impl From<u16> for TursoArg {
-    fn from(v: u16) -> Self { TursoArg::integer(v as i64) }
+    fn from(v: u16) -> Self {
+        TursoArg::integer(v as i64)
+    }
 }
 
 impl From<Option<&str>> for TursoArg {
-    fn from(v: Option<&str>) -> Self { TursoArg::opt_text(v) }
+    fn from(v: Option<&str>) -> Self {
+        TursoArg::opt_text(v)
+    }
 }
 
 impl From<Option<String>> for TursoArg {
-    fn from(v: Option<String>) -> Self { TursoArg::opt_text(v) }
+    fn from(v: Option<String>) -> Self {
+        TursoArg::opt_text(v)
+    }
 }
 
 impl From<Option<i32>> for TursoArg {
-    fn from(v: Option<i32>) -> Self { TursoArg::opt_integer(v.map(|x| x as i64)) }
+    fn from(v: Option<i32>) -> Self {
+        TursoArg::opt_integer(v.map(|x| x as i64))
+    }
 }
 
 impl From<Option<i64>> for TursoArg {
-    fn from(v: Option<i64>) -> Self { TursoArg::opt_integer(v) }
+    fn from(v: Option<i64>) -> Self {
+        TursoArg::opt_integer(v)
+    }
 }
 
 impl From<Option<f32>> for TursoArg {
-    fn from(v: Option<f32>) -> Self { TursoArg::opt_f32(v) }
+    fn from(v: Option<f32>) -> Self {
+        TursoArg::opt_f32(v)
+    }
 }
 
 impl From<Option<f64>> for TursoArg {
-    fn from(v: Option<f64>) -> Self { TursoArg::opt_float(v) }
+    fn from(v: Option<f64>) -> Self {
+        TursoArg::opt_float(v)
+    }
 }
 
 /// Convenience: build a Vec<TursoArg> from a list of args.
@@ -189,9 +237,7 @@ pub enum TursoResult {
     #[serde(rename = "ok")]
     Ok(TursoResultOk),
     #[serde(rename = "error")]
-    Error {
-        error: TursoError,
-    },
+    Error { error: TursoError },
 }
 
 #[derive(Debug, Deserialize)]
@@ -242,14 +288,14 @@ impl TursoValue {
             _ => None,
         }
     }
-    
+
     pub fn as_i64(&self) -> Option<i64> {
         match self {
             TursoValue::Integer { value } => value.parse().ok(),
             _ => None,
         }
     }
-    
+
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             TursoValue::Float { value } => Some(*value),
@@ -257,14 +303,14 @@ impl TursoValue {
             _ => None,
         }
     }
-    
+
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             TursoValue::Integer { value } => Some(value != "0"),
             _ => None,
         }
     }
-    
+
     pub fn is_null(&self) -> bool {
         matches!(self, TursoValue::Null)
     }
@@ -335,7 +381,8 @@ impl TursoClient {
             },
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&self.url)
             .header("Authorization", format!("Bearer {}", self.token))
             .header("Content-Type", "application/json")
@@ -350,18 +397,28 @@ impl TursoClient {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(AppError::database(&format!(
-                "Turso query failed with status {}: {}", status, body
+                "Turso query failed with status {}: {}",
+                status, body
             )));
         }
 
-        let body = response.text().await
+        let body = response
+            .text()
+            .await
             .map_err(|e| AppError::database(&format!("Failed to read response body: {}", e)))?;
 
-        let result: TursoResponse = serde_json::from_str(&body)
-            .map_err(|e| AppError::database(&format!("Failed to parse Turso response: {} - body: {}", e, body)))?;
+        let result: TursoResponse = serde_json::from_str(&body).map_err(|e| {
+            AppError::database(&format!(
+                "Failed to parse Turso response: {} - body: {}",
+                e, body
+            ))
+        })?;
 
         if let Some(TursoResult::Error { error: err }) = result.results.first() {
-            return Err(AppError::database(&format!("Turso SQL error: {}", err.message)));
+            return Err(AppError::database(&format!(
+                "Turso SQL error: {}",
+                err.message
+            )));
         }
 
         Ok(result)
@@ -370,25 +427,23 @@ impl TursoClient {
     /// Execute a raw SQL statement without returning results (for INSERT/UPDATE/DELETE).
     pub async fn execute_void(&self, sql: &str) -> AppResult<()> {
         let result = self.execute(sql).await?;
-        if let Some(TursoResult::Ok(ok_result)) = result.results.first() {
-            if ok_result.response.result.rows_written > 0 || ok_result.response.result.rows_read > 0 {
-                return Ok(());
-            }
+        if let Some(TursoResult::Ok(ok_result)) = result.results.first()
+            && (ok_result.response.result.rows_written > 0
+                || ok_result.response.result.rows_read > 0)
+        {
+            return Ok(());
         }
         Ok(())
     }
 
     /// Execute a parameterized SQL statement without returning results.
-    pub async fn execute_void_with_args(
-        &self,
-        sql: &str,
-        args: Vec<TursoArg>,
-    ) -> AppResult<()> {
+    pub async fn execute_void_with_args(&self, sql: &str, args: Vec<TursoArg>) -> AppResult<()> {
         let result = self.execute_with_args(sql, args).await?;
-        if let Some(TursoResult::Ok(ok_result)) = result.results.first() {
-            if ok_result.response.result.rows_written > 0 || ok_result.response.result.rows_read > 0 {
-                return Ok(());
-            }
+        if let Some(TursoResult::Ok(ok_result)) = result.results.first()
+            && (ok_result.response.result.rows_written > 0
+                || ok_result.response.result.rows_read > 0)
+        {
+            return Ok(());
         }
         Ok(())
     }

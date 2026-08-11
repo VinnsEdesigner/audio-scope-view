@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 
 use chrono::{DateTime, Utc};
@@ -6,8 +5,10 @@ use serde_json;
 use sqlx::FromRow;
 use sqlx::SqlitePool;
 
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, TimeRange};
 use crate::domain::error_domain::DomainError;
+use crate::domain::recording::{
+    Recording, RecordingFilter, RecordingMetadata, RecordingStats, RecordingSummary, TimeRange,
+};
 use crate::infrastructure::repo_trait_recording::RecordingRepository;
 
 #[derive(FromRow)]
@@ -15,7 +16,8 @@ struct RecordingRow {
     id: String,
     session_id: String,
     name: String,
-    samples: String,     sample_count: i32,
+    samples: String,
+    sample_count: i32,
     sample_rate: i32,
     timestamp: String,
     duration_ms: f64,
@@ -32,7 +34,8 @@ struct RecordingRow {
     bit_depth: i32,
     is_pinned: bool,
     created_at: String,
-    waveform_overview: Option<String>, }
+    waveform_overview: Option<String>,
+}
 
 #[derive(Debug, Clone, FromRow)]
 pub struct RecordingMetadataRow {
@@ -64,10 +67,13 @@ impl TryFrom<RecordingMetadataRow> for RecordingMetadata {
 
     fn try_from(row: RecordingMetadataRow) -> Result<Self, Self::Error> {
         let timestamp = parse_datetime(&row.timestamp)?;
-        let waveform_overview = row.waveform_overview
+        let waveform_overview = row
+            .waveform_overview
             .map(|json| serde_json::from_str(&json))
             .transpose()
-            .map_err(|e| DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e)))?;
+            .map_err(|e| {
+                DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e))
+            })?;
 
         Ok(RecordingMetadata {
             id: row.id,
@@ -128,7 +134,8 @@ impl TryFrom<RecordingRow> for Recording {
 
 impl From<Recording> for RecordingRow {
     fn from(recording: Recording) -> Self {
-        let samples_json = serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
+        let samples_json =
+            serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
 
         let waveform_overview = if recording.samples.is_empty() {
             None
@@ -260,7 +267,10 @@ impl SqliteRecordingRepository {
         }
     }
 
-    pub async fn find_metadata_by_id(&self, id: &str) -> Result<Option<RecordingMetadata>, DomainError> {
+    pub async fn find_metadata_by_id(
+        &self,
+        id: &str,
+    ) -> Result<Option<RecordingMetadata>, DomainError> {
         let row: Option<RecordingMetadataRow> = sqlx::query_as(
             r#"
             SELECT id, session_id, name, sample_count, timestamp,
@@ -448,23 +458,28 @@ impl SqliteRecordingRepository {
             return Ok(0);
         }
         let placeholders: Vec<&str> = ids.iter().map(|_| "?").collect();
-        let query = format!("DELETE FROM recordings WHERE id IN ({})", placeholders.join(","));
+        let query = format!(
+            "DELETE FROM recordings WHERE id IN ({})",
+            placeholders.join(",")
+        );
         let mut builder = sqlx::QueryBuilder::new(&query);
         for id in ids {
             builder.push_bind(id);
         }
-        let result = builder.build().execute(&self.pool).await.map_err(map_sqlx_err)?;
+        let result = builder
+            .build()
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
         Ok(result.rows_affected())
     }
 
     pub async fn count_by_scope(&self, session_id: &str) -> Result<u64, DomainError> {
-        let row: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM recordings WHERE session_id = ?"
-        )
-        .bind(session_id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_sqlx_err)?;
+        let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM recordings WHERE session_id = ?")
+            .bind(session_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx_err)?;
         Ok(row.0 as u64)
     }
 
@@ -510,10 +525,8 @@ impl SqliteRecordingRepository {
         if let Some(start) = start_time {
             query = query.bind(start.to_rfc3339());
         }
-        if has_device {
-            if let Some(did) = device_id {
-                query = query.bind(did);
-            }
+        if has_device && let Some(did) = device_id {
+            query = query.bind(did);
         }
         if let Some(sid) = session_id {
             query = query.bind(sid);
@@ -524,17 +537,27 @@ impl SqliteRecordingRepository {
             .await
             .map_err(map_sqlx_err)?;
 
-        Ok(row.map(|r| {
-            let count = r.total_recordings as f64;
-            RecordingStats {
-                total_recordings: r.total_recordings as u64,
-                total_size_bytes: r.total_size_bytes as u64,
-                total_duration_ms: r.total_duration_ms,
-                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
-                average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
-                pinned_count: r.pinned_count as u64,
-            }
-        }).unwrap_or_default())
+        Ok(row
+            .map(|r| {
+                let count = r.total_recordings as f64;
+                RecordingStats {
+                    total_recordings: r.total_recordings as u64,
+                    total_size_bytes: r.total_size_bytes as u64,
+                    total_duration_ms: r.total_duration_ms,
+                    average_size_bytes: if count > 0.0 {
+                        r.total_size_bytes as f64 / count
+                    } else {
+                        0.0
+                    },
+                    average_duration_ms: if count > 0.0 {
+                        r.total_duration_ms / count
+                    } else {
+                        0.0
+                    },
+                    pinned_count: r.pinned_count as u64,
+                }
+            })
+            .unwrap_or_default())
     }
 
     pub async fn get_recording_count_by_range(
@@ -545,7 +568,8 @@ impl SqliteRecordingRepository {
         let mut where_clause = String::new();
         let has_device = device_id.is_some();
         if has_device {
-            where_clause.push_str(" WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
+            where_clause
+                .push_str(" WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
         }
         if session_id.is_some() {
             if has_device {
@@ -561,10 +585,8 @@ impl SqliteRecordingRepository {
 
         let mut query = sqlx::query_as::<_, RecordingStatsRow>(&sql);
 
-        if has_device {
-            if let Some(did) = device_id {
-                query = query.bind(did);
-            }
+        if has_device && let Some(did) = device_id {
+            query = query.bind(did);
         }
         if let Some(sid) = session_id {
             query = query.bind(sid);
@@ -575,17 +597,27 @@ impl SqliteRecordingRepository {
             .await
             .map_err(map_sqlx_err)?;
 
-        Ok(row.map(|r| {
-            let count = r.total_recordings as f64;
-            RecordingStats {
-                total_recordings: r.total_recordings as u64,
-                total_size_bytes: r.total_size_bytes as u64,
-                total_duration_ms: r.total_duration_ms,
-                average_size_bytes: if count > 0.0 { r.total_size_bytes as f64 / count } else { 0.0 },
-                average_duration_ms: if count > 0.0 { r.total_duration_ms / count } else { 0.0 },
-                pinned_count: r.pinned_count as u64,
-            }
-        }).unwrap_or_default())
+        Ok(row
+            .map(|r| {
+                let count = r.total_recordings as f64;
+                RecordingStats {
+                    total_recordings: r.total_recordings as u64,
+                    total_size_bytes: r.total_size_bytes as u64,
+                    total_duration_ms: r.total_duration_ms,
+                    average_size_bytes: if count > 0.0 {
+                        r.total_size_bytes as f64 / count
+                    } else {
+                        0.0
+                    },
+                    average_duration_ms: if count > 0.0 {
+                        r.total_duration_ms / count
+                    } else {
+                        0.0
+                    },
+                    pinned_count: r.pinned_count as u64,
+                }
+            })
+            .unwrap_or_default())
     }
 }
 
@@ -630,7 +662,10 @@ impl RecordingRepository for SqliteRecordingRepository {
         SqliteRecordingRepository::find_by_id(self, id).await
     }
 
-    async fn find_metadata_by_id(&self, id: &str) -> Result<Option<RecordingMetadata>, DomainError> {
+    async fn find_metadata_by_id(
+        &self,
+        id: &str,
+    ) -> Result<Option<RecordingMetadata>, DomainError> {
         SqliteRecordingRepository::find_metadata_by_id(self, id).await
     }
 

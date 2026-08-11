@@ -66,15 +66,8 @@ futures-util = "0.3"
 # Cryptography
 sha2 = "0.10"
 
-# Random for waveform generators
-rand = "0.8"
-
 # HTTP headers for auth middleware
 headers = "0.4"
-
-# Audio processing
-rustfft = "6.2"
-num-complex = "0.4"
 
 # Binary data handling
 bytes = "1"
@@ -83,8 +76,14 @@ bytes = "1"
 # Supports: ALSA, PulseAudio, WASAPI, CoreAudio, OpenSL ES (Android), WebAudio (wasm)
 cpal = "0.15"
 
-# Compression
-lz4 = "1.24"
+# The DSP algorithms (FFT, measurements, spectrogram, LZ4 compression, signal
+# generation) now live in the C++ core under sdk/dsp, reached via the C ABI in
+# sdk/bindings/ffi and the safe wrapper in src/infrastructure/dsp_ffi.rs. The
+# rustfft, num-complex, lz4, and rand crates were DSP-only and are removed.
+
+[build-dependencies]
+# Compiles the C++ core + FFI bridge into the server binary at build time.
+cc = "1.0"
 
 [dev-dependencies]
 tokio-test = "0.4"

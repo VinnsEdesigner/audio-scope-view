@@ -6,13 +6,21 @@ use uuid::Uuid;
 #[serde(tag = "type", content = "payload")]
 pub enum WsMessage {
     #[serde(rename = "subscribe")]
-    Subscribe { session_id: String },
+    Subscribe {
+        session_id: String,
+    },
     #[serde(rename = "unsubscribe")]
-    Unsubscribe { session_id: String },
+    Unsubscribe {
+        session_id: String,
+    },
     #[serde(rename = "subscribe_spectrum")]
-    SubscribeSpectrum { session_id: String },
+    SubscribeSpectrum {
+        session_id: String,
+    },
     #[serde(rename = "unsubscribe_spectrum")]
-    UnsubscribeSpectrum { session_id: String },
+    UnsubscribeSpectrum {
+        session_id: String,
+    },
     #[serde(rename = "waveform_data")]
     WaveformData {
         session_id: String,
@@ -42,7 +50,9 @@ pub enum WsMessage {
         enabled: bool,
         threshold: Option<usize>,
     },
-    Error { message: String },
+    Error {
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -77,12 +87,24 @@ pub enum OutgoingMessage {
         snr: f32,
         timestamp: i64,
     },
-    Subscribed { session_id: String, stream_type: String },
-    Unsubscribed { session_id: String, stream_type: String },
+    Subscribed {
+        session_id: String,
+        stream_type: String,
+    },
+    Unsubscribed {
+        session_id: String,
+        stream_type: String,
+    },
     Pong,
-    Error { message: String },
-    Connected { client_id: String },
-    CompressionStatus { enabled: bool },
+    Error {
+        message: String,
+    },
+    Connected {
+        client_id: String,
+    },
+    CompressionStatus {
+        enabled: bool,
+    },
     ServerInfo {
         version: String,
         sample_rate: u32,

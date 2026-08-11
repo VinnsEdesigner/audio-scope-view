@@ -7,8 +7,8 @@ use std::time::{Duration, Instant, SystemTime};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::infrastructure::repo_trait_api_key::ApiKeyRepository;
 use crate::infrastructure::repo_sqlite_api_key::ApiKeyWithHash;
+use crate::infrastructure::repo_trait_api_key::ApiKeyRepository;
 
 #[derive(Debug, Clone)]
 pub struct ApiKey {
@@ -240,17 +240,18 @@ impl ApiKeyStore {
         let mut keys = self.keys.write().await;
 
         if let Some(key_hash) = key_ids.get(key_id)
-            && let Some(key) = keys.get_mut(key_hash) {
-                key.rate_limit_per_minute = rate_limit;
+            && let Some(key) = keys.get_mut(key_hash)
+        {
+            key.rate_limit_per_minute = rate_limit;
 
-                if let Some(repo) = &self.repository
-                    && let Err(e) = repo.update(key).await
-                {
-                    tracing::error!("Failed to update API key in database: {}", e);
-                }
-
-                return true;
+            if let Some(repo) = &self.repository
+                && let Err(e) = repo.update(key).await
+            {
+                tracing::error!("Failed to update API key in database: {}", e);
             }
+
+            return true;
+        }
         false
     }
 
@@ -259,17 +260,18 @@ impl ApiKeyStore {
         let mut keys = self.keys.write().await;
 
         if let Some(key_hash) = key_ids.get(key_id)
-            && let Some(key) = keys.get_mut(key_hash) {
-                key.name = name.to_string();
+            && let Some(key) = keys.get_mut(key_hash)
+        {
+            key.name = name.to_string();
 
-                if let Some(repo) = &self.repository
-                    && let Err(e) = repo.update(key).await
-                {
-                    tracing::error!("Failed to update API key in database: {}", e);
-                }
-
-                return true;
+            if let Some(repo) = &self.repository
+                && let Err(e) = repo.update(key).await
+            {
+                tracing::error!("Failed to update API key in database: {}", e);
             }
+
+            return true;
+        }
         false
     }
 
@@ -278,17 +280,18 @@ impl ApiKeyStore {
         let mut keys = self.keys.write().await;
 
         if let Some(key_hash) = key_ids.get(key_id)
-            && let Some(key) = keys.get_mut(key_hash) {
-                key.expires_at = Some(key.created_at + expiry);
+            && let Some(key) = keys.get_mut(key_hash)
+        {
+            key.expires_at = Some(key.created_at + expiry);
 
-                if let Some(repo) = &self.repository
-                    && let Err(e) = repo.update(key).await
-                {
-                    tracing::error!("Failed to update API key in database: {}", e);
-                }
-
-                return true;
+            if let Some(repo) = &self.repository
+                && let Err(e) = repo.update(key).await
+            {
+                tracing::error!("Failed to update API key in database: {}", e);
             }
+
+            return true;
+        }
         false
     }
 
@@ -297,17 +300,18 @@ impl ApiKeyStore {
         let mut keys = self.keys.write().await;
 
         if let Some(key_hash) = key_ids.get(key_id)
-            && let Some(key) = keys.get_mut(key_hash) {
-                key.expires_at = None;
+            && let Some(key) = keys.get_mut(key_hash)
+        {
+            key.expires_at = None;
 
-                if let Some(repo) = &self.repository
-                    && let Err(e) = repo.update(key).await
-                {
-                    tracing::error!("Failed to update API key in database: {}", e);
-                }
-
-                return true;
+            if let Some(repo) = &self.repository
+                && let Err(e) = repo.update(key).await
+            {
+                tracing::error!("Failed to update API key in database: {}", e);
             }
+
+            return true;
+        }
         false
     }
 }

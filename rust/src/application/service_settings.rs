@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use crate::domain::{Settings, error_domain::DomainError};
 use crate::domain::trait_settings_repository::SettingsRepository;
+use crate::domain::{Settings, error_domain::DomainError};
 use crate::infrastructure::repo_trait_session::SessionRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;

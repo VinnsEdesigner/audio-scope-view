@@ -14,9 +14,28 @@
 - Run locally: `docker run -p 3000:3000 -p 8080:8080 -e BOOTSTRAP_KEY="$(openssl rand -hex 32)" ghcr.io/vinnsedesigner/audio-scope-view:latest`. Health: `curl http://localhost:3000/health`.
 - Dev frontend (no Docker): `pnpm --filter @audio-scope-view/vyzor-web dev` (add a `server.proxy` in vite.config.ts pointing `/graphql`+`/ws` at the backend port to test against a running server).
 
+## C++ DSP Core (sdk/) — Step 1 of the ARCHITECTURE migration, implemented
+- The single DSP source of truth. Compiled to 5 targets (Linux/Windows/Android/WASM/Rust FFI) via CMake presets in `sdk/CMakePresets.json`.
+- Build + test (Linux host): `cd sdk && cmake --preset linux && cmake --build --preset linux && ctest --preset linux`. Requires `cmake`, `ninja`, `pkg-config`, `libasound2-dev`, `liblz4-dev`, `libgtest-dev` (or googletest fetched via FetchContent).
+- 36 GoogleTest cases across 7 suites, all ported from the Rust `#[test]` vectors in `rust/src/domain/*` and the live TS `scope-dsp.ts`. Run: `ctest --preset linux`.
+- Algorithms ported faithfully (NOT rewritten): FFT radix-2 from TS `scope-dsp.ts` (the live one); spectrum struct + windowing from Rust `fft_processor.rs`; measurements/THD/SNR/harmonics from Rust `measurements.rs`; spectrogram STFT from Rust `spectrogram.rs`; trigger from the **live TS** `findTriggerIndex` (the Rust `trigger/detector.rs` is dead code — see ARCHITECTURE_IMPLEMENTATION_SPEC §6.4); LZ4 compression from Rust `compression/mod.rs` via the C `lz4.h` API directly; generators (sine/square/saw/triangle/noise) from Rust `waveform_generators.rs` with a deterministic xoshiro PRNG (no system RNG dependency, reproducible tests).
+- `corrections.cpp` inverse-frequency-response needs the IFFT path (forward-only FFT today) — stub marked for Step 2. DC offset + normalize_peak + noise-gate interpolation + AGC estimate are complete.
+- LZ4 on small raw-float buffers can EXPAND (negative compression ratio is expected, not a bug) — the test asserts round-trip losslessness, not ratio positivity.
+- Static libs: `sdk/build/linux/dsp/libaudioscope_dsp.a`, `sdk/build/linux/common/libaudioscope_common.a`.
+
 ## Build & Run
 - Rust project in `rust/` directory; pinned toolchain `nightly-2026-07-20` (via `rust-toolchain.toml`)
-- Build: `cd rust && cargo build --release` (release takes ~2m; only warnings)
+- Build: `cd rust && cargo build --release` (release takes ~2m; clean — no warnings)
+- **Native link deps (host):** the C++ DSP core is compiled by `build.rs` via the `cc` crate and
+  links `-lstdc++`, `-llz4`, and (via cpal) `-lasound`. A fresh host needs
+  `apt-get install libasound2-dev liblz4-dev libxxhash-dev pkg-config` (plus a C++17 compiler)
+  or `cargo build` fails at link with `unable to find library -lasound/-llz4`. The runtime
+  `.so` packages alone are NOT enough — the `-dev` packages provide the `.so` symlinks the
+  linker needs.
+- **CI gates (must stay green):** `cargo fmt --all -- --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features --all-targets`.
+  `cargo clippy --fix` (then `cargo fmt`) handles most mechanical lints; `clippy::result_large_err`
+  is fixed by boxing the large `Err` variant (`Result<T, Box<BigErr>>`).
 - Run against Turso cloud:
   ```
   cd rust

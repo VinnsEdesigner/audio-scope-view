@@ -1,4 +1,3 @@
-
 use async_graphql::{MergedObject, Schema};
 
 use super::{
@@ -7,9 +6,8 @@ use super::{
     schema_dashboard::DashboardQuery,
     schema_dsp::{DspMutationRoot, DspQueryRoot},
     schema_export::{
-        ApiKeyMutationRoot, ApiKeyQueryRoot,
-        BatchCaptureMutationRoot,
-        ExportQueryRoot, SimulationMutationRoot, SimulationQueryRoot
+        ApiKeyMutationRoot, ApiKeyQueryRoot, BatchCaptureMutationRoot, ExportQueryRoot,
+        SimulationMutationRoot, SimulationQueryRoot,
     },
     schema_recording::{RecordingMutation, RecordingQuery},
     schema_session::{SessionMutation, SessionQuery},
@@ -52,6 +50,5 @@ pub struct Mutation(
 pub type Subscription = SubscriptionRoot;
 
 pub fn build_schema() -> Schema<Query, Mutation, Subscription> {
-    Schema::build(Query::default(), Mutation::default(), SubscriptionRoot)
-        .finish()
+    Schema::build(Query::default(), Mutation::default(), SubscriptionRoot).finish()
 }

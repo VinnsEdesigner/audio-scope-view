@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
-use crate::application::{DashboardService, RecordingService, SessionService, SettingsService, WaveformService};
 use crate::api::auth::ApiKey;
+use crate::application::{
+    DashboardService, RecordingService, SessionService, SettingsService, WaveformService,
+};
 use crate::domain::UserPreferencesRepository;
 use crate::infrastructure::AudioStreamManager;
 use std::sync::Arc;
@@ -49,7 +51,10 @@ impl GraphqlContext {
 
     pub fn with_auth(self, api_key: Option<ApiKey>, is_bootstrap: bool) -> Self {
         Self {
-            auth: ApiKeyAuth { api_key, is_bootstrap },
+            auth: ApiKeyAuth {
+                api_key,
+                is_bootstrap,
+            },
             ..self
         }
     }

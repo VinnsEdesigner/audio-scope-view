@@ -1,7 +1,12 @@
+// Real (cpal) audio capture backend. The ring-buffer inspection methods
+// (`len`/`is_empty`/`has_overflow`), the per-device constructors, and the full
+// `CaptureError` enum are the public capture API surface, kept even though the
+// headless test/CI host has no input device to exercise every path.
+#![allow(dead_code)]
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{self, Sender, Receiver};
 
 use async_trait::async_trait;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -36,6 +41,11 @@ impl std::error::Error for CaptureError {}
 
 struct AudioRingBuffer {
     buffer: Mutex<Vec<f32>>,
+    // Monotonic head/tail counters (never masked on store; only masked when
+    // indexing the storage). This keeps full vs. empty unambiguous (the count
+    // is the difference) and makes wraparound correct — unlike masking the
+    // counters themselves, which loses the high bits and breaks the count once
+    // the indices wrap past `capacity`.
     write_pos: AtomicUsize,
     read_pos: AtomicUsize,
     capacity: usize,
@@ -43,7 +53,8 @@ struct AudioRingBuffer {
 
 impl AudioRingBuffer {
     fn new(capacity: usize) -> Self {
-        let capacity = capacity.next_power_of_two();         Self {
+        let capacity = capacity.next_power_of_two();
+        Self {
             buffer: Mutex::new(vec![0.0f32; capacity]),
             write_pos: AtomicUsize::new(0),
             read_pos: AtomicUsize::new(0),
@@ -55,45 +66,40 @@ impl AudioRingBuffer {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
 
-        let available = if write_pos >= read_pos {
-            self.capacity - (write_pos - read_pos)
-        } else {
-            read_pos - write_pos
-        };
-
-        let to_write = data.len().min(available.saturating_sub(1));         if to_write == 0 {
+        let len = write_pos.wrapping_sub(read_pos);
+        let free = self.capacity.saturating_sub(len);
+        let to_write = data.len().min(free);
+        if to_write == 0 {
             return 0;
         }
 
-        let mut_wpos = self.write_pos.load(Ordering::SeqCst);
+        let mask = self.capacity - 1;
         let mut buffer = self.buffer.lock().unwrap();
-        for (i, &sample) in data.iter().take(to_write).enumerate() {
-            buffer[(mut_wpos + i) & (self.capacity - 1)] = sample;
+        for i in 0..to_write {
+            buffer[(write_pos.wrapping_add(i)) & mask] = data[i];
         }
 
-        self.write_pos.store((mut_wpos + to_write) & (self.capacity - 1), Ordering::SeqCst);
+        self.write_pos
+            .store(write_pos.wrapping_add(to_write), Ordering::SeqCst);
 
         to_write
     }
 
     fn drain(&self, output: &mut [f32]) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
-        let mut read_pos = self.read_pos.load(Ordering::SeqCst);
+        let read_pos = self.read_pos.load(Ordering::SeqCst);
 
-        let available = if write_pos >= read_pos {
-            write_pos - read_pos
-        } else {
-            self.capacity - read_pos + write_pos
-        };
+        let len = write_pos.wrapping_sub(read_pos);
+        let to_read = output.len().min(len);
 
-        let to_read = output.len().min(available);
-
+        let mask = self.capacity - 1;
         let buffer = self.buffer.lock().unwrap();
         for i in 0..to_read {
-            output[i] = buffer[(read_pos + i) & (self.capacity - 1)];
+            output[i] = buffer[(read_pos.wrapping_add(i)) & mask];
         }
 
-        self.read_pos.store((read_pos + to_read) & (self.capacity - 1), Ordering::SeqCst);
+        self.read_pos
+            .store(read_pos.wrapping_add(to_read), Ordering::SeqCst);
 
         to_read
     }
@@ -101,12 +107,7 @@ impl AudioRingBuffer {
     fn len(&self) -> usize {
         let write_pos = self.write_pos.load(Ordering::SeqCst);
         let read_pos = self.read_pos.load(Ordering::SeqCst);
-
-        if write_pos >= read_pos {
-            write_pos - read_pos
-        } else {
-            self.capacity - read_pos + write_pos
-        }
+        write_pos.wrapping_sub(read_pos)
     }
 
     fn is_empty(&self) -> bool {
@@ -119,16 +120,7 @@ impl AudioRingBuffer {
     }
 
     fn has_overflow(&self) -> bool {
-        let write_pos = self.write_pos.load(Ordering::SeqCst);
-        let read_pos = self.read_pos.load(Ordering::SeqCst);
-
-        let available = if write_pos >= read_pos {
-            write_pos - read_pos
-        } else {
-            self.capacity - read_pos + write_pos
-        };
-
-        available >= self.capacity - 1
+        self.len() >= self.capacity
     }
 }
 
@@ -192,10 +184,7 @@ impl RealAudioCapture {
             .default_input_device()
             .ok_or_else(|| DomainError::capture_error("No input device available"))?;
 
-        let device_id = device
-            .name()
-            .ok()
-            .unwrap_or_else(|| "default".to_string());
+        let device_id = device.name().ok().unwrap_or_else(|| "default".to_string());
 
         let config = device
             .default_input_config()
@@ -227,7 +216,9 @@ impl RealAudioCapture {
             .input_devices()
             .map_err(|e| DomainError::capture_error(format!("Cannot enumerate devices: {}", e)))?
             .find(|d| d.name().map(|n| n == device_id).unwrap_or(false))
-            .ok_or_else(|| DomainError::capture_error(format!("Device not found: {}", device_id)))?;
+            .ok_or_else(|| {
+                DomainError::capture_error(format!("Device not found: {}", device_id))
+            })?;
 
         let config = device
             .default_input_config()
@@ -276,9 +267,7 @@ impl RealAudioCapture {
                                 id: name.clone(),
                                 name,
                                 channels: config.as_ref().map(|c| c.channels() as u32).unwrap_or(2),
-                                sample_rate: config
-                                    .map(|c| c.sample_rate().0)
-                                    .unwrap_or(44100),
+                                sample_rate: config.map(|c| c.sample_rate().0).unwrap_or(44100),
                                 is_default,
                             }
                         })
@@ -294,7 +283,9 @@ impl RealAudioCapture {
         match &self.device_id {
             Some(id) => host
                 .input_devices()
-                .map_err(|e| DomainError::capture_error(format!("Cannot enumerate devices: {}", e)))?
+                .map_err(|e| {
+                    DomainError::capture_error(format!("Cannot enumerate devices: {}", e))
+                })?
                 .find(|d| d.name().map(|n| n == *id).unwrap_or(false))
                 .ok_or_else(|| DomainError::capture_error(format!("Device not found: {}", id))),
             None => host
@@ -345,7 +336,8 @@ impl RealAudioCapture {
                     &stream_config,
                     move |data: &[i16], _: &cpal::InputCallbackInfo| {
                         if !stop.load(Ordering::SeqCst) {
-                            let normalized: Vec<f32> = data.iter().map(|&s| s as f32 / 32768.0).collect();
+                            let normalized: Vec<f32> =
+                                data.iter().map(|&s| s as f32 / 32768.0).collect();
                             let written = buffer.push(&normalized);
                             if written < data.len() {
                                 state_data.record_dropped(data.len() - written);
@@ -368,7 +360,10 @@ impl RealAudioCapture {
                     &stream_config,
                     move |data: &[u16], _: &cpal::InputCallbackInfo| {
                         if !stop.load(Ordering::SeqCst) {
-                            let normalized: Vec<f32> = data.iter().map(|&s| (s as f32 - 32768.0) / 32768.0).collect();
+                            let normalized: Vec<f32> = data
+                                .iter()
+                                .map(|&s| (s as f32 - 32768.0) / 32768.0)
+                                .collect();
                             let written = buffer.push(&normalized);
                             if written < data.len() {
                                 state_data.record_dropped(data.len() - written);
@@ -390,15 +385,16 @@ impl RealAudioCapture {
             }
         };
 
-        build_result.map_err(|e| DomainError::capture_error(format!("Failed to build stream: {}", e)))
+        build_result
+            .map_err(|e| DomainError::capture_error(format!("Failed to build stream: {}", e)))
     }
 
     fn check_errors(&self) {
-        if let Ok(receiver) = self.error_receiver.lock() {
-            if let Some(rx) = receiver.as_ref() {
-                while let Ok(err) = rx.try_recv() {
-                    tracing::error!("Audio capture error: {}", err);
-                }
+        if let Ok(receiver) = self.error_receiver.lock()
+            && let Some(rx) = receiver.as_ref()
+        {
+            while let Ok(err) = rx.try_recv() {
+                tracing::error!("Audio capture error: {}", err);
             }
         }
     }
@@ -455,7 +451,9 @@ impl AudioCapture for RealAudioCapture {
             self.state.clone(),
         )?;
 
-        stream.play().map_err(|e| DomainError::capture_error(format!("Failed to start stream: {}", e)))?;
+        stream
+            .play()
+            .map_err(|e| DomainError::capture_error(format!("Failed to start stream: {}", e)))?;
 
         *self.stream.lock().unwrap() = Some(stream);
         self.state.running.store(true, Ordering::SeqCst);
@@ -491,23 +489,23 @@ impl AudioCapture for RealAudioCapture {
     }
 
     async fn pause(&mut self) -> DomainResult<()> {
-        if let Ok(mut stream_guard) = self.stream.lock() {
-            if let Some(ref stream) = *stream_guard {
-                stream.pause().map_err(|e|
-                    DomainError::capture_error(format!("Failed to pause: {}", e))
-                )?;
-            }
+        if let Ok(stream_guard) = self.stream.lock()
+            && let Some(ref stream) = *stream_guard
+        {
+            stream
+                .pause()
+                .map_err(|e| DomainError::capture_error(format!("Failed to pause: {}", e)))?;
         }
         Ok(())
     }
 
     async fn resume(&mut self) -> DomainResult<()> {
-        if let Ok(mut stream_guard) = self.stream.lock() {
-            if let Some(ref stream) = *stream_guard {
-                stream.play().map_err(|e|
-                    DomainError::capture_error(format!("Failed to resume: {}", e))
-                )?;
-            }
+        if let Ok(stream_guard) = self.stream.lock()
+            && let Some(ref stream) = *stream_guard
+        {
+            stream
+                .play()
+                .map_err(|e| DomainError::capture_error(format!("Failed to resume: {}", e)))?;
         }
         Ok(())
     }
@@ -571,14 +569,45 @@ mod tests {
 
     #[test]
     fn test_ring_buffer_wrap() {
+        // Capacity is a power of two (8). Pushing more than the buffer holds
+        // must drop the overflow and keep the oldest samples, and a second push
+        // after a partial drain must wrap the write cursor past the physical
+        // end of the storage (the whole point of a ring buffer).
         let buffer = AudioRingBuffer::new(8);
 
+        // 1) Overflow: 10 samples into a capacity-8 buffer writes exactly 8
+        //    (the first 8) and drops the last 2.
         let data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
         let written = buffer.push(&data);
-        assert_eq!(written, 9);
+        assert_eq!(written, 8);
+        assert!(buffer.has_overflow());
+
         let mut output = [0.0f32; 16];
         let read = buffer.drain(&mut output);
-        assert_eq!(read, 9);
+        assert_eq!(read, 8);
+        assert_eq!(&output[..8], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+        assert!(buffer.is_empty());
+
+        // 2) Wrap: advance the cursors partway, then push across the boundary so
+        //    the write physically straddles the end and start of the storage.
+        buffer.push(&[10.0, 20.0, 30.0, 40.0, 50.0, 60.0]); // writes 6 samples
+        let mut drained = [0.0f32; 4];
+        assert_eq!(buffer.drain(&mut drained), 4); // consumes the first 4
+        assert_eq!(drained, [10.0, 20.0, 30.0, 40.0]);
+        // Buffer now holds [50.0, 60.0] (2 items, 6 slots free). A push that
+        // straddles the physical end wraps the write cursor 6 -> 7 -> 0 -> 1 ...
+        // and drops the 2 samples that don't fit (drop-on-full, matching the
+        // capture path's dropped-sample accounting).
+        let wrap_data = [100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0];
+        assert_eq!(buffer.push(&wrap_data), 6); // 6 free slots, 2 dropped
+        let mut out = [0.0f32; 16];
+        let n = buffer.drain(&mut out);
+        assert_eq!(n, 8);
+        // Oldest-first: the 2 survivors then the 6 newest that fit.
+        assert_eq!(
+            &out[..8],
+            &[50.0, 60.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0]
+        );
     }
 
     #[test]

@@ -67,10 +67,12 @@ fn read_json_file<T: for<'de> Deserialize<'de>>(filename: &str) -> Option<T> {
     // Prefer the on-disk file (allows local dev hot-swap), then fall back to the
     // compile-time-embedded copy so the data is always present in container images.
     let path = get_data_path(filename);
-    if let Some(content) = std::fs::read_to_string(&path).ok().filter(|c| !c.trim().is_empty()) {
-        if let Ok(parsed) = serde_json::from_str::<T>(&content) {
-            return Some(parsed);
-        }
+    if let Some(content) = std::fs::read_to_string(&path)
+        .ok()
+        .filter(|c| !c.trim().is_empty())
+        && let Ok(parsed) = serde_json::from_str::<T>(&content)
+    {
+        return Some(parsed);
     }
 
     let embedded = match filename {
@@ -119,7 +121,8 @@ impl AboutQuery {
                     description: f.description,
                 })
                 .collect()
-        }).unwrap_or_default()
+        })
+        .unwrap_or_default()
     }
 
     async fn changelog(&self) -> Vec<ChangelogReleaseOutput> {
@@ -161,6 +164,7 @@ impl AboutQuery {
                         .collect(),
                 })
                 .collect()
-        }).unwrap_or_default()
+        })
+        .unwrap_or_default()
     }
 }

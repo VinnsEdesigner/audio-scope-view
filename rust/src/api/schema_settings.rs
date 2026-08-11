@@ -1,4 +1,3 @@
-
 use async_graphql::{Context, Object, SimpleObject};
 
 use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
@@ -81,7 +80,11 @@ async fn assert_settings_session_owned(
 
 #[Object]
 impl SettingsQuery {
-    async fn settings(&self, ctx: &Context<'_>, session_id: String) -> Result<Option<SettingsOutput>, async_graphql::Error> {
+    async fn settings(
+        &self,
+        ctx: &Context<'_>,
+        session_id: String,
+    ) -> Result<Option<SettingsOutput>, async_graphql::Error> {
         // Enforce device isolation: only the session's owning device may read
         // its settings.
         assert_settings_session_owned(ctx, &session_id).await?;
@@ -103,7 +106,11 @@ pub struct SettingsMutation;
 
 #[Object]
 impl SettingsMutation {
-    async fn create_settings(&self, ctx: &Context<'_>, session_id: String) -> Result<Option<SettingsOutput>, async_graphql::Error> {
+    async fn create_settings(
+        &self,
+        ctx: &Context<'_>,
+        session_id: String,
+    ) -> Result<Option<SettingsOutput>, async_graphql::Error> {
         // Enforce device isolation: only the owning device may create settings
         // for a session.
         assert_settings_session_owned(ctx, &session_id).await?;
@@ -115,7 +122,9 @@ impl SettingsMutation {
             .settings_service
             .create_for_session(&session_id)
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to create settings: {:?}", e)))?;
+            .map_err(|e| {
+                async_graphql::Error::new(format!("Failed to create settings: {:?}", e))
+            })?;
         Ok(Some(SettingsOutput::from(settings)))
     }
 
@@ -180,11 +189,17 @@ impl SettingsMutation {
             .settings_service
             .update(settings.clone())
             .await
-            .map_err(|e| async_graphql::Error::new(format!("Failed to update settings: {:?}", e)))?;
+            .map_err(|e| {
+                async_graphql::Error::new(format!("Failed to update settings: {:?}", e))
+            })?;
         Ok(Some(SettingsOutput::from(settings)))
     }
 
-    async fn delete_settings(&self, ctx: &Context<'_>, session_id: String) -> Result<bool, async_graphql::Error> {
+    async fn delete_settings(
+        &self,
+        ctx: &Context<'_>,
+        session_id: String,
+    ) -> Result<bool, async_graphql::Error> {
         // Enforce device isolation before deleting.
         assert_settings_session_owned(ctx, &session_id).await?;
 

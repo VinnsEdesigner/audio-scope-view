@@ -2,7 +2,7 @@
 
 use crate::domain::Session;
 use crate::domain::error_domain::DomainError;
-use crate::infrastructure::repo_trait_session::{SessionRepository, DomainErrorResult};
+use crate::infrastructure::repo_trait_session::{DomainErrorResult, SessionRepository};
 use crate::infrastructure::turso_http_client::{TursoArg, TursoClient, TursoResult};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -30,26 +30,56 @@ impl TursoSessionRepository {
             .map_err(|_| DomainError::corruption(format!("Invalid datetime format: {}", s)))
     }
 
-    fn row_to_session(row: &[crate::infrastructure::turso_http_client::TursoValue]) -> Result<Session, DomainError> {
+    fn row_to_session(
+        row: &[crate::infrastructure::turso_http_client::TursoValue],
+    ) -> Result<Session, DomainError> {
         // Columns: id, user_id, started_at, ended_at, duration_seconds,
         //          oscilloscope_opened_at, oscilloscope_duration_ms, name, description, parent_session_id,
         //          is_sub_session, peak_amplitude, rms_amplitude, dc_offset,
         //          dominant_frequency, frequency_high, frequency_low, auto_close_timeout_secs
         Ok(Session {
-            id: row.get(0).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            user_id: row.get(1).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            started_at: row.get(2).and_then(|v| v.as_str())
+            id: row
+                .first()
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            user_id: row
+                .get(1)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            started_at: row
+                .get(2)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing started_at".to_string()))
-                .and_then(|s| Self::parse_datetime(s))?,
-            ended_at: row.get(3).and_then(|v| v.as_str()).filter(|s| !s.is_empty())
+                .and_then(Self::parse_datetime)?,
+            ended_at: row
+                .get(3)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
                 .and_then(|s| Self::parse_datetime(s).ok()),
-            duration_seconds: row.get(4).and_then(|v| v.as_i64()).map(|v| v as i64),
-            oscilloscope_opened_at: row.get(5).and_then(|v| v.as_str()).filter(|s| !s.is_empty())
+            duration_seconds: row.get(4).and_then(|v| v.as_i64()),
+            oscilloscope_opened_at: row
+                .get(5)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
                 .and_then(|s| Self::parse_datetime(s).ok()),
             oscilloscope_duration_ms: row.get(6).and_then(|v| v.as_f64()),
-            name: row.get(7).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            description: row.get(8).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
-            parent_session_id: row.get(9).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
+            name: row
+                .get(7)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            description: row
+                .get(8)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(String::from),
+            parent_session_id: row
+                .get(9)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(String::from),
             is_sub_session: row.get(10).and_then(|v| v.as_bool()).unwrap_or(false),
             peak_amplitude: row.get(11).and_then(|v| v.as_f64()).map(|v| v as f32),
             rms_amplitude: row.get(12).and_then(|v| v.as_f64()).map(|v| v as f32),
@@ -62,7 +92,9 @@ impl TursoSessionRepository {
     }
 
     /// Helper to collect rows from a TursoResponse into parsed Session objects.
-    fn collect_sessions(result: &crate::infrastructure::turso_http_client::TursoResponse) -> Result<Vec<Session>, DomainError> {
+    fn collect_sessions(
+        result: &crate::infrastructure::turso_http_client::TursoResponse,
+    ) -> Result<Vec<Session>, DomainError> {
         let mut sessions = Vec::new();
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             for row in &ok.response.result.rows {
@@ -73,11 +105,13 @@ impl TursoSessionRepository {
     }
 
     /// Helper to extract the first row from a TursoResponse.
-    fn first_row(result: &crate::infrastructure::turso_http_client::TursoResponse) -> Result<Option<Session>, DomainError> {
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                return Ok(Some(Self::row_to_session(row)?));
-            }
+    fn first_row(
+        result: &crate::infrastructure::turso_http_client::TursoResponse,
+    ) -> Result<Option<Session>, DomainError> {
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            return Ok(Some(Self::row_to_session(row)?));
         }
         Ok(None)
     }
@@ -94,26 +128,32 @@ impl SessionRepository for TursoSessionRepository {
             dominant_frequency, frequency_high, frequency_low
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#;
 
-        self.client.execute_void_with_args(sql, vec![
-            TursoArg::text(&session.id),
-            TursoArg::text(&session.user_id),
-            TursoArg::text(&session.name),
-            TursoArg::opt_text(session.description.clone()),
-            TursoArg::text(session.started_at.to_rfc3339()),
-            TursoArg::opt_text(session.ended_at.map(|dt| dt.to_rfc3339())),
-            TursoArg::opt_integer(session.duration_seconds),
-            TursoArg::opt_text(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339())),
-            TursoArg::opt_float(session.oscilloscope_duration_ms),
-            TursoArg::opt_text(session.parent_session_id.clone()),
-            TursoArg::bool(session.is_sub_session),
-            TursoArg::opt_integer(session.auto_close_timeout_secs.map(|v| v as i64)),
-            TursoArg::float(session.peak_amplitude.unwrap_or(0.0) as f64),
-            TursoArg::float(session.rms_amplitude.unwrap_or(0.0) as f64),
-            TursoArg::float(session.dc_offset.unwrap_or(0.0) as f64),
-            TursoArg::float(session.dominant_frequency.unwrap_or(0.0) as f64),
-            TursoArg::float(session.frequency_high.unwrap_or(0.0) as f64),
-            TursoArg::float(session.frequency_low.unwrap_or(0.0) as f64),
-        ]).await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(
+                sql,
+                vec![
+                    TursoArg::text(&session.id),
+                    TursoArg::text(&session.user_id),
+                    TursoArg::text(&session.name),
+                    TursoArg::opt_text(session.description.clone()),
+                    TursoArg::text(session.started_at.to_rfc3339()),
+                    TursoArg::opt_text(session.ended_at.map(|dt| dt.to_rfc3339())),
+                    TursoArg::opt_integer(session.duration_seconds),
+                    TursoArg::opt_text(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339())),
+                    TursoArg::opt_float(session.oscilloscope_duration_ms),
+                    TursoArg::opt_text(session.parent_session_id.clone()),
+                    TursoArg::bool(session.is_sub_session),
+                    TursoArg::opt_integer(session.auto_close_timeout_secs.map(|v| v as i64)),
+                    TursoArg::float(session.peak_amplitude.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.rms_amplitude.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.dc_offset.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.dominant_frequency.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.frequency_high.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.frequency_low.unwrap_or(0.0) as f64),
+                ],
+            )
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn update_session(&self, session: &Session) -> DomainErrorResult<()> {
@@ -125,36 +165,48 @@ impl SessionRepository for TursoSessionRepository {
             dominant_frequency = ?, frequency_high = ?, frequency_low = ?
             WHERE id = ?"#;
 
-        self.client.execute_void_with_args(sql, vec![
-            TursoArg::text(&session.user_id),
-            TursoArg::text(&session.name),
-            TursoArg::opt_text(session.description.clone()),
-            TursoArg::text(session.started_at.to_rfc3339()),
-            TursoArg::opt_text(session.ended_at.map(|dt| dt.to_rfc3339())),
-            TursoArg::opt_integer(session.duration_seconds),
-            TursoArg::opt_text(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339())),
-            TursoArg::opt_float(session.oscilloscope_duration_ms),
-            TursoArg::opt_text(session.parent_session_id.clone()),
-            TursoArg::bool(session.is_sub_session),
-            TursoArg::opt_integer(session.auto_close_timeout_secs.map(|v| v as i64)),
-            TursoArg::float(session.peak_amplitude.unwrap_or(0.0) as f64),
-            TursoArg::float(session.rms_amplitude.unwrap_or(0.0) as f64),
-            TursoArg::float(session.dc_offset.unwrap_or(0.0) as f64),
-            TursoArg::float(session.dominant_frequency.unwrap_or(0.0) as f64),
-            TursoArg::float(session.frequency_high.unwrap_or(0.0) as f64),
-            TursoArg::float(session.frequency_low.unwrap_or(0.0) as f64),
-            TursoArg::text(&session.id),
-        ]).await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(
+                sql,
+                vec![
+                    TursoArg::text(&session.user_id),
+                    TursoArg::text(&session.name),
+                    TursoArg::opt_text(session.description.clone()),
+                    TursoArg::text(session.started_at.to_rfc3339()),
+                    TursoArg::opt_text(session.ended_at.map(|dt| dt.to_rfc3339())),
+                    TursoArg::opt_integer(session.duration_seconds),
+                    TursoArg::opt_text(session.oscilloscope_opened_at.map(|dt| dt.to_rfc3339())),
+                    TursoArg::opt_float(session.oscilloscope_duration_ms),
+                    TursoArg::opt_text(session.parent_session_id.clone()),
+                    TursoArg::bool(session.is_sub_session),
+                    TursoArg::opt_integer(session.auto_close_timeout_secs.map(|v| v as i64)),
+                    TursoArg::float(session.peak_amplitude.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.rms_amplitude.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.dc_offset.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.dominant_frequency.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.frequency_high.unwrap_or(0.0) as f64),
+                    TursoArg::float(session.frequency_low.unwrap_or(0.0) as f64),
+                    TursoArg::text(&session.id),
+                ],
+            )
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn find_by_id(&self, id: &str) -> DomainErrorResult<Option<Session>> {
         let sql = "SELECT * FROM sessions WHERE id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)?;
         Self::first_row(&result)
     }
 
-    async fn find_active_session(&self, device_id: Option<&str>) -> DomainErrorResult<Option<Session>> {
+    async fn find_active_session(
+        &self,
+        device_id: Option<&str>,
+    ) -> DomainErrorResult<Option<Session>> {
         let (sql, args) = match device_id {
             Some(d) => (
                 "SELECT * FROM sessions WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1",
@@ -165,11 +217,20 @@ impl SessionRepository for TursoSessionRepository {
                 vec![],
             ),
         };
-        let result = self.client.execute_with_args(sql, args).await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, args)
+            .await
+            .map_err(Self::map_err)?;
         Self::first_row(&result)
     }
 
-    async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_all_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> DomainErrorResult<Vec<Session>> {
         let (sql, mut args) = match device_id {
             Some(d) => (
                 "SELECT * FROM sessions WHERE is_sub_session = 0 AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
@@ -182,15 +243,21 @@ impl SessionRepository for TursoSessionRepository {
         };
         args.push(limit.into());
         args.push(offset.into());
-        let result = self.client.execute_with_args(sql, args)
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, args)
+            .await
+            .map_err(Self::map_err)?;
         Self::collect_sessions(&result)
     }
 
     async fn delete(&self, id: &str) -> DomainErrorResult<bool> {
         let sql = "DELETE FROM sessions WHERE id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)?;
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             Ok(ok.response.result.rows_written > 0)
         } else {
@@ -209,46 +276,70 @@ impl SessionRepository for TursoSessionRepository {
                 vec![],
             ),
         };
-        let result = self.client.execute_with_args(sql, args).await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                if let Some(count) = row.first().and_then(|v| v.as_i64()) {
-                    return Ok(count as u32);
-                }
-            }
+        let result = self
+            .client
+            .execute_with_args(sql, args)
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+            && let Some(count) = row.first().and_then(|v| v.as_i64())
+        {
+            return Ok(count as u32);
         }
         Ok(0)
     }
 
     async fn find_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<Vec<Session>> {
         let sql = "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(parent_id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(parent_id)])
+            .await
+            .map_err(Self::map_err)?;
         Self::collect_sessions(&result)
     }
 
-    async fn find_sub_sessions_paginated(&self, parent_id: &str, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_sub_sessions_paginated(
+        &self,
+        parent_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> DomainErrorResult<Vec<Session>> {
         let sql = "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC LIMIT ? OFFSET ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(parent_id), limit.into(), offset.into()])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(
+                sql,
+                vec![TursoArg::text(parent_id), limit.into(), offset.into()],
+            )
+            .await
+            .map_err(Self::map_err)?;
         Self::collect_sessions(&result)
     }
 
     async fn count_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<u32> {
         let sql = "SELECT COUNT(*) FROM sessions WHERE parent_session_id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(parent_id)])
-            .await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                if let Some(count) = row.first().and_then(|v| v.as_i64()) {
-                    return Ok(count as u32);
-                }
-            }
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(parent_id)])
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+            && let Some(count) = row.first().and_then(|v| v.as_i64())
+        {
+            return Ok(count as u32);
         }
         Ok(0)
     }
 
-    async fn find_main_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_main_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> DomainErrorResult<Vec<Session>> {
         let (sql, mut args) = match device_id {
             Some(d) => (
                 "SELECT * FROM sessions WHERE is_sub_session = 0 AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
@@ -261,8 +352,11 @@ impl SessionRepository for TursoSessionRepository {
         };
         args.push(limit.into());
         args.push(offset.into());
-        let result = self.client.execute_with_args(sql, args)
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, args)
+            .await
+            .map_err(Self::map_err)?;
         Self::collect_sessions(&result)
     }
 }

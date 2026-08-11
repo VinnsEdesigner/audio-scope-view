@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use async_graphql::{Context, Object, Enum, InputObject, SimpleObject};
-use sha2::{Sha256, Digest};
+use async_graphql::{Context, Enum, InputObject, Object, SimpleObject};
+use sha2::{Digest, Sha256};
 
-use crate::application::export_service::ExportService;
-use crate::application::export_service::ExportFormat as AppExportFormat;
-use crate::application::BatchCaptureSettings;
 use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
 use crate::api::server_graphql::RequestIdentity;
+use crate::application::BatchCaptureSettings;
+use crate::application::export_service::ExportFormat as AppExportFormat;
+use crate::application::export_service::ExportService;
 
 fn verify_bootstrap_key(provided_key: &str, expected_hash: &[u8; 32]) -> bool {
     let mut hasher = Sha256::new();
@@ -95,7 +95,9 @@ impl ExportQueryRoot {
     ) -> async_graphql::Result<ExportResult> {
         let context = ctx.data_unchecked::<GraphqlContext>();
 
-        let waveform = context.waveform_service.get(&waveform_id)
+        let waveform = context
+            .waveform_service
+            .get(&waveform_id)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to get waveform: {}", e)))?
             .ok_or_else(|| async_graphql::Error::new("Waveform not found"))?;
@@ -116,7 +118,8 @@ impl ExportQueryRoot {
         }
 
         let export_service = ExportService::new(44100);
-        let data = export_service.export(&waveform, format.into())
+        let data = export_service
+            .export(&waveform, format.into())
             .map_err(|e| async_graphql::Error::new(format!("Export failed: {}", e)))?;
 
         let data_str = match format {
@@ -161,10 +164,7 @@ pub struct SimulationQueryRoot;
 
 #[Object]
 impl SimulationQueryRoot {
-    async fn simulation_state(
-        &self,
-        ctx: &Context<'_>,
-    ) -> async_graphql::Result<SimulationState> {
+    async fn simulation_state(&self, ctx: &Context<'_>) -> async_graphql::Result<SimulationState> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
         let state = app_state.simulation_service.get_state().await;
         Ok(SimulationState {
@@ -211,7 +211,9 @@ impl BatchCaptureMutationRoot {
             samples_per_capture: input.samples_per_capture,
         };
 
-        let result = app_state.batch_capture_service.capture_batch(settings)
+        let result = app_state
+            .batch_capture_service
+            .capture_batch(settings)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Batch capture failed: {}", e)))?;
 
@@ -242,33 +244,40 @@ impl SimulationMutationRoot {
             delay_between_ms: config.delay_between_ms,
         };
 
-        app_state.simulation_service.start_simulation(sim_config)
+        app_state
+            .simulation_service
+            .start_simulation(sim_config)
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to start simulation: {}", e)))
     }
 
     async fn stop_simulation(&self, ctx: &Context<'_>) -> async_graphql::Result<bool> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        app_state.simulation_service.stop_simulation()
+        app_state
+            .simulation_service
+            .stop_simulation()
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to stop simulation: {}", e)))
     }
 
     async fn pause_simulation(&self, ctx: &Context<'_>) -> async_graphql::Result<bool> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        app_state.simulation_service.pause_simulation()
+        app_state
+            .simulation_service
+            .pause_simulation()
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to pause simulation: {}", e)))
     }
 
     async fn resume_simulation(&self, ctx: &Context<'_>) -> async_graphql::Result<bool> {
         let app_state = ctx.data_unchecked::<Arc<crate::api::server_graphql::AppState>>();
-        app_state.simulation_service.resume_simulation()
+        app_state
+            .simulation_service
+            .resume_simulation()
             .await
             .map_err(|e| async_graphql::Error::new(format!("Failed to resume simulation: {}", e)))
     }
 }
-
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct ApiKeyInfo {
@@ -294,7 +303,8 @@ fn opt_system_time_to_epoch_secs(time: Option<std::time::SystemTime>) -> Option<
 #[derive(Debug, Clone, SimpleObject)]
 pub struct ApiKeyCreated {
     pub id: String,
-    pub key: String,      pub name: String,
+    pub key: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, SimpleObject)]
@@ -328,8 +338,7 @@ pub struct ApiKeyQueryRoot;
 /// must not enumerate, verify, or inspect API keys, because that would let a
 /// device enumerate/manage credentials for the whole system.
 fn assert_admin(ctx: &Context<'_>) -> async_graphql::Result<()> {
-    let identity = ctx
-        .data_unchecked::<RequestIdentity>();
+    let identity = ctx.data_unchecked::<RequestIdentity>();
     if identity.is_unscoped_admin() {
         Ok(())
     } else {
@@ -346,23 +355,34 @@ impl ApiKeyQueryRoot {
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         let keys = key_store.list_keys().await;
 
-        Ok(keys.into_iter().map(|k| ApiKeyInfo {
-            id: k.id,
-            name: k.name,
-            created_at: system_time_to_epoch_secs(k.created_at),
-            expires_at: opt_system_time_to_epoch_secs(k.expires_at),
-            last_used_at: opt_system_time_to_epoch_secs(k.last_used_at),
-            rate_limit_per_minute: k.rate_limit_per_minute,
-            is_valid: k.expires_at.is_none_or(|exp| exp > std::time::SystemTime::now()),
-        }).collect())
+        Ok(keys
+            .into_iter()
+            .map(|k| ApiKeyInfo {
+                id: k.id,
+                name: k.name,
+                created_at: system_time_to_epoch_secs(k.created_at),
+                expires_at: opt_system_time_to_epoch_secs(k.expires_at),
+                last_used_at: opt_system_time_to_epoch_secs(k.last_used_at),
+                rate_limit_per_minute: k.rate_limit_per_minute,
+                is_valid: k
+                    .expires_at
+                    .is_none_or(|exp| exp > std::time::SystemTime::now()),
+            })
+            .collect())
     }
 
-    async fn api_key(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<Option<ApiKeyInfo>> {
+    async fn api_key(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+    ) -> async_graphql::Result<Option<ApiKeyInfo>> {
         assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
 
         if let Some(k) = key_store.get_key_info(&id).await {
-            let is_valid = k.expires_at.is_none_or(|exp| exp > std::time::SystemTime::now());
+            let is_valid = k
+                .expires_at
+                .is_none_or(|exp| exp > std::time::SystemTime::now());
             Ok(Some(ApiKeyInfo {
                 id: k.id,
                 name: k.name,
@@ -377,7 +397,11 @@ impl ApiKeyQueryRoot {
         }
     }
 
-    async fn verify_api_key(&self, ctx: &Context<'_>, key: String) -> async_graphql::Result<ApiKeyVerifyResult> {
+    async fn verify_api_key(
+        &self,
+        ctx: &Context<'_>,
+        key: String,
+    ) -> async_graphql::Result<ApiKeyVerifyResult> {
         assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
 
@@ -433,12 +457,15 @@ impl ApiKeyMutationRoot {
         };
 
         if let Some(limit) = input.rate_limit_per_minute {
-            key_store.update_key_rate_limit(&api_key.id, limit as u32).await;
+            key_store
+                .update_key_rate_limit(&api_key.id, limit as u32)
+                .await;
         }
 
         Ok(ApiKeyCreated {
             id: api_key.id,
-            key: api_key.key,             name: api_key.name,
+            key: api_key.key,
+            name: api_key.name,
         })
     }
 
@@ -467,11 +494,7 @@ impl ApiKeyMutationRoot {
         Ok(true)
     }
 
-    async fn delete_api_key(
-        &self,
-        ctx: &Context<'_>,
-        id: String,
-    ) -> async_graphql::Result<bool> {
+    async fn delete_api_key(&self, ctx: &Context<'_>, id: String) -> async_graphql::Result<bool> {
         assert_admin(ctx)?;
         let key_store = ctx.data_unchecked::<Arc<crate::api::auth::ApiKeyStore>>();
         let deleted = key_store.delete_key(&id).await;

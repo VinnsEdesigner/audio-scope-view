@@ -1,4 +1,3 @@
-
 #[allow(unused_imports)]
 pub mod entity_capture;
 pub mod entity_dashboard_summary;
@@ -20,13 +19,11 @@ pub mod valueobject_frequency;
 pub mod valueobject_timerange;
 pub mod valueobject_timescale;
 
-pub mod compression;
-pub mod fft_processor;
-pub mod measurements;
-pub mod spectrogram;
-pub mod waveform_generators;
-
-pub mod trigger;
+// DSP types (pure-data DTOs) live in `dsp_types`; the algorithms are in the
+// C++ core, reached via `infrastructure::dsp_ffi`. The deleted Rust modules
+// (`fft_processor`, `measurements`, `spectrogram`, `compression`, `trigger`,
+// `waveform_generators`) are replaced by those two.
+pub mod dsp_types;
 
 pub mod recording;
 
@@ -44,13 +41,21 @@ pub use trait_user_preferences_repository::UserPreferencesRepository;
 
 pub use error_domain::{DomainError, DomainResult};
 
-pub use fft_processor::{FftProcessor, Spectrum, WindowType};
-pub use measurements::{
-    FrequencyComponent, HarmonicAnalysis, WaveformAnalysis, analyze_harmonics, analyze_waveform,
-    compute_dc_offset, compute_rms, find_peak_amplitude, zero_crossing_rate,
-    amplitude_to_db, db_to_amplitude, peak_to_dbfs, rms_to_dbfs, dbfs_to_amplitude,
-    format_db, format_dbfs, crest_factor_db, snr_to_db,
+// DSP type re-exports — shapes unchanged, now defined in `dsp_types`.
+pub use dsp_types::{
+    FrequencyComponent, HarmonicAnalysis, SpectrogramConfig, SpectrogramData, Spectrum,
+    WaveformAnalysis, WindowType, format_db, format_dbfs, format_snr, format_thd,
 };
-pub use spectrogram::{SpectrogramConfig, SpectrogramData, SpectrogramProcessor};
+// DSP algorithm re-exports — now backed by the C++ core via `dsp_ffi`.
+// Callers that wrote `crate::domain::analyze_waveform(...)` keep compiling.
+pub use crate::infrastructure::dsp_ffi::{
+    FftProcessor, amplitude_to_db, analyze_harmonics, analyze_waveform, compress_waveform,
+    compute_dc_offset, compute_rms, crest_factor_db, db_to_amplitude, dbfs_to_amplitude,
+    decompress_waveform, estimate_dominant_frequency, find_negative_peak_amplitude,
+    find_peak_amplitude, peak_to_dbfs, rms_to_dbfs, snr_to_db, zero_crossing_rate,
+};
 
-pub use recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, ScopeStatus, SessionWithStatus, ScopeStatusCounts};
+pub use recording::{
+    Recording, RecordingFilter, RecordingStats, RecordingSummary, ScopeStatus, ScopeStatusCounts,
+    SessionWithStatus,
+};
