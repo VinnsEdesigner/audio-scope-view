@@ -184,69 +184,89 @@ the native C++ + WASM bindings. No `--features` flag is needed — `cpal` is now
 a non-optional dependency (the old `mock`/`pulse`/`real-audio` features were
 removed).
 
-### Run the Rust server (for local full-stack dev)
+### Run the Rust server (backend on port 8080)
 
-The web app's Vite dev server proxies `/graphql` to `127.0.0.1:8090` (see
-`apps/vyzorWeb/vite.config.ts`), so for local development the Rust server
-**must listen on port 8090**, not its default 8080. Override via the config
-env prefix `APP__` (double-underscore separator, matching `.env.example`):
+The Rust server listens on its default port **8080** (set in `rust/config.toml`
+and used by the Dockerfile / `docker-compose.yml`). It needs the `BOOTSTRAP_KEY`
+env var (≥ 16 chars; falls back to `APP__SECURITY__BOOTSTRAP_KEY` from the
+config file if unset) and a database URL:
 
 ```bash
-# From the repo root. Required env vars:
-#   BOOTSTRAP_KEY  — server auth credential (≥ 16 chars; falls back to
-#                    APP__SECURITY__BOOTSTRAP_KEY from the config file if unset)
-#   APP__SERVER__PORT=8090  — match the Vite proxy target
-#   APP__DATABASE__URL     — sqlite (local) or libsql://… (Turso)
+# Required env vars:
+#   BOOTSTRAP_KEY  — server auth credential (≥ 16 chars)
+#   APP__DATABASE__URL  — sqlite (local) or libsql://… (Turso)
 #   TURSO_VYZOR_SCOPE_DB_TOKEN  — only when APP__DATABASE__URL is a libsql:// URL
 export BOOTSTRAP_KEY="dev-bootstrap-key-change-in-production"
-export APP__SERVER__HOST=127.0.0.1 APP__SERVER__PORT=8090
 export APP__DATABASE__URL="sqlite:./data/audio_scope_view.db?mode=rwc"   # local
 # export APP__DATABASE__URL="libsql://<your-db>.turso.io" TURSO_VYZOR_SCOPE_DB_TOKEN=<token>  # Turso
 
 cd rust
-cargo run --release          # → "Server listening on http://127.0.0.1:8090"
+cargo run --release          # → "Server listening on http://127.0.0.1:8080"
 ```
 
-Health check: `curl http://127.0.0.1:8090/health` → `Yes am alive`.
+Health check: `curl http://127.0.0.1:8080/health` → `Yes am alive`.
 
-For a quick smoke test, disable auth and create a session via the bootstrap
-key (sent as a Bearer token):
+Quick session-creation smoke test (bootstrap key sent as a Bearer token):
 
 ```bash
-curl -X POST http://127.0.0.1:8090/graphql \
+curl -X POST http://127.0.0.1:8080/graphql \
   -H "Authorization: Bearer $BOOTSTRAP_KEY" -H "Content-Type: application/json" \
   -d '{"query":"mutation { createNamedSession(input:{name:\"smoke\"}){id} }"}'
 ```
 
 ---
 
-## Step 5 — Run the web app + verify the full stack
+## Step 5 — Serve the web app + verify the full stack
+
+The web app is **built once** then served by a small Node static server,
+`apps/vyzorWeb/scripts/static-server.cjs` — this is the designed serving path
+(the same one the Dockerfile uses). There is no Vite dev server in the runtime
+flow.
+
+### How the static server works
+
+`static-server.cjs` does three things:
+
+1. Serves the built web assets from `apps/vyzorWeb/dist/client/` (plus the API
+   client from `packages/api-client/dist/`).
+2. Proxies `/graphql`, `/api/`, and `/ws` (WebSocket) requests to the Rust
+   backend at `http://127.0.0.1:8080`.
+3. Injects `Authorization: Bearer ${BOOTSTRAP_KEY}` into every proxied request,
+   reading `BOOTSTRAP_KEY` from its own environment. The browser therefore
+   never needs a frontend-side bootstrap key — **no `VITE_BOOTSTRAP_KEY`
+   required**; auth is handled server-side by the static server.
+
+It listens on `process.env.PORT || 3003` (the Dockerfile / Render set
+`PORT=3000`).
+
+### Build the web app
+
+```bash
+cd /workspace/project/audio-scope-view
+pnpm build        # build:wasm → vyzor-web build → sync-dist → apps/vyzorWeb/dist/client/
+```
+
+### Run the static server (Rust backend must already be on 8080)
+
+```bash
+cd /workspace/project/audio-scope-view
+export BOOTSTRAP_KEY="dev-bootstrap-key-change-in-production"   # same value the Rust server uses
+PORT=3000 node apps/vyzorWeb/scripts/static-server.cjs
+# → "Server running on http://localhost:3000"
+# → "Serving web from: …/apps/vyzorWeb/dist/client"
+# → "WebSocket proxy enabled for /ws endpoint"
+```
+
+Open `http://localhost:3000/oscilloscope` (append `?sessionId=<id>` from the
+curl call above to open a specific session). The static server proxies GraphQL
+to the Rust backend on 8080, so the web app can create and view sessions.
+
+### What you can verify
 
 The scope view uses a **WebGL2** renderer (Canvas2D was removed in Step 4 of
 the architecture migration). Any modern browser (Chrome/Edge 113+, Firefox
 113+, Safari 15+) provides WebGL2; no build dependency is added — it is a
 runtime/usage requirement only.
-
-The frontend reads the bootstrap key from `VITE_BOOTSTRAP_KEY` (embedded at
-Vite dev-server start / build time, **not** read at runtime). Create a
-`.env.local` so the web client can authenticate against the Rust backend:
-
-```bash
-# apps/vyzorWeb/.env.local  (gitignored — do not commit)
-VITE_BOOTSTRAP_KEY=dev-bootstrap-key-change-in-production
-```
-
-Start the web dev server (the Rust backend from the previous section must
-already be running on port 8090):
-
-```bash
-cd /workspace/project/audio-scope-view
-pnpm dev          # Vite dev server on http://localhost:5173 (host 0.0.0.0)
-```
-
-The Vite middleware proxies `/graphql` → `127.0.0.1:8090`, so the web app
-can create/view sessions. Open `http://localhost:5173/oscilloscope` and either
-create a session or append `?sessionId=<id>` from the curl call above.
 
 The scope page offers three WebGL2 views — **time / spectrum / spectrogram**
 (the spectrogram view is new in Step 4) — and a **Waveform Generator** dialog
@@ -255,6 +275,18 @@ mode". The generator feeds the scope from the C++ DSP core via WASM
 (`dsp.generateWaveform`), so you can verify rendering without a live audio
 input: open the dialog, pick a waveform (Sine/Square/Sawtooth/Triangle/Noise),
 and the measurement panel shows the expected Vpp / Freq / Win.
+
+### Docker (both servers in one container)
+
+The Dockerfile runs both processes together — this is the simplest way to run
+the full stack locally without two terminals:
+
+```bash
+docker compose up --build     # web on 3000, Rust GraphQL on 8080
+```
+
+The `docker-compose.yml` maps `3000:3000` and `8080:8080`; configure the
+bootstrap key / Turso credentials via a `.env` file (see `.env.example`).
 
 ---
 
@@ -284,8 +316,7 @@ native, WASM, and FFI.
 ## Day-to-day commands (root `package.json`)
 
 ```bash
-pnpm dev          # web app dev server (vite, port 5173)
-pnpm build        # build:wasm → vyzor-web build → sync-dist
+pnpm build        # build:wasm → vyzor-web build → sync-dist (produces apps/vyzorWeb/dist/client/)
 pnpm build:wasm   # rebuild the WASM artifact only
 pnpm build:sdk    # build the native C++ core (cmake preset linux)
 pnpm test:sdk     # build + ctest the native C++ core
@@ -295,26 +326,46 @@ pnpm typecheck    # tsc across workspaces (turbo)
 pnpm clean        # remove build/dist artifacts
 ```
 
+Run the built web app + Rust backend together (see Step 4 & Step 5):
+
+```bash
+# Terminal 1 — Rust backend (port 8080)
+cd rust && BOOTSTRAP_KEY=dev-bootstrap-key-change-in-production \
+  APP__DATABASE__URL="sqlite:./data/audio_scope_view.db?mode=rwc" cargo run --release
+
+# Terminal 2 — static server (port 3000), serves web + proxies to Rust on 8080
+PORT=3000 BOOTSTRAP_KEY=dev-bootstrap-key-change-in-production \
+  node apps/vyzorWeb/scripts/static-server.cjs
+```
+
 ---
 
 ## Troubleshooting
 
-### `ECONNREFUSED 127.0.0.1:8090` in the browser console
+### `502 Bad Gateway` / `ECONNREFUSED 127.0.0.1:8080` from the static server
 
-The web dev server is running but the Rust backend is not (or is on the wrong
-port). Start it on port 8090 as described in "Run the Rust server" above:
+The static server (`apps/vyzorWeb/scripts/static-server.cjs`) is running but the
+Rust backend is not (or is on the wrong port). The static server proxies
+`/graphql`, `/api/`, and `/ws` to `127.0.0.1:8080`, so start the Rust server
+first (see "Run the Rust server" above):
 ```bash
-BOOTSTRAP_KEY=dev-bootstrap-key-change-in-production \
-APP__SERVER__PORT=8090 APP__DATABASE__URL="sqlite:./data/audio_scope_view.db?mode=rwc" \
-  cargo run --release --manifest-path rust/Cargo.toml
+cd rust && BOOTSTRAP_KEY=dev-bootstrap-key-change-in-production \
+  APP__DATABASE__URL="sqlite:./data/audio_scope_view.db?mode=rwc" cargo run --release
 ```
+Confirm with `curl http://127.0.0.1:8080/health` → `Yes am alive`.
 
-### `Unauthorized: Invalid or missing API key` on every GraphQL request
+### `Unauthorized: Invalid or missing API key` on GraphQL requests
 
-The Rust backend is up but the frontend has no bootstrap key. Create
-`apps/vyzorWeb/.env.local` with `VITE_BOOTSTRAP_KEY=<same value as the
-server's BOOTSTRAP_KEY>` and restart `pnpm dev` (Vite embeds env vars at
-startup, so a restart is required).
+The static server injects `Authorization: Bearer ${BOOTSTRAP_KEY}` from its
+own environment, so the most common cause is a mismatch (or unset value)
+between the two processes. Ensure the static server is started with the
+**same** `BOOTSTRAP_KEY` the Rust server uses:
+```bash
+PORT=3000 BOOTSTRAP_KEY=<same-value-as-rust-server> \
+  node apps/vyzorWeb/scripts/static-server.cjs
+```
+If you are hitting the Rust backend directly (bypassing the static server),
+send the key yourself: `-H "Authorization: Bearer $BOOTSTRAP_KEY"`.
 
 ### pnpm hangs / prompts in CI
 
