@@ -27,15 +27,27 @@ set(AUDIOSCOPE_TESTS
     test_trigger
     test_compression
     test_generators
+    test_common
 )
 
 foreach(test ${AUDIOSCOPE_TESTS})
     add_executable(${test} ${test}.cpp)
-    target_link_libraries(${test}
-        PRIVATE
-            audioscope_dsp
-            ${GTEST_LIB}
-    )
+    # test_common exercises only the common infrastructure (ring buffer, pool,
+    # config, sample-format conversion); it links audioscope_common directly.
+    # The rest link the DSP core (which itself depends on common transitively).
+    if(test STREQUAL "test_common")
+        target_link_libraries(${test}
+            PRIVATE
+                audioscope_common
+                ${GTEST_LIB}
+        )
+    else()
+        target_link_libraries(${test}
+            PRIVATE
+                audioscope_dsp
+                ${GTEST_LIB}
+        )
+    endif()
     target_include_directories(${test}
         PRIVATE
             ${CMAKE_SOURCE_DIR}/dsp/include

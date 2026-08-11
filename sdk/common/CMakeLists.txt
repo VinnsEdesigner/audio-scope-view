@@ -1,6 +1,7 @@
 add_library(audioscope_common STATIC
     src/buffer.cpp
     src/config.cpp
+    src/types.cpp
 )
 
 target_include_directories(audioscope_common

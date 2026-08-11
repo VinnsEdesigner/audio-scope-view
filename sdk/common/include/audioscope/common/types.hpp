@@ -54,5 +54,19 @@ struct AudioDevice {
     bool is_default = false;
 };
 
+/// Byte width of one sample in `format` (2 for S16, 4 for S32/F32).
+std::size_t sample_format_size(SampleFormat format);
+
+/// Convert `count` samples of `format` (interleaved, one channel) from `src`
+/// into normalized float32 [-1, 1] in `dst`. `dst` must hold at least `count`
+/// floats. S16 and S32 are divided by their full-scale int range; F32 is
+/// copied verbatim. Returns the number of samples written (== `count`).
+///
+/// Every platform binding (ALSA/WASAPI/Oboe) calls this to normalize its native
+/// PCM into the canonical DSP format, so the conversion lives once in `common`
+/// rather than triplicated across bindings.
+std::size_t convert_samples_to_f32(SampleFormat format, const void* src,
+                                   float* dst, std::size_t count);
+
 } // namespace common
 } // namespace audioscope
