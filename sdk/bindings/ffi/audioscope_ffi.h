@@ -198,6 +198,64 @@ int as_decompress_waveform(const uint8_t *data, size_t size,
 void as_compressed_waveform_free(as_compressed_waveform *c);
 
 /* ------------------------------------------------------------------ */
+/* Trigger detection                                                   */
+/* ------------------------------------------------------------------ */
+
+typedef enum {
+    AS_TRIGGER_RISING  = 0,
+    AS_TRIGGER_FALLING = 1,
+    AS_TRIGGER_AUTO    = 2,
+} as_trigger_edge;
+
+typedef struct {
+    as_trigger_edge edge;     /* AS_TRIGGER_* */
+    float            level;
+    float            hysteresis;
+    int64_t          holdoff;  /* samples to skip at the start */
+} as_trigger_options;
+
+typedef struct {
+    int  index;                /* -1 = no trigger found */
+    int  armed;                /* 1 when armed */
+} as_trigger_result;
+
+/* find_trigger — parity with the live TS `findTriggerIndex` path. */
+as_trigger_result as_find_trigger(const float *data, size_t count,
+                                  as_trigger_options opts);
+
+/* triggered_window — align a frame on the trigger, return window_size samples.
+ * Returns a malloc'd asf32_array (empty when no trigger fires). */
+asf32_array as_triggered_window(const float *data, size_t count,
+                                size_t window_size, as_trigger_options opts);
+
+/* resample_to — nearest-neighbor resample to exactly `points` samples. */
+asf32_array as_resample_to(const float *data, size_t count, int points);
+
+/* ------------------------------------------------------------------ */
+/* Waveform generators                                                */
+/* ------------------------------------------------------------------ */
+
+typedef enum {
+    AS_GEN_SINE     = 0,
+    AS_GEN_SQUARE   = 1,
+    AS_GEN_SAWTOOTH = 2,
+    AS_GEN_TRIANGLE = 3,
+    AS_GEN_NOISE    = 4,
+} as_generator_kind;
+
+typedef enum {
+    AS_NOISE_WHITE = 0,
+    AS_NOISE_PINK  = 1,
+    AS_NOISE_BROWN = 2,
+} as_noise_type;
+
+/* generate_waveform — synthesize `num_samples` at `sample_rate`. Returns a
+ * malloc'd asf32_array. `frequency` is ignored for noise kinds. */
+asf32_array as_generate_waveform(as_generator_kind kind, double frequency,
+                                 float amplitude, as_noise_type noise,
+                                 double sample_rate, size_t num_samples);
+
+/* ------------------------------------------------------------------ */
 /* Version / build info                                                */
 /* ------------------------------------------------------------------ */
 const char *as_dsp_version(void);

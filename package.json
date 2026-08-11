@@ -6,15 +6,17 @@
   "packageManager": "pnpm@11.15.1",
   "scripts": {
     "dev": "pnpm --filter @audio-scope-view/vyzor-web dev",
-    "build": "pnpm --filter @audio-scope-view/vyzor-web build && node scripts/sync-dist.cjs",
+    "build": "pnpm build:wasm && pnpm --filter @audio-scope-view/vyzor-web build && node scripts/sync-dist.cjs",
     "build:dev": "pnpm --filter @audio-scope-view/vyzor-web build:dev && node scripts/sync-dist.cjs",
     "preview": "pnpm --filter @audio-scope-view/vyzor-web preview",
+    "build:wasm": "bash sdk/wasm/build.sh",
+    "build:sdk": "cmake --preset linux -D AUDIOSCOPE_BUILD_FFI=ON && cmake --build sdk/build/linux",
+    "test:sdk": "cmake --build sdk/build/linux && (cd sdk/build/linux && ctest --preset linux)",
+    "test:wasm": "pnpm --filter @audio-scope-view/dsp-wasm test",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean",
-    "dev:web": "cd apps/web && pnpm dev",
-    "dev:mobile": "cd apps/mobile && pnpm dev"
+    "clean": "turbo run clean"
   },
   "dependencies": {
     "@apollo/client": "^4.2.8",

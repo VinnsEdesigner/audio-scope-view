@@ -42,7 +42,8 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "AUDIOSCOPE_BUILD_TESTS": "OFF",
-                "AUDIOSCOPE_BUILD_WASM": "ON"
+                "AUDIOSCOPE_BUILD_WASM": "ON",
+                "AUDIOSCOPE_USE_VENDORED_LZ4": "ON"
             }
         },
         {

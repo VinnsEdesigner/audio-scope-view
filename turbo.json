@@ -12,6 +12,22 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".output/**"]
     },
+    "build:wasm": {
+      "cache": false,
+      "outputs": ["packages/dsp-wasm/dist/**", "sdk/build/wasm/wasm/audioscope.{js,wasm}"]
+    },
+    "build:sdk": {
+      "cache": false,
+      "outputs": ["sdk/build/linux/**"]
+    },
+    "test:sdk": {
+      "dependsOn": ["build:sdk"],
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["build:wasm"],
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true

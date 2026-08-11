@@ -16,12 +16,23 @@ target_include_directories(audioscope_dsp
         ${CMAKE_CURRENT_SOURCE_DIR}/../common/include
 )
 
-# Find liblz4 via pkg-config. The WASM/Android targets will later vendor a
-# copy of the LZ4 C sources into sdk/dsp/third_party/ and define an lz4
-# target here instead of relying on the system library.
+# Find liblz4 via pkg-config. The WASM/Android targets vendor a copy of the
+# LZ4 C sources under sdk/dsp/third_party/lz4/ (audioscope_lz4_vendored) and
+# link that instead of the system library, so the portable targets are
+# self-contained with no system dependency.
 find_package(PkgConfig QUIET)
 set(AUDIOSCOPE_LZ4_TARGET "")
-if(PkgConfig_FOUND)
+option(AUDIOSCOPE_USE_VENDORED_LZ4 "Build the vendored LZ4 sources under third_party/lz4 instead of the system library" OFF)
+if(AUDIOSCOPE_USE_VENDORED_LZ4)
+    add_library(audioscope_lz4_vendored STATIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/lz4/lz4.c)
+    target_include_directories(audioscope_lz4_vendored PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/lz4)
+    set_target_properties(audioscope_lz4_vendored PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        C_VISIBILITY hidden)
+    set(AUDIOSCOPE_LZ4_TARGET audioscope_lz4_vendored)
+elseif(PkgConfig_FOUND)
     pkg_check_modules(LZ4 QUIET IMPORTED_TARGET liblz4)
     if(TARGET PkgConfig::LZ4)
         set(AUDIOSCOPE_LZ4_TARGET PkgConfig::LZ4)

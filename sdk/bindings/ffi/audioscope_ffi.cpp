@@ -11,6 +11,8 @@
 #include "audioscope/dsp/measurements.hpp"
 #include "audioscope/dsp/spectrogram.hpp"
 #include "audioscope/dsp/compression.hpp"
+#include "audioscope/dsp/trigger.hpp"
+#include "audioscope/dsp/generators.hpp"
 #include "audioscope/common/config.hpp"
 
 #include <cstdlib>
@@ -330,6 +332,82 @@ void as_compressed_waveform_free(as_compressed_waveform *c) {
     if (!c) return;
     as_bytes_free(c->data);
     std::memset(c, 0, sizeof(*c));
+}
+
+// --------------------------------------------------------------------- //
+// Trigger detection
+// --------------------------------------------------------------------- //
+
+static audioscope::dsp::TriggerEdge to_cpp_trigger_edge(as_trigger_edge e) {
+    switch (e) {
+        case AS_TRIGGER_RISING:  return audioscope::dsp::TriggerEdge::Rising;
+        case AS_TRIGGER_FALLING: return audioscope::dsp::TriggerEdge::Falling;
+        case AS_TRIGGER_AUTO:    return audioscope::dsp::TriggerEdge::Auto;
+    }
+    return audioscope::dsp::TriggerEdge::Auto;
+}
+
+as_trigger_result as_find_trigger(const float *data, size_t count,
+                                  as_trigger_options opts) {
+    as_trigger_result r{-1, 0};
+    if (!data && count > 0) return r;
+    audioscope::dsp::TriggerOptions o;
+    o.edge        = to_cpp_trigger_edge(opts.edge);
+    o.level       = opts.level;
+    o.hysteresis  = opts.hysteresis;
+    o.holdoff     = static_cast<std::size_t>(opts.holdoff);
+    const auto tr = audioscope::dsp::find_trigger(data, count, o);
+    r.index = tr.index;
+    r.armed = tr.armed ? 1 : 0;
+    return r;
+}
+
+asf32_array as_triggered_window(const float *data, size_t count,
+                                size_t window_size, as_trigger_options opts) {
+    if (!data && count > 0) return {nullptr, 0};
+    audioscope::dsp::TriggerOptions o;
+    o.edge        = to_cpp_trigger_edge(opts.edge);
+    o.level       = opts.level;
+    o.hysteresis  = opts.hysteresis;
+    o.holdoff     = static_cast<std::size_t>(opts.holdoff);
+    const auto w  = audioscope::dsp::triggered_window(data, count, window_size, o);
+    return copy_f32_to_c(w);
+}
+
+asf32_array as_resample_to(const float *data, size_t count, int points) {
+    if (!data && count > 0) return {nullptr, 0};
+    const auto r = audioscope::dsp::resample_to(data, count, points);
+    return copy_f32_to_c(r);
+}
+
+// --------------------------------------------------------------------- //
+// Waveform generators
+// --------------------------------------------------------------------- //
+
+asf32_array as_generate_waveform(as_generator_kind kind, double frequency,
+                                 float amplitude, as_noise_type noise,
+                                 double sample_rate, size_t num_samples) {
+    audioscope::dsp::GeneratorKind gk;
+    switch (kind) {
+        case AS_GEN_SQUARE:   gk = audioscope::dsp::GeneratorKind::Square;   break;
+        case AS_GEN_SAWTOOTH: gk = audioscope::dsp::GeneratorKind::Sawtooth; break;
+        case AS_GEN_TRIANGLE: gk = audioscope::dsp::GeneratorKind::Triangle; break;
+        case AS_GEN_NOISE:    gk = audioscope::dsp::GeneratorKind::Noise;     break;
+        case AS_GEN_SINE: default:
+            gk = audioscope::dsp::GeneratorKind::Sine;
+            break;
+    }
+    audioscope::dsp::WaveformGenerator g(gk, frequency, amplitude);
+    // Noise kind uses the color set below; the constructor defaults to White.
+    if (kind == AS_GEN_NOISE) {
+        switch (noise) {
+            case AS_NOISE_PINK:  g = audioscope::dsp::WaveformGenerator::pink_noise(amplitude); break;
+            case AS_NOISE_BROWN: g = audioscope::dsp::WaveformGenerator::brown_noise(amplitude); break;
+            case AS_NOISE_WHITE: default: break;  // already white
+        }
+    }
+    const auto out = g.generate(sample_rate, num_samples);
+    return copy_f32_to_c(out);
 }
 
 // --------------------------------------------------------------------- //
