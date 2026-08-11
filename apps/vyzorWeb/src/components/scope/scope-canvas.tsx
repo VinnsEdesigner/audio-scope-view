@@ -2,15 +2,37 @@ import * as React from "react";
 import { useUIStore, type WaveformColor } from "@/store";
 import { ensureDsp, getDsp } from "@/lib/dsp-loader";
 import type { Spectrum } from "@audio-scope-view/dsp-wasm";
+import {
+  GLContext,
+  ScopeRenderer,
+  SpectrumRenderer,
+  SpectrogramRenderer,
+  GlyphRenderer,
+  OverlayRenderer,
+} from "@/lib/webgl";
 
-const WAVEFORM_COLORS: Record<WaveformColor, string> = {
-  cyan: "#22d3ee",
-  blue: "#3b82f6",
-  purple: "#a855f7",
-  green: "#22c55e",
-  orange: "#f97316",
-  red: "#ef4444",
+/**
+ * Normalized RGBA (0..1) for the active waveform color, used by the WebGL
+ * renderers (which take floats, not CSS strings).
+ */
+const WAVEFORM_COLORS: Record<WaveformColor, [number, number, number]> = {
+  cyan: [0.133, 0.827, 0.933],
+  blue: [0.231, 0.510, 0.965],
+  purple: [0.659, 0.333, 0.972],
+  green: [0.133, 0.773, 0.369],
+  orange: [0.976, 0.451, 0.086],
+  red: [0.937, 0.267, 0.267],
 };
+
+/** Parse a "#rrggbb" hex string into normalized RGB. */
+function hexToRgb(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return [r, g, b];
+}
+
+const SCOPE_BG: [number, number, number] = hexToRgb("#111820");
 
 interface ScopeCanvasProperties {
   waveformData: number[];
@@ -22,92 +44,14 @@ interface ScopeCanvasProperties {
   forwardedRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
-interface DrawSpectrumOptions {
-  context: CanvasRenderingContext2D;
-  width: number;
-  height: number;
-  glow: boolean;
-  spectrum: Spectrum;
-}
-
-/**
- * Standard analyser palette: low magnitude = deep blue, rising through cyan,
- * green and yellow to red at full scale.
- */
-function spectrumColor(normalized: number): string {
-  const t = Math.min(1, Math.max(0, normalized));
-  const stops: [number, [number, number, number]][] = [
-    [0, [12, 24, 92]],
-    [0.25, [0, 140, 200]],
-    [0.5, [0, 190, 110]],
-    [0.75, [235, 205, 40]],
-    [1, [230, 45, 30]],
-  ];
-  let lower = stops[0];
-  let upper = stops[stops.length - 1];
-  for (let index = 0; index < stops.length - 1; index++) {
-    if (t >= stops[index][0] && t <= stops[index + 1][0]) {
-      lower = stops[index];
-      upper = stops[index + 1];
-      break;
-    }
-  }
-  const span = upper[0] - lower[0] || 1;
-  const ratio = (t - lower[0]) / span;
-  const mix = (a: number, b: number) => Math.round(a + (b - a) * ratio);
-  return `rgb(${mix(lower[1][0], upper[1][0])}, ${mix(lower[1][1], upper[1][1])}, ${mix(lower[1][2], upper[1][2])})`;
-}
-
-const SPECTRUM_FLOOR_DB = -80;
-
-function drawSpectrum({
-  context,
-  width,
-  height,
-  glow,
-  spectrum,
-}: DrawSpectrumOptions): void {
-  const { magnitudesDb, frequencies } = spectrum;
-  if (magnitudesDb.length === 0) return;
-
-  const maxFrequency = Math.min(spectrum.sampleRate / 2, 20_000);
-  // Last bin index whose frequency is within the displayed range.
-  const maxBin = Math.max(
-    1,
-    Math.min(magnitudesDb.length - 1, frequencies.findIndex((f) => f > maxFrequency) - 1),
-  );
-  if (maxBin <= 0) return;
-
-  context.save();
-  const barWidth = Math.max(1, width / maxBin);
-
-  for (let bin = 1; bin <= maxBin; bin++) {
-    const db = magnitudesDb[bin];
-    const normalized = (db - SPECTRUM_FLOOR_DB) / -SPECTRUM_FLOOR_DB;
-    const barHeight = Math.max(0, normalized) * (height - 18);
-    const x = ((bin - 1) / maxBin) * width;
-    const barColor = spectrumColor(normalized);
-    context.fillStyle = barColor;
-    if (glow) {
-      context.shadowColor = barColor;
-      context.shadowBlur = 6;
-    }
-    context.fillRect(x, height - 18 - barHeight, barWidth, barHeight);
-  }
-  context.restore();
-
-  // Frequency axis labels
-  context.save();
-  context.fillStyle = "rgba(255,255,255,0.5)";
-  context.font = "10px ui-monospace, monospace";
-  for (let step = 0; step <= 4; step++) {
-    const ratio = step / 4;
-    const frequency = ratio * maxFrequency;
-    const label =
-      frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
-    context.fillText(label, Math.min(width - 22, ratio * width + 2), height - 5);
-  }
-  context.restore();
+/** Holds all WebGL renderer resources for one canvas (created once, reused). */
+interface RendererBundle {
+  ctx: GLContext;
+  scope: ScopeRenderer;
+  spectrum: SpectrumRenderer;
+  spectrogram: SpectrogramRenderer;
+  glyph: GlyphRenderer;
+  overlay: OverlayRenderer;
 }
 
 function levelFromPointer(
@@ -123,6 +67,21 @@ function levelFromPointer(
   return Math.round(Math.max(-1, Math.min(1, level)) * 100) / 100;
 }
 
+/**
+ * ScopeCanvas — WebGL2-rendered oscilloscope surface.
+ *
+ * Replaces the original Canvas2D path. All drawing (trace, spectrum bars,
+ * spectrogram waterfall, trigger markers + level value text) goes through
+ * the WebGL renderers in `@/lib/webgl`. The props surface is unchanged so
+ * scope-page.tsx needs no edits. The internal rAF loop, store-driven
+ * view/color/trigger reads, and the forwardedRef (used by ExportDialog's
+ * canvas.toDataURL snapshot) are all preserved.
+ *
+ * WebGL2 is acquired with `preserveDrawingBuffer: true` so PNG export
+ * (ExportDialog → useExport → canvas.toDataURL) captures a non-blank frame.
+ * When WebGL2 is unavailable the component renders an empty surface (graceful
+ * degradation) rather than crashing.
+ */
 export function ScopeCanvas({
   waveformData,
   isPaused = false,
@@ -209,10 +168,36 @@ export function ScopeCanvas({
     const container = containerReference.current;
     if (!canvas || !container) return;
 
-    const context = canvas.getContext("2d");
-    if (!context) return;
+    // Acquire a WebGL2 context. Falls back to a no-op render when unavailable.
+    const glCtx = GLContext.from(canvas);
+    if (!glCtx) {
+      console.warn("[scope-canvas] WebGL2 unavailable — rendering an empty surface.");
+      return;
+    }
+
+    const bundle: RendererBundle = {
+      ctx: glCtx,
+      scope: new ScopeRenderer(glCtx),
+      spectrum: new SpectrumRenderer(glCtx),
+      spectrogram: new SpectrogramRenderer(glCtx),
+      glyph: new GlyphRenderer(glCtx),
+      overlay: new OverlayRenderer(glCtx),
+    };
+    const ok =
+      bundle.scope.init() &&
+      bundle.spectrum.init() &&
+      bundle.spectrogram.init() &&
+      bundle.glyph.init() &&
+      bundle.overlay.init();
+    if (!ok) {
+      console.warn("[scope-canvas] WebGL2 renderer init failed — falling back.");
+      glCtx.dispose();
+      return;
+    }
 
     let animationFrameId: number;
+    let cssWidth = 0;
+    let cssHeight = 0;
 
     const draw = () => {
       const rect = canvas.getBoundingClientRect();
@@ -224,187 +209,188 @@ export function ScopeCanvas({
         return;
       }
 
-      const dpr = window.devicePixelRatio || 1;
-
-      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        context.scale(dpr, dpr);
+      const resized = glCtx.resize(width, height);
+      if (resized) {
+        bundle.scope.resize(glCtx.width, glCtx.height);
+        bundle.overlay.resize(glCtx.width, glCtx.height);
+        bundle.spectrogram.clear();
       }
+      // Track CSS-pixel size for the spectrum rect + marker placement.
+      cssWidth = width;
+      cssHeight = height;
 
-      context.fillStyle = "#111820";
-      context.fillRect(0, 0, width, height);
+      const dpr = glCtx.dpr;
+      const physW = glCtx.width;
+      const physH = glCtx.height;
+      const toPhys = (v: number) => v * dpr;
+
+      glCtx.clearBackground(...SCOPE_BG);
 
       const {
-        glow,
-        autoScale,
-        invert,
-        waveformColor,
-        verticalGain,
-        scopeView,
-        triggerEnabled,
-        triggerEdge,
-        triggerLevel,
-        triggerMode,
-        triggerHoldoff,
-        sampleRate,
-        isPaused,
+        glow: glowOn,
+        autoScale: autoScaleOn,
+        invert: invertOn,
+        waveformColor: wfColor,
+        verticalGain: vGain,
+        scopeView: view,
+        triggerEnabled: trigOn,
+        triggerEdge: trigEdge,
+        triggerLevel: trigLevel,
+        triggerMode: trigMode,
+        triggerHoldoff: trigHoldoff,
+        sampleRate: sr,
+        isPaused: paused,
       } = settingsReference.current;
 
-      const waveformColorValue = WAVEFORM_COLORS[waveformColor] ?? WAVEFORM_COLORS.cyan;
+      const [r, g, b] = WAVEFORM_COLORS[wfColor] ?? WAVEFORM_COLORS.cyan;
+      const traceColor: [number, number, number, number] = [r, g, b, 1];
       const liveFrame = waveformDataReference.current;
       const fullFrame = analysisFrameReference.current;
       const dsp = getDsp();
 
-      if (scopeView === "spectrum") {
+      // ---- Spectrum view -------------------------------------------------
+      if (view === "spectrum") {
         const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
         if (dsp && data.length >= 8) {
-          const spectrum = dsp.computeSpectrum(data, sampleRate, "hann");
-          drawSpectrum({ context, width, height, glow, spectrum });
+          const spectrum = dsp.computeSpectrum(data, sr, "hann");
+          bundle.spectrum.draw({
+            magnitudesDb: spectrum.magnitudesDb,
+            frequencies: spectrum.frequencies,
+            sampleRate: sr,
+            rect: { x: 0, y: 0, w: physW, h: physH },
+          });
+          drawSpectrumAxisLabels(bundle.glyph, spectrum, cssWidth, physH, dpr);
         }
         animationFrameId = requestAnimationFrame(draw);
         return;
       }
 
-      // ---- Trigger --------------------------------------------------------
+      // ---- Spectrogram view (waterfall) ---------------------------------
+      if (view === "spectrogram") {
+        const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
+        if (dsp && data.length >= 256) {
+          // One STFT slice per frame (config tuned for the waterfall).
+          const sg = dsp.computeSpectrogram(data, sr, {
+            windowSize: 512,
+            overlap: 0.5,
+            minFreq: 20,
+            maxFreq: Math.min(sr / 2, 20_000),
+          });
+          bundle.spectrogram.pushSlice(sg);
+        }
+        bundle.spectrogram.draw({ data: { frequencies: new Float32Array(), timeBins: new Int32Array(0), magnitudes: [], sampleRate: sr, windowSize: 0, overlap: 0 }, rect: { x: 0, y: 0, w: physW, h: physH } });
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+
+      // ---- Time (waveform) view -----------------------------------------
+      // Trigger (unchanged logic: WASM core when available, else free-run).
       let frame: ArrayLike<number> = liveFrame;
 
-      if (triggerEnabled && !isPaused && liveFrame.length > 0) {
+      if (trigOn && !paused && liveFrame.length > 0) {
         const source = fullFrame && fullFrame.length > liveFrame.length ? fullFrame : liveFrame;
         const windowSize = Math.min(liveFrame.length, source.length);
-        const armed = triggerMode !== "single" || singleArmedReference.current;
-
-        // Use the WASM trigger core when available (single source of truth);
-        // otherwise fall back to free-running display so the UI never blocks.
+        const armed = trigMode !== "single" || singleArmedReference.current;
         const aligned =
           armed && dsp
             ? dsp.triggeredWindow(source, windowSize, {
-                edge: triggerEdge,
-                level: triggerLevel,
-                holdoff: triggerHoldoff,
+                edge: trigEdge,
+                level: trigLevel,
+                holdoff: trigHoldoff,
               }) ?? undefined
             : undefined;
 
         if (aligned) {
           frame = aligned;
           heldFrameReference.current = Array.from(aligned);
-          if (triggerMode === "single") singleArmedReference.current = false;
-        } else if (triggerMode === "auto") {
+          if (trigMode === "single") singleArmedReference.current = false;
+        } else if (trigMode === "auto") {
           frame = liveFrame;
         } else {
           frame = heldFrameReference.current;
         }
-      } else if (isPaused) {
+      } else if (paused) {
         frame = heldFrameReference.current.length > 0 ? heldFrameReference.current : liveFrame;
       }
 
-      const centerY = height / 2;
+      // Amplitude scaling — mirrors the Canvas2D path so the trace looks identical.
       const fullScale = (height / 2) * 0.9;
-
-      // ---- Trigger level marker ------------------------------------------
-      if (triggerEnabled) {
-        const clampedLevel = Math.max(-1, Math.min(1, triggerLevel));
-        const levelY = centerY - clampedLevel * fullScale;
-        const active = draggingReference.current;
-        const markerColor = active ? "#f97316" : "rgba(249, 115, 22, 0.75)";
-
-        context.save();
-        context.strokeStyle = markerColor;
-        context.setLineDash([6, 5]);
-        context.lineWidth = active ? 2 : 1;
-        context.beginPath();
-        context.moveTo(0, levelY);
-        context.lineTo(width - 46, levelY);
-        context.stroke();
-        context.setLineDash([]);
-
-        // Right-edge drag handle with the level value.
-        const handleWidth = 44;
-        const handleHeight = 16;
-        const handleY = Math.max(0, Math.min(height - handleHeight, levelY - handleHeight / 2));
-        context.fillStyle = markerColor;
-        context.fillRect(width - handleWidth, handleY, handleWidth, handleHeight);
-        context.fillStyle = "#111820";
-        context.font = "10px ui-monospace, monospace";
-        context.textBaseline = "middle";
-        context.fillText(clampedLevel.toFixed(2), width - handleWidth + 5, handleY + handleHeight / 2);
-
-        // Edge arrow on the left showing rising / falling / auto.
-        const arrowX = 10;
-        context.strokeStyle = markerColor;
-        context.lineWidth = 1.5;
-        context.beginPath();
-        if (triggerEdge === "falling") {
-          context.moveTo(arrowX - 4, levelY - 6);
-          context.lineTo(arrowX, levelY + 6);
-          context.lineTo(arrowX + 4, levelY - 6);
-        } else {
-          context.moveTo(arrowX - 4, levelY + 6);
-          context.lineTo(arrowX, levelY - 6);
-          context.lineTo(arrowX + 4, levelY + 6);
-        }
-        context.stroke();
-
-        // Trigger point (horizontal position of the aligned edge).
-        context.strokeStyle = "rgba(249, 115, 22, 0.35)";
-        context.setLineDash([3, 5]);
-        context.lineWidth = 1;
-        context.beginPath();
-        context.moveTo(0, 0);
-        context.lineTo(0, height);
-        context.stroke();
-        context.restore();
+      let pixelsPerUnit = fullScale * vGain;
+      let frameMaxValue = 0.01;
+      for (let index = 0; index < frame.length; index++) {
+        const absolute = Math.abs(frame[index]);
+        if (absolute > frameMaxValue) frameMaxValue = absolute;
+      }
+      if (autoScaleOn) {
+        const alpha = 0.15;
+        const previousMax = smoothedMaxValueReference.current;
+        const newMax = Math.max(frameMaxValue, previousMax * 0.95);
+        smoothedMaxValueReference.current = previousMax * (1 - alpha) + newMax * alpha;
+        pixelsPerUnit = (fullScale * vGain) / smoothedMaxValueReference.current;
+      } else {
+        pixelsPerUnit = fullScale * vGain;
       }
 
+      // ---- Trigger markers (WebGL overlay + glyphs) ---------------------
+      if (trigOn) {
+        const clampedLevel = Math.max(-1, Math.min(1, trigLevel));
+        const centerY = cssHeight / 2;
+        const levelY = centerY - clampedLevel * fullScale;
+        const active = draggingReference.current;
+        const mk: [number, number, number, number] = active
+          ? [0.976, 0.451, 0.086, 1]
+          : [0.976, 0.451, 0.086, 0.75];
+        const mkDim: [number, number, number, number] = [0.976, 0.451, 0.086, 0.35];
+
+        // Dashed horizontal level line (right-edge handle reserves 46px).
+        bundle.overlay.drawLine(
+          toPhys(0), toPhys(levelY), toPhys(cssWidth - 46), toPhys(levelY),
+          mk, active ? 2 : 1, "x", 6 * dpr + 5 * dpr, 6 / 11,
+        );
+        // Dashed vertical trigger-point line.
+        bundle.overlay.drawLine(
+          toPhys(0), toPhys(0), toPhys(0), toPhys(cssHeight),
+          mkDim, 1, "y", 3 * dpr + 5 * dpr, 3 / 8,
+        );
+        // Filled drag handle.
+        const handleWidth = 44;
+        const handleHeight = 16;
+        const handleY = Math.max(0, Math.min(cssHeight - handleHeight, levelY - handleHeight / 2));
+        bundle.overlay.drawRect(toPhys(cssWidth - handleWidth), toPhys(handleY), toPhys(handleWidth), toPhys(handleHeight), mk);
+        // Level value text on the handle.
+        bundle.glyph.drawText(
+          clampedLevel.toFixed(2),
+          cssWidth - handleWidth + 5,
+          handleY + (handleHeight - 10) / 2,
+          10 * dpr,
+          [0.067, 0.094, 0.125, 1], // #111820
+        );
+
+        // Edge arrow chevron (rising/falling).
+        const arrowX = 10;
+        const arrow: Float32Array =
+          trigEdge === "falling"
+            ? new Float32Array([arrowX - 4, levelY - 6, arrowX, levelY + 6, arrowX + 4, levelY - 6])
+            : new Float32Array([arrowX - 4, levelY + 6, arrowX, levelY - 6, arrowX + 4, levelY + 6]);
+        // Scale arrow to physical px and flip Y (overlay works in pixel space with flipY).
+        const arrowPhys = new Float32Array(arrow.length);
+        for (let i = 0; i < arrow.length; i += 2) {
+          arrowPhys[i] = toPhys(arrow[i]);
+          arrowPhys[i + 1] = toPhys(arrow[i + 1]);
+        }
+        bundle.overlay.drawPolyline(arrowPhys, mk, 1.5 * dpr);
+      }
+
+      // ---- Waveform trace (WebGL line renderer) -------------------------
       if (frame.length > 1) {
-        context.save();
-
-        if (glow) {
-          context.shadowColor = waveformColorValue;
-          context.shadowBlur = 8;
-        }
-
-        context.beginPath();
-        context.strokeStyle = waveformColorValue;
-        context.lineWidth = 2;
-        context.lineJoin = "round";
-        context.lineCap = "round";
-
-        let pixelsPerUnit = fullScale * verticalGain;
-        let frameMaxValue = 0.01;
-        for (let index = 0; index < frame.length; index++) {
-          const absolute = Math.abs(frame[index]);
-          if (absolute > frameMaxValue) frameMaxValue = absolute;
-        }
-
-        if (autoScale) {
-          // Explicit user-enabled auto-scale only: smooth the peak so the trace
-          // does not jump between frames.
-          const alpha = 0.15;
-          const previousMax = smoothedMaxValueReference.current;
-          const newMax = Math.max(frameMaxValue, previousMax * 0.95);
-          smoothedMaxValueReference.current = previousMax * (1 - alpha) + newMax * alpha;
-
-          pixelsPerUnit = (fullScale * verticalGain) / smoothedMaxValueReference.current;
-        } else {
-          // No hidden gain: draw the signal exactly at its real amplitude.
-          pixelsPerUnit = fullScale * verticalGain;
-        }
-
-        const sign = invert ? -1 : 1;
-        for (let index = 0; index < frame.length; index++) {
-          const x = (index / (frame.length - 1)) * width;
-          const y = centerY - sign * frame[index] * pixelsPerUnit;
-
-          if (index === 0) {
-            context.moveTo(x, y);
-          } else {
-            context.lineTo(x, y);
-          }
-        }
-
-        context.stroke();
-        context.restore();
+        bundle.scope.draw({
+          samples: frame,
+          pixelsPerUnit: pixelsPerUnit * dpr,
+          invert: invertOn,
+          color: traceColor,
+          glow: glowOn ? 1 : 0,
+          lineWidth: 2 * dpr,
+        });
       }
 
       animationFrameId = requestAnimationFrame(draw);
@@ -413,9 +399,13 @@ export function ScopeCanvas({
     draw();
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      bundle.scope.dispose();
+      bundle.spectrum.dispose();
+      bundle.spectrogram.dispose();
+      bundle.glyph.dispose();
+      bundle.overlay.dispose();
+      glCtx.dispose();
     };
   }, [effectiveCanvasReference]);
 
@@ -454,7 +444,7 @@ export function ScopeCanvas({
       <canvas ref={effectiveCanvasReference} className="absolute inset-0 w-full h-full" />
 
       {}
-      {triggerEnabled && scopeView !== "spectrum" && (
+      {triggerEnabled && scopeView !== "spectrum" && scopeView !== "spectrogram" && (
         <div
           className="absolute inset-0"
           style={{ cursor: isDragging ? "grabbing" : "ns-resize", touchAction: "none" }}
@@ -488,4 +478,30 @@ export function ScopeCanvas({
       )}
     </div>
   );
+}
+
+/**
+ * Draw frequency-axis labels under the spectrum using the WebGL glyph renderer
+ * (keeps the spectrum view 100% on the GPU path; the old Canvas2D used
+ * fillText). Mirrors the old labels (0, 1/4, 1/2, 3/4, max of the displayed
+ * range, formatted with a "k" suffix above 1 kHz).
+ */
+function drawSpectrumAxisLabels(
+  glyph: GlyphRenderer,
+  spectrum: Spectrum,
+  cssWidth: number,
+  physH: number,
+  dpr: number,
+): void {
+  const maxFrequency = Math.min(spectrum.sampleRate / 2, 20_000);
+  const labelColor: [number, number, number, number] = [1, 1, 1, 0.5];
+  for (let step = 0; step <= 4; step++) {
+    const ratio = step / 4;
+    const frequency = ratio * maxFrequency;
+    const label =
+      frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
+    const x = Math.min(cssWidth - 22, ratio * cssWidth + 2);
+    const y = (physH / dpr) - 5 - 10; // 10px font, 5px margin from bottom
+    glyph.drawText(label, x, y, 10 * dpr, labelColor);
+  }
 }
