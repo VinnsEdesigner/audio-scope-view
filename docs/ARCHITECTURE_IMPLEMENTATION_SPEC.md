@@ -199,7 +199,7 @@ Migration source mapping (one C++ source per Rust/TS file — no second copy rem
 - `linux/alsa_binding.cpp` — ALSA (`snd_pcm_*`). Deps (build): `libasound2-dev`, `pkg-config`.
 - `linux/pulse_binding.cpp` — PulseAudio simple API; reads `auto_null.monitor` for headless. Deps: `libpulse-dev`.
 - `windows/wasapi_binding.cpp` — WASAPI capture (`IMMDeviceEnumerator`, `IAudioCaptureClient`). Deps: Windows SDK only.
-- `android/jni_bridge.cpp` — `extern "C"` JNI exports for `DspModule` (create/process/measurements/destroy) + Oboe callbacks. Deps: Oboe (vendor into `sdk/bindings/android/third_party/oboe`), NDK r25+.
+- `android/jni_bridge.cpp` — `extern "C"` JNI exports for `DspModule` (create/process/measurements/destroy) + Oboe callbacks. Deps: Oboe (fetched on demand at CMake configure via `FetchContent`, pinned to 1.9.0 in `sdk/bindings/android/CMakeLists.txt`), NDK r25+.
 - `android/oboe_capture.cpp` — `oboe::AudioStreamBuilder` input stream, 1 ch f32, processing disabled.
 - `ffi/rust_cxx_bridge.h` — header included by the `cxx`-generated `rust/src/infrastructure/dsp_ffi.rs`.
 
@@ -437,7 +437,7 @@ step 4 + 5 unlock 6–7.
 
 - **C++:** CMake ≥ 3.21; GCC 11+ or Clang 13+ (Linux), MSVC 2022 (Windows), NDK r25+ (Android).
 - **Emscripten:** EMSDK 3.1.40+; CI step: `git clone https://github.com/emscripten-core/emsdk && emsdk install latest && emsdk activate latest && source emsdk_env.sh`.
-- **Android:** Android SDK + NDK r25+, Oboe (vendor into `sdk/bindings/android/third_party/oboe` or Gradle dep `com.google.oboe:oboe:1.8.0`).
+- **Android:** Android SDK + NDK r25+, Oboe (fetched on demand at CMake configure via `FetchContent` pinned to 1.9.0 — no vendored tree, no Gradle dep).
 - **Rust:** `nightly-2026-07-20` (unchanged), plus `cxx` + `cc` crates (no toolchain change).
 - **ESP-IDF:** v5.x (only for firmware; separate Docker image / not in the main CI).
 - **Linux audio build deps:** `libasound2-dev`, `pkg-config`, `libpulse-dev` (already in Dockerfile backend-builder).

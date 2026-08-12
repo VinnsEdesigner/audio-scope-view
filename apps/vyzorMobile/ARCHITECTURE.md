@@ -71,11 +71,10 @@ binds to (WASM, Rust server, and now Android). The mobile native stack:
 
 ```
 sdk/bindings/android/
-├── CMakeLists.txt          # builds libaudioscope_dsp.so
+├── CMakeLists.txt          # builds libaudioscope_dsp.so (FetchContent pulls Oboe 1.9.0)
 ├── exports.version         # linker script (only JNI symbols exported)
 ├── jni_bridge.cpp          # extern "C" JNI exports → C ABI
-├── oboe_capture.cpp        # AudioBinding impl (Oboe AAudio/OpenSL)
-└── third_party/oboe/       # vendored Oboe 1.9.0
+└── oboe_capture.cpp        # AudioBinding impl (Oboe AAudio/OpenSL)
 ```
 
 `libaudioscope_dsp.so` = DSP core + common + C ABI + JNI bridge + Oboe

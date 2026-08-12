@@ -58,8 +58,24 @@ target_include_directories(audioscope_ffi PUBLIC
     ${AUDIOSCOPE_SDK_ROOT}/bindings/ffi)
 target_link_libraries(audioscope_ffi PUBLIC audioscope_dsp_core audioscope_common)
 
-# --- Oboe (vendored) ---
-add_subdirectory(third_party/oboe EXCLUDE_FROM_ALL)
+# --- Oboe (fetched on demand, pinned to 1.9.0) ---
+# Pulled shallow from github.com/google/oboe at configure time, mirroring the
+# on-demand emsdk fetch (SETUP_GUIDE.md Step 3). Avoids vendoring ~1000 files
+# of oboe sample/test app source that this binding never links. The Android
+# target already requires the NDK + Gradle network access, so configure-time
+# fetch adds no new offline dependency for the offline-verifiable native path
+# (sdk/build/linux ctest) which never touches oboe.
+include(FetchContent)
+FetchContent_Declare(
+    oboe
+    GIT_REPOSITORY https://github.com/google/oboe.git
+    GIT_TAG        1.9.0
+    GIT_SHALLOW    ON
+)
+# FetchContent_MakeAvailable runs oboe's root CMakeLists only, which builds the
+# oboe library target — the apps/ and tests/ subdirs are never entered, so
+# oboe's sample/test-app sources (the ~1000 files we don't link) are skipped.
+FetchContent_MakeAvailable(oboe)
 
 # --- JNI bridge + Oboe capture binding + device enumeration → the shared lib the app packages ---
 add_library(audioscope_dsp SHARED
@@ -75,7 +91,7 @@ target_include_directories(audioscope_dsp PRIVATE
     ${AUDIOSCOPE_SDK_ROOT}/bindings/ffi
     ${AUDIOSCOPE_SDK_ROOT}/common/include
     ${AUDIOSCOPE_SDK_ROOT}/dsp/include
-    third_party/oboe/include)
+    ${oboe_SOURCE_DIR}/include)
 
 target_link_libraries(audioscope_dsp
     audioscope_ffi
