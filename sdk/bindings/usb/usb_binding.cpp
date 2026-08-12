@@ -1,24 +1,11 @@
-// usb_binding.cpp — host AudioBinding over libusb (the "bare" ESP32 path).
-//
-// Implements audioscope::bindings::AudioBinding by talking the custom
-// audioscope USB vendor-class protocol directly via libusb — it does NOT go
-// through ALSA/WASAPI/CoreAudio. The ESP32 presents a custom USB device
-// (VID 0x1209 / PID 0xA500); this binding opens it, claims the interface,
+
+// ESP32-(VID 0x1209 / PID 0xA500); this binding opens it, claims the interface,
 // sends control packets (START/STOP/SET_RATE/...), and reads sample frames
 // off the bulk-IN endpoint on a background thread into a FloatRing.
 //
 // Samples arrive in the device's native format (S16/S24/S32/F32) and are
 // normalized to float32 via the shared audioscope::common::convert_samples_to_f32,
 // so the DSP core sees the same canonical format from every binding.
-//
-// This is the host analog of:
-//   - sdk/bindings/linux/alsa_binding.cpp   (Linux, ALSA)
-//   - sdk/bindings/linux/pulse_binding.cpp   (Linux, PulseAudio)
-//   - sdk/bindings/windows/wasapi_binding.cpp (Windows, WASAPI)
-//   - sdk/bindings/android/oboe_capture.cpp (Android, Oboe)
-// Same AudioBinding interface, same DSP core — the transport is the only
-// difference. Where the others bind to an OS audio API, this one binds to
-// the USB device directly.
 
 #include "usb_binding.h"
 #include "usb_protocol.h"
@@ -132,7 +119,7 @@ public:
         }
         libusb_free_device_list(list, 1);
 
-        // No device present is a normal headless state — return empty.
+        // No device present if state is headless — return empty.
         return out;
     }
 
@@ -166,7 +153,7 @@ public:
         dev_->fmt = native_format(dev_->info.sample_format);
         dev_->actual_rate = sample_rate > 0 ? sample_rate : static_cast<int>(dev_->info.max_sample_rate);
         dev_->channels = dev_->info.channels ? dev_->info.channels : 1;
-        // Query the real ADC bandwidth so the host presents truthful scope ranges.
+        // Query the  ADC bandwidth so the host presents truthful scope ranges.
         get_bandwidth(h, dev_->bw);
         cap_.adc_max_rate_hz = dev_->bw.adc_max_rate;
         cap_.analog_bw_hz = dev_->bw.analog_bw_hz;
