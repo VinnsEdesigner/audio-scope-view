@@ -2,14 +2,7 @@
 //
 // The C++ DSP core compiled to WebAssembly (packages/dsp-wasm) is expensive to
 // instantiate (fetch + compile + init), so it must be loaded exactly once and
-// shared by every consumer: the scope renderer (FFT/spectrum/trigger), the live
-// capture analyzer (RMS/peak/frequency), the mock synthesizer (generators), and
-// the measurements dialog.
-//
-// `getDsp()` returns the loaded instance synchronously (or null if still
-// loading / failed). `ensureDsp()` kicks off the load and awaits it. Consumers
-// that run on the rAF hot path read getDsp() and fall back to the TS helpers
-// when null, so the UI never blocks on module load.
+
 
 import { AudioScopeDsp } from "@audio-scope-view/dsp-wasm";
 
@@ -42,10 +35,6 @@ export function ensureDsp(): Promise<AudioScopeDsp | null> {
   return loadPromise;
 }
 
-/**
- * Synchronously return the loaded DSP instance, or null if not yet loaded /
- * unavailable. Hot-path callers use this and degrade gracefully when null.
- */
 export function getDsp(): AudioScopeDsp | null {
   return dsp;
 }
