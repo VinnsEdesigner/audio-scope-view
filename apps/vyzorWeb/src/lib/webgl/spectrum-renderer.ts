@@ -1,15 +1,4 @@
-// spectrum-renderer.ts — WebGL2 instanced spectrum bar renderer.
-//
-// Replaces the Canvas2D `drawSpectrum` fillRect loop. One unit quad (4 verts,
-// triangle-strip) is instanced once per spectrum bin: instance attributes carry
-// the bin's x position + height, the vertex shader places the quad, the
-// fragment shader applies the analyser palette. A single drawArraysInstanced
-// per frame.
-//
-// dB magnitudes are normalized against SPECTRUM_FLOOR_DB on the CPU (one pass)
-// and uploaded via bufferSubData. The frequency-axis labels stay as a DOM
-// overlay (cheap, crisp text) rather than glyph quads — they don't change per
-// frame and don't need the GPU path.
+
 
 import { GLContext } from "./gl-context";
 import { SHADERS } from "./shaders";
