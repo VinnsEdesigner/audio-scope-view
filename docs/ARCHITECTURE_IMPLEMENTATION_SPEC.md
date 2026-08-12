@@ -427,6 +427,12 @@ Current state: config-only (no `app/`). Target: bare/prebuilt RN 0.76+ New Archi
    Linux/Windows/Android, then confirm the existing audio binding picks it up.
 8. **Server-optional local mode** — local persistence (SQLite for native, IndexedDB for web)
    + sync; wire into the UI mode switch. Last, since it depends on all capture paths working.
+   - **Mobile (implemented):** the vyzorMobile app persists sessions to an on-device
+     Android Room SQLite store (`com.audioscope.data`) when `persistenceMode === "local"`,
+     and syncs dirty rows to the deployed server via `useLocalSync` (Apollo mutations).
+     See `apps/vyzorMobile/ARCHITECTURE.md` → "Server-optional local mode". Settings →
+     Storage toggles server/local. No IndexedDB on the web path (web already persists via
+     the Rust server's Turso/local SQLite — Step 8 is mobile-only here).
 
 Each step compiles and tests independently. Steps 1–2 unlock the rest; step 3 unlocks 4;
 step 4 + 5 unlock 6–7.

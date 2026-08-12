@@ -183,6 +183,54 @@ DOMAIN/DATA LAYER (packages/api-client) — no dependencies on other layers
 | Audio Capture | Oboe (AAudio/OpenSL ES) via JNI — **not expo-av** |
 | DSP | C++ core (`sdk/dsp`) via C ABI + JNI (`DspModule`) |
 | Native Build | NDK CMake (`externalNativeBuild`) → `libaudioscope_dsp.so` |
+| Local Persistence | Android Room (SQLite) — `com.audioscope.data` |
+
+---
+
+## Server-optional local mode (impl spec §4 Step 8)
+
+When `persistenceMode === "local"` (Settings → Storage), sessions are written
+to the **on-device Android Room SQLite store** first, then synced to the
+deployed server when connectivity is available. This is the mobile analog of
+the server's own SQLite/Turso store — no IndexedDB, no remote DB round-trip
+on the capture path.
+
+```
+apps/vyzorMobile/android/app/src/main/java/com/audioscope/data/
+├── db/SessionEntity.kt        # Room entity mirroring the server `sessions` schema
+│   │                           (rust/migrations 005/009/010/013/014) + serverDirty
+├── db/SessionDao.kt           # suspend CRUD (upsert/list/dirty/markClean/delete)
+├── db/AudioScopeDatabase.kt   # Room DB singleton (framework SQLite, no native build)
+├── LocalSessionRepository.kt  # entity↔DTO mapping; LocalStore singleton accessor
+├── SessionDto.kt              # JSON shape returned to JS (mirrors api-client Session)
+├── LocalStoreModule.kt        # NativeModule: @ReactMethod async → JSON strings
+└── LocalStorePackage.kt       # registered in MainApplication alongside DspPackage
+```
+
+The JS side:
+
+```
+apps/vyzorMobile/app/
+├── lib/local-store.ts            # typed wrapper over AudioScopeLocalStore
+├── store/local-session-store.ts  # zustand: sessions[] + syncStatus
+├── hooks/use-local-sessions.ts   # CRUD facade (same shape as use-sessions.ts)
+└── hooks/use-local-sync.ts       # drains serverDirty rows → Apollo mutations,
+                                   marks clean; mounted in _layout (LocalSyncGate)
+```
+
+**Data flow:** JS `create()` → `LocalStoreModule.insertSession` →
+`LocalSessionRepository.insert` → Room `upsert` (returns immediately, no
+network). `useLocalSync` (interval + on-mount) reads `dirty()` rows, pushes
+each via `CREATE_NAMED_SESSION`/`UPDATE_SESSION` to the deployed server, then
+`markClean(id, serverId)`. Failed pushes stay dirty and retry on the next
+tick. The dashboard (`index.tsx`) renders the local list + sync status when
+in local mode; otherwise the server-backed hooks are used.
+
+**Build wiring:** `android/build.gradle` adds the KSP Gradle plugin;
+`android/app/build.gradle` applies `com.google.devtools.ksp` and adds
+`androidx.room:room-runtime/ktx:2.6.1` (+ `room-compiler` via KSP) and
+`kotlinx-coroutines-android:1.8.1`. KSP is pinned to `1.9.24-1.0.20` to match
+`kotlinVersion` 1.9.24.
 
 ---
 

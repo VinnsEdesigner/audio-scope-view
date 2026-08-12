@@ -14,6 +14,8 @@ import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 
 import com.audioscope.dsp.DspPackage
+import com.audioscope.data.LocalStore
+import com.audioscope.data.LocalStorePackage
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
@@ -27,6 +29,8 @@ class MainApplication : Application(), ReactApplication {
             val packages = PackageList(this).packages
             // JSI DSP module (C++ core via JNI in libaudioscope_dsp.so).
             packages.add(DspPackage())
+            // On-device Room SQLite store for server-optional local mode.
+            packages.add(LocalStorePackage())
             return packages
           }
 
@@ -44,6 +48,9 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    // Open the on-device Room store eagerly so the first JS call to
+    // AudioScopeLocalStore doesn't pay the DB-open latency on the JS thread.
+    LocalStore.init(this)
     SoLoader.init(this, OpenSourceMergedSoMapping)
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
       // If you opted-in for the New Architecture, we load the native entry point for this app.
