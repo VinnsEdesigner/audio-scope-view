@@ -67,8 +67,8 @@ export function WaveformGeneratorDialog({
                   onClick={() => setKind(opt.value)}
                   className={`py-2 rounded-md text-[12px] font-medium transition-colors ${
                     settings.kind === opt.value
-                      ? "bg-foreground text-bg-base"
-                      : "bg-bg-base text-foreground/80 hover:bg-bg-subtle"
+                      ? "bg-bg-active text-foreground"
+                      : "bg-bg-elevated text-foreground/80 hover:bg-bg-hover"
                   }`}
                 >
                   {opt.label}
@@ -95,14 +95,14 @@ export function WaveformGeneratorDialog({
                 step={1}
                 value={settings.frequency}
                 onChange={(e) => setFrequency(Number(e.target.value))}
-                className="w-full accent-foreground"
+                className="w-full accent-accent"
               />
               <div className="flex gap-1.5">
                 {PRESET_FREQUENCIES.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFrequency(f)}
-                    className="flex-1 py-1 rounded-md text-[11px] bg-bg-base text-text-secondary hover:bg-bg-subtle"
+                    className="flex-1 py-1 rounded-md text-[11px] bg-bg-elevated text-text-secondary hover:bg-bg-hover"
                   >
                     {f >= 1000 ? `${f / 1000}k` : f}
                   </button>
@@ -122,8 +122,8 @@ export function WaveformGeneratorDialog({
                     onClick={() => setNoiseType(opt.value)}
                     className={`py-2 rounded-md text-[12px] font-medium transition-colors ${
                       settings.noiseType === opt.value
-                        ? "bg-foreground text-bg-base"
-                        : "bg-bg-base text-foreground/80 hover:bg-bg-subtle"
+                        ? "bg-bg-active text-foreground"
+                        : "bg-bg-elevated text-foreground/80 hover:bg-bg-hover"
                     }`}
                   >
                     {opt.label}
@@ -148,7 +148,7 @@ export function WaveformGeneratorDialog({
               step={0.01}
               value={settings.amplitude}
               onChange={(e) => setAmplitude(Number(e.target.value))}
-              className="w-full accent-foreground"
+              className="w-full accent-accent"
             />
           </div>
 
