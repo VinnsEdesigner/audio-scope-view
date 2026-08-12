@@ -27,7 +27,7 @@ is not picked up by arbitrary DAWs/recorders.
 # Linux (root not needed once udev rules are in place; see below)
 sudo apt-get install libusb-1.0-0-dev pkg-config
 
-# udev rule so non-root users can open the device:
+# udev rule so that if you're a non-root user you can open the device:
 echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="a500", MODE="0666"' \
   | sudo tee /etc/udev/rules.d/99-audioscope.rules && sudo udevadm control --reload-rules
 ```
