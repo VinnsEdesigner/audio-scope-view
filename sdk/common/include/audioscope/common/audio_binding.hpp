@@ -35,8 +35,7 @@ public:
     // --- scope + signal-generator extensions ---------------------------
     // Default implementations return "unsupported" so the legacy audio
     // bindings (ALSA/WASAPI/Oboe/PulseAudio) stay source-compatible; only
-    // the bare-USB ESP32 binding overrides them. This is what turns the
-    // AudioBinding into a real oscilloscope + generator interface.
+    // the bare-USB ESP32 binding overrides them. .
 
     /// Real analog/digital limits of the input path. Empty std::vector ⇒ the
     /// binding has no scope front-end (it's a plain audio device).
