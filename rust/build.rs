@@ -17,6 +17,21 @@
 use std::path::PathBuf;
 
 fn main() {
+    let target = std::env::var("TARGET").unwrap_or_default();
+
+    // On Android the C++ DSP core is compiled by Gradle's externalNativeBuild
+    // (CMake) into libaudioscope_dsp.so, which the app loads alongside this
+    // Rust .so in the same process. The C ABI symbols dsp_ffi.rs declares are
+    // left undefined here and resolved by the dynamic linker at dlopen time
+    // (shared libraries allow undefined symbols). So we skip the cc-based C++
+    // cross-compile entirely on Android — it would need the NDK toolchain
+    // wired into the cc crate and would duplicate what CMake already builds.
+    if target.contains("android") {
+        println!("cargo:rustc-link-arg-cdylib=-landroid");
+        println!("cargo:rustc-link-arg-cdylib=-llog");
+        return;
+    }
+
     let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let sdk_dir = manifest_dir.join("..").join("sdk");
 

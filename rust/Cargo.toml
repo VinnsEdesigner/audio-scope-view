@@ -8,6 +8,10 @@ description = "Audio Scope View Server - Web-based oscilloscope with GraphQL API
 
 [lib]
 path = "src/lib.rs"
+# On Android the crate is cross-compiled to a shared library
+# (libaudioscope_server.so) the app links in-process. On desktop/server the
+# crate stays the default rlib that the `audio-scope-view` bin links.
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "audio-scope-view"
@@ -21,7 +25,13 @@ default = []
 # carry no Android storage code. Selected at runtime via the
 # `ASV_STORAGE_BACKEND=android` env var; the DB path is taken from
 # `ASV_ANDROID_DB_PATH` (default: the app's internal storage).
-android = []
+android = ["dep:jni"]
+
+[target.'cfg(target_os = "android")'.dependencies]
+# JNI bindings for the in-process server entry points the Kotlin app calls
+# (android_jni.rs). Optional + gated by the `android` feature so a host build
+# (default features) never pulls the jni crate.
+jni = { version = "0.21", default-features = false, optional = true }
 
 [dependencies]
 # Web framework

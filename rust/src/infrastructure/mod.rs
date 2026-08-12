@@ -29,6 +29,13 @@ pub mod android;
 #[cfg(feature = "android")]
 pub use android::{build_app_state, connect as connect_android, database_path as android_database_path, is_selected as is_android_selected};
 
+// JNI entry points the Kotlin app calls into libaudioscope_server.so
+// (nativeStartServer / nativeStopServer / nativeStartCapture / version).
+// Android-target + android-feature gated: jni crate only resolves when both
+// hold, so the cfg below mirrors that.
+#[cfg(all(feature = "android", target_os = "android"))]
+pub mod android_jni;
+
 pub use audio_capture_real::RealAudioCapture;
 pub use audio_stream_manager::{
     AudioBackendType, AudioStreamEvent, AudioStreamManager, StreamConfig, StreamStats,
