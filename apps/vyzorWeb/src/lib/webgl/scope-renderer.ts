@@ -1,14 +1,4 @@
-// scope-renderer.ts — WebGL2 instanced line renderer for the scope trace.
-//
-// Replaces the per-frame `ctx.lineTo` loop in scope-canvas.tsx. Samples (a
-// Float32Array) are mapped to clip-space vertices on the CPU (one pass) and
-// uploaded via bufferSubData into a pre-allocated VBO, then drawn with a
-// single drawArrays(LINE_STRIP). No per-frame allocation: the VBO is sized
-// once for the max sample count and reused.
-//
-// Hot path is allocation-free: the only per-frame work is the CPU x/y mapping
-// into a scratch Float32Array and one bufferSubData. React never carries sample
-// buffers in state (architecture principle: no GC on the sample-to-pixel path).
+
 
 import { GLContext } from "./gl-context";
 import { SHADERS } from "./shaders";
