@@ -54,6 +54,14 @@ struct AudioDevice {
     bool is_default = false;
 };
 
+// --- oscilloscope-side enums (shared by the bare-USB binding + DSP core) ---
+// The legacy audio bindings never reference these; they exist so the
+// AudioBinding interface can express scope + generator control uniformly.
+
+enum class TriggerEdge : int { Rising = 0, Falling = 1, Both = 2 };
+enum class Coupling : int { DC = 0, AC = 1, GND = 2 };
+enum class Waveform : int { Sine = 0, Square = 1, Triangle = 2, Sawtooth = 3, DC = 4 };
+
 /// Byte width of one sample in `format` (2 for S16, 4 for S32/F32).
 std::size_t sample_format_size(SampleFormat format);
 

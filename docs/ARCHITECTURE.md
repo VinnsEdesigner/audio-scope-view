@@ -492,26 +492,41 @@ Oboe (Google), NDK r25+, `CMakeLists.txt` integrated via `android/app/build.grad
 > android`, already scripted) and stay there. The New Architecture (Fabric/TurboModules)
 > is required for the JSI bridge.
 
-### ESP32 / Raspberry Pi over USB — USB Audio Class strategy
+### ESP32 / Raspberry Pi over USB — bare-USB vendor-class strategy
 
-The ESP32 is the **transport**, not the analog front-end. The "just plug it in and
-initialize" goal is achieved by making it a **USB Audio Class (UAC) 1.0 device**:
+> **Design decision (overrides the earlier UAC plan):** the ESP32 presents a
+> **custom vendor-class USB device**, NOT a USB Audio Class device. The host
+> (`sdk/bindings/usb/usb_binding.cpp`) talks to the processor **directly via
+> libusb**, bypassing the OS audio stack (ALSA / WASAPI / CoreAudio / Oboe).
+> This gives direct processor communication, a real control surface (gain /
+> sample rate / channels) that UAC does not expose, lower latency, and no
+> OS-level audio processing. Tradeoff: the device is not plug-and-play with
+> arbitrary DAWs/recorders — it needs the audioscope host (or any libusb
+> client). Wire protocol: `docs/ESP32_USB_PROTOCOL.md`; authoritative header:
+> `sdk/bindings/usb/usb_protocol.h` (shared by firmware + host + tests).
 
-- **Firmware (`sdk/firmware/esp32/`):** ESP32-S3 (native USB) + an external I2S codec
-  (e.g. UDA1334A / PCM1802 / WM8731 — the on-chip ADC is too low-rate/noisy for scope
-  use). Firmware implements TinyUSB UAC descriptors so the device enumerates as a
-  standard microphone/line-in on Linux, Windows, **and** Android (USB OTG). No host-side
-  driver code is written; the platform `AudioBinding` sees it as a regular input device.
-- **Why UAC over a custom libusb protocol:** UAC is plug-and-play on every OS. A custom
-  bulk-USB protocol would need a per-platform host driver and loses the "just works"
-  property. Only fall back to libusb if UAC latency/format constraints are hit (rare for
-  scope-rate audio).
-- **Raspberry Pi** is normally a **host**, not a peripheral — it runs the native Linux
-  app directly. Pi Zero can be put in USB-gadget UAC mode if peripheral behavior is needed,
-  but that's the exception.
-- **Analog caveat:** the ESP32/MCU has no real analog conditioning. Accurate scope
-  readings require an external input stage (protection, scaling, anti-alias) before the
-  codec. The "phone audio limitations" table below applies doubly to a bare MCU ADC.
+- **Firmware (`sdk/firmware/esp32/`):** ESP32-S3 (native USB) + an external
+  I2S codec (PCM1802 default; UDA1334A / WM8731 at a clean swap-point — the
+  on-chip ADC is too low-rate/noisy for scope use). Firmware implements
+  TinyUSB **vendor-class** descriptors (bulk IN 0x81 + bulk OUT 0x01 + EP0
+  vendor control) and the audioscope control + stream tasks.
+- **Host (`sdk/bindings/usb/`):** a new `AudioBinding` (`audioscope_bindings_usb`)
+  that opens the device by VID 0x1209 / PID 0xA500 over libusb, sends control
+  packets, and reads sample frames off the bulk-IN endpoint into a `FloatRing`
+  (normalized to float32 via the shared `convert_samples_to_f32`). It is
+  cross-platform (libusb works on Linux/Win/macOS) and gated on libusb
+  presence — not on the host OS like the ALSA/WASAPI bindings.
+- **Shared contract:** `sdk/bindings/usb/usb_protocol.h` is the single source
+  of truth for the wire format. Both firmware and host include it, and
+  `test_usb_binding.cpp` asserts struct sizes (16/16/64/4) + the CRC-16
+  vector so a drift is a compile/test failure.
+- **Raspberry Pi** is normally a **host**, not a peripheral — it runs the
+  native Linux app directly. Pi Zero can be put in USB-gadget mode if
+  peripheral behavior is needed, but that's the exception.
+- **Analog caveat:** the ESP32/MCU has no real analog conditioning. Accurate
+  scope readings require an external input stage (protection, scaling,
+  anti-alias) before the codec. The "phone audio limitations" table below
+  applies doubly to a bare MCU ADC.
 
 ---
 
@@ -662,9 +677,10 @@ audio-scope-view/
 3. **Platform bindings** — pending. ALSA/WASAPI/Oboe; cpal stays as server-side convenience only.
 4. **WASM bridge + `packages/dsp-wasm`** — pending. Replaces `scope-dsp.ts`.
 5. **WebGL renderer** — pending. Replaces `scope-canvas.tsx` Canvas2D path.
-6. **Mobile eject + JSI** — pending. vyzorMobile is a config-only shell today.
-7. **Server DSP removal + FFI** — pending. `schema_dsp.rs` resolvers → C++ via `cxx`.
-8. **ESP32 firmware (UAC)** — pending. Separate build, not in the CI critical path.
+6. **Mobile eject + JSI** — DONE & verified (Android). `apps/vyzorMobile/` ejected to bare RN with a JSI C++ TurboModule (`DspModule`); Oboe capture + C++ device enumeration wired; Gradle `assembleDebug` green, APK packages `libaudioscope_dsp.so` for all 4 ABIs. The Android `AudioBinding` (`oboe_capture.cpp`) is the Android member of the §A.4 set.
+7. **Native bindings** — DONE (Linux/Windows). `sdk/bindings/linux/{alsa_binding,pulse_binding}.cpp` + `sdk/bindings/windows/wasapi_binding.cpp` implement `AudioBinding` for desktop clients. `ctest --preset linux-bindings` 65/65 (host syntax-only check for WASAPI — no Windows host in CI). The Rust server's `cpal` capture stays for the server-hosted `capture` mutation.
+8. **Server DSP removal + FFI** — DONE. `schema_dsp.rs` resolvers → C++ via the `cc`/FFI bridge; Rust DSP files deleted. `cargo test` proves parity.
+9. **ESP32 firmware (bare-USB)** — DONE. Custom vendor-class firmware (`sdk/firmware/esp32`) + libusb host `AudioBinding` (`sdk/bindings/usb`) + shared wire protocol (`usb_protocol.h`). `ctest --preset linux-bindings` 75/75 (host real build + test; firmware `gcc -fsyntax-only` clean with stub ESP-IDF headers — authoritative build is `idf.py build` on hardware).
 
 ---
 

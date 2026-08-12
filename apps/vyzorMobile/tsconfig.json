@@ -3,12 +3,17 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
     "paths": {
-      "@/*": ["src/*"],
-      "@vyzorix/ui": ["../../packages/ui/src"],
-      "@vyzorix/api-client": ["../../packages/api-client/src"]
+      "react": ["./node_modules/@types/react"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "@/*": ["./app/*"],
+      "@audio-scope-view/api-client": ["../../packages/api-client/src"],
+      "@audio-scope-view/tailwind": ["../../packages/tailwind/src"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "android"]
 }

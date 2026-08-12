@@ -208,10 +208,38 @@ Migration source mapping (one C++ source per Rust/TS file — no second copy rem
 - `CMakeLists.txt` — `emcc` flags, SIMD, MODULARIZE, EXPORT_ES6, output `audioscope.{js,wasm}`.
 - `build.sh` — `emcmake cmake -B build-wasm ... && emmake cmake --build build-wasm`; copies outputs to `packages/dsp-wasm/dist/`.
 
-#### A.6 `sdk/firmware/esp32/` — UAC firmware (separate build, not in CI critical path)
-- `main.c` — TinyUSB UAC 1.0 descriptors + I2S codec read loop (ESP-IDF). Target ESP32-S3 + external I2S codec (UDA1334A/PCM1802/WM8731). Deps: ESP-IDF v5.x, TinyUSB.
-- `CMakeLists.txt` — ESP-IDF project.
-- `README.md` — wiring, codec choice, analog front-end notes.
+#### A.6 `sdk/firmware/esp32/` — ESP32 firmware (bare-USB vendor class, NOT UAC)
+
+Design decision: the ESP32 presents a **custom vendor-class USB device**, not a
+UAC device. The host talks to it directly via libusb (`sdk/bindings/usb/`),
+bypassing the OS audio stack. See `docs/ESP32_USB_PROTOCOL.md` for the wire
+protocol. Separate build (`idf.py`), not in the host CI critical path; firmware
+sources are syntax-checked on the host with stub ESP-IDF headers.
+
+- `CMakeLists.txt` — ESP-IDF project (`include($ENV{IDF_PATH}/.../project.cmake OPTIONAL)` so it browses without IDF).
+- `partitions.csv` — flash partition table.
+- `sdkconfig.defaults` — USB OTG + TinyUSB vendor class + I2S + PSRAM Kconfig defaults.
+- `idf_component.yml` — component manifest.
+- `main/main.c` — `app_main`: init USB → codec → ring → control/stream tasks.
+- `main/usb_descriptors.c` — TinyUSB device + config descriptors (vendor class, bulk IN 0x81 + OUT 0x01).
+- `main/usb_device.c/.h` — TinyUSB vendor-class callbacks (EP0 control + bulk IN/OUT events).
+- `main/codec.c/.h` — I2S codec driver (PCM1802 default; UDA1334A/WM8731 swap-point).
+- `main/ring_buffer.c/.h` — FreeRTOS ring between DMA-read and USB bulk-IN tasks.
+- `main/stream_task.c/.h` — codec → ring → bulk-IN pump.
+- `main/control_task.c/.h` — host command dispatcher (start/stop/set_rate/...).
+- `main/board_config.h` — pin map + USB endpoint config.
+- `README.md` — wiring, codec choice, analog front-end, build/flash.
+
+#### A.6b `sdk/bindings/usb/` — host `AudioBinding` over libusb (the bare-ESP32 path)
+
+- `usb_protocol.h` / `usb_protocol.c` — shared wire protocol + CRC-16 (single source for firmware + host + tests).
+- `usb_binding.h` / `usb_binding.cpp` — `UsbCapture : AudioBinding` (libusb enumerate / control / bulk-IN → float32).
+- `CMakeLists.txt` — `audioscope_bindings_usb` static lib, gated on `pkg-config libusb-1.0` (cross-platform).
+- `README.md` — host libusb setup, VID/PID, udev rule.
+
+#### A.6c `docs/ESP32_USB_PROTOCOL.md` — authoritative wire-protocol spec.
+
+#### A.6d `sdk/tests/test_usb_binding.cpp` — protocol ABI (sizeof/offsetof) + CRC vector + no-hardware binding smoke.
 
 #### A.7 `sdk/tests/` — GoogleTest
 - `test_fft.cpp`, `test_measurements.cpp`, `test_spectrogram.cpp`, `test_corrections.cpp`,
