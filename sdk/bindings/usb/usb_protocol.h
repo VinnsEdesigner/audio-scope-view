@@ -1,13 +1,9 @@
 // usb_protocol.h — the audioscope bare-USB wire protocol (shared contract).
-//
-// This is the SINGLE source of truth for the on-wire format between the
-// ESP32 firmware (sdk/firmware/esp32) and the host AudioBinding
+
 // (sdk/bindings/usb/usb_binding.cpp). Both sides include this header so a
 // drift is a compile error. Keep it pure C99 (no C++/ESP-isms) so it
 // compiles under the ESP-IDF C toolchain AND the host g++/clang.
-//
-// Design: the ESP32 presents a CUSTOM vendor-class USB device (NOT UAC).
-// The host talks to it directly via libusb, bypassing the OS audio stack.
+//bypassing the OS audio stack.
 //   - Control channel: EP0 vendor requests + a bulk-OUT endpoint for
 //     host→device commands (START/STOP/SET_RATE/...).
 //   - Stream channel:   bulk-IN endpoint, device→host sample frames.
@@ -59,10 +55,10 @@ extern "C" {
 /* ------------------------------------------------------------------ */
 
 typedef enum {
-    AS_USB_FMT_F32 = 0,  // float32 normalized [-1,1] — canonical DSP format
-    AS_USB_FMT_S16 = 1,  // signed 16-bit PCM
-    AS_USB_FMT_S24 = 2,  // signed 24-bit PCM (left-justified in 32-bit word)
-    AS_USB_FMT_S32 = 3,  // signed 32-bit PCM
+    AS_USB_FMT_F32 = 0,  
+    AS_USB_FMT_S16 = 1,  
+    AS_USB_FMT_S24 = 2,  
+    AS_USB_FMT_S32 = 3,  
 } as_usb_sample_format;
 
 /* ------------------------------------------------------------------ */
@@ -84,7 +80,7 @@ typedef enum {
     AS_USB_CMD_SET_TIMEBASE  = 0x09, // set time per division (ns/div)
     AS_USB_CMD_SET_TRIGGER   = 0x0A, // edge/level/source trigger config
     AS_USB_CMD_SET_VSCALE    = 0x0B, // set volts per division (mV/div)
-    AS_USB_CMD_SET_COUPLING  = 0x0C, // AC/DC/GND input coupling
+    AS_USB_CMD_SET_COUPLING  = 0x0C, // AC/DC/
 
     // --- signal generator (PWM / DDS output path) ---
     AS_USB_CMD_GEN_START     = 0x10, // start the waveform generator
