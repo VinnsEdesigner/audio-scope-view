@@ -13,6 +13,16 @@ path = "src/lib.rs"
 name = "audio-scope-view"
 path = "src/main.rs"
 
+[features]
+default = []
+# Android on-device storage backend. Only enabled when cross-compiling the
+# crate for Android (the mobile app links the Rust server in-process). When
+# off, the android module is not compiled at all, so desktop/server builds
+# carry no Android storage code. Selected at runtime via the
+# `ASV_STORAGE_BACKEND=android` env var; the DB path is taken from
+# `ASV_ANDROID_DB_PATH` (default: the app's internal storage).
+android = []
+
 [dependencies]
 # Web framework
 axum = { version = "0.8", features = ["ws"] }

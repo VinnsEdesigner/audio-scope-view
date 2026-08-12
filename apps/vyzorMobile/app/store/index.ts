@@ -31,8 +31,4 @@ export { useScopeStore } from "./scope-store";
 export type { ScopeState } from "./scope-store";
 
 export { useSettingsStore, windowIndex } from "./settings-store";
-export type { SettingsState, WindowType, PersistenceMode } from "./settings-store";
-
-// Server-optional local mode: on-device Room SQLite session store (Android).
-export { useLocalSessionStore } from "./local-session-store";
-export type { LocalSessionState, SyncStatus } from "./local-session-store";
+export type { SettingsState, WindowType } from "./settings-store";

@@ -11,21 +11,8 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApolloProvider } from "@apollo/client";
 import { buildApolloClient, ensureDeviceId } from "./lib/apollo-client";
-import { useSettingsStore } from "./store/settings-store";
-import { useLocalSync } from "./hooks/use-local-sync";
 
 const queryClient = new QueryClient();
-
-/**
- * Mounts the local→server sync drain only when persistenceMode === "local".
- * Rendered inside ApolloProvider so the sync hook can issue mutations.
- * Renders nothing — it is a side-effect gate.
- */
-function LocalSyncGate() {
-  const persistenceMode = useSettingsStore((s) => s.persistenceMode);
-  useLocalSync(persistenceMode === "local");
-  return null;
-}
 
 export default function RootLayout() {
   const [client, setClient] = React.useState<ReturnType<typeof buildApolloClient> | undefined>();
@@ -54,7 +41,6 @@ export default function RootLayout() {
   return (
     <ApolloProvider client={client}>
       <QueryClientProvider client={queryClient}>
-        <LocalSyncGate />
         <SafeAreaProvider>
           <StatusBar style="light" />
           <Stack

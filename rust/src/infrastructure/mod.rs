@@ -21,6 +21,14 @@ pub mod repo_turso_user_preferences;
 pub mod repo_turso_waveform;
 pub mod turso_http_client;
 
+// Android on-device storage backend — compiled only when the `android` Cargo
+// feature is on (cross-compiling for the mobile app). Off by default, so
+// desktop/server builds carry no Android storage code.
+#[cfg(feature = "android")]
+pub mod android;
+#[cfg(feature = "android")]
+pub use android::{build_app_state, connect as connect_android, database_path as android_database_path, is_selected as is_android_selected};
+
 pub use audio_capture_real::RealAudioCapture;
 pub use audio_stream_manager::{
     AudioBackendType, AudioStreamEvent, AudioStreamManager, StreamConfig, StreamStats,

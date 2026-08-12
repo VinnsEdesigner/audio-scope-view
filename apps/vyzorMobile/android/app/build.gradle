@@ -1,6 +1,5 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
-apply plugin: "com.google.devtools.ksp"
 apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
@@ -194,13 +193,4 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-    // ---- Server-optional local mode: on-device Room SQLite store ----
-    // Room over the framework SQLite (no native build step). Mirrors the
-    // server's sessions schema; LocalStoreModule exposes it to JS.
-    def roomVersion = "2.6.1"
-    implementation("androidx.room:room-runtime:${roomVersion}")
-    implementation("androidx.room:room-ktx:${roomVersion}")
-    ksp("androidx.room:room-compiler:${roomVersion}")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }

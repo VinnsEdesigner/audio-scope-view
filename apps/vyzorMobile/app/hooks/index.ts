@@ -144,10 +144,3 @@ export type {
 } from "./use-about";
 
 export { useDeviceId } from "./use-device-id";
-
-// Server-optional local mode (impl spec Step 8): on-device Room SQLite
-// session store + sync to the deployed server when online.
-export { useLocalSessions } from "./use-local-sessions";
-export type { UseLocalSessionsReturn } from "./use-local-sessions";
-export { useLocalSync } from "./use-local-sync";
-export type { LocalSession, InsertSessionInput } from "../lib/local-store";

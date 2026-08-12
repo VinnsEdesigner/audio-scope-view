@@ -261,6 +261,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db = DatabaseConnection::new(&config.database.url).await?;
 
+    // Android in-process path: when the crate is built with the `android`
+    // feature AND `ASV_STORAGE_BACKEND=android` is set, use the on-device
+    // SQLite backend (app internal storage) instead of the configured URL.
+    // On desktop/server builds (feature off) this branch is absent.
+    #[cfg(feature = "android")]
+    let db = {
+        if crate::infrastructure::is_android_selected() {
+            info!("ASV_STORAGE_BACKEND=android — using on-device Android SQLite");
+            let pool = crate::infrastructure::connect_android().await?;
+            DatabaseConnection::Sqlite(pool)
+        } else {
+            db
+        }
+    };
+
     // Run migrations
     match &db {
         DatabaseConnection::Sqlite(pool) => {

@@ -425,14 +425,14 @@ Current state: config-only (no `app/`). Target: bare/prebuilt RN 0.76+ New Archi
    client (the server already covers Linux via cpal; this is for a desktop client app).
 7. **ESP32 firmware** (§A.6) — UAC firmware; flash, verify it enumerates as a mic on
    Linux/Windows/Android, then confirm the existing audio binding picks it up.
-8. **Server-optional local mode** — local persistence (SQLite for native, IndexedDB for web)
-   + sync; wire into the UI mode switch. Last, since it depends on all capture paths working.
-   - **Mobile (implemented):** the vyzorMobile app persists sessions to an on-device
-     Android Room SQLite store (`com.audioscope.data`) when `persistenceMode === "local"`,
-     and syncs dirty rows to the deployed server via `useLocalSync` (Apollo mutations).
-     See `apps/vyzorMobile/ARCHITECTURE.md` → "Server-optional local mode". Settings →
-     Storage toggles server/local. No IndexedDB on the web path (web already persists via
-     the Rust server's Turso/local SQLite — Step 8 is mobile-only here).
+8. **Server-optional local mode** — persistence lives in the Rust server, not
+   the client. The mobile app links the Rust server in-process (cross-compiled
+   for Android with the `android` Cargo feature), so offline capture writes to
+   on-device SQLite via a third storage backend (`rust/src/infrastructure/android.rs`)
+   that reuses the existing `repo_sqlite_*` repositories and migrations. Selected
+   at runtime by `ASV_STORAGE_BACKEND=android`; the DB path by
+   `ASV_ANDROID_DB_PATH`. The client has no storage logic and no IndexedDB.
+   Last, since it depends on all capture paths working.
 
 Each step compiles and tests independently. Steps 1–2 unlock the rest; step 3 unlocks 4;
 step 4 + 5 unlock 6–7.

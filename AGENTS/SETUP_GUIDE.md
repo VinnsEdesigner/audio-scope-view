@@ -184,6 +184,16 @@ the native C++ + WASM bindings. No `--features` flag is needed — `cpal` is now
 a non-optional dependency (the old `mock`/`pulse`/`real-audio` features were
 removed).
 
+> **Android storage backend (mobile only).** A third storage backend —
+> on-device SQLite for the mobile app's server-optional local mode — lives at
+> `rust/src/infrastructure/android.rs` and is compiled only when the `android`
+> Cargo feature is on (default off). Desktop/server builds leave it out, so
+> build/test the server with default features as above. When cross-compiling
+> for Android, pass `--features android`; at runtime the backend is selected
+> by `ASV_STORAGE_BACKEND=android` and the DB path by
+> `ASV_ANDROID_DB_PATH` (default `/data/data/dev.vinns.vyzorix/files/audioscope.db`).
+> The client has no storage logic.
+
 ### Run the Rust server (backend on port 8080)
 
 The Rust server listens on its default port **8080** (set in `rust/config.toml`

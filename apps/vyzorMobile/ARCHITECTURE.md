@@ -183,54 +183,43 @@ DOMAIN/DATA LAYER (packages/api-client) — no dependencies on other layers
 | Audio Capture | Oboe (AAudio/OpenSL ES) via JNI — **not expo-av** |
 | DSP | C++ core (`sdk/dsp`) via C ABI + JNI (`DspModule`) |
 | Native Build | NDK CMake (`externalNativeBuild`) → `libaudioscope_dsp.so` |
-| Local Persistence | Android Room (SQLite) — `com.audioscope.data` |
 
 ---
 
-## Server-optional local mode (impl spec §4 Step 8)
+## Storage (server-optional local mode)
 
-When `persistenceMode === "local"` (Settings → Storage), sessions are written
-to the **on-device Android Room SQLite store** first, then synced to the
-deployed server when connectivity is available. This is the mobile analog of
-the server's own SQLite/Turso store — no IndexedDB, no remote DB round-trip
-on the capture path.
+The client knows nothing about storage — all persistence lives in the Rust
+server (`rust/src/infrastructure/`), alongside the existing local-SQLite and
+Turso backends. The mobile app links the Rust server **in-process** (the
+crate is cross-compiled for Android and called via the JNI bridge), so when
+the device is offline the app is its own single-tenant server writing to
+on-device SQLite.
 
-```
-apps/vyzorMobile/android/app/src/main/java/com/audioscope/data/
-├── db/SessionEntity.kt        # Room entity mirroring the server `sessions` schema
-│   │                           (rust/migrations 005/009/010/013/014) + serverDirty
-├── db/SessionDao.kt           # suspend CRUD (upsert/list/dirty/markClean/delete)
-├── db/AudioScopeDatabase.kt   # Room DB singleton (framework SQLite, no native build)
-├── LocalSessionRepository.kt  # entity↔DTO mapping; LocalStore singleton accessor
-├── SessionDto.kt              # JSON shape returned to JS (mirrors api-client Session)
-├── LocalStoreModule.kt        # NativeModule: @ReactMethod async → JSON strings
-└── LocalStorePackage.kt       # registered in MainApplication alongside DspPackage
-```
+Backend selection mirrors the server's existing pattern
+(`repo_sqlite_*`, `repo_turso_*`), with a third backend gated to Android:
 
-The JS side:
+| Backend | When | Selected by |
+|---------|------|-------------|
+| Turso (cloud) | deployed server, multi-device sync | `APP__DATABASE__URL=libsql://…` + `TURSO_VYZOR_SCOPE_DB_TOKEN` |
+| Local SQLite | dev/server on a host | `APP__DATABASE__URL=sqlite:./data/…` |
+| **Android on-device SQLite** | mobile, in-process | `ASV_STORAGE_BACKEND=android` (+ Cargo feature `android`) |
 
-```
-apps/vyzorMobile/app/
-├── lib/local-store.ts            # typed wrapper over AudioScopeLocalStore
-├── store/local-session-store.ts  # zustand: sessions[] + syncStatus
-├── hooks/use-local-sessions.ts   # CRUD facade (same shape as use-sessions.ts)
-└── hooks/use-local-sync.ts       # drains serverDirty rows → Apollo mutations,
-                                   marks clean; mounted in _layout (LocalSyncGate)
-```
+The Android backend is `rust/src/infrastructure/android.rs`, compiled **only**
+when the `android` Cargo feature is on (default off — desktop/server builds
+carry no Android storage code). It:
 
-**Data flow:** JS `create()` → `LocalStoreModule.insertSession` →
-`LocalSessionRepository.insert` → Room `upsert` (returns immediately, no
-network). `useLocalSync` (interval + on-mount) reads `dirty()` rows, pushes
-each via `CREATE_NAMED_SESSION`/`UPDATE_SESSION` to the deployed server, then
-`markClean(id, serverId)`. Failed pushes stay dirty and retry on the next
-tick. The dashboard (`index.tsx`) renders the local list + sync status when
-in local mode; otherwise the server-backed hooks are used.
+- resolves the DB file path from `ASV_ANDROID_DB_PATH` (default
+  `/data/data/dev.vinns.vyzorix/files/audioscope.db` — app internal storage,
+  writable with no extra permissions, wiped on uninstall),
+- opens a `sqlx::SqlitePool` and applies the **same migrations** as the server,
+- bootstraps the full server stack (sessions/settings/waveforms/recordings/
+  api-keys/user-preferences + audio + `AppState`) against the local file by
+  reusing the existing `repo_sqlite_*` repositories, and returns an in-process
+  `AppState` the JNI layer drives directly — no TCP socket, no `main()`.
 
-**Build wiring:** `android/build.gradle` adds the KSP Gradle plugin;
-`android/app/build.gradle` applies `com.google.devtools.ksp` and adds
-`androidx.room:room-runtime/ktx:2.6.1` (+ `room-compiler` via KSP) and
-`kotlinx-coroutines-android:1.8.1`. KSP is pinned to `1.9.24-1.0.20` to match
-`kotlinVersion` 1.9.24.
+Because the schema and repositories are identical to the server's, a device
+that captured locally can later point at a deployed Turso server and the data
+model is consistent. The mobile app does **not** use IndexedDB.
 
 ---
 
