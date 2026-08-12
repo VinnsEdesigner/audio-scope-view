@@ -13,9 +13,7 @@ implements the same `audioscope::bindings::AudioBinding` interface, so the
 DSP core is agnostic to the transport.
 
 ## Why bare-USB instead of UAC
-
-ARCHITECTURE.md originally specified UAC so the ESP32 enumerates as a standard
-mic. We deliberately override that: a custom vendor-class device gives direct
+: a custom vendor-class device gives direct
 processor communication, a real control surface (gain / sample rate /
 channels) that UAC does not expose, lower latency, and no OS audio processing.
 Tradeoff: the device needs this binding (or any libusb client) to read it; it
