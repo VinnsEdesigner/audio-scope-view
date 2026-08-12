@@ -1,14 +1,4 @@
-// spectrogram-renderer.ts — WebGL2 waterfall spectrogram renderer.
-//
-// Maintains a 2D texture whose rows are STFT magnitude slices (dB, normalized
-// 0..1 packed into the red channel). Each new slice is written at the bottom
-// row and the texture is scrolled up by copying rows (a pixel-buffer
-// sub-image blit). The full-screen quad samples this texture and applies the
-// analyser palette in the fragment shader.
-//
-// The C++ core computes the spectrogram (`dsp.computeSpectrogram`); this
-// renderer only uploads the magnitude rows into the GL texture and draws. This
-// keeps the hot path allocation-free (the row buffer + texture are reused).
+
 
 import { GLContext } from "./gl-context";
 import { SHADERS } from "./shaders";
