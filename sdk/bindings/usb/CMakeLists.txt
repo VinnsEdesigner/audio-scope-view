@@ -1,11 +1,11 @@
-# sdk/bindings/usb — host AudioBinding over libusb (the "bare" ESP32 path).
+# sdk/bindings/usb — host AudioBinding over libusb 
 #
 # Builds `audioscope_bindings_usb`: a static library containing the libusb
 # AudioBinding. This binding talks the custom audioscope USB vendor-class
-# protocol DIRECTLY — it does NOT go through ALSA/WASAPI/CoreAudio. The ESP32
-# firmware (sdk/firmware/esp32) is the matching device side.
+# protocol DIRECTLY —
+##firmware (sdk/firmware/esp32) is the matching device side.
 #
-# Cross-platform: libusb-1.0 works on Linux, Windows, and macOS, so this
+# Cross-platform: libusb-1.0 works on Linux, Windows, so this
 # binding is NOT OS-gated (unlike bindings/linux which needs ALSA, or
 # bindings/windows which needs WASAPI). It's gated on libusb presence only.
 
