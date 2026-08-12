@@ -36,19 +36,14 @@ idf.py build
 idf.py flash monitor
 ```
 
-On a host without ESP-IDF (e.g. CI), the firmware C sources are syntax-checked
-with stub `tusb.h` / `esp_*` headers — `gcc -std=c11 -fsyntax-only` — the same
-pattern used for the Android NDK and WASAPI sources. The authoritative build is
-`idf.py build` above.
 
-## Verification in this sandbox
 
-- `usb_protocol.c` compiles clean with **no** stubs (pure C99).
+
+- `usb_protocol.c` compiles clean with (pure C99).
 - `main.c`, `usb_descriptors.c`, `usb_device.c`, `codec.c`, `stream_task.c`,
-  `control_task.c` pass `gcc -std=c11 -fsyntax-only` with stub ESP-IDF headers.
+  `control_task.c` pass `gcc -std=c11 
 - The host side (`sdk/bindings/usb/usb_binding.cpp` + `test_usb_binding.cpp`)
-  builds and tests **for real** here (libusb-1.0 is installable) — see
-  `sdk/bindings/usb/README.md`.
+  
 
 ## Files
 
