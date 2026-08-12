@@ -31,7 +31,7 @@ echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1209", ATTR{idProduct}=="a500", MODE="0
 ```
 
 On Windows, install [libusb-win32](https://libusb.info/) (or WinUSB via Zadig)
-for the `0x1209:0xA500` device. On macOS, `brew install libusb`.
+for the `0x1209:0xA500` device. `.
 
 ## Build + test (host; no ESP32 needed)
 
