@@ -1,0 +1,25 @@
+# ESP-IDF sdkconfig defaults for the audioscope ESP32-S3 firmware.
+# USB OTG (native USB) + TinyUSB + I2S + PSRAM. The app overrides per-board.
+
+# --- Target / chip ---
+CONFIG_IDF_TARGET="esp32s3"
+
+# --- USB OTG (native USB on the S3) ---
+# TinyUSB is vendored locally in managed_components/espressif__tinyusb
+# (real upstream hathach/tinyusb). Our app implements a custom vendor class
+# (NOT CDC, NOT UAC) via tusb_config.h. No TINYUSB_* kconfig symbols are
+# used (those belong to the managed espressif/tinyusb component wrapper).
+
+# --- I2S (external codec) ---
+CONFIG_SOC_I2S_SUPPORTS_PDM_RX=n
+# External codec on standard I2S; full-duplex not needed (capture only).
+
+# --- PSRAM (ESP32-S3 N16R8 etc.) ---
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_USE_MALLOC=y
+
+# --- FreeRTOS ---
+CONFIG_FREERTOS_HZ=1000
+
+# --- Logging ---
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y

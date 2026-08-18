@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use crate::domain::{DomainResult, Session};
 
@@ -11,7 +10,12 @@ pub trait SessionRepository: Send + Sync {
 
     async fn find_by_id(&self, id: &str) -> DomainResult<Option<Session>>;
 
-    async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainResult<Vec<Session>>;
+    async fn find_all_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> DomainResult<Vec<Session>>;
 
     async fn count_sessions(&self, device_id: Option<&str>) -> DomainResult<u32>;
 

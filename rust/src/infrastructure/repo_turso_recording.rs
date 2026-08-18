@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
+use crate::domain::error_domain::DomainError;
 use crate::domain::recording::{
     Recording, RecordingFilter, RecordingMetadata, RecordingStats, RecordingSummary, TimeRange,
 };
-use crate::domain::error_domain::DomainError;
 use crate::infrastructure::repo_trait_recording::{DomainErrorResult, RecordingRepository};
 use crate::infrastructure::turso_http_client::{TursoArg, TursoClient, TursoResult, TursoValue};
 use chrono::{DateTime, Utc};
@@ -51,19 +51,31 @@ impl TursoRecordingRepository {
         //          is_pinned, created_at, waveform_overview, peak_db, rms_db,
         //          peak_negative_db, dc_offset, dominant_frequency, frequency_high,
         //          frequency_low, bit_depth
-        let samples_str = row.get(3).and_then(|v| v.as_str())
+        let samples_str = row
+            .get(3)
+            .and_then(|v| v.as_str())
             .ok_or_else(|| DomainError::corruption("Missing samples".to_string()))?;
         let samples: Vec<f32> = serde_json::from_str(samples_str)
             .map_err(|e| DomainError::corruption(format!("Invalid samples JSON: {}", e)))?;
-        let timestamp_str = row.get(6).and_then(|v| v.as_str())
+        let timestamp_str = row
+            .get(6)
+            .and_then(|v| v.as_str())
             .ok_or_else(|| DomainError::corruption("Missing timestamp".to_string()))?;
 
         Ok(Recording {
-            id: row.get(0).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            session_id: row.get(1).and_then(|v| v.as_str())
+            id: row
+                .first()
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            session_id: row
+                .get(1)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing session_id".to_string()))?
                 .to_string(),
-            name: row.get(2).and_then(|v| v.as_str())
+            name: row
+                .get(2)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing name".to_string()))?
                 .to_string(),
             samples,
@@ -86,15 +98,25 @@ impl TursoRecordingRepository {
     }
 
     fn row_to_summary(row: &[TursoValue]) -> Result<RecordingSummary, DomainError> {
-        let timestamp_str = row.get(6).and_then(|v| v.as_str())
+        let timestamp_str = row
+            .get(6)
+            .and_then(|v| v.as_str())
             .ok_or_else(|| DomainError::corruption("Missing timestamp".to_string()))?;
 
         Ok(RecordingSummary {
-            id: row.get(0).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            session_id: row.get(1).and_then(|v| v.as_str())
+            id: row
+                .first()
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            session_id: row
+                .get(1)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing session_id".to_string()))?
                 .to_string(),
-            name: row.get(2).and_then(|v| v.as_str())
+            name: row
+                .get(2)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing name".to_string()))?
                 .to_string(),
             sample_rate: row.get(5).and_then(|v| v.as_i64()).unwrap_or(44100) as u32,
@@ -117,19 +139,33 @@ impl TursoRecordingRepository {
     }
 
     fn row_to_metadata(row: &[TursoValue]) -> Result<RecordingMetadata, DomainError> {
-        let timestamp_str = row.get(6).and_then(|v| v.as_str())
+        let timestamp_str = row
+            .get(6)
+            .and_then(|v| v.as_str())
             .ok_or_else(|| DomainError::corruption("Missing timestamp".to_string()))?;
-        let waveform_overview = row.get(13).and_then(|v| v.as_str())
-            .map(|json| serde_json::from_str(json))
+        let waveform_overview = row
+            .get(13)
+            .and_then(|v| v.as_str())
+            .map(serde_json::from_str)
             .transpose()
-            .map_err(|e| DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e)))?;
+            .map_err(|e| {
+                DomainError::corruption(format!("Invalid waveform_overview JSON: {}", e))
+            })?;
 
         Ok(RecordingMetadata {
-            id: row.get(0).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            session_id: row.get(1).and_then(|v| v.as_str())
+            id: row
+                .first()
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            session_id: row
+                .get(1)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing session_id".to_string()))?
                 .to_string(),
-            name: row.get(2).and_then(|v| v.as_str())
+            name: row
+                .get(2)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing name".to_string()))?
                 .to_string(),
             sample_count: row.get(4).and_then(|v| v.as_i64()).unwrap_or(0) as usize,
@@ -203,11 +239,11 @@ impl TursoRecordingRepository {
             clauses.push("name LIKE ?".to_string());
             args.push(TursoArg::text(format!("%{}%", search)));
         }
-        if let Some(time_range) = f.time_range {
-            if let Some(start) = Self::get_time_range_start(time_range) {
-                clauses.push("timestamp >= ?".to_string());
-                args.push(TursoArg::text(start.to_rfc3339()));
-            }
+        if let Some(time_range) = f.time_range
+            && let Some(start) = Self::get_time_range_start(time_range)
+        {
+            clauses.push("timestamp >= ?".to_string());
+            args.push(TursoArg::text(start.to_rfc3339()));
         }
 
         let where_str = if clauses.is_empty() {
@@ -221,9 +257,7 @@ impl TursoRecordingRepository {
     fn get_time_range_start(range: TimeRange) -> Option<DateTime<Utc>> {
         let now = Utc::now();
         match range {
-            TimeRange::Today => {
-                Some(now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc())
-            }
+            TimeRange::Today => Some(now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc()),
             TimeRange::LastWeek => Some(now - chrono::Duration::days(7)),
             TimeRange::LastMonth => Some(now - chrono::Duration::days(30)),
             TimeRange::AllTime => None,
@@ -231,7 +265,7 @@ impl TursoRecordingRepository {
     }
 
     fn parse_stats_row(row: &[TursoValue]) -> RecordingStats {
-        let total_recordings = row.get(0).and_then(|v| v.as_i64()).unwrap_or(0);
+        let total_recordings = row.first().and_then(|v| v.as_i64()).unwrap_or(0);
         let total_size_bytes = row.get(1).and_then(|v| v.as_i64()).unwrap_or(0);
         let total_duration_ms = row.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
         let pinned_count = row.get(3).and_then(|v| v.as_i64()).unwrap_or(0);
@@ -240,8 +274,16 @@ impl TursoRecordingRepository {
             total_recordings: total_recordings as u64,
             total_size_bytes: total_size_bytes as u64,
             total_duration_ms,
-            average_size_bytes: if count > 0.0 { total_size_bytes as f64 / count } else { 0.0 },
-            average_duration_ms: if count > 0.0 { total_duration_ms / count } else { 0.0 },
+            average_size_bytes: if count > 0.0 {
+                total_size_bytes as f64 / count
+            } else {
+                0.0
+            },
+            average_duration_ms: if count > 0.0 {
+                total_duration_ms / count
+            } else {
+                0.0
+            },
             pinned_count: pinned_count as u64,
         }
     }
@@ -259,8 +301,8 @@ impl TursoRecordingRepository {
 #[async_trait::async_trait]
 impl RecordingRepository for TursoRecordingRepository {
     async fn save(&self, recording: &Recording) -> DomainErrorResult<()> {
-        let samples_json = serde_json::to_string(&recording.samples)
-            .unwrap_or_else(|_| "[]".to_string());
+        let samples_json =
+            serde_json::to_string(&recording.samples).unwrap_or_else(|_| "[]".to_string());
         let waveform_overview = Self::build_waveform_overview(&recording.samples, 1000);
         let created_at = Utc::now().to_rfc3339();
 
@@ -272,52 +314,64 @@ impl RecordingRepository for TursoRecordingRepository {
             dominant_frequency, frequency_high, frequency_low, bit_depth
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#;
 
-        self.client.execute_void_with_args(sql, vec![
-            TursoArg::text(&recording.id),
-            TursoArg::text(&recording.session_id),
-            TursoArg::text(&recording.name),
-            TursoArg::text(samples_json),
-            (recording.samples.len() as i32).into(),
-            recording.sample_rate.into(),
-            TursoArg::text(recording.timestamp.to_rfc3339()),
-            recording.duration_ms.into(),
-            (recording.size_bytes as i64).into(),
-            recording.peak_amplitude.into(),
-            recording.rms_amplitude.into(),
-            TursoArg::bool(recording.is_pinned),
-            TursoArg::text(created_at),
-            TursoArg::opt_text(waveform_overview),
-            recording.peak_db.into(),
-            recording.rms_db.into(),
-            recording.peak_negative_db.into(),
-            recording.dc_offset.into(),
-            recording.dominant_frequency.into(),
-            recording.frequency_high.into(),
-            recording.frequency_low.into(),
-            recording.bit_depth.into(),
-        ]).await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(
+                sql,
+                vec![
+                    TursoArg::text(&recording.id),
+                    TursoArg::text(&recording.session_id),
+                    TursoArg::text(&recording.name),
+                    TursoArg::text(samples_json),
+                    (recording.samples.len() as i32).into(),
+                    recording.sample_rate.into(),
+                    TursoArg::text(recording.timestamp.to_rfc3339()),
+                    recording.duration_ms.into(),
+                    (recording.size_bytes as i64).into(),
+                    recording.peak_amplitude.into(),
+                    recording.rms_amplitude.into(),
+                    TursoArg::bool(recording.is_pinned),
+                    TursoArg::text(created_at),
+                    TursoArg::opt_text(waveform_overview),
+                    recording.peak_db.into(),
+                    recording.rms_db.into(),
+                    recording.peak_negative_db.into(),
+                    recording.dc_offset.into(),
+                    recording.dominant_frequency.into(),
+                    recording.frequency_high.into(),
+                    recording.frequency_low.into(),
+                    recording.bit_depth.into(),
+                ],
+            )
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn find_by_id(&self, id: &str) -> DomainErrorResult<Option<Recording>> {
         let sql = format!("SELECT {} FROM recordings WHERE id = ?", RECORDING_COLUMNS);
-        let result = self.client.execute_with_args(&sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                return Ok(Some(Self::row_to_recording(row)?));
-            }
+        let result = self
+            .client
+            .execute_with_args(&sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            return Ok(Some(Self::row_to_recording(row)?));
         }
         Ok(None)
     }
 
     async fn find_metadata_by_id(&self, id: &str) -> DomainErrorResult<Option<RecordingMetadata>> {
         let sql = format!("SELECT {} FROM recordings WHERE id = ?", RECORDING_COLUMNS);
-        let result = self.client.execute_with_args(&sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                return Ok(Some(Self::row_to_metadata(row)?));
-            }
+        let result = self
+            .client
+            .execute_with_args(&sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            return Ok(Some(Self::row_to_metadata(row)?));
         }
         Ok(None)
     }
@@ -332,13 +386,16 @@ impl RecordingRepository for TursoRecordingRepository {
 
         // Count query
         let count_sql = format!("SELECT COUNT(*) FROM recordings{}", where_clause);
-        let count_result = self.client.execute_with_args(&count_sql, args.clone())
-            .await.map_err(Self::map_err)?;
+        let count_result = self
+            .client
+            .execute_with_args(&count_sql, args.clone())
+            .await
+            .map_err(Self::map_err)?;
         let mut total: u64 = 0;
-        if let Some(TursoResult::Ok(ok)) = count_result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                total = row.first().and_then(|v| v.as_i64()).unwrap_or(0) as u64;
-            }
+        if let Some(TursoResult::Ok(ok)) = count_result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            total = row.first().and_then(|v| v.as_i64()).unwrap_or(0) as u64;
         }
 
         // Main query — append LIMIT/OFFSET args
@@ -348,8 +405,11 @@ impl RecordingRepository for TursoRecordingRepository {
         );
         args.push(limit.into());
         args.push(offset.into());
-        let result = self.client.execute_with_args(&main_sql, args)
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(&main_sql, args)
+            .await
+            .map_err(Self::map_err)?;
         let mut recordings = Vec::new();
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             for row in &ok.response.result.rows {
@@ -362,9 +422,15 @@ impl RecordingRepository for TursoRecordingRepository {
     }
 
     async fn get_recent(&self, limit: u32) -> DomainErrorResult<Vec<RecordingSummary>> {
-        let sql = format!("SELECT {} FROM recordings ORDER BY is_pinned DESC, timestamp DESC LIMIT ?", RECORDING_COLUMNS);
-        let result = self.client.execute_with_args(&sql, vec![limit.into()])
-            .await.map_err(Self::map_err)?;
+        let sql = format!(
+            "SELECT {} FROM recordings ORDER BY is_pinned DESC, timestamp DESC LIMIT ?",
+            RECORDING_COLUMNS
+        );
+        let result = self
+            .client
+            .execute_with_args(&sql, vec![limit.into()])
+            .await
+            .map_err(Self::map_err)?;
         let mut recordings = Vec::new();
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             for row in &ok.response.result.rows {
@@ -376,17 +442,25 @@ impl RecordingRepository for TursoRecordingRepository {
 
     async fn update(&self, recording: &Recording) -> DomainErrorResult<()> {
         let sql = "UPDATE recordings SET name = ?, is_pinned = ? WHERE id = ?";
-        self.client.execute_void_with_args(sql, vec![
-            TursoArg::text(&recording.name),
-            TursoArg::bool(recording.is_pinned),
-            TursoArg::text(&recording.id),
-        ]).await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(
+                sql,
+                vec![
+                    TursoArg::text(&recording.name),
+                    TursoArg::bool(recording.is_pinned),
+                    TursoArg::text(&recording.id),
+                ],
+            )
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn delete(&self, id: &str) -> DomainErrorResult<()> {
         let sql = "DELETE FROM recordings WHERE id = ?";
-        self.client.execute_void_with_args(sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn delete_many(&self, ids: &[String]) -> DomainErrorResult<u64> {
@@ -394,10 +468,16 @@ impl RecordingRepository for TursoRecordingRepository {
             return Ok(0);
         }
         let placeholders: Vec<&str> = ids.iter().map(|_| "?").collect();
-        let sql = format!("DELETE FROM recordings WHERE id IN ({})", placeholders.join(","));
-        let args: Vec<TursoArg> = ids.iter().map(|id| TursoArg::text(id)).collect();
-        let result = self.client.execute_with_args(&sql, args)
-            .await.map_err(Self::map_err)?;
+        let sql = format!(
+            "DELETE FROM recordings WHERE id IN ({})",
+            placeholders.join(",")
+        );
+        let args: Vec<TursoArg> = ids.iter().map(TursoArg::text).collect();
+        let result = self
+            .client
+            .execute_with_args(&sql, args)
+            .await
+            .map_err(Self::map_err)?;
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             Ok(ok.response.result.rows_written as u64)
         } else {
@@ -407,14 +487,16 @@ impl RecordingRepository for TursoRecordingRepository {
 
     async fn count_by_scope(&self, session_id: &str) -> DomainErrorResult<u64> {
         let sql = "SELECT COUNT(*) FROM recordings WHERE session_id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(session_id)])
-            .await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                if let Some(count) = row.first().and_then(|v| v.as_i64()) {
-                    return Ok(count as u64);
-                }
-            }
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(session_id)])
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+            && let Some(count) = row.first().and_then(|v| v.as_i64())
+        {
+            return Ok(count as u64);
         }
         Ok(0)
     }
@@ -431,23 +513,26 @@ impl RecordingRepository for TursoRecordingRepository {
             where_clause.push_str(" AND session_id IN (SELECT id FROM sessions WHERE user_id = ?)");
             args.push(TursoArg::text(did));
         }
-        if let Some(range) = time_range {
-            if let Some(start) = Self::get_time_range_start(range) {
-                where_clause.push_str(" AND timestamp >= ?");
-                args.push(TursoArg::text(start.to_rfc3339()));
-            }
+        if let Some(range) = time_range
+            && let Some(start) = Self::get_time_range_start(range)
+        {
+            where_clause.push_str(" AND timestamp >= ?");
+            args.push(TursoArg::text(start.to_rfc3339()));
         }
         if let Some(sid) = session_id {
             where_clause.push_str(" AND session_id = ?");
             args.push(TursoArg::text(sid));
         }
         let sql = format!("{}{}", Self::stats_sql(), where_clause);
-        let result = self.client.execute_with_args(&sql, args)
-            .await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                return Ok(Self::parse_stats_row(row));
-            }
+        let result = self
+            .client
+            .execute_with_args(&sql, args)
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            return Ok(Self::parse_stats_row(row));
         }
         Ok(RecordingStats::default())
     }
@@ -468,12 +553,15 @@ impl RecordingRepository for TursoRecordingRepository {
             args.push(TursoArg::text(sid));
         }
         let sql = format!("{}{}", Self::stats_sql(), where_clause);
-        let result = self.client.execute_with_args(&sql, args)
-            .await.map_err(Self::map_err)?;
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                return Ok(Self::parse_stats_row(row));
-            }
+        let result = self
+            .client
+            .execute_with_args(&sql, args)
+            .await
+            .map_err(Self::map_err)?;
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            return Ok(Self::parse_stats_row(row));
         }
         Ok(RecordingStats::default())
     }

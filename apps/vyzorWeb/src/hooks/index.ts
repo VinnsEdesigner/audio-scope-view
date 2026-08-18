@@ -55,8 +55,8 @@ export { useMediaDevices } from "./use-media-devices";
 
 export { useAudioAnalyzer } from "./use-audio-analyzer";
 
-export { useMockAudioAnalyzer } from "./use-mock-audio-analyzer";
-export type { WaveformType } from "./use-mock-audio-analyzer";
+export { useWaveformGenerator } from "./use-waveform-generator";
+export type { WaveformGeneratorSettings, UseWaveformGeneratorReturn } from "./use-waveform-generator";
 
 export { useExport } from "./use-export";
 export { useStreamingCSVExport, useRecordingExport } from "./use-streaming-csv-export";

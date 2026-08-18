@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use std::fmt;
 
@@ -24,7 +23,8 @@ impl Amplitude {
             return Err(DomainError::validation("dB value must be finite"));
         }
         let linear = if db <= -96.0 {
-            0.0         } else {
+            0.0
+        } else {
             10.0_f32.powf(db / 20.0)
         };
         Ok(Self { linear })

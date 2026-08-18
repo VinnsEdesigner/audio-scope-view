@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 export type WaveformColor = "cyan" | "blue" | "purple" | "green" | "orange" | "red";
 export type SessionMode = "live" | "playback";
 export type TriggerMode = "auto" | "normal" | "single";
-export type ScopeView = "time" | "spectrum";
+export type ScopeView = "time" | "spectrum" | "spectrogram";
 
 export interface UIState {
   sessionMode: SessionMode;
@@ -16,8 +16,6 @@ export interface UIState {
   isExportDialogOpen: boolean;
 
   theme: "light" | "dark" | "system";
-
-  testMode: boolean;
 
   showGrid: boolean;
   showMeasurements: boolean;
@@ -66,8 +64,6 @@ export interface UIActions {
   closeExportDialog: () => void;
 
   setTheme: (theme: "light" | "dark" | "system") => void;
-  toggleTestMode: () => void;
-  setTestMode: (testMode: boolean) => void;
 
   setShowGrid: (show: boolean) => void;
   setShowMeasurements: (show: boolean) => void;
@@ -115,7 +111,6 @@ const initialState: UIState = {
   isDeviceSelectorOpen: false,
   isExportDialogOpen: false,
   theme: "dark",
-  testMode: false,
   showGrid: true,
   showMeasurements: true,
   smoothWaveform: false,
@@ -164,8 +159,6 @@ export const useUIStore = create<UIStore>()(
       closeExportDialog: () => set({ isExportDialogOpen: false }),
 
       setTheme: (theme) => set({ theme }),
-      toggleTestMode: () => set((state) => ({ testMode: !state.testMode })),
-      setTestMode: (testMode) => set({ testMode }),
 
       setShowGrid: (showGrid) => set({ showGrid }),
       setShowMeasurements: (showMeasurements) => set({ showMeasurements }),

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
-use crate::domain::trait_settings_repository::SettingsRepository;
 use crate::domain::DomainResult;
+use crate::domain::trait_settings_repository::SettingsRepository;
+use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
 use crate::infrastructure::turso_http_client::{TursoArg, TursoClient, TursoResult, TursoValue};
 use chrono::{DateTime, Utc};
 
@@ -44,8 +44,14 @@ impl TursoSettingsRepository {
         })?;
 
         Ok(Settings {
-            id: row.get(0).and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            session_id: row.get(1).and_then(|v| v.as_str())
+            id: row
+                .first()
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            session_id: row
+                .get(1)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing session_id".to_string()))?
                 .to_string(),
             time_scale: row.get(2).and_then(|v| v.as_f64()).unwrap_or(1.0),
@@ -59,22 +65,32 @@ impl TursoSettingsRepository {
             show_measurements: row.get(10).and_then(|v| v.as_bool()).unwrap_or(true),
             grid_divisions_x: row.get(11).and_then(|v| v.as_i64()).unwrap_or(10) as u32,
             grid_divisions_y: row.get(12).and_then(|v| v.as_i64()).unwrap_or(8) as u32,
-            input_device: row.get(13).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(String::from),
+            input_device: row
+                .get(13)
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(String::from),
             input_channels: row.get(14).and_then(|v| v.as_i64()).unwrap_or(1) as u32,
-            created_at: row.get(15).and_then(|v| v.as_str())
+            created_at: row
+                .get(15)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing created_at".to_string()))
-                .and_then(|s| Self::parse_datetime(s))?,
-            updated_at: row.get(16).and_then(|v| v.as_str())
+                .and_then(Self::parse_datetime)?,
+            updated_at: row
+                .get(16)
+                .and_then(|v| v.as_str())
                 .ok_or_else(|| DomainError::corruption("Missing updated_at".to_string()))
-                .and_then(|s| Self::parse_datetime(s))?,
+                .and_then(Self::parse_datetime)?,
         })
     }
 
-    fn first_row(result: &crate::infrastructure::turso_http_client::TursoResponse) -> Result<Option<Settings>, DomainError> {
-        if let Some(TursoResult::Ok(ok)) = result.results.first() {
-            if let Some(row) = ok.response.result.rows.first() {
-                return Ok(Some(Self::row_to_settings(row)?));
-            }
+    fn first_row(
+        result: &crate::infrastructure::turso_http_client::TursoResponse,
+    ) -> Result<Option<Settings>, DomainError> {
+        if let Some(TursoResult::Ok(ok)) = result.results.first()
+            && let Some(row) = ok.response.result.rows.first()
+        {
+            return Ok(Some(Self::row_to_settings(row)?));
         }
         Ok(None)
     }
@@ -90,25 +106,31 @@ impl SettingsRepository for TursoSettingsRepository {
             created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#;
 
-        self.client.execute_void_with_args(sql, vec![
-            TursoArg::text(&settings.id),
-            TursoArg::text(&settings.session_id),
-            settings.time_scale.into(),
-            settings.voltage_scale.into(),
-            settings.time_offset.into(),
-            settings.voltage_offset.into(),
-            settings.trigger_level.into(),
-            TursoArg::text(settings.trigger_mode.as_str()),
-            TursoArg::text(settings.trigger_edge.as_str()),
-            TursoArg::bool(settings.show_grid),
-            TursoArg::bool(settings.show_measurements),
-            settings.grid_divisions_x.into(),
-            settings.grid_divisions_y.into(),
-            TursoArg::opt_text(settings.input_device.clone()),
-            settings.input_channels.into(),
-            TursoArg::text(settings.created_at.to_rfc3339()),
-            TursoArg::text(settings.updated_at.to_rfc3339()),
-        ]).await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(
+                sql,
+                vec![
+                    TursoArg::text(&settings.id),
+                    TursoArg::text(&settings.session_id),
+                    settings.time_scale.into(),
+                    settings.voltage_scale.into(),
+                    settings.time_offset.into(),
+                    settings.voltage_offset.into(),
+                    settings.trigger_level.into(),
+                    TursoArg::text(settings.trigger_mode.as_str()),
+                    TursoArg::text(settings.trigger_edge.as_str()),
+                    TursoArg::bool(settings.show_grid),
+                    TursoArg::bool(settings.show_measurements),
+                    settings.grid_divisions_x.into(),
+                    settings.grid_divisions_y.into(),
+                    TursoArg::opt_text(settings.input_device.clone()),
+                    settings.input_channels.into(),
+                    TursoArg::text(settings.created_at.to_rfc3339()),
+                    TursoArg::text(settings.updated_at.to_rfc3339()),
+                ],
+            )
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn update(&self, settings: &Settings) -> DomainResult<()> {
@@ -120,43 +142,58 @@ impl SettingsRepository for TursoSettingsRepository {
             input_device = ?, input_channels = ?, updated_at = ?
             WHERE id = ?"#;
 
-        self.client.execute_void_with_args(sql, vec![
-            settings.time_scale.into(),
-            settings.voltage_scale.into(),
-            settings.time_offset.into(),
-            settings.voltage_offset.into(),
-            settings.trigger_level.into(),
-            TursoArg::text(settings.trigger_mode.as_str()),
-            TursoArg::text(settings.trigger_edge.as_str()),
-            TursoArg::bool(settings.show_grid),
-            TursoArg::bool(settings.show_measurements),
-            settings.grid_divisions_x.into(),
-            settings.grid_divisions_y.into(),
-            TursoArg::opt_text(settings.input_device.clone()),
-            settings.input_channels.into(),
-            TursoArg::text(settings.updated_at.to_rfc3339()),
-            TursoArg::text(&settings.id),
-        ]).await.map_err(Self::map_err)
+        self.client
+            .execute_void_with_args(
+                sql,
+                vec![
+                    settings.time_scale.into(),
+                    settings.voltage_scale.into(),
+                    settings.time_offset.into(),
+                    settings.voltage_offset.into(),
+                    settings.trigger_level.into(),
+                    TursoArg::text(settings.trigger_mode.as_str()),
+                    TursoArg::text(settings.trigger_edge.as_str()),
+                    TursoArg::bool(settings.show_grid),
+                    TursoArg::bool(settings.show_measurements),
+                    settings.grid_divisions_x.into(),
+                    settings.grid_divisions_y.into(),
+                    TursoArg::opt_text(settings.input_device.clone()),
+                    settings.input_channels.into(),
+                    TursoArg::text(settings.updated_at.to_rfc3339()),
+                    TursoArg::text(&settings.id),
+                ],
+            )
+            .await
+            .map_err(Self::map_err)
     }
 
     async fn find_by_id(&self, id: &str) -> DomainResult<Option<Settings>> {
         let sql = "SELECT * FROM settings WHERE id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)?;
         Self::first_row(&result)
     }
 
     async fn find_by_session_id(&self, session_id: &str) -> DomainResult<Option<Settings>> {
         let sql = "SELECT * FROM settings WHERE session_id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(session_id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(session_id)])
+            .await
+            .map_err(Self::map_err)?;
         Self::first_row(&result)
     }
 
     async fn delete(&self, id: &str) -> DomainResult<bool> {
         let sql = "DELETE FROM settings WHERE id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(id)])
+            .await
+            .map_err(Self::map_err)?;
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             Ok(ok.response.result.rows_written > 0)
         } else {
@@ -166,8 +203,11 @@ impl SettingsRepository for TursoSettingsRepository {
 
     async fn delete_by_session_id(&self, session_id: &str) -> DomainResult<bool> {
         let sql = "DELETE FROM settings WHERE session_id = ?";
-        let result = self.client.execute_with_args(sql, vec![TursoArg::text(session_id)])
-            .await.map_err(Self::map_err)?;
+        let result = self
+            .client
+            .execute_with_args(sql, vec![TursoArg::text(session_id)])
+            .await
+            .map_err(Self::map_err)?;
         if let Some(TursoResult::Ok(ok)) = result.results.first() {
             Ok(ok.response.result.rows_written > 0)
         } else {

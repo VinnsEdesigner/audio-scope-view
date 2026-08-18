@@ -1,0 +1,5 @@
+## IDF Component Manifest for audioscope-esp32
+version: "0.1.0"
+targets:
+  - esp32s3
+

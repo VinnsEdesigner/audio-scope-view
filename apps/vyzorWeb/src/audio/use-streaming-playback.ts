@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { config } from "@audio-scope-view/api-client/config";
+import type { WaveformAnalysis } from "@audio-scope-view/dsp-wasm";
+
+// Vite-resolved URLs for the WASM DSP module (factory + binary). The playback
+// worklet can't use a bundler import (AudioWorklet global scope, served from a
+// flat public URL), so the main thread resolves the hashed asset URLs here and
+// hands them to the worklet via the `config` message. The worklet then
+// dynamically imports the factory and points `locateFile` at the binary.
+//
+// `?url` is a standard Vite import suffix (typed by vite/client).
+import wasmModuleUrl from "@audio-scope-view/dsp-wasm/dist/audioscope.js?url";
+import wasmBinaryUrl from "@audio-scope-view/dsp-wasm/dist/audioscope.wasm?url";
 
 export interface StreamingPlaybackState {
   isLoading: boolean;
@@ -26,6 +37,9 @@ export interface StreamingPlaybackOptions {
   onEnded?: () => void;
 
   onError?: (error: Error) => void;
+
+  /** Called for each per-block DSP frame computed on the worklet thread. */
+  onDspFrame?: (frame: { magnitudes: Float32Array; analysis: WaveformAnalysis | null; sampleRate: number }) => void;
 }
 
 export interface StreamingPlaybackReturn {
@@ -51,6 +65,7 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
     autoPlay = false,
     onEnded,
     onError,
+    onDspFrame,
   } = options;
 
   const [state, setState] = useState<StreamingPlaybackState>({
@@ -180,6 +195,9 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
             chunkSize,
             baseUrl: config.graphqlEndpoint.replace("/graphql", ""),
             authHeader: config.bootstrapKey ? `Bearer ${config.bootstrapKey}` : undefined,
+            dspBlockSize: 1024,
+            wasmModuleUrl,
+            wasmBinaryUrl,
           });
         });
 
@@ -251,10 +269,40 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
           onEnded?.();
           break;
         }
+
+        case "dsp_ready": {
+          // The WASM DSP core finished loading on the worklet thread; per-block
+          // frames will now arrive during playback. No state change needed — the
+          // renderer consumes frames via onDspFrame.
+          break;
+        }
+
+        case "dsp_error": {
+          // Playback continues (PCM still plays); only the per-block DSP path
+          // is unavailable. Surface as a non-fatal warning so it shows in logs
+          // without surfacing the error toast reserved for hard failures.
+          console.warn(
+            "[playback] WASM DSP core failed to load on the worklet thread; " +
+              "playing audio without per-block DSP frames:",
+            message.message,
+          );
+          break;
+        }
+
+        case "frame": {
+          // Per-block DSP frame from the played samples (magnitudes +
+          // measurements), computed on the audio thread by the C++ core.
+          onDspFrame?.({
+            magnitudes: message.magnitudes as Float32Array,
+            analysis: (message.analysis as WaveformAnalysis | null) ?? null,
+            sampleRate: message.sampleRate as number,
+          });
+          break;
+        }
       }
     },
 
-    [onEnded],
+    [onEnded, onDspFrame],
   );
 
   handleWorkletMessageReference.current = handleWorkletMessage;
@@ -333,6 +381,9 @@ export function useStreamingPlayback(options: StreamingPlaybackOptions): Streami
       chunkSize: 44_100,
       baseUrl: config.graphqlEndpoint.replace("/graphql", ""),
       authHeader: config.bootstrapKey ? `Bearer ${config.bootstrapKey}` : undefined,
+      dspBlockSize: 1024,
+      wasmModuleUrl,
+      wasmBinaryUrl,
     });
 
     await new Promise((resolve) => setTimeout(resolve, 100));

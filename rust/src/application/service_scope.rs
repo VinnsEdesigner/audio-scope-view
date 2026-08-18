@@ -40,7 +40,12 @@ impl SessionService {
         name: String,
         description: Option<String>,
     ) -> AppResult<Session> {
-        let session = Session::new_with_description(uuid::Uuid::new_v4().to_string(), user_id, name, description);
+        let session = Session::new_with_description(
+            uuid::Uuid::new_v4().to_string(),
+            user_id,
+            name,
+            description,
+        );
         self.repository
             .save_session(&session)
             .await
@@ -48,14 +53,25 @@ impl SessionService {
         Ok(session)
     }
 
-    pub async fn create_sub_session(&self, parent_id: &str, user_id: String, name: String) -> AppResult<Session> {
-        let _parent = self.repository
+    pub async fn create_sub_session(
+        &self,
+        parent_id: &str,
+        user_id: String,
+        name: String,
+    ) -> AppResult<Session> {
+        let _parent = self
+            .repository
             .find_by_id(parent_id)
             .await
             .map_err(AppError::Domain)?
             .ok_or_else(|| AppError::NotFound("Parent session not found".to_string()))?;
 
-        let session = Session::new_sub_session(uuid::Uuid::new_v4().to_string(), parent_id.to_string(), user_id, name);
+        let session = Session::new_sub_session(
+            uuid::Uuid::new_v4().to_string(),
+            parent_id.to_string(),
+            user_id,
+            name,
+        );
         self.repository
             .save_session(&session)
             .await
@@ -64,7 +80,8 @@ impl SessionService {
     }
 
     pub async fn end_session(&self, id: &str) -> AppResult<Session> {
-        let mut session = self.repository
+        let mut session = self
+            .repository
             .find_by_id(id)
             .await
             .map_err(AppError::Domain)?
@@ -89,14 +106,24 @@ impl SessionService {
             .map_err(AppError::Domain)
     }
 
-    pub async fn list(&self, device_id: Option<&str>, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
+    pub async fn list(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> AppResult<Vec<Session>> {
         self.repository
             .find_all_sessions(device_id, limit, offset)
             .await
             .map_err(AppError::Domain)
     }
 
-    pub async fn list_main_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> AppResult<Vec<Session>> {
+    pub async fn list_main_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> AppResult<Vec<Session>> {
         self.repository
             .find_main_sessions(device_id, limit, offset)
             .await
@@ -108,18 +135,30 @@ impl SessionService {
     }
 
     pub async fn count(&self, device_id: Option<&str>) -> AppResult<u32> {
-        self.repository.count_sessions(device_id).await.map_err(AppError::Domain)
+        self.repository
+            .count_sessions(device_id)
+            .await
+            .map_err(AppError::Domain)
     }
 
-    pub async fn get_or_create_active_session(&self, device_id: Option<&str>) -> AppResult<Session> {
-        if let Some(active_session) = self.repository.find_active_session(device_id).await.map_err(AppError::Domain)? {
+    pub async fn get_or_create_active_session(
+        &self,
+        device_id: Option<&str>,
+    ) -> AppResult<Session> {
+        if let Some(active_session) = self
+            .repository
+            .find_active_session(device_id)
+            .await
+            .map_err(AppError::Domain)?
+        {
             return Ok(active_session);
         }
 
         // No active session for this device — create one scoped to it. When the
         // caller is unscoped (admin), fall back to the legacy "default" user id.
         let owner = device_id.unwrap_or("default").to_string();
-        self.create_session(owner, "Active Session".to_string()).await
+        self.create_session(owner, "Active Session".to_string())
+            .await
     }
 
     pub async fn get_sub_sessions(&self, parent_id: &str) -> AppResult<Vec<Session>> {
@@ -149,7 +188,8 @@ impl SessionService {
     }
 
     pub async fn get_parent_session(&self, sub_session_id: &str) -> AppResult<Option<Session>> {
-        let sub_session = self.repository
+        let sub_session = self
+            .repository
             .find_by_id(sub_session_id)
             .await
             .map_err(AppError::Domain)?
@@ -166,7 +206,8 @@ impl SessionService {
     }
 
     pub async fn open_oscilloscope(&self, id: &str) -> AppResult<Session> {
-        let mut session = self.repository
+        let mut session = self
+            .repository
             .find_by_id(id)
             .await
             .map_err(AppError::Domain)?
@@ -181,7 +222,8 @@ impl SessionService {
     }
 
     pub async fn close_oscilloscope(&self, id: &str) -> AppResult<Session> {
-        let mut session = self.repository
+        let mut session = self
+            .repository
             .find_by_id(id)
             .await
             .map_err(AppError::Domain)?
@@ -201,7 +243,8 @@ impl SessionService {
         name: Option<String>,
         description: Option<String>,
     ) -> AppResult<Session> {
-        let mut session = self.repository
+        let mut session = self
+            .repository
             .find_by_id(id)
             .await
             .map_err(AppError::Domain)?
@@ -226,7 +269,8 @@ impl SessionService {
         id: &str,
         metrics: DspMetrics,
     ) -> AppResult<Session> {
-        let mut session = self.repository
+        let mut session = self
+            .repository
             .find_by_id(id)
             .await
             .map_err(AppError::Domain)?
