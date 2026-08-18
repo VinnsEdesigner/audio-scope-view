@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 
 use chrono::{DateTime, Utc};
@@ -59,7 +58,9 @@ impl Recording {
         samples: Vec<f32>,
         sample_rate: u32,
     ) -> Self {
-        use crate::domain::measurements::{analyze_waveform, find_negative_peak_amplitude, peak_to_dbfs, rms_to_dbfs};
+        use crate::domain::{
+            analyze_waveform, find_negative_peak_amplitude, peak_to_dbfs, rms_to_dbfs,
+        };
 
         let now = Utc::now();
         let duration_ms = (samples.len() as f64 / sample_rate as f64) * 1000.0;
@@ -94,12 +95,13 @@ impl Recording {
             dominant_frequency: analysis.dominant_frequency,
             frequency_high: freq_high,
             frequency_low: freq_low,
-            bit_depth: 32,             is_pinned: false,
+            bit_depth: 32,
+            is_pinned: false,
         }
     }
 
     fn compute_frequency_bounds(samples: &[f32], sample_rate: f32) -> (f32, f32) {
-        use crate::domain::fft_processor::FftProcessor;
+        use crate::domain::FftProcessor;
 
         if samples.len() < 64 {
             return (20.0, sample_rate / 2.0);

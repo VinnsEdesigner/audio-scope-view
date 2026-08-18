@@ -1,0 +1,5 @@
+# cppcheck suppressions for the audioscope C++ core.
+# The hot loops intentionally use raw indices / C-style math for clarity.
+
+unusedFunction
+missingIncludeSystem

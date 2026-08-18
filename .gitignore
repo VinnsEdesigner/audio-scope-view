@@ -24,6 +24,13 @@ build
 # Rust/Cargo build outputs
 target/
 
+# CMake/AGP native build caches (Android .cxx, CMake build dirs)
+.cxx/
+
+# Oboe is fetched on demand at CMake configure (FetchContent, pinned 1.9.0).
+# Ignore a manually re-populated source tree if present.
+sdk/bindings/android/third_party/oboe/
+
 # Temporary files
 .turbo/
 .tanstack/

@@ -5,9 +5,9 @@ use sqlx::FromRow;
 use sqlx::SqlitePool;
 
 use crate::domain::{
-    error_domain::DomainError,
     entity_user_preferences::UserPreferences,
-    trait_user_preferences_repository::{UserPreferencesRepository, DomainResult},
+    error_domain::DomainError,
+    trait_user_preferences_repository::{DomainResult, UserPreferencesRepository},
 };
 
 #[derive(FromRow)]
@@ -59,13 +59,12 @@ impl SqliteUserPreferencesRepository {
 #[async_trait::async_trait]
 impl UserPreferencesRepository for SqliteUserPreferencesRepository {
     async fn get(&self, id: &str) -> DomainResult<Option<UserPreferences>> {
-        let row: Option<UserPreferencesRow> = sqlx::query_as(
-            "SELECT * FROM user_preferences WHERE id = ?"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| DomainError::repository(format!("Database error: {}", e)))?;
+        let row: Option<UserPreferencesRow> =
+            sqlx::query_as("SELECT * FROM user_preferences WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| DomainError::repository(format!("Database error: {}", e)))?;
 
         match row {
             Some(r) => Ok(Some(r.try_into()?)),

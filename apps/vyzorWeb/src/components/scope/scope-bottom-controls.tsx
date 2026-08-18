@@ -287,7 +287,7 @@ export function ScopeBottomControls({
         <div className="px-3 py-3 border-t border-border-subtle flex flex-col gap-3">
           {}
           <div className="flex gap-1.5">
-            {(["time", "spectrum"] as const).map((v) => (
+            {(["time", "spectrum", "spectrogram"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}

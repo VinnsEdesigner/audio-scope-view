@@ -3,8 +3,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::domain::{DomainResult, Waveform};
 use crate::application::service_waveform::WaveformService;
+use crate::domain::{DomainResult, Waveform};
 
 #[derive(Debug, Clone)]
 pub struct BatchCaptureSettings {
@@ -82,10 +82,11 @@ impl BatchCaptureService {
             settings.sample_rate as f64,
         );
 
-        self.waveform_service.save(waveform.clone())
+        self.waveform_service
+            .save(waveform.clone())
             .await
             .map_err(|e| crate::domain::DomainError::InvalidOperation {
-                message: format!("Failed to save waveform: {}", e)
+                message: format!("Failed to save waveform: {}", e),
             })?;
         Ok(waveform)
     }

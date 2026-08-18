@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
@@ -76,18 +75,12 @@ impl Default for SecurityConfig {
 /// Audio capture backend selection. The server always uses cpal (live capture
 /// from a physical or virtual input device); the mock / pulse stub backends
 /// have been removed.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct AudioConfig {}
 
 impl AudioConfig {
     pub fn backend_type(&self) -> crate::infrastructure::AudioBackendType {
         crate::infrastructure::AudioBackendType::Real
-    }
-}
-
-impl Default for AudioConfig {
-    fn default() -> Self {
-        Self {}
     }
 }
 

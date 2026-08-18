@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use crate::shared::error_app::AppError;
 

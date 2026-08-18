@@ -1,5 +1,4 @@
-
-use async_graphql::{Context, Object, InputObject};
+use async_graphql::{Context, InputObject, Object};
 use tracing::info;
 
 use crate::api::context_extractor::GraphqlContext;
@@ -74,8 +73,12 @@ impl AudioInputMutationRoot {
         session_id: String,
         input: AudioInput,
     ) -> AudioSubmitResult {
-        info!("AUDIO: Received {} samples at {}Hz for session '{}'",
-              input.samples.len(), input.sample_rate, session_id);
+        info!(
+            "AUDIO: Received {} samples at {}Hz for session '{}'",
+            input.samples.len(),
+            input.sample_rate,
+            session_id
+        );
 
         if input.samples.is_empty() {
             return AudioSubmitResult {
@@ -93,13 +96,14 @@ impl AudioInputMutationRoot {
 
         let _context = ctx.data_unchecked::<GraphqlContext>();
 
-
         let num_samples = input.samples.len();
         let sample_rate = input.sample_rate;
         let duration_ms = (num_samples as f64 / sample_rate as f64 * 1000.0) as i64;
 
-        info!("AUDIO: Processing {} samples ({}ms) at {}Hz",
-              num_samples, duration_ms, sample_rate);
+        info!(
+            "AUDIO: Processing {} samples ({}ms) at {}Hz",
+            num_samples, duration_ms, sample_rate
+        );
 
         AudioSubmitResult {
             success: true,

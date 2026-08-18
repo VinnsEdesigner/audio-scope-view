@@ -1,11 +1,10 @@
-
 #![allow(dead_code)]
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 use sqlx::SqlitePool;
 
-use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
 use crate::domain::trait_settings_repository::SettingsRepository;
+use crate::domain::{Settings, TriggerEdge, TriggerMode, error_domain::DomainError};
 
 #[derive(FromRow)]
 struct SettingsRow {
@@ -80,7 +79,7 @@ impl SqliteSettingsRepository {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
-    
+
     pub fn pool(&self) -> &SqlitePool {
         &self.pool
     }
@@ -192,12 +191,16 @@ impl SqliteSettingsRepository {
         }
     }
 
-    pub async fn find_by_session_id(&self, session_id: &str) -> DomainErrorResult<Option<Settings>> {
-        let row: Option<SettingsRow> = sqlx::query_as("SELECT * FROM settings WHERE session_id = ?")
-            .bind(session_id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx_err)?;
+    pub async fn find_by_session_id(
+        &self,
+        session_id: &str,
+    ) -> DomainErrorResult<Option<Settings>> {
+        let row: Option<SettingsRow> =
+            sqlx::query_as("SELECT * FROM settings WHERE session_id = ?")
+                .bind(session_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_sqlx_err)?;
 
         match row {
             Some(r) => Ok(Some(r.try_into()?)),

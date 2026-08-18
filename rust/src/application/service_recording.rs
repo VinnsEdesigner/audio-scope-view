@@ -1,7 +1,9 @@
-
 #![allow(dead_code)]
 
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, ScopeStatus, SessionWithStatus, TimeRange};
+use crate::domain::recording::{
+    Recording, RecordingFilter, RecordingMetadata, RecordingStats, RecordingSummary, ScopeStatus,
+    SessionWithStatus, TimeRange,
+};
 use crate::infrastructure::repo_trait_recording::RecordingRepository;
 use crate::infrastructure::repo_trait_session::SessionRepository;
 use crate::shared::{AppError, AppResult};
@@ -65,7 +67,12 @@ impl RecordingService {
     }
 
     pub async fn rename(&self, id: &str, new_name: &str) -> AppResult<Option<Recording>> {
-        let mut recording = match self.repository.find_by_id(id).await.map_err(AppError::Domain)? {
+        let mut recording = match self
+            .repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+        {
             Some(r) => r,
             None => return Ok(None),
         };
@@ -78,7 +85,12 @@ impl RecordingService {
     }
 
     pub async fn toggle_pin(&self, id: &str) -> AppResult<Option<Recording>> {
-        let mut recording = match self.repository.find_by_id(id).await.map_err(AppError::Domain)? {
+        let mut recording = match self
+            .repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+        {
             Some(r) => r,
             None => return Ok(None),
         };
@@ -91,7 +103,12 @@ impl RecordingService {
     }
 
     pub async fn set_pin(&self, id: &str, pinned: bool) -> AppResult<Option<Recording>> {
-        let mut recording = match self.repository.find_by_id(id).await.map_err(AppError::Domain)? {
+        let mut recording = match self
+            .repository
+            .find_by_id(id)
+            .await
+            .map_err(AppError::Domain)?
+        {
             Some(r) => r,
             None => return Ok(None),
         };
@@ -104,10 +121,7 @@ impl RecordingService {
     }
 
     pub async fn delete(&self, id: &str) -> AppResult<()> {
-        self.repository
-            .delete(id)
-            .await
-            .map_err(AppError::Domain)
+        self.repository.delete(id).await.map_err(AppError::Domain)
     }
 
     pub async fn delete_many(&self, ids: &[String]) -> AppResult<u64> {
@@ -146,23 +160,30 @@ impl RecordingService {
         limit: u32,
         offset: u32,
     ) -> AppResult<(Vec<SessionWithStatus>, u64, bool)> {
-        let sessions = self.session_repository
+        let sessions = self
+            .session_repository
             .find_all_sessions(device_id, limit, offset)
             .await
             .map_err(AppError::Domain)?;
 
-        let total = self.session_repository
+        let total = self
+            .session_repository
             .count_sessions(device_id)
             .await
             .map_err(AppError::Domain)? as u64;
 
         let mut sessions_with_status: Vec<SessionWithStatus> = Vec::new();
         for session in sessions {
-            let recording_count = self.repository
+            let recording_count = self
+                .repository
                 .count_by_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            let short_id = if session.id.len() >= 8 { &session.id[..8] } else { &session.id };
+            let short_id = if session.id.len() >= 8 {
+                &session.id[..8]
+            } else {
+                &session.id
+            };
             sessions_with_status.push(SessionWithStatus {
                 id: session.id.clone(),
                 name: format!("Session {}", short_id),
@@ -185,21 +206,33 @@ impl RecordingService {
         Ok((sessions_with_status, total, has_more))
     }
 
-    pub async fn get_active_sessions_with_status(&self, device_id: Option<&str>) -> AppResult<Vec<SessionWithStatus>> {
-        let sessions = self.session_repository
+    pub async fn get_active_sessions_with_status(
+        &self,
+        device_id: Option<&str>,
+    ) -> AppResult<Vec<SessionWithStatus>> {
+        let sessions = self
+            .session_repository
             .find_all_sessions(device_id, 100, 0)
             .await
             .map_err(AppError::Domain)?;
 
-        let active_sessions: Vec<_> = sessions.into_iter().filter(|s| s.ended_at.is_none()).collect();
+        let active_sessions: Vec<_> = sessions
+            .into_iter()
+            .filter(|s| s.ended_at.is_none())
+            .collect();
 
         let mut sessions_with_status: Vec<SessionWithStatus> = Vec::new();
         for session in active_sessions {
-            let recording_count = self.repository
+            let recording_count = self
+                .repository
                 .count_by_scope(&session.id)
                 .await
                 .unwrap_or(0);
-            let short_id = if session.id.len() >= 8 { &session.id[..8] } else { &session.id };
+            let short_id = if session.id.len() >= 8 {
+                &session.id[..8]
+            } else {
+                &session.id
+            };
             sessions_with_status.push(SessionWithStatus {
                 id: session.id.clone(),
                 name: format!("Session {}", short_id),
@@ -217,8 +250,12 @@ impl RecordingService {
         Ok(sessions_with_status)
     }
 
-    pub async fn get_session_status_counts(&self, device_id: Option<&str>) -> crate::domain::recording::ScopeStatusCounts {
-        let sessions = self.session_repository
+    pub async fn get_session_status_counts(
+        &self,
+        device_id: Option<&str>,
+    ) -> crate::domain::recording::ScopeStatusCounts {
+        let sessions = self
+            .session_repository
             .find_all_sessions(device_id, 1000, 0)
             .await
             .unwrap_or_default();

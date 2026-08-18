@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "scheme": "vyzorix-mobile",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -24,25 +25,18 @@
       },
       "permissions": [
         "INTERNET",
-        "CAMERA"
+        "RECORD_AUDIO"
       ],
       "usesCleartextTraffic": true,
       "proguardRuleFile": "./proguard-rules.pro"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0"
-          }
-        }
-      ]
-    ]
+    "plugins": ["expo-router"],
+    "experiments": {
+      "tsconfigPaths": true
+    }
   }
 }

@@ -60,8 +60,9 @@ rust/
 │   │
 │   ├── infrastructure/                     # ═══════════════════════════════════
 │   │   ├── mod.rs                          # Module root & re-exports
-│   │   ├── database_connection.rs          # SQLite connection pool
+│   │   ├── database_connection.rs          # SQLite/Turso connection selector
 │   │   ├── database_migrations.rs          # Migration runner
+│   │   ├── android.rs                     # [feature=android] on-device SQLite backend
 │   │   ├── repo_sqlite_scope.rs            # SQLite scope implementation
 │   │   ├── repo_sqlite_settings.rs         # SQLite settings implementation
 │   │   ├── audio_capture_alsa.rs           # ALSA audio capture impl

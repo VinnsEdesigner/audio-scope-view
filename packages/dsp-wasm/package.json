@@ -1,0 +1,32 @@
+{
+  "name": "@audio-scope-view/dsp-wasm",
+  "version": "0.1.0",
+  "description": "TypeScript wrapper over the C++ DSP core compiled to WebAssembly.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./worklets/dsp-processor": {
+      "types": "./src/worklets/dsp-processor.d.ts",
+      "default": "./src/worklets/dsp-processor.js"
+    },
+    "./dist/*": "./dist/*"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,10 +1,12 @@
-
 #![allow(dead_code)]
 
 use async_graphql::{Context, InputObject, Object, SimpleObject};
 
 use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};
-use crate::domain::recording::{Recording, RecordingSummary, RecordingStats, RecordingFilter, RecordingMetadata, ScopeStatus, SessionWithStatus, TimeRange};
+use crate::domain::recording::{
+    Recording, RecordingFilter, RecordingMetadata, RecordingStats, RecordingSummary, ScopeStatus,
+    SessionWithStatus, TimeRange,
+};
 
 #[derive(Debug, SimpleObject)]
 pub struct RecordingOutput {
@@ -291,7 +293,8 @@ pub struct SessionListResultOutput {
 #[derive(Debug, InputObject)]
 pub struct RecordingFilterInput {
     pub session_id: Option<String>,
-    pub time_range: Option<String>,     pub is_pinned: Option<bool>,
+    pub time_range: Option<String>,
+    pub is_pinned: Option<bool>,
     pub search_query: Option<String>,
 }
 
@@ -350,10 +353,10 @@ async fn recording_belongs_to_device(
         .await
         .map_err(|e| async_graphql::Error::new(format!("Failed to load session: {:?}", e)))?
         .ok_or_else(|| async_graphql::Error::new("Recording not found"))?;
-    if let Some(ref did) = device_scope_from_context(ctx) {
-        if session.user_id != *did {
-            return Err(async_graphql::Error::new("Recording not found"));
-        }
+    if let Some(ref did) = device_scope_from_context(ctx)
+        && session.user_id != *did
+    {
+        return Err(async_graphql::Error::new("Recording not found"));
     }
     Ok(())
 }
@@ -387,7 +390,9 @@ async fn assert_session_belongs_to_device(
 #[Object]
 impl RecordingQuery {
     async fn recording(&self, ctx: &Context<'_>, id: String) -> Option<RecordingOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let recording = context.recording_service.get(&id).await.ok().flatten()?;
         // Enforce device isolation: a device must not read another device's
         // recording. Returns None (rather than an error) to match the query's
@@ -399,18 +404,32 @@ impl RecordingQuery {
         Some(RecordingOutput::from_recording(recording, session_name))
     }
 
-    async fn recording_preview(&self, ctx: &Context<'_>, id: String) -> Option<RecordingPreviewOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
-        let metadata = context.recording_service.get_metadata(&id).await.ok().flatten()?;
+    async fn recording_preview(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+    ) -> Option<RecordingPreviewOutput> {
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
+        let metadata = context
+            .recording_service
+            .get_metadata(&id)
+            .await
+            .ok()
+            .flatten()?;
         // Verify ownership via the underlying recording's session. Fetch the
         // full recording to access session_id for the device check.
-        if let Some(recording) = context.recording_service.get(&id).await.ok().flatten() {
-            if recording_belongs_to_device(ctx, &recording).await.is_err() {
-                return None;
-            }
+        if let Some(recording) = context.recording_service.get(&id).await.ok().flatten()
+            && recording_belongs_to_device(ctx, &recording).await.is_err()
+        {
+            return None;
         }
         let session_name = "Recording".to_string();
-        Some(RecordingPreviewOutput::from_metadata(metadata, session_name))
+        Some(RecordingPreviewOutput::from_metadata(
+            metadata,
+            session_name,
+        ))
     }
 
     async fn recordings(
@@ -420,7 +439,9 @@ impl RecordingQuery {
         limit: Option<i32>,
         offset: Option<i32>,
     ) -> RecordingListResultOutput {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
 
@@ -457,17 +478,23 @@ impl RecordingQuery {
                     .filter(|s| set.contains(&s.session_id))
                     .collect();
                 let count = filtered.len() as i64;
-                (filtered
-                    .into_iter()
-                    .map(|summary| RecordingSummaryOutput::from_summary(summary, "Recording".to_string()))
-                    .collect(),
-                 count)
+                (
+                    filtered
+                        .into_iter()
+                        .map(|summary| {
+                            RecordingSummaryOutput::from_summary(summary, "Recording".to_string())
+                        })
+                        .collect(),
+                    count,
+                )
             }
             None => (
                 result
                     .0
                     .into_iter()
-                    .map(|summary| RecordingSummaryOutput::from_summary(summary, "Recording".to_string()))
+                    .map(|summary| {
+                        RecordingSummaryOutput::from_summary(summary, "Recording".to_string())
+                    })
                     .collect(),
                 result.1 as i64,
             ),
@@ -485,7 +512,9 @@ impl RecordingQuery {
         ctx: &Context<'_>,
         limit: Option<i32>,
     ) -> Vec<RecordingSummaryOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let limit = limit.unwrap_or(10).clamp(1, 50) as u32;
 
         let recordings = context
@@ -497,7 +526,10 @@ impl RecordingQuery {
         // Scope to the requesting device's sessions. Unscoped admins see all.
         let allowed = device_session_ids(ctx).await.ok().flatten();
         let recordings: Vec<_> = match allowed {
-            Some(set) => recordings.into_iter().filter(|s| set.contains(&s.session_id)).collect(),
+            Some(set) => recordings
+                .into_iter()
+                .filter(|s| set.contains(&s.session_id))
+                .collect(),
             None => recordings,
         };
 
@@ -513,7 +545,9 @@ impl RecordingQuery {
         session_id: Option<String>,
         time_range: Option<String>,
     ) -> RecordingStatsOutput {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let device_id = device_scope_from_context(ctx);
 
         let range = time_range.as_ref().map(|t| match t.as_str() {
@@ -542,7 +576,9 @@ impl RecordingQuery {
         limit: Option<i32>,
         offset: Option<i32>,
     ) -> SessionListResultOutput {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let limit = limit.unwrap_or(20).clamp(1, 100) as u32;
         let offset = offset.unwrap_or(0).max(0) as u32;
         let device_id = device_scope_from_context(ctx);
@@ -552,7 +588,10 @@ impl RecordingQuery {
             .get_sessions_with_status(device_id.as_deref(), limit, offset)
             .await
             .map(|(sessions, total, has_more)| SessionListResultOutput {
-                sessions: sessions.into_iter().map(RecordingSessionWithStatusOutput::from).collect(),
+                sessions: sessions
+                    .into_iter()
+                    .map(RecordingSessionWithStatusOutput::from)
+                    .collect(),
                 total: total as i64,
                 has_more,
             })
@@ -567,7 +606,9 @@ impl RecordingQuery {
         &self,
         ctx: &Context<'_>,
     ) -> Vec<RecordingSessionWithStatusOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let device_id = device_scope_from_context(ctx);
         context
             .recording_service
@@ -580,9 +621,14 @@ impl RecordingQuery {
     }
 
     async fn session_status_counts(&self, ctx: &Context<'_>) -> RecordingSessionStatusCountsOutput {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let device_id = device_scope_from_context(ctx);
-        let counts = context.recording_service.get_session_status_counts(device_id.as_deref()).await;
+        let counts = context
+            .recording_service
+            .get_session_status_counts(device_id.as_deref())
+            .await;
         let total = counts.live + counts.paused + counts.offline;
         RecordingSessionStatusCountsOutput {
             live_count: counts.live as i64,
@@ -597,7 +643,9 @@ impl RecordingQuery {
         ctx: &Context<'_>,
         session_id: Option<String>,
     ) -> RecordingStatsOutput {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let device_id = device_scope_from_context(ctx);
         context
             .recording_service
@@ -623,10 +671,15 @@ impl RecordingMutation {
         ctx: &Context<'_>,
         input: CreateRecordingInput,
     ) -> Option<RecordingOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
 
         // Prevent a device from attaching a recording to another device's session.
-        if assert_session_belongs_to_device(ctx, &input.session_id).await.is_err() {
+        if assert_session_belongs_to_device(ctx, &input.session_id)
+            .await
+            .is_err()
+        {
             return None;
         }
 
@@ -663,12 +716,14 @@ impl RecordingMutation {
         id: String,
         name: String,
     ) -> Option<RecordingOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         // Verify ownership before mutating. Fetch the recording first.
-        if let Some(rec) = context.recording_service.get(&id).await.ok().flatten() {
-            if recording_belongs_to_device(ctx, &rec).await.is_err() {
-                return None;
-            }
+        if let Some(rec) = context.recording_service.get(&id).await.ok().flatten()
+            && recording_belongs_to_device(ctx, &rec).await.is_err()
+        {
+            return None;
         }
         let recording = context.recording_service.rename(&id, &name).await.ok()??;
 
@@ -686,12 +741,14 @@ impl RecordingMutation {
     }
 
     async fn pin_recording(&self, ctx: &Context<'_>, id: String) -> Option<RecordingOutput> {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         // Verify ownership before toggling pin.
-        if let Some(rec) = context.recording_service.get(&id).await.ok().flatten() {
-            if recording_belongs_to_device(ctx, &rec).await.is_err() {
-                return None;
-            }
+        if let Some(rec) = context.recording_service.get(&id).await.ok().flatten()
+            && recording_belongs_to_device(ctx, &rec).await.is_err()
+        {
+            return None;
         }
         let recording = context.recording_service.toggle_pin(&id).await.ok()??;
 
@@ -709,25 +766,29 @@ impl RecordingMutation {
     }
 
     async fn delete_recording(&self, ctx: &Context<'_>, id: String) -> bool {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         // Verify ownership before deleting.
-        if let Some(rec) = context.recording_service.get(&id).await.ok().flatten() {
-            if recording_belongs_to_device(ctx, &rec).await.is_err() {
-                return false;
-            }
+        if let Some(rec) = context.recording_service.get(&id).await.ok().flatten()
+            && recording_belongs_to_device(ctx, &rec).await.is_err()
+        {
+            return false;
         }
         context.recording_service.delete(&id).await.is_ok()
     }
 
     async fn delete_recordings(&self, ctx: &Context<'_>, ids: Vec<String>) -> i64 {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let mut deleted = 0;
         for id in ids {
             // Verify ownership before deleting each recording.
-            if let Some(rec) = context.recording_service.get(&id).await.ok().flatten() {
-                if recording_belongs_to_device(ctx, &rec).await.is_err() {
-                    continue;
-                }
+            if let Some(rec) = context.recording_service.get(&id).await.ok().flatten()
+                && recording_belongs_to_device(ctx, &rec).await.is_err()
+            {
+                continue;
             }
             if context.recording_service.delete(&id).await.is_ok() {
                 deleted += 1;
@@ -737,14 +798,16 @@ impl RecordingMutation {
     }
 
     async fn pin_recordings(&self, ctx: &Context<'_>, ids: Vec<String>, pinned: bool) -> i64 {
-        let context = ctx.data::<GraphqlContext>().expect("Missing GraphqlContext");
+        let context = ctx
+            .data::<GraphqlContext>()
+            .expect("Missing GraphqlContext");
         let mut updated = 0;
         for id in &ids {
             // Verify ownership before pinning/unpinning each recording.
-            if let Some(rec) = context.recording_service.get(id).await.ok().flatten() {
-                if recording_belongs_to_device(ctx, &rec).await.is_err() {
-                    continue;
-                }
+            if let Some(rec) = context.recording_service.get(id).await.ok().flatten()
+                && recording_belongs_to_device(ctx, &rec).await.is_err()
+            {
+                continue;
             }
             if context.recording_service.set_pin(id, pinned).await.is_ok() {
                 updated += 1;

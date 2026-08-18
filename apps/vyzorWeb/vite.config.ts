@@ -71,8 +71,12 @@ export default defineConfig(({ command, mode }) => {
     },
 
     optimizeDeps: {
-      include: ["tamagui", "@tamagui/core", "@audio-scope-view/tamagui"],
+      include: ["tamagui", "@tamagui/core", "@audio-scope-view/tamagui", "@audio-scope-view/dsp-wasm"],
     },
+
+    // The WASM DSP artifact (packages/dsp-wasm/dist/audioscope.wasm) must be
+    // served as a fetchable asset in dev and emitted as a build asset.
+    assetsInclude: ["**/*.wasm"],
 
     build: isSsrBuild
       ? {

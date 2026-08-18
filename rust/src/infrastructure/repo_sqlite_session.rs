@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::domain::{Session, error_domain::DomainError};
-use crate::infrastructure::repo_trait_session::{SessionRepository, DomainErrorResult};
+use crate::infrastructure::repo_trait_session::{DomainErrorResult, SessionRepository};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
@@ -41,7 +41,9 @@ impl TryFrom<SessionRow> for Session {
             started_at: parse_datetime(&row.started_at)?,
             ended_at: row.ended_at.and_then(|s| parse_datetime(&s).ok()),
             duration_seconds: row.duration_seconds,
-            oscilloscope_opened_at: row.oscilloscope_opened_at.and_then(|s| parse_datetime(&s).ok()),
+            oscilloscope_opened_at: row
+                .oscilloscope_opened_at
+                .and_then(|s| parse_datetime(&s).ok()),
             oscilloscope_duration_ms: row.oscilloscope_duration_ms,
             parent_session_id: row.parent_session_id,
             is_sub_session: row.is_sub_session,
@@ -154,7 +156,10 @@ impl SessionRepository for SqliteSessionRepository {
         }
     }
 
-    async fn find_active_session(&self, device_id: Option<&str>) -> DomainErrorResult<Option<Session>> {
+    async fn find_active_session(
+        &self,
+        device_id: Option<&str>,
+    ) -> DomainErrorResult<Option<Session>> {
         let row: Option<SessionRow> = match device_id {
             Some(d) => sqlx::query_as(
                 "SELECT * FROM sessions WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1",
@@ -177,7 +182,12 @@ impl SessionRepository for SqliteSessionRepository {
         }
     }
 
-    async fn find_all_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_all_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> = match device_id {
             Some(d) => sqlx::query_as(
                 "SELECT * FROM sessions WHERE is_sub_session = FALSE AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",
@@ -217,19 +227,17 @@ impl SessionRepository for SqliteSessionRepository {
             .fetch_one(&self.pool)
             .await
             .map_err(map_sqlx_err)?,
-            None => sqlx::query_as(
-                "SELECT COUNT(*) FROM sessions WHERE is_sub_session = FALSE",
-            )
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx_err)?,
+            None => sqlx::query_as("SELECT COUNT(*) FROM sessions WHERE is_sub_session = FALSE")
+                .fetch_one(&self.pool)
+                .await
+                .map_err(map_sqlx_err)?,
         };
         Ok(row.0 as u32)
     }
 
     async fn find_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> = sqlx::query_as(
-            "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC"
+            "SELECT * FROM sessions WHERE parent_session_id = ? ORDER BY started_at ASC",
         )
         .bind(parent_id)
         .fetch_all(&self.pool)
@@ -259,17 +267,21 @@ impl SessionRepository for SqliteSessionRepository {
     }
 
     async fn count_sub_sessions(&self, parent_id: &str) -> DomainErrorResult<u32> {
-        let row: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM sessions WHERE parent_session_id = ?"
-        )
-        .bind(parent_id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_sqlx_err)?;
+        let row: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM sessions WHERE parent_session_id = ?")
+                .bind(parent_id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(map_sqlx_err)?;
         Ok(row.0 as u32)
     }
 
-    async fn find_main_sessions(&self, device_id: Option<&str>, limit: u32, offset: u32) -> DomainErrorResult<Vec<Session>> {
+    async fn find_main_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> DomainErrorResult<Vec<Session>> {
         let rows: Vec<SessionRow> = match device_id {
             Some(d) => sqlx::query_as(
                 "SELECT * FROM sessions WHERE is_sub_session = FALSE AND user_id = ? ORDER BY started_at DESC LIMIT ? OFFSET ?",

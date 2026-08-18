@@ -1,0 +1,10 @@
+# exports.version — linker version script for libaudioscope_dsp.so.
+# Expose only the JNI entry points (Java_com_audioscope_dsp_*) and let the
+# C ABI symbols be internal so the .so surface stays minimal.
+{
+  global:
+    Java_com_audioscope_dsp_*;
+    JNI_OnLoad;
+  local:
+    *;
+};

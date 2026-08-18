@@ -80,8 +80,7 @@ mod tests {
 
     #[test]
     fn test_with_auto_select() {
-        let prefs = UserPreferences::new("prefs-1".to_string())
-            .with_auto_select(false);
+        let prefs = UserPreferences::new("prefs-1".to_string()).with_auto_select(false);
 
         assert!(!prefs.auto_select_last_session);
     }

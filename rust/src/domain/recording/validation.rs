@@ -1,8 +1,7 @@
-
 #![allow(dead_code)]
 
-use super::errors::RecordingError;
 use super::Recording;
+use super::errors::RecordingError;
 
 const MAX_NAME_LENGTH: usize = 255;
 
@@ -18,7 +17,9 @@ impl RecordingValidator {
         let trimmed = name.trim();
 
         if trimmed.is_empty() {
-            return Err(RecordingError::InvalidName("Name cannot be empty".to_string()));
+            return Err(RecordingError::InvalidName(
+                "Name cannot be empty".to_string(),
+            ));
         }
 
         if trimmed.len() > MAX_NAME_LENGTH {
