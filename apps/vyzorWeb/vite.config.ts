@@ -65,6 +65,7 @@ export default defineConfig(({ command, mode }) => {
         "@audio-scope-view/ui-radix": resolve(__dirname, "../../packages/ui-radix/src"),
         "@audio-scope-view/tamagui": resolve(__dirname, "../../packages/tamagui/src"),
         "@audio-scope-view/api-client": resolve(__dirname, "../../packages/api-client/src"),
+        "@audio-scope-view/dsp-wasm": resolve(__dirname, "../../packages/dsp-wasm"),
         "@audio-scope-view/tailwind": resolve(__dirname, "../../packages/tailwind/src"),
         "tamagui": resolve(__dirname, "./node_modules/tamagui"),
       },

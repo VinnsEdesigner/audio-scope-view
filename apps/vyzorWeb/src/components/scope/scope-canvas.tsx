@@ -198,6 +198,10 @@ export function ScopeCanvas({
     let animationFrameId: number;
     let cssWidth = 0;
     let cssHeight = 0;
+    let cachedSpectrum: Spectrum | null = null;
+    let lastSpectrumUpdate = -Infinity;
+    let lastWaterfallUpdate = -Infinity;
+    let previousSampleRate = 0;
 
     const draw = () => {
       const rect = canvas.getBoundingClientRect();
@@ -247,19 +251,32 @@ export function ScopeCanvas({
       const liveFrame = waveformDataReference.current;
       const fullFrame = analysisFrameReference.current;
       const dsp = getDsp();
+      const now = performance.now();
+      const frequencyLimit = Math.min(sr / 2, 20_000);
+      const frequencyPlot = { x: 0, y: 0, w: physW, h: Math.max(1, physH - 24 * dpr) };
+      if (previousSampleRate !== sr) {
+        previousSampleRate = sr;
+        cachedSpectrum = null;
+        lastSpectrumUpdate = -Infinity;
+        lastWaterfallUpdate = -Infinity;
+        bundle.spectrogram.clear();
+      }
 
       // ---- Spectrum view -------------------------------------------------
       if (view === "spectrum") {
         const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
-        if (dsp && data.length >= 8) {
-          const spectrum = dsp.computeSpectrum(data, sr, "hann");
+        if (dsp && data.length >= 8 && (!cachedSpectrum || (!paused && now - lastSpectrumUpdate >= 1000 / 30))) {
+          cachedSpectrum = dsp.computeSpectrum(data, sr, "hann");
+          lastSpectrumUpdate = now;
+        }
+        if (cachedSpectrum) {
           bundle.spectrum.draw({
-            magnitudesDb: spectrum.magnitudesDb,
-            frequencies: spectrum.frequencies,
+            magnitudesDb: cachedSpectrum.magnitudesDb,
+            frequencies: cachedSpectrum.frequencies,
             sampleRate: sr,
-            rect: { x: 0, y: 0, w: physW, h: physH },
+            rect: frequencyPlot,
           });
-          drawSpectrumAxisLabels(bundle.glyph, spectrum, cssWidth, physH, dpr);
+          drawSpectrumAxisLabels(bundle.glyph, frequencyLimit, cssWidth, physH, dpr);
         }
         animationFrameId = requestAnimationFrame(draw);
         return;
@@ -268,17 +285,19 @@ export function ScopeCanvas({
       // ---- Spectrogram view (waterfall) ---------------------------------
       if (view === "spectrogram") {
         const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
-        if (dsp && data.length >= 256) {
-          // One STFT slice per frame (config tuned for the waterfall).
+        if (dsp && data.length >= 512 && !paused && now - lastWaterfallUpdate >= 1000 / 30) {
+          // Fixed acquisition cadence: monitor refresh rate must not change history speed.
           const sg = dsp.computeSpectrogram(data, sr, {
             windowSize: 512,
             overlap: 0.5,
-            minFreq: 20,
-            maxFreq: Math.min(sr / 2, 20_000),
+            minFreq: 0,
+            maxFreq: frequencyLimit,
           });
-          bundle.spectrogram.pushSlice(sg);
+          bundle.spectrogram.pushSlice(sg, frequencyLimit);
+          lastWaterfallUpdate = now;
         }
-        bundle.spectrogram.draw({ data: { frequencies: new Float32Array(), timeBins: new Int32Array(0), magnitudes: [], sampleRate: sr, windowSize: 0, overlap: 0 }, rect: { x: 0, y: 0, w: physW, h: physH } });
+        bundle.spectrogram.draw({ rect: frequencyPlot });
+        drawSpectrumAxisLabels(bundle.glyph, frequencyLimit, cssWidth, physH, dpr);
         animationFrameId = requestAnimationFrame(draw);
         return;
       }
@@ -488,20 +507,19 @@ export function ScopeCanvas({
  */
 function drawSpectrumAxisLabels(
   glyph: GlyphRenderer,
-  spectrum: Spectrum,
+  maxFrequency: number,
   cssWidth: number,
   physH: number,
   dpr: number,
 ): void {
-  const maxFrequency = Math.min(spectrum.sampleRate / 2, 20_000);
   const labelColor: [number, number, number, number] = [1, 1, 1, 0.5];
   for (let step = 0; step <= 4; step++) {
     const ratio = step / 4;
     const frequency = ratio * maxFrequency;
     const label =
       frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
-    const x = Math.min(cssWidth - 22, ratio * cssWidth + 2);
+    const x = Math.min(cssWidth - label.length * 6 - 2, ratio * cssWidth + 2);
     const y = (physH / dpr) - 5 - 10; // 10px font, 5px margin from bottom
-    glyph.drawText(label, x, y, 10 * dpr, labelColor);
+    glyph.drawText(label, x * dpr, y * dpr, 10 * dpr, labelColor);
   }
 }
