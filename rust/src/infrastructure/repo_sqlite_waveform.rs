@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use chrono::{DateTime, Utc};
 use serde_json;
@@ -12,7 +11,8 @@ use crate::domain::{Waveform, error_domain::DomainError};
 struct WaveformRow {
     id: String,
     session_id: String,
-    samples: String,     sample_count: i32,
+    samples: String,
+    sample_count: i32,
     timestamp: String,
     duration_ms: f64,
     peak_amplitude: f32,
@@ -173,7 +173,10 @@ impl SqliteWaveformRepository {
         Ok(result.rows_affected() as u64)
     }
 
-    pub async fn get_statistics(&self, session_id: &str) -> Result<WaveformStatistics, DomainError> {
+    pub async fn get_statistics(
+        &self,
+        session_id: &str,
+    ) -> Result<WaveformStatistics, DomainError> {
         let row: Option<WaveformStatsRow> = sqlx::query_as(
             r#"
             SELECT
@@ -232,7 +235,11 @@ impl WaveformRepository for SqliteWaveformRepository {
         SqliteWaveformRepository::find_by_session(self, session_id, limit, offset).await
     }
 
-    async fn find_recent(&self, session_id: &str, limit: u32) -> Result<Vec<Waveform>, DomainError> {
+    async fn find_recent(
+        &self,
+        session_id: &str,
+        limit: u32,
+    ) -> Result<Vec<Waveform>, DomainError> {
         SqliteWaveformRepository::find_recent(self, session_id, limit).await
     }
 

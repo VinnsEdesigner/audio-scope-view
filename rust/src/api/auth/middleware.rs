@@ -10,11 +10,7 @@ use axum::{
 
 use super::api_key::ApiKeyStore;
 
-pub async fn auth_middleware(
-    req: Request,
-    next: Next,
-    key_store: Arc<ApiKeyStore>,
-) -> Response {
+pub async fn auth_middleware(req: Request, next: Next, key_store: Arc<ApiKeyStore>) -> Response {
     let auth_header = req
         .headers()
         .get("authorization")
@@ -33,7 +29,10 @@ pub async fn auth_middleware(
     };
 
     if let Some(key) = api_key {
-        if !key_store.check_rate_limit(&key.key, key.rate_limit_per_minute).await {
+        if !key_store
+            .check_rate_limit(&key.key, key.rate_limit_per_minute)
+            .await
+        {
             return (
                 axum::http::StatusCode::TOO_MANY_REQUESTS,
                 "Rate limit exceeded",

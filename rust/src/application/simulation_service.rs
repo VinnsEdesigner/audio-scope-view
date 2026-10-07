@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-use crate::domain::{DomainResult, Waveform};
 use crate::application::service_waveform::WaveformService;
+use crate::domain::{DomainResult, Waveform};
 
 #[derive(Debug, Clone)]
 pub struct SimulationConfig {

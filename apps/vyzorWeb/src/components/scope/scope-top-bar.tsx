@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Sun, Play, Pause, Square, MoreVertical } from "lucide-react";
-import { TestModeIcon } from "@/components/icons/test-mode-icon";
+import { Sun, Play, Pause, Square, MoreVertical, Activity } from "lucide-react";
 import { useAudioAnalyzer } from "@/hooks";
 import type { SessionMode } from "@/store";
 
@@ -164,12 +163,12 @@ export function ScopeTopBar({
         onClick={onToggleTestMode}
         className={`ml-2 p-2 rounded-md transition-colors ${
           testMode
-            ? "bg-neutral-500/20 text-neutral-400 hover:bg-neutral-500/30"
+            ? "bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
             : "bg-bg-elevated text-text-secondary hover:text-foreground"
         }`}
-        title={testMode ? "Test Mode Active - Click to disable" : "Enable Test Mode (Mock Audio)"}
+        title={testMode ? "Waveform Generator Active - Click to close" : "Open Waveform Generator"}
       >
-        <TestModeIcon size={16} />
+        <Activity size={16} />
       </button>
 
       {}

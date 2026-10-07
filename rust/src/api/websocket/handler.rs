@@ -1,43 +1,60 @@
-
 #![allow(dead_code)]
 
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         Query, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::{IntoResponse, Response},
-    routing::get,
-    Router,
 };
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 use tokio::time::interval;
-use tower_http::cors::CorsLayer;
 use tracing::{debug, error, info, warn};
 
-use crate::api::server_graphql::{AppState, AuthHeaderExt, DeviceIdExt, RequestIdentity};
-use crate::domain::compression::compress_waveform;
-use crate::shared::constants::is_valid_device_id;
 use super::client::{OutgoingMessage, WsClient, WsMessage};
+use crate::api::server_graphql::{AppState, AuthHeaderExt, DeviceIdExt, RequestIdentity};
+use crate::domain::compress_waveform;
+use crate::shared::constants::is_valid_device_id;
 
 pub struct WsState {
     pub clients: RwLock<HashMap<String, ClientConnection>>,
     config: WsConfig,
     #[doc(hidden)]
-    pub waveform_subscribers: RwLock<HashMap<String, tokio::sync::broadcast::Sender<crate::api::schema_subscription::WaveformData>>>,
+    pub waveform_subscribers: RwLock<
+        HashMap<
+            String,
+            tokio::sync::broadcast::Sender<crate::api::schema_subscription::WaveformData>,
+        >,
+    >,
     #[doc(hidden)]
-    pub spectrum_subscribers: RwLock<HashMap<String, tokio::sync::broadcast::Sender<crate::api::schema_subscription::SpectrumData>>>,
+    pub spectrum_subscribers: RwLock<
+        HashMap<
+            String,
+            tokio::sync::broadcast::Sender<crate::api::schema_subscription::SpectrumData>,
+        >,
+    >,
     #[doc(hidden)]
-    pub stats_subscribers: RwLock<HashMap<String, tokio::sync::broadcast::Sender<crate::api::schema_subscription::AudioStats>>>,
+    pub stats_subscribers: RwLock<
+        HashMap<
+            String,
+            tokio::sync::broadcast::Sender<crate::api::schema_subscription::AudioStats>,
+        >,
+    >,
     #[doc(hidden)]
-    pub analysis_subscribers: RwLock<HashMap<String, tokio::sync::broadcast::Sender<crate::api::schema_subscription::AnalysisResult>>>,
+    pub analysis_subscribers: RwLock<
+        HashMap<
+            String,
+            tokio::sync::broadcast::Sender<crate::api::schema_subscription::AnalysisResult>,
+        >,
+    >,
     #[doc(hidden)]
-    pub all_waveform_subscribers: RwLock<Vec<tokio::sync::broadcast::Sender<crate::api::schema_subscription::WaveformData>>>,
+    pub all_waveform_subscribers:
+        RwLock<Vec<tokio::sync::broadcast::Sender<crate::api::schema_subscription::WaveformData>>>,
     live_waveform_buffers: RwLock<HashMap<String, LiveWaveformBuffer>>,
 }
 
@@ -99,8 +116,10 @@ impl Default for WsConfig {
         Self {
             ping_interval_secs: 30,
             channel_size: 256,
-            max_message_size: 1024 * 1024,             compression_enabled: true,
-            compression_threshold: 1024,         }
+            max_message_size: 1024 * 1024,
+            compression_enabled: true,
+            compression_threshold: 1024,
+        }
     }
 }
 
@@ -134,7 +153,11 @@ impl WsState {
         self.clients.read().await.get(client_id).cloned()
     }
 
-    pub async fn broadcast_to_graphql_waveform(&self, session_id: &str, data: crate::api::schema_subscription::WaveformData) {
+    pub async fn broadcast_to_graphql_waveform(
+        &self,
+        session_id: &str,
+        data: crate::api::schema_subscription::WaveformData,
+    ) {
         let subscribers = self.waveform_subscribers.read().await;
         if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data.clone());
@@ -147,36 +170,55 @@ impl WsState {
         }
     }
 
-    pub async fn broadcast_to_graphql_spectrum(&self, session_id: &str, data: crate::api::schema_subscription::SpectrumData) {
+    pub async fn broadcast_to_graphql_spectrum(
+        &self,
+        session_id: &str,
+        data: crate::api::schema_subscription::SpectrumData,
+    ) {
         let subscribers = self.spectrum_subscribers.read().await;
         if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data);
         }
     }
 
-    pub async fn broadcast_to_graphql_stats(&self, session_id: &str, data: crate::api::schema_subscription::AudioStats) {
+    pub async fn broadcast_to_graphql_stats(
+        &self,
+        session_id: &str,
+        data: crate::api::schema_subscription::AudioStats,
+    ) {
         let subscribers = self.stats_subscribers.read().await;
         if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data);
         }
     }
 
-    pub async fn broadcast_to_graphql_analysis(&self, session_id: &str, data: crate::api::schema_subscription::AnalysisResult) {
+    pub async fn broadcast_to_graphql_analysis(
+        &self,
+        session_id: &str,
+        data: crate::api::schema_subscription::AnalysisResult,
+    ) {
         let subscribers = self.analysis_subscribers.read().await;
         if let Some(tx) = subscribers.get(session_id) {
             let _ = tx.send(data);
         }
     }
 
-    pub(crate) async fn add_to_live_buffer(&self, session_id: &str, samples: Vec<f32>, timestamp: i64, sample_rate: u32) {
+    pub(crate) async fn add_to_live_buffer(
+        &self,
+        session_id: &str,
+        samples: Vec<f32>,
+        timestamp: i64,
+        sample_rate: u32,
+    ) {
         let mut buffers = self.live_waveform_buffers.write().await;
 
-        let buffer = buffers.entry(session_id.to_string()).or_insert_with(|| {
-            LiveWaveformBuffer {
+        let buffer = buffers
+            .entry(session_id.to_string())
+            .or_insert_with(|| LiveWaveformBuffer {
                 chunks: Vec::new(),
-                max_chunks: 100,                 session_id: session_id.to_string(),
-            }
-        });
+                max_chunks: 100,
+                session_id: session_id.to_string(),
+            });
 
         buffer.chunks.push(WaveformChunk {
             samples,
@@ -191,10 +233,16 @@ impl WsState {
 
     pub(crate) async fn get_latest_from_buffer(&self, session_id: &str) -> Option<WaveformChunk> {
         let buffers = self.live_waveform_buffers.read().await;
-        buffers.get(session_id).and_then(|b| b.chunks.last().cloned())
+        buffers
+            .get(session_id)
+            .and_then(|b| b.chunks.last().cloned())
     }
 
-    pub(crate) async fn get_recent_from_buffer(&self, session_id: &str, count: usize) -> Vec<WaveformChunk> {
+    pub(crate) async fn get_recent_from_buffer(
+        &self,
+        session_id: &str,
+        count: usize,
+    ) -> Vec<WaveformChunk> {
         let buffers = self.live_waveform_buffers.read().await;
         if let Some(buffer) = buffers.get(session_id) {
             let start = buffer.chunks.len().saturating_sub(count);
@@ -251,15 +299,15 @@ pub async fn ws_handler(
 
     // Validate the device id shape. A malformed id must never become a scoping
     // key, so reject the handshake early (an absent id is allowed for admins).
-    if let Some(ref did) = device_id {
-        if !is_valid_device_id(did) {
-            info!("WS: rejected malformed device id");
-            return (
-                axum::http::StatusCode::BAD_REQUEST,
-                "Invalid X-Device-Id: must be a well-formed device identifier",
-            )
-                .into_response();
-        }
+    if let Some(ref did) = device_id
+        && !is_valid_device_id(did)
+    {
+        info!("WS: rejected malformed device id");
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            "Invalid X-Device-Id: must be a well-formed device identifier",
+        )
+            .into_response();
     }
 
     let (api_key_info, is_system_client) = state.validate_api_key(auth_header.as_deref()).await;
@@ -278,7 +326,10 @@ pub async fn ws_handler(
         api_key: api_key_info,
     };
     let scope = identity.effective_device_id().map(|s| s.to_string());
-    info!("WS: AUTH OK (device: {})", scope.as_deref().unwrap_or("<unscoped>"));
+    info!(
+        "WS: AUTH OK (device: {})",
+        scope.as_deref().unwrap_or("<unscoped>")
+    );
 
     let ws_state = state.ws_state.clone();
     let session_service = state.context.session_service.clone();
@@ -302,7 +353,10 @@ async fn handle_socket(
 
     {
         let mut clients = state.clients.write().await;
-        clients.insert(client_id.clone(), ClientConnection::new(client_id.clone(), tx.clone()));
+        clients.insert(
+            client_id.clone(),
+            ClientConnection::new(client_id.clone(), tx.clone()),
+        );
     }
 
     let sender_task = tokio::spawn({
@@ -409,9 +463,10 @@ async fn handle_socket(
     }
 
     if let Some(task) = sender_task
-        && !task.is_finished() {
-            task.abort();
-        }
+        && !task.is_finished()
+    {
+        task.abort();
+    }
     {
         let mut clients = state.clients.write().await;
         clients.remove(&client_id);
@@ -466,9 +521,10 @@ async fn handle_client_message(
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(client_id)
-                    && !client.subscribed_sessions.contains(&session_id) {
-                        client.subscribed_sessions.push(session_id);
-                    }
+                    && !client.subscribed_sessions.contains(&session_id)
+                {
+                    client.subscribed_sessions.push(session_id);
+                }
             }
 
             let response = OutgoingMessage::Subscribed {
@@ -476,7 +532,10 @@ async fn handle_client_message(
                 stream_type: "waveform".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} subscribed to waveform: {}", client_id, session_id_clone);
+            debug!(
+                "Client {} subscribed to waveform: {}",
+                client_id, session_id_clone
+            );
         }
 
         WsMessage::Unsubscribe { session_id } => {
@@ -493,7 +552,10 @@ async fn handle_client_message(
                 stream_type: "waveform".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} unsubscribed from waveform: {}", client_id, session_id_clone);
+            debug!(
+                "Client {} unsubscribed from waveform: {}",
+                client_id, session_id_clone
+            );
         }
 
         WsMessage::SubscribeSpectrum { session_id } => {
@@ -513,9 +575,10 @@ async fn handle_client_message(
             {
                 let mut clients = state.clients.write().await;
                 if let Some(client) = clients.get_mut(client_id)
-                    && !client.subscribed_spectrum.contains(&session_id) {
-                        client.subscribed_spectrum.push(session_id);
-                    }
+                    && !client.subscribed_spectrum.contains(&session_id)
+                {
+                    client.subscribed_spectrum.push(session_id);
+                }
             }
 
             let response = OutgoingMessage::Subscribed {
@@ -523,7 +586,10 @@ async fn handle_client_message(
                 stream_type: "spectrum".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} subscribed to spectrum: {}", client_id, session_id_clone);
+            debug!(
+                "Client {} subscribed to spectrum: {}",
+                client_id, session_id_clone
+            );
         }
 
         WsMessage::UnsubscribeSpectrum { session_id } => {
@@ -540,7 +606,10 @@ async fn handle_client_message(
                 stream_type: "spectrum".to_string(),
             };
             let _ = sender.send(response).await;
-            debug!("Client {} unsubscribed from spectrum: {}", client_id, session_id_clone);
+            debug!(
+                "Client {} unsubscribed from spectrum: {}",
+                client_id, session_id_clone
+            );
         }
 
         WsMessage::WaveformData {
@@ -548,7 +617,9 @@ async fn handle_client_message(
             samples,
             timestamp,
             sample_rate,
-            peak_amplitude: _,              rms_amplitude: _,          } => {
+            peak_amplitude: _,
+            rms_amplitude: _,
+        } => {
             // Only accept published waveform data for sessions this device owns,
             // otherwise a client could inject data into another device's session.
             if !verify_ws_session_ownership(session_service, identity, &session_id).await {
@@ -560,21 +631,22 @@ async fn handle_client_message(
             }
             let sample_rate_f = sample_rate as f32;
 
-            let waveform_analysis = crate::domain::measurements::analyze_waveform(&samples, sample_rate_f);
+            let waveform_analysis = crate::domain::analyze_waveform(&samples, sample_rate_f);
 
-            let harmonic_analysis = crate::domain::measurements::analyze_harmonics(&samples, sample_rate_f);
+            let harmonic_analysis = crate::domain::analyze_harmonics(&samples, sample_rate_f);
 
-            let harmonics: Vec<crate::api::schema_subscription::HarmonicComponent> = harmonic_analysis
-                .harmonics
-                .iter()
-                .take(10)
-                .map(|h| crate::api::schema_subscription::HarmonicComponent {
-                    harmonic: h.harmonic as i32,
-                    frequency: h.frequency,
-                    magnitude: h.magnitude,
-                    phase: h.phase,
-                })
-                .collect();
+            let harmonics: Vec<crate::api::schema_subscription::HarmonicComponent> =
+                harmonic_analysis
+                    .harmonics
+                    .iter()
+                    .take(10)
+                    .map(|h| crate::api::schema_subscription::HarmonicComponent {
+                        harmonic: h.harmonic as i32,
+                        frequency: h.frequency,
+                        magnitude: h.magnitude,
+                        phase: h.phase,
+                    })
+                    .collect();
 
             let analysis_data = crate::api::schema_subscription::AnalysisResult {
                 session_id: session_id.clone(),
@@ -593,9 +665,13 @@ async fn handle_client_message(
                 noise_energy: harmonic_analysis.noise_energy,
                 harmonics,
             };
-            state.broadcast_to_graphql_analysis(&session_id, analysis_data).await;
+            state
+                .broadcast_to_graphql_analysis(&session_id, analysis_data)
+                .await;
 
-            state.add_to_live_buffer(&session_id, samples.clone(), timestamp, sample_rate).await;
+            state
+                .add_to_live_buffer(&session_id, samples.clone(), timestamp, sample_rate)
+                .await;
 
             debug!(
                 "Received waveform data from client {} for session {}: {} samples, freq={:.1}Hz, thd={:.2}%, thdn={:.2}%",
@@ -630,7 +706,9 @@ async fn handle_client_message(
                 peak_amplitude,
                 rms_amplitude,
                 dominant_frequency,
-                thd: 0.0,                 snr: 0.0,                 timestamp: chrono::Utc::now().timestamp_millis(),
+                thd: 0.0,
+                snr: 0.0,
+                timestamp: chrono::Utc::now().timestamp_millis(),
             };
 
             let clients = state.clients.read().await;
@@ -640,11 +718,7 @@ async fn handle_client_message(
 
             debug!(
                 "Received analysis data from client {} for session {}: peak={}, rms={}, freq={}",
-                client_id,
-                session_id,
-                peak_amplitude,
-                rms_amplitude,
-                dominant_frequency
+                client_id, session_id, peak_amplitude, rms_amplitude, dominant_frequency
             );
         }
 
@@ -690,9 +764,10 @@ pub async fn broadcast_waveform(
     let config = &state.config;
     let session_id_owned = session_id.to_string();
 
-    let use_compression = config.compression_enabled && samples.len() * 4 > config.compression_threshold;
+    let use_compression =
+        config.compression_enabled && samples.len() * 4 > config.compression_threshold;
     let compressed_data = if use_compression {
-        compress_waveform(&samples).ok()
+        compress_waveform(&samples)
     } else {
         None
     };
@@ -703,24 +778,20 @@ pub async fn broadcast_waveform(
             debug!("Broadcasting waveform to subscribed client {}", client_id);
 
             let msg = match (&compressed_data, client.compression_enabled) {
-                (Some(comp), true) => {
-                    OutgoingMessage::CompressedWaveform {
-                        session_id: session_id_owned.clone(),
-                        data: comp.data.clone(),
-                        sample_count: comp.sample_count,
-                        original_size: comp.original_size,
-                        timestamp,
-                        sample_rate,
-                    }
-                }
-                _ => {
-                    OutgoingMessage::Waveform {
-                        session_id: session_id_owned.clone(),
-                        samples: samples.clone(),
-                        timestamp,
-                        sample_rate,
-                    }
-                }
+                (Some(comp), true) => OutgoingMessage::CompressedWaveform {
+                    session_id: session_id_owned.clone(),
+                    data: comp.data.clone(),
+                    sample_count: comp.sample_count,
+                    original_size: comp.original_size,
+                    timestamp,
+                    sample_rate,
+                },
+                _ => OutgoingMessage::Waveform {
+                    session_id: session_id_owned.clone(),
+                    samples: samples.clone(),
+                    timestamp,
+                    sample_rate,
+                },
             };
             let _ = client.sender.send(msg).await;
         }
@@ -805,7 +876,10 @@ mod tests {
         let (tx, _rx) = mpsc::channel(10);
         {
             let mut clients = state.clients.write().await;
-            clients.insert(client_id.clone(), ClientConnection::new(client_id.clone(), tx));
+            clients.insert(
+                client_id.clone(),
+                ClientConnection::new(client_id.clone(), tx),
+            );
         }
 
         {

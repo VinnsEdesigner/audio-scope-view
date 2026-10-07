@@ -48,7 +48,12 @@ impl Session {
         }
     }
 
-    pub fn new_with_description(id: String, user_id: String, name: String, description: Option<String>) -> Self {
+    pub fn new_with_description(
+        id: String,
+        user_id: String,
+        name: String,
+        description: Option<String>,
+    ) -> Self {
         Self {
             id,
             user_id,
@@ -122,9 +127,8 @@ impl Session {
         if let Some(opened_at) = self.oscilloscope_opened_at.take() {
             let now = Utc::now();
             let duration = (now - opened_at).num_milliseconds() as f64;
-            self.oscilloscope_duration_ms = Some(
-                self.oscilloscope_duration_ms.unwrap_or(0.0) + duration
-            );
+            self.oscilloscope_duration_ms =
+                Some(self.oscilloscope_duration_ms.unwrap_or(0.0) + duration);
         }
     }
 
@@ -134,7 +138,11 @@ impl Session {
 
     pub fn display_name(&self) -> String {
         if self.is_sub_session {
-            let short_id = if self.id.len() > 8 { &self.id[self.id.len() - 8..] } else { &self.id };
+            let short_id = if self.id.len() > 8 {
+                &self.id[self.id.len() - 8..]
+            } else {
+                &self.id
+            };
             format!("Sub-session {}", short_id)
         } else {
             self.name.clone()
@@ -148,7 +156,11 @@ mod tests {
 
     #[test]
     fn test_new_session() {
-        let session = Session::new("session-1".to_string(), "user-1".to_string(), "Test Session".to_string());
+        let session = Session::new(
+            "session-1".to_string(),
+            "user-1".to_string(),
+            "Test Session".to_string(),
+        );
 
         assert_eq!(session.id, "session-1");
         assert_eq!(session.user_id, "user-1");
@@ -171,13 +183,21 @@ mod tests {
 
         assert_eq!(session.id, "session-1");
         assert_eq!(session.name, "Morning Lab");
-        assert_eq!(session.description, Some("Testing audio filters".to_string()));
+        assert_eq!(
+            session.description,
+            Some("Testing audio filters".to_string())
+        );
         assert!(!session.is_sub_session());
     }
 
     #[test]
     fn test_new_sub_session() {
-        let session = Session::new_sub_session("sub-1".to_string(), "parent-1".to_string(), "user-1".to_string(), "Sub".to_string());
+        let session = Session::new_sub_session(
+            "sub-1".to_string(),
+            "parent-1".to_string(),
+            "user-1".to_string(),
+            "Sub".to_string(),
+        );
 
         assert_eq!(session.id, "sub-1");
         assert!(session.is_sub_session());
@@ -187,7 +207,11 @@ mod tests {
 
     #[test]
     fn test_end_session() {
-        let mut session = Session::new("session-1".to_string(), "user-1".to_string(), "Test".to_string());
+        let mut session = Session::new(
+            "session-1".to_string(),
+            "user-1".to_string(),
+            "Test".to_string(),
+        );
         assert!(session.is_active());
 
         session.end();
@@ -199,10 +223,18 @@ mod tests {
 
     #[test]
     fn test_display_name() {
-        let session = Session::new("session1".to_string(), "user-1".to_string(), "Custom Name".to_string());
+        let session = Session::new(
+            "session1".to_string(),
+            "user-1".to_string(),
+            "Custom Name".to_string(),
+        );
         assert_eq!(session.display_name(), "Custom Name");
 
-        let long_id_session = Session::new("session-12345678".to_string(), "user-1".to_string(), "Test".to_string());
+        let long_id_session = Session::new(
+            "session-12345678".to_string(),
+            "user-1".to_string(),
+            "Test".to_string(),
+        );
         assert_eq!(long_id_session.display_name(), "Test");
     }
 }

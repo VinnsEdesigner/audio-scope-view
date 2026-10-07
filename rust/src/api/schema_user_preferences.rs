@@ -1,4 +1,3 @@
-
 use async_graphql::{Context, Object, SimpleObject};
 
 use crate::api::context_extractor::{GraphqlContext, device_scope_from_context};

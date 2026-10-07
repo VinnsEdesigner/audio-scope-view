@@ -1,4 +1,3 @@
-
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::Utc;
 
@@ -152,7 +151,10 @@ impl WaveformQuery {
         include_samples: Option<bool>,
     ) -> Vec<WaveformOutput> {
         // Enforce device isolation before listing a session's waveforms.
-        if assert_waveform_session_owned(ctx, &session_id).await.is_err() {
+        if assert_waveform_session_owned(ctx, &session_id)
+            .await
+            .is_err()
+        {
             return Vec::new();
         }
         let context = ctx
@@ -176,7 +178,8 @@ impl WaveformQuery {
                             WaveformOutput {
                                 id: w.id,
                                 session_id: w.session_id,
-                                samples: vec![],                                 sample_count: w.samples.len() as i32,
+                                samples: vec![],
+                                sample_count: w.samples.len() as i32,
                                 timestamp: w.timestamp.to_rfc3339(),
                                 duration_ms: w.duration_ms,
                                 peak_amplitude: w.peak_amplitude,
@@ -196,7 +199,10 @@ impl WaveformQuery {
         limit: Option<i32>,
     ) -> Vec<WaveformSummary> {
         // Enforce device isolation before listing recent waveforms.
-        if assert_waveform_session_owned(ctx, &session_id).await.is_err() {
+        if assert_waveform_session_owned(ctx, &session_id)
+            .await
+            .is_err()
+        {
             return Vec::new();
         }
         let context = ctx
@@ -214,7 +220,10 @@ impl WaveformQuery {
 
     async fn waveform_count(&self, ctx: &Context<'_>, session_id: String) -> i64 {
         // Enforce device isolation before reporting counts.
-        if assert_waveform_session_owned(ctx, &session_id).await.is_err() {
+        if assert_waveform_session_owned(ctx, &session_id)
+            .await
+            .is_err()
+        {
             return 0;
         }
         let context = ctx
@@ -233,7 +242,10 @@ impl WaveformQuery {
         session_id: String,
     ) -> Option<WaveformStatisticsOutput> {
         // Enforce device isolation before reporting statistics.
-        if assert_waveform_session_owned(ctx, &session_id).await.is_err() {
+        if assert_waveform_session_owned(ctx, &session_id)
+            .await
+            .is_err()
+        {
             return None;
         }
         let context = ctx
@@ -265,7 +277,10 @@ impl WaveformMutation {
     ) -> Option<WaveformOutput> {
         // Enforce device isolation: a device must not attach a waveform to
         // another device's session.
-        if assert_waveform_session_owned(ctx, &input.session_id).await.is_err() {
+        if assert_waveform_session_owned(ctx, &input.session_id)
+            .await
+            .is_err()
+        {
             return None;
         }
         let context = ctx
@@ -290,7 +305,10 @@ impl WaveformMutation {
     async fn delete_waveforms(&self, ctx: &Context<'_>, session_id: String) -> i64 {
         // Enforce device isolation: a device must not delete another device's
         // waveforms.
-        if assert_waveform_session_owned(ctx, &session_id).await.is_err() {
+        if assert_waveform_session_owned(ctx, &session_id)
+            .await
+            .is_err()
+        {
             return 0;
         }
         let context = ctx

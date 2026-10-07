@@ -1,0 +1,3 @@
+- [ ] Correct spectrum geometry and spectrogram texture, frequency mapping, and update cadence for both signal sources.
+- [ ] Verify WebGL rendering and preview availability.
+- [ ] Compare and import the latest GitHub branch changes while preserving the rendering fixes.

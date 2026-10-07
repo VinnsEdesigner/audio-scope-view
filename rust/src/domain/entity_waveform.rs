@@ -1,9 +1,14 @@
-
 #![allow(dead_code)]
 use chrono::{DateTime, Utc};
 
-use super::fft_processor::{FftProcessor, Spectrum, WindowType};
-use super::measurements::{self, WaveformAnalysis};
+// DSP types + algorithms now come from the C++ core via FFI. The struct
+// definitions are in `domain::dsp_types`; the functions are re-exported at
+// `domain` level (see domain/mod.rs) so the old call sites keep working.
+use super::dsp_types::{HarmonicAnalysis, Spectrum, WaveformAnalysis, WindowType};
+use super::{
+    FftProcessor, analyze_harmonics, analyze_waveform, estimate_dominant_frequency,
+    zero_crossing_rate,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Waveform {
@@ -17,7 +22,12 @@ pub struct Waveform {
 }
 
 impl Waveform {
-    pub fn new(id: String, session_id: String, samples: Vec<f32>, timestamp: DateTime<Utc>) -> Self {
+    pub fn new(
+        id: String,
+        session_id: String,
+        samples: Vec<f32>,
+        timestamp: DateTime<Utc>,
+    ) -> Self {
         let peak_amplitude = Self::calculate_peak(&samples);
         let rms_amplitude = Self::calculate_rms(&samples);
         let duration_ms = samples.len() as f64 / 44.1;
@@ -98,19 +108,19 @@ impl Waveform {
     }
 
     pub fn analyze(&self, sample_rate: f32) -> WaveformAnalysis {
-        measurements::analyze_waveform(&self.samples, sample_rate)
+        analyze_waveform(&self.samples, sample_rate)
     }
 
-    pub fn analyze_harmonics(&self, sample_rate: f32) -> super::measurements::HarmonicAnalysis {
-        measurements::analyze_harmonics(&self.samples, sample_rate)
+    pub fn analyze_harmonics(&self, sample_rate: f32) -> HarmonicAnalysis {
+        analyze_harmonics(&self.samples, sample_rate)
     }
 
     pub fn zero_crossing_rate(&self) -> f32 {
-        measurements::zero_crossing_rate(&self.samples)
+        zero_crossing_rate(&self.samples)
     }
 
     pub fn estimate_frequency(&self, sample_rate: f32) -> f32 {
-        measurements::estimate_dominant_frequency(&self.samples, sample_rate)
+        estimate_dominant_frequency(&self.samples, sample_rate)
     }
 }
 
@@ -152,6 +162,6 @@ impl WaveformStreamData {
     }
 
     pub fn analyze(&self) -> WaveformAnalysis {
-        measurements::analyze_waveform(&self.samples, self.sample_rate as f32)
+        analyze_waveform(&self.samples, self.sample_rate as f32)
     }
 }

@@ -43,7 +43,9 @@ pub struct ExportService {
 
 impl ExportService {
     pub fn new(default_sample_rate: u32) -> Self {
-        Self { default_sample_rate }
+        Self {
+            default_sample_rate,
+        }
     }
 
     pub fn export(&self, waveform: &Waveform, format: ExportFormat) -> DomainResult<Vec<u8>> {
@@ -90,16 +92,22 @@ impl ExportService {
     pub fn export_csv(&self, waveform: &Waveform) -> DomainResult<Vec<u8>> {
         let mut buffer = Vec::new();
 
-        writeln!(&mut buffer, "index,timestamp_ms,sample")
-            .map_err(|e| crate::domain::DomainError::InvalidOperation { message: e.to_string() })?;
+        writeln!(&mut buffer, "index,timestamp_ms,sample").map_err(|e| {
+            crate::domain::DomainError::InvalidOperation {
+                message: e.to_string(),
+            }
+        })?;
 
         let start_ns = waveform.timestamp.timestamp_nanos_opt().unwrap_or(0) as f64;
         let sample_period_ns = 1_000_000_000.0 / self.default_sample_rate as f64;
 
         for (i, &sample) in waveform.samples.iter().enumerate() {
             let timestamp_ms = start_ns / 1_000_000.0 + (i as f64 * sample_period_ns / 1_000_000.0);
-            writeln!(&mut buffer, "{},{:.6},{:.8}", i, timestamp_ms, sample)
-                .map_err(|e| crate::domain::DomainError::InvalidOperation { message: e.to_string() })?;
+            writeln!(&mut buffer, "{},{:.6},{:.8}", i, timestamp_ms, sample).map_err(|e| {
+                crate::domain::DomainError::InvalidOperation {
+                    message: e.to_string(),
+                }
+            })?;
         }
 
         Ok(buffer)
@@ -118,8 +126,11 @@ impl ExportService {
             samples: &waveform.samples,
         };
 
-        let json = serde_json::to_string_pretty(&export)
-            .map_err(|e| crate::domain::DomainError::InvalidOperation { message: e.to_string() })?;
+        let json = serde_json::to_string_pretty(&export).map_err(|e| {
+            crate::domain::DomainError::InvalidOperation {
+                message: e.to_string(),
+            }
+        })?;
 
         Ok(json.into_bytes())
     }
@@ -227,7 +238,7 @@ impl StreamingExportService {
         let mut buffer = Vec::with_capacity(samples.len() * 30); // Approximate size
 
         buffer.extend_from_slice(Self::csv_header().as_bytes());
-        
+
         // Process in chunks to avoid string concatenation overhead
         for chunk in samples.chunks(self.chunk_size) {
             let chunk_str = self.csv_chunk(chunk, 0, sample_rate);
@@ -254,7 +265,9 @@ impl StreamingExportService {
 
         serde_json::to_string_pretty(&export)
             .map(|s| s.into_bytes())
-            .map_err(|e| crate::domain::DomainError::InvalidOperation { message: e.to_string() })
+            .map_err(|e| crate::domain::DomainError::InvalidOperation {
+                message: e.to_string(),
+            })
     }
 }
 

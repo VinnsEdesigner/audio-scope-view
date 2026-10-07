@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use super::valueobject_timerange::TimeRange;
 use chrono::{DateTime, Utc};

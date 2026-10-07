@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import {
   useAudioAnalyzer,
   useAudioSettings,
-  useMockAudioAnalyzer,
+  useWaveformGenerator,
   useRecording,
   useSessionDialogs,
   useToast,
@@ -22,6 +22,7 @@ import { useHeader } from "@/contexts/header-context";
 import { ScopeTopBar, ScopeSidebar, ScopeBottomControls, ScopeCanvas } from "@/components/scope";
 import { CalibrationDialog } from "@/components/dialogs";
 import { AnchoredDialog } from "@/components/ui/anchored-dialog";
+import { WaveformGeneratorDialog } from "@/components/scope/waveform-generator-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { formatError } from "@/lib/format-error";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,7 +42,7 @@ export function ScopePage(): React.ReactElement {
   const isPlaybackMode = Boolean(recordingId);
   const isLiveMode = Boolean(sessionId);
 
-  const { setSessionMode, testMode, toggleTestMode, smoothWaveform } = useUIStore();
+  const { setSessionMode, smoothWaveform } = useUIStore();
 
   // Session selection state - these are now handled by SessionSelectionProvider on home page
 
@@ -188,12 +189,18 @@ export function ScopePage(): React.ReactElement {
     smoothingTimeConstant,
     fftSize: bufferSize,
   });
-  const mockAnalyzer = useMockAudioAnalyzer({
+
+  // The waveform generator replaces the old "test mode" mock analyzer. When
+  // the generator dialog is open we feed the scope from the C++ DSP generators
+  // (dsp.generateWaveform); otherwise the real audio analyzer is used.
+  const [generatorOpen, setGeneratorOpen] = React.useState(false);
+  const generator = useWaveformGenerator({
     sampleRate,
     smoothingTimeConstant,
     fftSize: bufferSize,
   });
-  const audioAnalyzer = testMode ? mockAnalyzer : realAnalyzer;
+  const mockAnalyzer = generator;
+  const audioAnalyzer = generatorOpen ? mockAnalyzer : realAnalyzer;
 
   const {
     data: recordingData,
@@ -718,8 +725,8 @@ export function ScopePage(): React.ReactElement {
           onPlay={handlePlay}
           onPause={handlePause}
           onStop={handleStop}
-          testMode={testMode}
-          onToggleTestMode={toggleTestMode}
+          testMode={generatorOpen}
+          onToggleTestMode={() => setGeneratorOpen((open) => !open)}
           onProbe={handleProbe}
           onPauseCapture={handlePauseCapture}
           onResumeCapture={handleResumeCapture}
@@ -810,6 +817,13 @@ export function ScopePage(): React.ReactElement {
           isCapturing={scopeCapture.isCapturing}
         />
       </AnchoredDialog>
+
+      {/* Waveform Generator Dialog (replaces Test Mode) */}
+      <WaveformGeneratorDialog
+        open={generatorOpen}
+        onClose={() => setGeneratorOpen(false)}
+        generator={generator}
+      />
     </div>
   );
 }

@@ -65,14 +65,19 @@ export default defineConfig(({ command, mode }) => {
         "@audio-scope-view/ui-radix": resolve(__dirname, "../../packages/ui-radix/src"),
         "@audio-scope-view/tamagui": resolve(__dirname, "../../packages/tamagui/src"),
         "@audio-scope-view/api-client": resolve(__dirname, "../../packages/api-client/src"),
+        "@audio-scope-view/dsp-wasm": resolve(__dirname, "../../packages/dsp-wasm"),
         "@audio-scope-view/tailwind": resolve(__dirname, "../../packages/tailwind/src"),
         "tamagui": resolve(__dirname, "./node_modules/tamagui"),
       },
     },
 
     optimizeDeps: {
-      include: ["tamagui", "@tamagui/core", "@audio-scope-view/tamagui"],
+      include: ["tamagui", "@tamagui/core", "@audio-scope-view/tamagui", "@audio-scope-view/dsp-wasm"],
     },
+
+    // The WASM DSP artifact (packages/dsp-wasm/dist/audioscope.wasm) must be
+    // served as a fetchable asset in dev and emitted as a build asset.
+    assetsInclude: ["**/*.wasm"],
 
     build: isSsrBuild
       ? {

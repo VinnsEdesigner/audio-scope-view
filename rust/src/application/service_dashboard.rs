@@ -1,8 +1,7 @@
-
 use crate::domain::entity_dashboard_summary::{DashboardSummary, RecentScope};
+use crate::domain::trait_waveform_repository::WaveformRepository;
 use crate::domain::valueobject_timerange::TimeRange;
 use crate::infrastructure::repo_trait_session::SessionRepository;
-use crate::domain::trait_waveform_repository::WaveformRepository;
 use crate::shared::{AppError, AppResult};
 use std::sync::Arc;
 
@@ -22,7 +21,11 @@ impl DashboardService {
         }
     }
 
-    pub async fn get_summary(&self, device_id: Option<&str>, time_range: TimeRange) -> AppResult<DashboardSummary> {
+    pub async fn get_summary(
+        &self,
+        device_id: Option<&str>,
+        time_range: TimeRange,
+    ) -> AppResult<DashboardSummary> {
         let total_sessions = self
             .session_repository
             .count_sessions(device_id)
@@ -68,19 +71,25 @@ impl DashboardService {
             .into_iter()
             .map(|s| {
                 let short_id = if s.id.len() >= 8 { &s.id[..8] } else { &s.id };
-                RecentScope::new(s.id.clone(), format!("Session {}", short_id)).with_last_activity(s.started_at)
+                RecentScope::new(s.id.clone(), format!("Session {}", short_id))
+                    .with_last_activity(s.started_at)
             })
             .collect();
 
         let summary = DashboardSummary::new(time_range)
-            .with_scope_stats(total_sessions, 0)             .with_capture_stats(total_waveforms)
+            .with_scope_stats(total_sessions, 0)
+            .with_capture_stats(total_waveforms)
             .with_waveform_stats(total_waveforms, total_samples, avg_peak, avg_rms)
             .with_recent_sessions(recent_sessions);
 
         Ok(summary)
     }
 
-    pub async fn get_recent_sessions(&self, device_id: Option<&str>, limit: u32) -> AppResult<Vec<RecentScope>> {
+    pub async fn get_recent_sessions(
+        &self,
+        device_id: Option<&str>,
+        limit: u32,
+    ) -> AppResult<Vec<RecentScope>> {
         let sessions = self
             .session_repository
             .find_all_sessions(device_id, limit, 0)
@@ -92,7 +101,8 @@ impl DashboardService {
             .take(limit as usize)
             .map(|s| {
                 let short_id = if s.id.len() >= 8 { &s.id[..8] } else { &s.id };
-                RecentScope::new(s.id.clone(), format!("Session {}", short_id)).with_last_activity(s.started_at)
+                RecentScope::new(s.id.clone(), format!("Session {}", short_id))
+                    .with_last_activity(s.started_at)
             })
             .collect())
     }
