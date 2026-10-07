@@ -28,6 +28,8 @@ export class SpectrogramRenderer {
   /** The texture image data (single channel, normalized 0..1). Rows bottom→top. */
   private texData: Uint8Array;
   private initialized = false;
+  /** Number of real frequency bins (columns filled by pushSlice). */
+  private fillBins = TEX_W;
 
   constructor(ctx: GLContext) {
     this.ctx = ctx;
@@ -40,7 +42,7 @@ export class SpectrogramRenderer {
       SHADERS.spectrogram.vert,
       SHADERS.spectrogram.frag,
       ["a_pos", "a_uv"],
-      ["u_tex"],
+      ["u_tex", "u_stretch"],
     );
     if (!compiled) return false;
     this.program = compiled.program;
@@ -75,7 +77,7 @@ export class SpectrogramRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texImage2D(
       gl.TEXTURE_2D, 0, gl.R8, TEX_W, TEX_H, 0,
-      gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.texData,
+      gl.RED, gl.UNSIGNED_BYTE, this.texData,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -97,6 +99,10 @@ export class SpectrogramRenderer {
     if (rows.length === 0) return;
     const lastRow = rows[rows.length - 1];
     const n = Math.min(lastRow.length, TEX_W);
+    // Remember how many columns carry real data so draw() can stretch them to
+    // the full canvas width (the texture is TEX_W wide but the STFT yields
+    // fewer bins, which would otherwise fill only the left portion).
+    this.fillBins = n;
 
     // Scroll existing rows up by 1 (row 0 = top/oldest is discarded).
     this.texData.copyWithin(0, TEX_W, TEX_W * TEX_H);
@@ -112,7 +118,7 @@ export class SpectrogramRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texSubImage2D(
       gl.TEXTURE_2D, 0, 0, 0, TEX_W, TEX_H,
-      gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.texData,
+      gl.RED, gl.UNSIGNED_BYTE, this.texData,
     );
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
@@ -125,7 +131,7 @@ export class SpectrogramRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texSubImage2D(
       gl.TEXTURE_2D, 0, 0, 0, TEX_W, TEX_H,
-      gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.texData,
+      gl.RED, gl.UNSIGNED_BYTE, this.texData,
     );
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
@@ -135,7 +141,7 @@ export class SpectrogramRenderer {
     if (!this.initialized || !this.program || !this.vao || !this.texture) return;
     const gl = this.ctx.gl;
     const compiled = this.ctx.program(
-      SHADERS.spectrogram.vert, SHADERS.spectrogram.frag, ["a_pos", "a_uv"], ["u_tex"],
+      SHADERS.spectrogram.vert, SHADERS.spectrogram.frag, ["a_pos", "a_uv"], ["u_tex", "u_stretch"],
     );
     if (!compiled) return;
     gl.useProgram(this.program);
@@ -143,6 +149,9 @@ export class SpectrogramRenderer {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.uniform1i(compiled.uniforms.u_tex, 0);
+    // Compress the U coordinate so only the real bins (fillBins) are sampled,
+    // stretched across the full width.
+    gl.uniform1f(compiled.uniforms.u_stretch, Math.max(1, this.fillBins) / TEX_W);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.bindVertexArray(null);
   }

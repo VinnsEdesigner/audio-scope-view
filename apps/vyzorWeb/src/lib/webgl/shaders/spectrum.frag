@@ -5,7 +5,7 @@
 // interpolator so each bar samples a single color; `a_quad.y` would interpolate
 // across the bar but we want a solid color per bar (matching the old Canvas2D
 // `spectrumColor`).
-flat in float v_norm;     // normalized magnitude (0..1) for this bar
+in float v_norm;          // normalized magnitude (0..1) for this bar
 out vec4 frag_color;
 
 // 5-stop palette stops (matching the Canvas2D renderer being replaced).

@@ -129,6 +129,7 @@ export function ScopeCanvas({
     waveformColor,
     verticalGain,
     scopeView,
+    showGrid,
     triggerEnabled,
     triggerEdge,
     triggerLevel,
@@ -211,10 +212,15 @@ export function ScopeCanvas({
 
       const resized = glCtx.resize(width, height);
       if (resized) {
-        bundle.scope.resize(glCtx.width, glCtx.height);
-        bundle.overlay.resize(glCtx.width, glCtx.height);
         bundle.spectrogram.clear();
       }
+      // Rebuild each renderer's pixel→clip projection. These calls are no-ops
+      // when the drawing-buffer size is unchanged, so issuing them every frame
+      // is cheap — and it matters because the spectrum view can be entered
+      // after the initial resize, and must not be left with a stale projection.
+      bundle.scope.resize(glCtx.width, glCtx.height);
+      bundle.overlay.resize(glCtx.width, glCtx.height);
+      bundle.spectrum.resize(glCtx.width, glCtx.height);
       // Track CSS-pixel size for the spectrum rect + marker placement.
       cssWidth = width;
       cssHeight = height;
@@ -233,6 +239,7 @@ export function ScopeCanvas({
         waveformColor: wfColor,
         verticalGain: vGain,
         scopeView: view,
+        showGrid: gridOn,
         triggerEnabled: trigOn,
         triggerEdge: trigEdge,
         triggerLevel: trigLevel,
@@ -247,6 +254,25 @@ export function ScopeCanvas({
       const liveFrame = waveformDataReference.current;
       const fullFrame = analysisFrameReference.current;
       const dsp = getDsp();
+
+      // ---- Grid ----------------------------------------------------------
+      // Drawn into the WebGL surface (not a CSS overlay) so it sits above the
+      // background and below the trace. A DOM grid element cannot work here:
+      // the opaque canvas clears every frame and paints over it.
+      if (gridOn) {
+        // Pre-blended against the #111820 background (alpha blending is not
+        // enabled on this context), so the lines read as the intended subtle
+        // 15%-alpha grid rather than full-brightness strokes.
+        const gridColor: [number, number, number, number] = [32 / 255, 44 / 255, 53 / 255, 1];
+        for (let step = 1; step < 10; step++) {
+          const x = toPhys((cssWidth * step) / 10);
+          bundle.overlay.drawLine(x, toPhys(0), x, toPhys(cssHeight), gridColor, 1, "solid");
+        }
+        for (let step = 1; step < 8; step++) {
+          const y = toPhys((cssHeight * step) / 8);
+          bundle.overlay.drawLine(toPhys(0), y, toPhys(cssWidth), y, gridColor, 1, "solid");
+        }
+      }
 
       // ---- Spectrum view -------------------------------------------------
       if (view === "spectrum") {
@@ -426,20 +452,6 @@ export function ScopeCanvas({
 
   return (
     <div ref={containerReference} className="absolute inset-0 bg-[#111820]">
-      {}
-      {showGrid && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `
- linear-gradient(rgba(120, 160, 170, 0.15) 1px, transparent 1px),
- linear-gradient(90deg, rgba(120, 160, 170, 0.15) 1px, transparent 1px)
- `,
-            backgroundSize: "10% 12.5%",
-          }}
-        />
-      )}
-
       {}
       <canvas ref={effectiveCanvasReference} className="absolute inset-0 w-full h-full" />
 

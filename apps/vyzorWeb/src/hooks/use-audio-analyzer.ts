@@ -136,6 +136,20 @@ let animationFrameId: number | undefined;
 let durationInterval: ReturnType<typeof setInterval> | undefined;
 let collected: Float32Array = new Float32Array();
 
+// Release the microphone the moment the master switch (Settings → Microphone)
+// is turned off, so the browser's mic-in-use indicator goes out immediately
+// rather than only when a capture is explicitly stopped. This stops the live
+// MediaStream tracks and closes the AudioContext.
+let micWasEnabled = useAudioStore.getState().micEnabled;
+useAudioStore.subscribe((storeState) => {
+  if (micWasEnabled && !storeState.micEnabled) {
+    cleanup();
+    state = { ...createInitialState(), sampleRate: state.sampleRate };
+    emit();
+  }
+  micWasEnabled = storeState.micEnabled;
+});
+
 function cleanup() {
   if (animationFrameId !== undefined) {
     cancelAnimationFrame(animationFrameId);
@@ -158,6 +172,14 @@ function cleanup() {
 
 async function startCapture(): Promise<void> {
   try {
+    // Master mic switch (Settings → Microphone). When off, capture cannot start.
+    if (!useAudioStore.getState().micEnabled) {
+      setState({
+        error: new Error("Microphone capture is disabled. Enable it in Settings → Microphone."),
+        recordingState: "idle",
+      });
+      return;
+    }
     setState({ error: undefined });
     cleanup();
 

@@ -134,6 +134,19 @@ async function getSystemAudioInfo(): Promise<SystemAudioInfo> {
   let defaultSampleRate = 48_000;
   let maxChannels = 2;
 
+  // Skip opening the microphone entirely when the master switch (Settings →
+  // Microphone) is off — otherwise merely visiting the page grabs mic access.
+  if (!useAudioStore.getState().micEnabled) {
+    return {
+      browserName,
+      browserVersion,
+      userAgent: navigator.userAgent,
+      supportedSampleRates,
+      defaultSampleRate,
+      maxChannels,
+    };
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const audioContext = new AudioContext();
@@ -217,6 +230,11 @@ export function useMediaDevices() {
   // API 2: navigator.mediaDevices.getUserMedia - request microphone access with optional deviceId
   const requestPermission = useCallback(
     async (deviceId?: string) => {
+      // Refuse to open the microphone while the master switch is off.
+      if (!useAudioStore.getState().micEnabled) {
+        setError(new Error("Microphone is disabled. Enable it in Settings → Microphone."));
+        return;
+      }
       try {
         const constraints: MediaStreamConstraints = {
           audio: deviceId

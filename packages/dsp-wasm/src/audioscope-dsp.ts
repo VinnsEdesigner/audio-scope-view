@@ -491,9 +491,10 @@ export class AudioScopeDsp {
       const numRows = this.u32(structPtr, SD_NUM_ROWS);
       const magnitudes: Float32Array[] = [];
       for (let i = 0; i < numRows; i++) {
-        // Each entry is an asf32_array (8 bytes) in the magnitude_rows array.
-        const rowBase = this.mod.getValue(rowsPtr + i * 8, "i32");
-        magnitudes.push(this.readF32Array(rowBase));
+        // `magnitude_rows` is a flat array of `asf32_array` structs (8 bytes
+        // each: data pointer + length). readF32Array expects the struct address,
+        // so pass the element address directly — not the row's data pointer.
+        magnitudes.push(this.readF32Array(rowsPtr + i * 8));
       }
       return {
         frequencies,

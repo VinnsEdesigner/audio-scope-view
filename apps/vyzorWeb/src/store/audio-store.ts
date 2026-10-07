@@ -38,6 +38,9 @@ export interface AudioState {
   sampleRate: number;
   bufferSize: number;
 
+  /** Master switch for microphone capture. When off, startCapture() is a no-op. */
+  micEnabled: boolean;
+
   audioContext: AudioContext | undefined;
 }
 
@@ -55,6 +58,7 @@ export interface AudioActions {
 
   setSampleRate: (sampleRate: number) => void;
   setBufferSize: (bufferSize: number) => void;
+  setMicEnabled: (enabled: boolean) => void;
 
   resetCapture: () => void;
   resetDevices: () => void;
@@ -74,6 +78,7 @@ const initialState: AudioState = {
   systemInfo: undefined,
   sampleRate: 48_000,
   bufferSize: 512,
+  micEnabled: true,
   audioContext: undefined,
 };
 
@@ -101,6 +106,18 @@ export const useAudioStore = create<AudioStore>()(
 
       setSampleRate: (sampleRate) => set({ sampleRate }),
       setBufferSize: (bufferSize) => set({ bufferSize }),
+      // Turning the mic off also tears down any in-flight capture.
+      setMicEnabled: (micEnabled) =>
+        set(
+          micEnabled
+            ? { micEnabled }
+            : {
+                micEnabled,
+                isCapturing: false,
+                stream: undefined,
+                audioContext: undefined,
+              },
+        ),
 
       resetCapture: () =>
         set({
@@ -124,6 +141,7 @@ export const useAudioStore = create<AudioStore>()(
       partialize: (state) => ({
         sampleRate: state.sampleRate,
         bufferSize: state.bufferSize,
+        micEnabled: state.micEnabled,
       }),
     },
   ),

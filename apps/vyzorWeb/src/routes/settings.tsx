@@ -313,7 +313,8 @@ export function Settings(): React.ReactElement {
     requestPermission,
     refreshDevices,
   } = useMediaDevices();
-  const { sampleRate, bufferSize, setSampleRate, setBufferSize } = useAudioSettings();
+  const { sampleRate, bufferSize, micEnabled, setSampleRate, setBufferSize, setMicEnabled } =
+    useAudioSettings();
   const { addToast } = useToast();
 
   const showSuccessToast = React.useCallback(
@@ -374,6 +375,13 @@ export function Settings(): React.ReactElement {
       setSmoothWaveform(checked);
     },
     [setSmoothWaveform],
+  );
+
+  const handleMicToggle = React.useCallback(
+    (checked: boolean) => {
+      setMicEnabled(checked);
+    },
+    [setMicEnabled],
   );
 
   return (
@@ -560,6 +568,19 @@ export function Settings(): React.ReactElement {
           description="Configure microphone and capture settings"
         >
           <SettingsCard>
+            <SettingsRow
+              label="Enable Microphone"
+              description="Master switch for microphone capture. Disable to stop the browser from accessing audio input."
+            >
+              <ToggleSwitch
+                checked={micEnabled}
+                onChange={handleMicToggle}
+                onSuccess={showSuccessToast}
+                enabledLabel="Microphone enabled"
+                disabledLabel="Microphone disabled"
+              />
+            </SettingsRow>
+
             <SettingsRow
               label="Input Device"
               description="Select the microphone or audio input device"

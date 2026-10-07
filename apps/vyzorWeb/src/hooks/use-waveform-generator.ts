@@ -26,6 +26,10 @@ export interface WaveformGeneratorSettings {
 export interface UseWaveformGeneratorReturn extends AudioAnalyzerState {
   isCapturing: boolean;
   error: Error | undefined;
+  /** Whether the generator is feeding the scope (independent of the dialog). */
+  active: boolean;
+  setActive: (active: boolean) => void;
+  toggleActive: () => void;
   startCapture: () => void;
   pauseCapture: () => void;
   resumeCapture: () => void;
@@ -51,48 +55,62 @@ const DEFAULT_SETTINGS: WaveformGeneratorSettings = {
   noiseType: "white",
 };
 
-// Buffer length matches the real analyzer's analysisFrame so the scope renderer
-// and spectrum/trigger see the same window sizes as a live signal.
-const BUFFER_SAMPLES = 2048;
-
 export function useWaveformGenerator(
   options: UseWaveformGeneratorOptions = {},
 ): UseWaveformGeneratorReturn {
-  const { sampleRate = 48_000, fftSize = 2048 } = options;
+  // `fftSize` is the capture buffer size (Settings → Buffer Size) so the
+  // generator produces the SAME analysis-frame length as the live analyzer.
+  // Otherwise the generator's spectrum would use a different FFT size than
+  // capture mode and the two spectra would look different.
+  const { sampleRate = 48_000, fftSize = 512 } = options;
+  const frameSamples = fftSize;
 
   const [settings, setSettings] = React.useState<WaveformGeneratorSettings>(DEFAULT_SETTINGS);
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
   const [error, setError] = React.useState<Error | undefined>(undefined);
+  // Whether the generator is actively feeding the scope. Toggled from the top
+  // bar; once on it keeps running after the settings dialog is closed.
+  const [active, setActive] = React.useState(false);
 
   // The generated buffer — the same Float32Array is reused (no per-frame alloc).
-  const samplesReference = React.useRef<Float32Array>(new Float32Array(BUFFER_SAMPLES));
+  const samplesReference = React.useRef<Float32Array>(new Float32Array(frameSamples));
   const [waveformData, setWaveformData] = React.useState<number[]>([]);
 
   React.useEffect(() => {
     void ensureDsp();
   }, []);
 
-  // Regenerate the buffer whenever settings or sampleRate change, then keep
-  // it live via rAF so the scope animates. The buffer is regenerated only on
-  // settings change; rAF just re-publishes the same samples (cheap) so the
-  // scope's internal renderer keeps its animation loop fed.
+  // Regenerate the buffer whenever settings change, then stream through it in
+  // real time (advancing a cursor by the elapsed wall-clock) so the generator
+  // behaves like a continuous signal — the trace animates and the trigger has a
+  // changing phase to lock onto. Without this, each frame started at phase 0 and
+  // the trace looked frozen.
   React.useEffect(() => {
+    if (!active) return;
     let rafId: number;
     let cancelled = false;
+    // Generate a longer buffer (backing) than the window we display. We read
+    // CONTIGUOUS windows from it, advancing by the elapsed wall-clock. A
+    // contiguous window is essential: wrapping a window across the buffer seam
+    // creates a discontinuity that smears the spectrum (high noise floor).
+    const backingSamples = Math.max(frameSamples * 4, frameSamples + 2048);
+    let buffer: Float32Array | null = null;
+    let cursor = 0;
+    let lastNow = 0;
 
     const regenerate = () => {
       const dsp = getDsp();
       if (!dsp) return false;
       try {
-        const buf = dsp.generateWaveform({
+        buffer = dsp.generateWaveform({
           kind: settings.kind,
           frequency: settings.frequency,
           amplitude: settings.amplitude,
           noiseType: settings.noiseType,
           sampleRate,
-          numSamples: BUFFER_SAMPLES,
+          numSamples: backingSamples,
         });
-        samplesReference.current = buf;
+        samplesReference.current = buffer;
         return true;
       } catch (e) {
         setError(e instanceof Error ? e : new Error(String(e)));
@@ -100,12 +118,27 @@ export function useWaveformGenerator(
       }
     };
 
-    const loop = () => {
-      if (cancelled) return;
-      const buf = samplesReference.current;
-      // Publish a downsampled copy for the waveform display (the scope draws
-      // from waveformData; the full-res frame is analysisFrame).
-      setWaveformData(Array.from(buf));
+    const loop = (now: number) => {
+      if (cancelled || !buffer) return;
+      const elapsedMs = lastNow ? now - lastNow : 1000 / 60;
+      lastNow = now;
+      const advance = Math.round((sampleRate * Math.min(elapsedMs, 100)) / 1000);
+      // Advance, then clamp so the contiguous window [cursor, cursor+frame) is
+      // always fully inside the backing buffer — never wrapping.
+      cursor = Math.min(cursor + advance, buffer.length - frameSamples);
+
+      // Copy a CONTIGUOUS frame (no wrap-around) so the spectrum stays clean.
+      const frame = buffer.slice(cursor, cursor + frameSamples);
+      if (cursor >= buffer.length - frameSamples) {
+        // Reached the end — regenerate a fresh buffer and start over. The new
+        // buffer begins at phase 0, which is a clean loop point.
+        if (regenerate()) {
+          cursor = 0;
+        }
+      }
+
+      setWaveformData(Array.from(frame));
+      samplesReference.current = frame;
       rafId = requestAnimationFrame(loop);
     };
 
@@ -124,7 +157,7 @@ export function useWaveformGenerator(
       cancelled = true;
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [settings, sampleRate]);
+  }, [settings, sampleRate, active, frameSamples]);
 
   const isCapturing = recordingState === "recording";
 
@@ -139,9 +172,12 @@ export function useWaveformGenerator(
     analysisFrame: samplesReference.current,
     vpp: settings.amplitude * 2,
     frequency: settings.frequency,
-    windowMs: (BUFFER_SAMPLES / sampleRate) * 1000,
+    windowMs: (frameSamples / sampleRate) * 1000,
     isCapturing,
     error,
+    active,
+    setActive,
+    toggleActive: () => setActive((a) => !a),
     startCapture: () => setRecordingState("recording"),
     pauseCapture: () => setRecordingState("paused"),
     resumeCapture: () => setRecordingState("recording"),

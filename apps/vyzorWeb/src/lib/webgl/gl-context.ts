@@ -17,7 +17,11 @@ export interface CompiledProgram {
 }
 
 const VERT_SUFFIX = "\n";
-const FRAG_PREFIX = "#version 300 es\nprecision highp float;\n";
+// `precision highp int;` is required: GLSL ES 3.00 gives vertex-shader `int`
+// a default of highp but fragment-shader `int` a default of mediump, so any
+// int uniform shared by both stages (e.g. OverlayRenderer's `u_axis`) fails to
+// link with "Precisions of uniform ... differ between VERTEX and FRAGMENT".
+const FRAG_PREFIX = "#version 300 es\nprecision highp float;\nprecision highp int;\n";
 
 /** GLSL source for a (name → source) map, with a #version header for vert. */
 function versionedVertex(source: string): string {

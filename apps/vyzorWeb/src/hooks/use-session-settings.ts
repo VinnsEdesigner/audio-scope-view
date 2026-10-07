@@ -73,15 +73,17 @@ export function useSessionSettings() {
 
   const updateAllPreferences = useCallback(
     async (autoSelect: boolean, timeoutSecs: number | null) => {
+      // Auto-select goes through the general mutation; the timeout goes through
+      // the dedicated `setAutoCloseTimeout` mutation because
+      // `updateUserPreferences` treats a null timeout as "no change" and so
+      // cannot clear back to "No timeout". The dedicated one accepts null.
       await updatePreferencesMutation({
-        variables: {
-          autoSelectLastSession: autoSelect,
-          autoCloseTimeoutSecs: timeoutSecs,
-        },
+        variables: { autoSelectLastSession: autoSelect },
       });
+      await setAutoCloseTimeoutMutation({ variables: { timeoutSecs } });
       refetch();
     },
-    [updatePreferencesMutation, refetch],
+    [updatePreferencesMutation, setAutoCloseTimeoutMutation, refetch],
   );
 
   const toggleAutoSelect = useCallback(async () => {

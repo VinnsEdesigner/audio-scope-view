@@ -12,6 +12,8 @@ import {
   useScopeCapture,
   useHomePageSessions,
   useLastUsedSession,
+  useEndSession,
+  useSessionSettings,
   useSessionDetail,
   type ScopeCaptureDspMetrics,
   type AnalysisUpdate,
@@ -47,8 +49,14 @@ export function ScopePage(): React.ReactElement {
   // Session selection state - these are now handled by SessionSelectionProvider on home page
 
   const { sessions } = useHomePageSessions();
-  const { lastUsedSession, lastUsedSessionId, markSessionAsUsed, isLastUsedSessionActive } =
-    useLastUsedSession();
+  const {
+    lastUsedSession,
+    lastUsedSessionId,
+    markSessionAsUsed,
+    isLastUsedSessionActive,
+  } = useLastUsedSession();
+  const [endSession] = useEndSession();
+  const { autoCloseTimeoutSecs } = useSessionSettings();
 
   // Validate the sessionId from URL directly with server query
   // This ensures we catch deleted/invalid sessions even when cache is stale
@@ -190,9 +198,9 @@ export function ScopePage(): React.ReactElement {
     fftSize: bufferSize,
   });
 
-  // The waveform generator replaces the old "test mode" mock analyzer. When
-  // the generator dialog is open we feed the scope from the C++ DSP generators
-  // (dsp.generateWaveform); otherwise the real audio analyzer is used.
+  // The waveform generator replaces the old "test mode" mock analyzer. Once the
+  // top-bar button turns it on, it keeps feeding the scope even after the
+  // settings dialog is closed; the dialog only edits its settings.
   const [generatorOpen, setGeneratorOpen] = React.useState(false);
   const generator = useWaveformGenerator({
     sampleRate,
@@ -200,7 +208,78 @@ export function ScopePage(): React.ReactElement {
     fftSize: bufferSize,
   });
   const mockAnalyzer = generator;
-  const audioAnalyzer = generatorOpen ? mockAnalyzer : realAnalyzer;
+  const audioAnalyzer = generator.active ? mockAnalyzer : realAnalyzer;
+
+  // Release the microphone when leaving the scope page. The audio analyzer is a
+  // module-level singleton, so without this the mic keeps capturing after the
+  // user navigates away.
+  const analyzerStopReference = React.useRef(realAnalyzer.stopCapture);
+  analyzerStopReference.current = realAnalyzer.stopCapture;
+  React.useEffect(() => {
+    return () => {
+      analyzerStopReference.current();
+    };
+  }, []);
+
+  // Auto-expire: when a timeout is configured, close the session once it has
+  // been open longer than the timeout and return to the session-selection
+  // dialog. Expiry is derived from THIS session's `startedAt` (from the detail
+  // query) plus the user's timeout preference, so it is self-contained and
+  // re-evaluated on a timer (and when the tab regains focus).
+  const expiredHandledReference = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (!sessionId) {
+      // No active session — clear the guard so the same session can be
+      // re-evaluated if it is selected again later.
+      expiredHandledReference.current = undefined;
+      return;
+    }
+    if (!autoCloseTimeoutSecs) return; // "No timeout"
+    const startedAt = sessionDetailData?.session?.startedAt;
+    if (!startedAt) return;
+    if (expiredHandledReference.current === sessionId) return;
+
+    const check = () => {
+      const started = new Date(startedAt).getTime();
+      if (Number.isNaN(started)) return;
+      const elapsedSecs = (Date.now() - started) / 1000;
+      if (elapsedSecs <= autoCloseTimeoutSecs) return;
+      if (expiredHandledReference.current === sessionId) return;
+      expiredHandledReference.current = sessionId;
+      void (async () => {
+        try {
+          await endSession({ variables: { id: sessionId } });
+        } catch {
+          /* session may already be gone — ignore */
+        }
+        audioAnalyzer.stopCapture();
+        scopeCapture.stopCapture();
+        showToast({ message: "Session expired due to inactivity", type: "info" });
+        // Drop the sessionId param; the selection effect then shows the dialog.
+        setSearchParameters({});
+      })();
+    };
+
+    check();
+    const interval = setInterval(check, 15_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [
+    sessionId,
+    autoCloseTimeoutSecs,
+    sessionDetailData,
+    endSession,
+    audioAnalyzer,
+    scopeCapture,
+    showToast,
+    setSearchParameters,
+  ]);
 
   const {
     data: recordingData,
@@ -725,8 +804,19 @@ export function ScopePage(): React.ReactElement {
           onPlay={handlePlay}
           onPause={handlePause}
           onStop={handleStop}
-          testMode={generatorOpen}
-          onToggleTestMode={() => setGeneratorOpen((open) => !open)}
+          testMode={generator.active}
+          onToggleTestMode={() => {
+            // Turn the generator on/off; when turning it on, also open its
+            // settings dialog. Closing the dialog does NOT stop the generator —
+            // it keeps feeding the scope until toggled off.
+            if (generator.active) {
+              generator.setActive(false);
+              setGeneratorOpen(false);
+            } else {
+              generator.setActive(true);
+              setGeneratorOpen(true);
+            }
+          }}
           onProbe={handleProbe}
           onPauseCapture={handlePauseCapture}
           onResumeCapture={handleResumeCapture}

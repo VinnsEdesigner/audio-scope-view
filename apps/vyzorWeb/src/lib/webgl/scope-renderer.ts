@@ -85,17 +85,19 @@ export class ScopeRenderer {
     const n = Math.min(samples.length, MAX_SAMPLES);
     if (n < 2) return;
 
-    // Map samples → clip-space vertices in the scratch buffer.
-    // x: sample index mapped to [-1, 1]. y: amplitude * pixelsPerUnit mapped to
-    // clip space (clipY = 1 - 2*yPx/height). With flipY ortho, pixel y down, so
-    // a positive amplitude should draw up (toward y=0 pixel) → clipY = 1 - 2*amp*ppu/h.
+    // Map samples → pixel-space vertices in the scratch buffer.
+    // x: sample index mapped to [0, width]. y: amplitude scaled by
+    // pixelsPerUnit, measured from the vertical center. The projection
+    // (`u_proj`, built with `ortho(..., flipY)`) maps this top-left pixel
+    // space to clip space, so a positive amplitude draws up.
     const sign = opts.invert ? -1 : 1;
+    const width = this.cachedWidth || 1;
     const height = this.cachedHeight || 1;
+    const halfHeight = height / 2;
     const verts = this.vertices;
-    const invH = 2 / height;
     for (let i = 0; i < n; i++) {
-      verts[i * 2] = (i / (n - 1)) * 2 - 1; // x in [-1, 1]
-      verts[i * 2 + 1] = 1 - sign * samples[i] * opts.pixelsPerUnit * invH;
+      verts[i * 2] = (i / (n - 1)) * width;
+      verts[i * 2 + 1] = halfHeight - sign * samples[i] * opts.pixelsPerUnit;
     }
 
     const compiled = this.ctx.program(
