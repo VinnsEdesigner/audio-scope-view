@@ -40,7 +40,7 @@ export class SpectrumRenderer {
       SHADERS.spectrum.vert,
       SHADERS.spectrum.frag,
       ["a_quad", "i_bin", "i_height"],
-      ["u_rect"],
+      ["u_rect", "u_viewport", "u_bar_width"],
     );
     if (!compiled) return false;
     this.program = compiled.program;
@@ -81,27 +81,30 @@ export class SpectrumRenderer {
     if (magnitudesDb.length === 0 || frequencies.length === 0) return;
 
     const maxFrequency = Math.min(sampleRate / 2, 20_000);
-    // Last bin index whose frequency is within the displayed range.
-    let maxBin = frequencies.findIndex((f) => f > maxFrequency) - 1;
-    if (maxBin <= 0 || maxBin > magnitudesDb.length - 1) {
-      maxBin = magnitudesDb.length - 1;
-    }
-    maxBin = Math.min(maxBin, MAX_BINS);
+    if (maxFrequency <= 0) return;
+    const firstOutside = frequencies.findIndex((f) => f > maxFrequency);
+    const maxBin = Math.min(
+      firstOutside < 0 ? frequencies.length - 1 : firstOutside - 1,
+      magnitudesDb.length - 1,
+      MAX_BINS,
+    );
     if (maxBin < 1) return;
 
     const gl = this.ctx.gl;
     const inst = this.instances;
-    const plotH = rect.h - 18; // leave room for axis labels at the bottom
+    const plotH = rect.h; // Caller reserves the frequency-axis gutter.
     for (let bin = 1; bin <= maxBin; bin++) {
       const db = magnitudesDb[bin];
-      const normalized = Math.max(0, (db - SPECTRUM_FLOOR_DB) / -SPECTRUM_FLOOR_DB);
-      inst[(bin - 1) * 2] = (bin - 1) / maxBin; // i_bin: 0..1 across the width
+      const normalized = Number.isFinite(db)
+        ? Math.max(0, Math.min(1, (db - SPECTRUM_FLOOR_DB) / -SPECTRUM_FLOOR_DB))
+        : 0;
+      inst[(bin - 1) * 2] = frequencies[bin] / maxFrequency;
       inst[(bin - 1) * 2 + 1] = normalized; // i_height: bar height fraction
     }
 
     const compiled = this.ctx.program(
       SHADERS.spectrum.vert, SHADERS.spectrum.frag,
-      ["a_quad", "i_bin", "i_height"], ["u_rect"],
+      ["a_quad", "i_bin", "i_height"], ["u_rect", "u_viewport", "u_bar_width"],
     );
     if (!compiled) return;
     gl.useProgram(this.program);
@@ -111,6 +114,9 @@ export class SpectrumRenderer {
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, inst.subarray(0, maxBin * 2));
 
     gl.uniform4f(compiled.uniforms.u_rect, rect.x, rect.y, rect.w, plotH);
+    gl.uniform2f(compiled.uniforms.u_viewport, this.ctx.width, this.ctx.height);
+    const binWidth = (frequencies[1] - frequencies[0]) / maxFrequency * rect.w;
+    gl.uniform1f(compiled.uniforms.u_bar_width, Math.max(1, binWidth));
 
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, maxBin);
     gl.bindVertexArray(null);

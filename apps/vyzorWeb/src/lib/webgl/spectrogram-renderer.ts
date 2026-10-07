@@ -6,7 +6,7 @@ import type { SpectrogramData } from "@audio-scope-view/dsp-wasm";
 
 export interface SpectrogramRenderOptions {
   /** A fresh spectrogram slice to push at the bottom of the waterfall. */
-  data: SpectrogramData;
+  data?: SpectrogramData;
   /** Plot rect in pixels. */
   rect: { x: number; y: number; w: number; h: number };
 }
@@ -53,7 +53,6 @@ export class SpectrogramRenderer {
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
     // Pack pos(2) + uv(2) per vertex = 4 floats.
-    const interleaved = new Float32Array(QUAD_POS.length / 2);
     const packed = new Float32Array(QUAD_POS.length + QUAD_UV.length);
     for (let i = 0; i < 4; i++) {
       packed[i * 4] = QUAD_POS[i * 2];
@@ -61,7 +60,6 @@ export class SpectrogramRenderer {
       packed[i * 4 + 2] = QUAD_UV[i * 2];
       packed[i * 4 + 3] = QUAD_UV[i * 2 + 1];
     }
-    void interleaved;
     gl.bufferData(gl.ARRAY_BUFFER, packed, gl.STATIC_DRAW);
     const aPos = compiled.attribs.a_pos;
     const aUv = compiled.attribs.a_uv;
@@ -75,7 +73,7 @@ export class SpectrogramRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texImage2D(
       gl.TEXTURE_2D, 0, gl.R8, TEX_W, TEX_H, 0,
-      gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.texData,
+      gl.RED, gl.UNSIGNED_BYTE, this.texData,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -91,19 +89,28 @@ export class SpectrogramRenderer {
    * Push a new STFT slice (the last magnitude row of `data`) to the bottom of
    * the waterfall and re-upload the scrolling texture. Call once per slice.
    */
-  pushSlice(data: SpectrogramData): void {
+  pushSlice(data: SpectrogramData, maxFrequency = Math.min(data.sampleRate / 2, 20_000)): void {
     if (!this.initialized || !this.texture) return;
     const rows = data.magnitudes;
     if (rows.length === 0) return;
     const lastRow = rows[rows.length - 1];
-    const n = Math.min(lastRow.length, TEX_W);
+    const n = Math.min(lastRow.length, data.frequencies.length);
+    if (n === 0 || maxFrequency <= 0) return;
 
     // Scroll existing rows up by 1 (row 0 = top/oldest is discarded).
     this.texData.copyWithin(0, TEX_W, TEX_W * TEX_H);
     // Write the new row at the bottom (row TEX_H-1), normalized dB → 0..255.
     const base = (TEX_H - 1) * TEX_W;
+    let bin = 0;
     for (let i = 0; i < TEX_W; i++) {
-      const db = i < n ? lastRow[i] : SPECTRUM_FLOOR_DB;
+      const frequency = (i / (TEX_W - 1)) * maxFrequency;
+      while (bin + 1 < n && data.frequencies[bin + 1] <= frequency) bin++;
+      const next = Math.min(bin + 1, n - 1);
+      const span = data.frequencies[next] - data.frequencies[bin];
+      const mix = span > 0 ? Math.max(0, Math.min(1, (frequency - data.frequencies[bin]) / span)) : 0;
+      const magnitude = lastRow[bin] * (1 - mix) + lastRow[next] * mix;
+      const db = frequency < data.frequencies[0] || frequency > data.frequencies[n - 1] || !Number.isFinite(magnitude)
+        ? SPECTRUM_FLOOR_DB : magnitude;
       const norm = Math.max(0, Math.min(1, (db - SPECTRUM_FLOOR_DB) / -SPECTRUM_FLOOR_DB));
       this.texData[base + i] = Math.round(norm * 255);
     }
@@ -112,7 +119,7 @@ export class SpectrogramRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texSubImage2D(
       gl.TEXTURE_2D, 0, 0, 0, TEX_W, TEX_H,
-      gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.texData,
+      gl.RED, gl.UNSIGNED_BYTE, this.texData,
     );
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
@@ -125,13 +132,13 @@ export class SpectrogramRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texSubImage2D(
       gl.TEXTURE_2D, 0, 0, 0, TEX_W, TEX_H,
-      gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.texData,
+      gl.RED, gl.UNSIGNED_BYTE, this.texData,
     );
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
-  /** Draw the waterfall fullscreen. `rect` is currently unused (fullscreen). */
-  draw(_opts: SpectrogramRenderOptions): void {
+  /** Draw inside the same plot rectangle used by the spectrum. */
+  draw(opts: SpectrogramRenderOptions): void {
     if (!this.initialized || !this.program || !this.vao || !this.texture) return;
     const gl = this.ctx.gl;
     const compiled = this.ctx.program(
@@ -143,7 +150,10 @@ export class SpectrogramRenderer {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.uniform1i(compiled.uniforms.u_tex, 0);
+    const { rect } = opts;
+    gl.viewport(rect.x, this.ctx.height - rect.y - rect.h, rect.w, rect.h);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.viewport(0, 0, this.ctx.width, this.ctx.height);
     gl.bindVertexArray(null);
   }
 
