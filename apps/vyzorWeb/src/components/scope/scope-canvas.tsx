@@ -129,6 +129,7 @@ export function ScopeCanvas({
     waveformColor,
     verticalGain,
     scopeView,
+    showGrid,
     triggerEnabled,
     triggerEdge,
     triggerLevel,
@@ -198,10 +199,6 @@ export function ScopeCanvas({
     let animationFrameId: number;
     let cssWidth = 0;
     let cssHeight = 0;
-    let cachedSpectrum: Spectrum | null = null;
-    let lastSpectrumUpdate = -Infinity;
-    let lastWaterfallUpdate = -Infinity;
-    let previousSampleRate = 0;
 
     const draw = () => {
       const rect = canvas.getBoundingClientRect();
@@ -215,10 +212,15 @@ export function ScopeCanvas({
 
       const resized = glCtx.resize(width, height);
       if (resized) {
-        bundle.scope.resize(glCtx.width, glCtx.height);
-        bundle.overlay.resize(glCtx.width, glCtx.height);
         bundle.spectrogram.clear();
       }
+      // Rebuild each renderer's pixel→clip projection. These calls are no-ops
+      // when the drawing-buffer size is unchanged, so issuing them every frame
+      // is cheap — and it matters because the spectrum view can be entered
+      // after the initial resize, and must not be left with a stale projection.
+      bundle.scope.resize(glCtx.width, glCtx.height);
+      bundle.overlay.resize(glCtx.width, glCtx.height);
+      bundle.spectrum.resize(glCtx.width, glCtx.height);
       // Track CSS-pixel size for the spectrum rect + marker placement.
       cssWidth = width;
       cssHeight = height;
@@ -237,6 +239,7 @@ export function ScopeCanvas({
         waveformColor: wfColor,
         verticalGain: vGain,
         scopeView: view,
+        showGrid: gridOn,
         triggerEnabled: trigOn,
         triggerEdge: trigEdge,
         triggerLevel: trigLevel,
@@ -251,32 +254,38 @@ export function ScopeCanvas({
       const liveFrame = waveformDataReference.current;
       const fullFrame = analysisFrameReference.current;
       const dsp = getDsp();
-      const now = performance.now();
-      const frequencyLimit = Math.min(sr / 2, 20_000);
-      const frequencyPlot = { x: 0, y: 0, w: physW, h: Math.max(1, physH - 24 * dpr) };
-      if (previousSampleRate !== sr) {
-        previousSampleRate = sr;
-        cachedSpectrum = null;
-        lastSpectrumUpdate = -Infinity;
-        lastWaterfallUpdate = -Infinity;
-        bundle.spectrogram.clear();
+
+      // ---- Grid ----------------------------------------------------------
+      // Drawn into the WebGL surface (not a CSS overlay) so it sits above the
+      // background and below the trace. A DOM grid element cannot work here:
+      // the opaque canvas clears every frame and paints over it.
+      if (gridOn) {
+        // Pre-blended against the #111820 background (alpha blending is not
+        // enabled on this context), so the lines read as the intended subtle
+        // 15%-alpha grid rather than full-brightness strokes.
+        const gridColor: [number, number, number, number] = [32 / 255, 44 / 255, 53 / 255, 1];
+        for (let step = 1; step < 10; step++) {
+          const x = toPhys((cssWidth * step) / 10);
+          bundle.overlay.drawLine(x, toPhys(0), x, toPhys(cssHeight), gridColor, 1, "solid");
+        }
+        for (let step = 1; step < 8; step++) {
+          const y = toPhys((cssHeight * step) / 8);
+          bundle.overlay.drawLine(toPhys(0), y, toPhys(cssWidth), y, gridColor, 1, "solid");
+        }
       }
 
       // ---- Spectrum view -------------------------------------------------
       if (view === "spectrum") {
         const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
-        if (dsp && data.length >= 8 && (!cachedSpectrum || (!paused && now - lastSpectrumUpdate >= 1000 / 30))) {
-          cachedSpectrum = dsp.computeSpectrum(data, sr, "hann");
-          lastSpectrumUpdate = now;
-        }
-        if (cachedSpectrum) {
+        if (dsp && data.length >= 8) {
+          const spectrum = dsp.computeSpectrum(data, sr, "hann");
           bundle.spectrum.draw({
-            magnitudesDb: cachedSpectrum.magnitudesDb,
-            frequencies: cachedSpectrum.frequencies,
+            magnitudesDb: spectrum.magnitudesDb,
+            frequencies: spectrum.frequencies,
             sampleRate: sr,
-            rect: frequencyPlot,
+            rect: { x: 0, y: 0, w: physW, h: physH },
           });
-          drawSpectrumAxisLabels(bundle.glyph, frequencyLimit, cssWidth, physH, dpr);
+          drawSpectrumAxisLabels(bundle.glyph, spectrum, cssWidth, physH, dpr);
         }
         animationFrameId = requestAnimationFrame(draw);
         return;
@@ -285,19 +294,17 @@ export function ScopeCanvas({
       // ---- Spectrogram view (waterfall) ---------------------------------
       if (view === "spectrogram") {
         const data = fullFrame && fullFrame.length > 0 ? fullFrame : liveFrame;
-        if (dsp && data.length >= 512 && !paused && now - lastWaterfallUpdate >= 1000 / 30) {
-          // Fixed acquisition cadence: monitor refresh rate must not change history speed.
+        if (dsp && data.length >= 256) {
+          // One STFT slice per frame (config tuned for the waterfall).
           const sg = dsp.computeSpectrogram(data, sr, {
             windowSize: 512,
             overlap: 0.5,
-            minFreq: 0,
-            maxFreq: frequencyLimit,
+            minFreq: 20,
+            maxFreq: Math.min(sr / 2, 20_000),
           });
-          bundle.spectrogram.pushSlice(sg, frequencyLimit);
-          lastWaterfallUpdate = now;
+          bundle.spectrogram.pushSlice(sg);
         }
-        bundle.spectrogram.draw({ rect: frequencyPlot });
-        drawSpectrumAxisLabels(bundle.glyph, frequencyLimit, cssWidth, physH, dpr);
+        bundle.spectrogram.draw({ data: { frequencies: new Float32Array(), timeBins: new Int32Array(0), magnitudes: [], sampleRate: sr, windowSize: 0, overlap: 0 }, rect: { x: 0, y: 0, w: physW, h: physH } });
         animationFrameId = requestAnimationFrame(draw);
         return;
       }
@@ -446,20 +453,6 @@ export function ScopeCanvas({
   return (
     <div ref={containerReference} className="absolute inset-0 bg-[#111820]">
       {}
-      {showGrid && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `
- linear-gradient(rgba(120, 160, 170, 0.15) 1px, transparent 1px),
- linear-gradient(90deg, rgba(120, 160, 170, 0.15) 1px, transparent 1px)
- `,
-            backgroundSize: "10% 12.5%",
-          }}
-        />
-      )}
-
-      {}
       <canvas ref={effectiveCanvasReference} className="absolute inset-0 w-full h-full" />
 
       {}
@@ -507,19 +500,20 @@ export function ScopeCanvas({
  */
 function drawSpectrumAxisLabels(
   glyph: GlyphRenderer,
-  maxFrequency: number,
+  spectrum: Spectrum,
   cssWidth: number,
   physH: number,
   dpr: number,
 ): void {
+  const maxFrequency = Math.min(spectrum.sampleRate / 2, 20_000);
   const labelColor: [number, number, number, number] = [1, 1, 1, 0.5];
   for (let step = 0; step <= 4; step++) {
     const ratio = step / 4;
     const frequency = ratio * maxFrequency;
     const label =
       frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}k` : `${Math.round(frequency)}`;
-    const x = Math.min(cssWidth - label.length * 6 - 2, ratio * cssWidth + 2);
+    const x = Math.min(cssWidth - 22, ratio * cssWidth + 2);
     const y = (physH / dpr) - 5 - 10; // 10px font, 5px margin from bottom
-    glyph.drawText(label, x * dpr, y * dpr, 10 * dpr, labelColor);
+    glyph.drawText(label, x, y, 10 * dpr, labelColor);
   }
 }
