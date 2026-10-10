@@ -180,7 +180,8 @@ export class GlyphRenderer {
     canvas.height = ATLAS_H;
     const c = canvas.getContext("2d");
     if (!c) return null;
-    c.clearRect(0, 0, ATLAS_W, ATLAS_H);
+    c.fillStyle = "black";
+    c.fillRect(0, 0, ATLAS_W, ATLAS_H);
     c.fillStyle = "white";
     c.font = `bold ${Math.floor(ATLAS_H * 0.8)}px ui-monospace, monospace`;
     c.textBaseline = "middle";
