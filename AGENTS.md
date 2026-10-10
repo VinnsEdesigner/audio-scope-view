@@ -258,3 +258,5 @@
   6. `control_task.c` used `AUDIOSCOPE_CODEC_PCM1802` (undefined) — real constant is `AS_USB_CODEC_PCM1802`.
   7. `generator.c` `%u` with `uint32_t` (Xtensa ABI = `long unsigned`) → `-Werror=format=`; cast to `(unsigned long)` + `%lu`.
 - **Hardware TODO (not blocking):** `idf.py flash` + real PCM1802 oscilloscope round-trip on an ESP32-S3 DevKit. The codec layer has a clean swap-point (`AUDIOSCOPE_CODEC_ID` in `board_config.h`, defaults to PCM1802). The firmware binary is real and flashable; only on-device validation remains.
+
+- Commit the built WASM artifacts in packages/dsp-wasm/dist (un-ignored in .gitignore): the hosted build has no Emscripten toolchain, so it cannot regenerate them.
